@@ -34,4 +34,9 @@ Do not convert low-confidence inference into an authoritative dimension without 
 
 ## Agent team
 
-The Orchestrator assigns work and enforces handoffs among Lead Developer, CAD / Geometry, Tube Bending Technology, Import / Export, UI, QA, and Reviewer agents. Detailed contracts are in `docs/ai-agent-team.md` and `.ai/agents/`.
+The Orchestrator coordinates two cooperating groups:
+
+1. Domain/review agents: Lead Developer, CAD / Geometry, Tube Bending Technology, Import / Export, UI, QA and Reviewer.
+2. Implementation agents for writing TubeBender: Software Architect, Core Application Developer, Integration Developer, Project Data / Persistence, Build / Release, and Performance / Reliability.
+
+Implementation agents write code, but domain agents own the meaning of geometry and technology rules. Detailed contracts are in `docs/ai-agent-team.md` and `.ai/agents/`.
