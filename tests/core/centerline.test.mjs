@@ -41,7 +41,7 @@ test("tube outside diameter is not an input to centerline arc length", () => {
   const legacyWrong = centerlineArcLength(65 + 22 / 2, 90);
 
   assert.notEqual(correct, legacyWrong);
-  assert.ok(Math.abs(legacyWrong - 119.38052083601213) <= EPS);
+  assert.ok(Math.abs(legacyWrong - 119.38052083641213) <= EPS);
 });
 
 test("invalid canonical primitives fail instead of producing a plausible length", () => {
