@@ -10,6 +10,7 @@
     "scope",
     "subject_id",
     "model_revision",
+    "required_for_production",
     "status",
     "severity",
     "message",
@@ -33,6 +34,9 @@
     "model_revision": {
       "type": "string",
       "minLength": 1
+    },
+    "required_for_production": {
+      "type": "boolean"
     },
     "status": {
       "enum": [
@@ -102,14 +106,37 @@
       "if": {
         "properties": {
           "status": {
+            "const": "passed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "blocks_production": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "required_for_production": {
+            "const": true
+          },
+          "status": {
             "enum": [
+              "violation",
               "not_checked",
-              "calculation_error",
-              "violation"
+              "calculation_error"
             ]
           }
         },
         "required": [
+          "required_for_production",
           "status"
         ]
       },
