@@ -225,8 +225,8 @@ test('A20: TKE_Shell exposes exact post-EdgeBreaker vertices and decoded connect
     kind:'all_parameters',
     source_offset:76,
     width:2,
-    value_count:2,
-    scalar_count:4
+    value_count:3,
+    scalar_count:6
   }]);
 });
 
