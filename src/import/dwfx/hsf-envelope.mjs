@@ -642,6 +642,99 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       count += 1;
       continue;
     }
+    if (opcode === 0x4e) { // TKE_NURBS_Curve
+      let cursor = offset + 1;
+      if (cursor + 6 > bytes.length) throw new RangeError("truncated TKE_NURBS_Curve header");
+      const options = bytes[cursor++];
+      const degree = bytes[cursor++];
+      const controlCount = readI32LE(bytes, cursor);
+      cursor += 4;
+      if (
+        degree < 1 ||
+        controlCount < 2 ||
+        controlCount > 1_000_000 ||
+        degree >= controlCount
+      ) {
+        throw new RangeError(
+          `invalid TKE_NURBS_Curve degree/count: degree=${degree}, count=${controlCount}`
+        );
+      }
+
+      const controlPoints = [];
+      for (let i = 0; i < controlCount; i += 1) {
+        if (cursor + 12 > bytes.length) throw new RangeError("truncated TKE_NURBS_Curve control points");
+        const point = Object.freeze([
+          readF32LE(bytes, cursor),
+          readF32LE(bytes, cursor + 4),
+          readF32LE(bytes, cursor + 8)
+        ]);
+        if (!point.every(Number.isFinite)) {
+          throw new RangeError(`non-finite TKE_NURBS_Curve control point at offset ${cursor}`);
+        }
+        controlPoints.push(point);
+        cursor += 12;
+      }
+
+      let weights = null;
+      if ((options & 0x01) !== 0) {
+        const decoded = [];
+        for (let i = 0; i < controlCount; i += 1) {
+          if (cursor + 4 > bytes.length) throw new RangeError("truncated TKE_NURBS_Curve weights");
+          const value = readF32LE(bytes, cursor);
+          if (!Number.isFinite(value)) throw new RangeError("non-finite TKE_NURBS_Curve weight");
+          decoded.push(value);
+          cursor += 4;
+        }
+        weights = Object.freeze(decoded);
+      }
+
+      let knots = null;
+      if ((options & 0x02) !== 0) {
+        const knotCount = controlCount + degree + 1;
+        const decoded = [];
+        for (let i = 0; i < knotCount; i += 1) {
+          if (cursor + 4 > bytes.length) throw new RangeError("truncated TKE_NURBS_Curve knots");
+          const value = readF32LE(bytes, cursor);
+          if (!Number.isFinite(value)) throw new RangeError("non-finite TKE_NURBS_Curve knot");
+          decoded.push(value);
+          cursor += 4;
+        }
+        knots = Object.freeze(decoded);
+      }
+
+      let start = 0;
+      let end = 1;
+      if ((options & 0x04) !== 0) {
+        start = readF32LE(bytes, cursor);
+        cursor += 4;
+      }
+      if ((options & 0x08) !== 0) {
+        end = readF32LE(bytes, cursor);
+        cursor += 4;
+      }
+      if (!Number.isFinite(start) || !Number.isFinite(end)) {
+        throw new RangeError("non-finite TKE_NURBS_Curve parameter range");
+      }
+
+      entities.push(Object.freeze({
+        kind: "curve_candidate",
+        source_offset: offset,
+        primitive: "nurbs_curve",
+        options,
+        degree,
+        control_points: Object.freeze(controlPoints),
+        weights,
+        knots,
+        start_parameter: start,
+        end_parameter: end,
+        source_semantics: "native_hsf_nurbs_curve",
+        canonical_ready: false,
+        production_ready: false
+      }));
+      offset = cursor;
+      count += 1;
+      continue;
+    }
     if (opcode === 0x6c) { // TKE_Line
       if (offset + 25 > bytes.length) throw new RangeError("truncated TKE_Line");
       const start = Object.freeze([
