@@ -14431,7 +14431,49 @@ function machineSequenceCheck(t=activeTube()){const d=manufacturingData(t),issue
   return {ok:!issues.length,issues:[...new Set(issues)],order:d.steps.map(x=>x.bend)};}
 function genericNc(t=activeTube(),format='YBC'){const d=manufacturingData(t),lines=[`; TubeBender CAD VC202`,`; Tube=${t.name}`,`; Style=${d.style.name}`,`; Machine=${d.machine.name}`,`; Stock=${round(d.production,3)} mm`];for(const s of d.steps){if(format==='LRA')lines.push(`L${s.L.toFixed(3)} R${s.R.toFixed(3)} A${s.commandAngle.toFixed(3)}`);else lines.push(`Y${s.Y.toFixed(3)} B${s.B.toFixed(3)} C${s.commandAngle.toFixed(3)}`);}return lines.join('\n');}
 window.TB_NC_POSTPROCESSORS=window.TB_NC_POSTPROCESSORS||{};window.TB_NC_POSTPROCESSORS['generic-ybc']={name:'Generic YBC',generate:t=>genericNc(t,'YBC')};window.TB_NC_POSTPROCESSORS['generic-lra']={name:'Generic LRA',generate:t=>genericNc(t,'LRA')};
-function dxfForTube(t=activeTube()){const g=rebuildRouteGraph(t,false),pts=g.points||[];let s='0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n0\nPOLYLINE\n8\nTUBE\n66\n1\n70\n8\n';for(const p of pts)s+=`0\nVERTEX\n8\nTUBE\n10\n${n(p.position.x)}\n20\n${n(p.position.y)}\n30\n${n(p.position.z)}\n`;s+='0\nSEQEND\n0\nENDSEC\n0\nEOF\n';return s;}
+function dxfCenterlinePoints(t=activeTube(),maxDeviationMm=0.1){
+  const g=geometryForTube(t);
+  const points=[];
+  const tol=Math.max(0.001,Number(maxDeviationMm)||0.1);
+  const pushScaled=(v)=>{
+    if(!v)return;
+    const p={x:v.x/GEOM_SCALE,y:v.y/GEOM_SCALE,z:v.z/GEOM_SCALE};
+    const prev=points.at(-1);
+    if(!prev||Math.hypot(p.x-prev.x,p.y-prev.y,p.z-prev.z)>1e-9)points.push(p);
+  };
+  for(const element of g.elements||[]){
+    pushScaled(element.start);
+    if(element.type==='LINE'){
+      pushScaled(element.end);
+      continue;
+    }
+    if(element.type==='BEND'){
+      const radiusMm=Math.max(1e-9,Number(element.radiusMm)||0);
+      const sweep=Math.abs(THREE.MathUtils.degToRad(Number(element.angleDeg)||0));
+      if(!(sweep>0)){pushScaled(element.end);continue;}
+      const ratio=Math.max(-1,Math.min(1,1-tol/radiusMm));
+      const sagittaStep=2*Math.acos(ratio);
+      const maxStep=Math.min(Math.PI/6,Number.isFinite(sagittaStep)&&sagittaStep>1e-9?sagittaStep:Math.PI/180);
+      const steps=Math.max(2,Math.ceil(sweep/maxStep));
+      const radial=element.start.clone().sub(element.center);
+      for(let k=1;k<=steps;k++){
+        const p=element.center.clone().add(radial.clone().applyAxisAngle(element.axis,sweep*k/steps));
+        pushScaled(p);
+      }
+      continue;
+    }
+    throw new Error(`DXF: неподдерживаемый элемент ${String(element.type)}`);
+  }
+  return {points,maxDeviationMm:tol};
+}
+function dxfForTube(t=activeTube()){
+  const sampled=dxfCenterlinePoints(t,0.1),pts=sampled.points;
+  if(pts.length<2)throw new Error('DXF: недостаточно подтверждённой геометрии осевой линии');
+  let s='0\nSECTION\n2\nHEADER\n999\nTubeBender centerline export\n999\nMAX_CENTERLINE_DEVIATION_MM='+sampled.maxDeviationMm+'\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n0\nPOLYLINE\n8\nTUBE_CENTERLINE\n66\n1\n70\n8\n';
+  for(const p of pts)s+=`0\nVERTEX\n8\nTUBE_CENTERLINE\n10\n${round(p.x,6)}\n20\n${round(p.y,6)}\n30\n${round(p.z,6)}\n`;
+  s+='0\nSEQEND\n0\nENDSEC\n0\nEOF\n';
+  return s;
+}
 function reportHtml(t=activeTube()){const d=manufacturingData(t),diag=diagnoseTube(t),p=activeProject(),settings=p.engineering.reportSettings||{};return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(t.name)}</title><style>body{font:12px Arial;margin:24px;color:#111}h1{font-size:20px}table{border-collapse:collapse;width:100%;margin:12px 0}th,td{border:1px solid #777;padding:5px;text-align:center}.meta{display:grid;grid-template-columns:1fr 1fr;gap:5px}.bad{color:#b00020}.qr{font-family:monospace;word-break:break-all;border:1px solid #777;padding:8px}</style><style id="tbApprovedMockupExactStyles">
 :root{
  --r6-bg:#020b14;--r6-bg2:#061522;--r6-panel:#071725;--r6-panel2:#091b2a;--r6-edge:#1a3449;--r6-edge-hi:#264d69;
