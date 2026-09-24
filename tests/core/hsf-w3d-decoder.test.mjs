@@ -40,3 +40,34 @@ test("A20: decoder can report complete only when synchronized parsing reaches st
   assert.equal(out.complete,true);
   assert.match(out.diagnostics.join(" "),/reached TKE_Stop_Compression/i);
 });
+
+
+test("A20: modelling matrix is promoted to the evidence transform field", async()=>{
+  const matrixStream=Uint8Array.from([
+    0x25,
+    ...f32(1),...f32(0),...f32(0),
+    ...f32(0),...f32(1),...f32(0),
+    ...f32(0),...f32(0),...f32(1),
+    ...f32(10),...f32(20),...f32(30),
+    0x7a
+  ]);
+  const compressed=deflateSync(matrixStream);
+  const bytes=Uint8Array.from([
+    ...Buffer.from(";; HSF V14.50 "),0,
+    0x49,...le32(0x9a06),
+    0x3b,...Buffer.from("W3D V01.00\n"),
+    0x49,...le32(0),
+    0x5a,...compressed,0
+  ]);
+  const out=await decodeHsfW3d(bytes);
+  assert.equal(out.complete,true);
+  assert.equal(out.entities[0].kind,"transform");
+  assert.deepEqual(out.entities[0].transform,[
+    1,0,0,0,
+    0,1,0,0,
+    0,0,1,0,
+    10,20,30,1
+  ]);
+  assert.equal(out.entities[0].payload.matrix,undefined);
+  assert.equal(out.entities[0].payload.source_semantics,"native_hsf_modelling_matrix");
+});
