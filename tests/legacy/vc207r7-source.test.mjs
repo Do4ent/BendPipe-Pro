@@ -311,3 +311,75 @@ test("A12: DXF samples bend curvature with an explicit 0.1 mm centerline deviati
   assert.doesNotMatch(dxf, /rebuildRouteGraph\(t,false\)/);
   assert.doesNotMatch(dxf, /g\.points\|\|\[\]/);
 });
+
+
+test("A15: bend CLR is persisted independently from later tooling changes", () => {
+  const start = html.indexOf("function exactToolAtIndex(");
+  const end = html.indexOf("\nfunction arcLengthForRowWithPipe(", start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+  const helpers = html.slice(start, end);
+
+  const result = vm.runInNewContext(
+    `var pipeDb=[{id:"tool-65",Rb:65}];
+     var state={diameterIndex:0};
+     ${helpers}
+     var rows=[{type:"BEND",angle:90}];
+     snapshotLegacyBendClr(rows,0);
+     var first=bendCenterlineRadiusMm(rows[0],0);
+     pipeDb[0].Rb=90;
+     [first,bendCenterlineRadiusMm(rows[0],0),rows[0].clr,rows[0].clrSource];`,
+    {}
+  );
+
+  assert.deepEqual(Array.from(result), [
+    65,
+    65,
+    65,
+    "legacy_tooling_snapshot"
+  ]);
+});
+
+test("A15: new bends persist CLR at creation", () => {
+  const add = functionSlice("addBendVariant", "addBend");
+  const normalize = functionSlice("normalizeTubeRowStart", "firstStraightTechnologicalViolation");
+
+  assert.match(add, /clr:bendCenterlineRadiusMm\(null,state\.diameterIndex\)/);
+  assert.match(add, /clrSource:'tooling_default_at_creation'/);
+  assert.match(normalize, /snapshotLegacyBendClr\(normalized,diameterIndex\)/);
+});
+
+test("A15: core geometry consumers resolve CLR from each bend", () => {
+  const centerline = functionSlice("pipeCenterlineBoxForRows", "pipeEnvelopeBoxForRows");
+  const envelope = functionSlice("pipeEnvelopeBoxForRows", "pipeBoundsContext");
+  const bounds = functionSlice("analyzePipeBounds", "analyzeTubeBounds");
+  const collisions = functionSlice("buildTubeCollisionGeometry", "tubeBoxesOverlap");
+  const passive = functionSlice("addPassiveVisibleTube", "addOtherVisibleProjectTubes");
+  const geometry = functionSlice("geometryForTube", "rebuildRouteGraph");
+
+  assert.match(centerline, /bendCenterlineRadiusMm\(r,diameterIndex\)/);
+  assert.match(envelope, /bendCenterlineRadiusMm\(r,diameterIndex\)/);
+  assert.match(bounds, /bendCenterlineRadiusMm\(r,diameterIndex\)/);
+  assert.match(collisions, /bendCenterlineRadiusMm\(r,snap\.diameterIndex\)/);
+  assert.match(passive, /bendCenterlineRadiusMm\(r,tube\.diameterIndex\)/);
+  assert.match(geometry, /bendCenterlineRadiusMm\(r,t\.id===state\.activeTubeId\?state\.diameterIndex:t\.diameterIndex\)/);
+});
+
+test("A15: manufacturing reports nominal CLR separately from tooling CLR", () => {
+  const mf = functionSlice("manufacturingData", "machineSequenceCheck");
+  const gate = functionSlice("productionReleaseDecision", "exportManufacturing");
+
+  assert.match(mf, /radius:bendCenterlineRadiusMm\(r,t\.diameterIndex\)/);
+  assert.match(mf, /toolRadius:n\(pipeAt\(t\.diameterIndex\)\?\.Rb,0\)/);
+  assert.match(gate, /CLR .*не соответствует выбранной оснастке/);
+  assert.match(gate, /bendCenterlineRadiusMm\(row,t\.diameterIndex\)/);
+});
+
+test("A15: project-open preview honors explicit bend CLR before legacy tooling CLR", () => {
+  const preview = functionSlice("poBuildTubePath", "poClosestSegments");
+
+  assert.match(preview, /directClr=Number\(r\.clr\)/);
+  assert.match(preview, /legacyClr=Number\(tool\.Rb\)/);
+  assert.match(preview, /Number\.isFinite\(directClr\)&&directClr>0\?directClr:legacyClr/);
+  assert.match(preview, /const arcLength=sweep\*bendR/);
+});
