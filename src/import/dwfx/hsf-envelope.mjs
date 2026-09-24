@@ -1,4 +1,4 @@
-function asBytes(input) {
+import { decodeEdgeBreakerConnectivity } from "./edgebreaker-connectivity.mjs";\n\nfunction asBytes(input) {
   if (input instanceof Uint8Array) return input;
   if (input instanceof ArrayBuffer) return new Uint8Array(input);
   if (ArrayBuffer.isView(input)) {
@@ -999,6 +999,7 @@ export function decodeHsfOpcodePrefix(
       let compressionScheme = 0;
       let workspaceLength = 0;
       let edgeBreaker = null;
+      let decodedEdgeBreakerConnectivity = null;
       let vertices = Object.freeze([]);
       let pointCount = 0;
       let faceList = null;
@@ -1083,6 +1084,20 @@ export function decodeHsfOpcodePrefix(
           workspace_offset: workspaceStart,
           workspace_length: workspaceLength
         });
+        try {
+          decodedEdgeBreakerConnectivity = decodeEdgeBreakerConnectivity(
+            bytes.subarray(workspaceStart, workspaceEnd)
+          );
+        } catch (error) {
+          return Object.freeze({
+            entities: Object.freeze(entities),
+            next_offset: shellOffset,
+            complete_prefix: false,
+            unsupported_opcode: opcode,
+            unsupported_variant:
+              `TKE_Shell EdgeBreaker connectivity blocked: ${error?.message || String(error)}`
+          });
+        }
         cursor = workspaceEnd;
 
         if (!hasCompressedPoints) {
@@ -1313,7 +1328,9 @@ export function decodeHsfOpcodePrefix(
         compression_scheme: compressionScheme,
         connectivity: Object.freeze({
           status: hasConnectivityCompression
-            ? "compressed_unresolved"
+            ? decodedEdgeBreakerConnectivity
+              ? "decoded"
+              : "compressed_unresolved"
             : faceList
               ? "decoded"
               : "unresolved",
@@ -1322,7 +1339,14 @@ export function decodeHsfOpcodePrefix(
             : faceList
               ? "trivial_face_list"
               : null,
-          faces: faceList
+          face_count: hasConnectivityCompression
+            ? decodedEdgeBreakerConnectivity?.face_count ?? null
+            : faceList
+              ? null
+              : null,
+          faces: hasConnectivityCompression
+            ? decodedEdgeBreakerConnectivity?.faces ?? null
+            : faceList
         }),
         edge_breaker: edgeBreaker,
         vertices,
