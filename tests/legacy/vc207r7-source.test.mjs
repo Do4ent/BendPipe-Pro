@@ -485,7 +485,7 @@ test("A13: legacy runtime has real bounded undo/redo model history", () => {
 });
 
 test("A13: Undo/Redo toolbar buttons call history instead of placeholder toasts", () => {
-  const shell = functionSlice("bindShell", "buildShell");
+  const shell = functionSlice("bindShell", "setMobilePanel");
 
   assert.match(shell, /tbActionUndo[^\n]*addEventListener\('click',tbUndo\)/);
   assert.match(shell, /tbActionRedo[^\n]*addEventListener\('click',tbRedo\)/);
