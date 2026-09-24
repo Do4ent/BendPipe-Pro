@@ -120,6 +120,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256 } = {}) {
   const entities = [];
   let offset = 0;
   let count = 0;
+  let geometryAttributesDepth = 0;
 
   while (offset < bytes.length && count < maxOpcodes) {
     const opcode = bytes[offset];
@@ -146,6 +147,37 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256 } = {}) {
       offset += 1;
       count += 1;
       continue;
+    }
+    if (opcode === 0x3a) { // TKE_Geometry_Attributes: no operands
+      entities.push(Object.freeze({
+        kind: "geometry_scope",
+        action: "open",
+        source_offset: offset
+      }));
+      geometryAttributesDepth += 1;
+      offset += 1;
+      count += 1;
+      continue;
+    }
+    if (opcode === 0x00) { // TKE_Termination
+      if (geometryAttributesDepth > 0) {
+        geometryAttributesDepth -= 1;
+        entities.push(Object.freeze({
+          kind: "geometry_scope",
+          action: "close",
+          source_offset: offset
+        }));
+        offset += 1;
+        count += 1;
+        continue;
+      }
+      return Object.freeze({
+        entities: Object.freeze(entities),
+        next_offset: offset,
+        complete_prefix: false,
+        unsupported_opcode: opcode,
+        unsupported_variant: "TKE_Termination outside geometry-attributes scope"
+      });
     }
     if (opcode === 0x71) { // TKE_Tag: no operands
       entities.push(Object.freeze({ kind: "tag", source_offset: offset }));
