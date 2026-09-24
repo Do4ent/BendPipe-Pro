@@ -20,6 +20,7 @@ const ALLOWED_KINDS = new Set([
   "color",
   "geometry_scope",
   "user_options",
+  "heuristics",
   "polyline",
   "triangle_mesh",
   "curve_candidate",
