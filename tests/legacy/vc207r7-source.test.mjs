@@ -213,3 +213,64 @@ test("A08: modern editing entry points enforce readonly", () => {
   assert.match(readOnlyUi, /#tbEditSummary input/);
   assert.match(readOnlyUi, /#tbEditSummary select/);
 });
+
+
+test("A09: whole-project collisions are visible in checks and block production release", () => {
+  const checks = functionSlice("checkRow", "refreshTechnology");
+  const start = html.indexOf("function productionReleaseDecision(");
+  const end = html.indexOf("\nfunction axisOrderPermutations()", start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+  const gate = html.slice(start, end);
+
+  assert.match(checks, /Пересечения проекта/);
+  assert.match(checks, /inactiveOnly/);
+  assert.match(gate, /getProjectCollisionAnalysis\(p\)/);
+  assert.match(gate, /Проект содержит пересечения труб/);
+});
+
+test("A10: project-open normalization never invents LINE 100 or drops unsupported source evidence", () => {
+  const normalize = functionSlice("poNormalizeTube", "poNormalizePackage");
+
+  assert.doesNotMatch(normalize, /\{type:'LINE',L:100\}/);
+  assert.doesNotMatch(normalize, /unshift\(\{type:'LINE'/);
+  assert.match(normalize, /importEvidence/);
+  assert.match(normalize, /unsupportedRows/);
+  assert.match(normalize, /sourceRows/);
+  assert.match(normalize, /productionBlocked/);
+  assert.match(normalize, /LINE 100 не создаётся/);
+  assert.match(normalize, /первая или ближайшая оснастка не подставляется/);
+});
+
+test("A10: project-open helpers do not silently substitute axis, plane, or tooling", () => {
+  const axis = functionSlice("poAxisVector", "poPlaneNormal");
+  const plane = functionSlice("poPlaneNormal", "poRotate");
+  const tool = functionSlice("poToolFor", "poBuildTubePath");
+  const pathBuilder = functionSlice("poBuildTubePath", "poClosestSegments");
+
+  assert.match(axis, /return null/);
+  assert.doesNotMatch(axis, /axis\|\|'X'/);
+  assert.match(plane, /return null/);
+  assert.doesNotMatch(tool, /db\?\.\[0\]/);
+  assert.doesNotMatch(tool, /mm:22/);
+  assert.doesNotMatch(tool, /Rb:40/);
+  assert.match(pathBuilder, /tooling is unresolved/);
+  assert.match(pathBuilder, /start axis is unsupported/);
+  assert.match(pathBuilder, /start plane is unsupported/);
+});
+
+test("A10: ambiguous imported data bypasses legacy repair guessing", () => {
+  const repair = functionSlice("repairTubeForCheck", "verifyProjectHasCheckedPipe");
+
+  assert.match(repair, /importValidation\?\.productionBlocked===true/);
+  const guard = repair.indexOf("importValidation?.productionBlocked===true");
+  const normalize = repair.indexOf("normalizeTubeRowStart");
+  assert.ok(guard >= 0 && normalize > guard, "ambiguous import guard must execute before geometry normalization");
+});
+
+test("A01/A10: project-open developed bend length uses CLR only", () => {
+  const pathBuilder = functionSlice("poBuildTubePath", "poClosestSegments");
+
+  assert.match(pathBuilder, /const arcLength=sweep\*bendR/);
+  assert.doesNotMatch(pathBuilder, /sweep\*\(bendR\+tubeR\)/);
+});
