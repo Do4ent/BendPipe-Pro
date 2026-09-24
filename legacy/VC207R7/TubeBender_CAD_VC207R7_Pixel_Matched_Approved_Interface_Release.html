@@ -15563,16 +15563,29 @@ window.TubeBenderProjectMapUI={refresh:refreshModernUi,newProject:showNewProject
     if(left&&ribbon.firstElementChild!==left)ribbon.insertBefore(left,ribbon.firstElementChild);
   }
   function setApprovedText(){
-    const sub=document.querySelector('.tb-brand-sub');if(sub)sub.textContent='Профессиональное проектирование трубопроводов';
-    const tree=document.querySelector('.tb-tree-title');if(tree)tree.textContent='Проект';
-    const n=document.getElementById('tbNewProjectTop');if(n)n.textContent='＋ Новый';
+    // Layout/pixel-match code must not own interface language.
+    // Runtime text is localized only by TubeBenderI18n/component renderers.
   }
-  function exactRefresh(){ensureWindowControls();normalizeToolbar();setApprovedText();try{window.resize?.();window.markViewerDirty?.();}catch{}}
-  window.addEventListener('DOMContentLoaded',()=>setTimeout(exactRefresh,120));
-  window.addEventListener('resize',()=>setTimeout(exactRefresh,20));
+  let mockupRefreshQueued=false;
+  let mockupRefreshing=false;
+  function exactRefresh(){
+    if(mockupRefreshing)return;
+    mockupRefreshing=true;
+    try{ensureWindowControls();normalizeToolbar();window.resize?.();window.markViewerDirty?.();}
+    finally{mockupRefreshing=false;}
+  }
+  function scheduleExactRefresh(){
+    if(mockupRefreshQueued)return;
+    mockupRefreshQueued=true;
+    requestAnimationFrame(()=>{mockupRefreshQueued=false;exactRefresh();});
+  }
+  window.addEventListener('DOMContentLoaded',()=>setTimeout(scheduleExactRefresh,120));
+  window.addEventListener('resize',scheduleExactRefresh);
   window.addEventListener('DOMContentLoaded',()=>{
     const root=document.getElementById('app')||document.body;
-    const mo=new MutationObserver(()=>{if(document.body.classList.contains('tb-project-map'))setTimeout(exactRefresh,0);});
+    const mo=new MutationObserver(()=>{
+      if(document.body.classList.contains('tb-project-map'))scheduleExactRefresh();
+    });
     mo.observe(root,{childList:true,subtree:true});
   });
   window.TubeBenderApprovedMockup={refresh:exactRefresh,reference:{width:1672,height:941,lengthAxis:'X',depthAxis:'Y',heightAxis:'Z'}};
