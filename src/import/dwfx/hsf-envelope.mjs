@@ -535,6 +535,35 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       count += 1;
       continue;
     }
+    if (opcode === 0x6c) { // TKE_Line
+      if (offset + 25 > bytes.length) throw new RangeError("truncated TKE_Line");
+      const start = Object.freeze([
+        readF32LE(bytes, offset + 1),
+        readF32LE(bytes, offset + 5),
+        readF32LE(bytes, offset + 9)
+      ]);
+      const end = Object.freeze([
+        readF32LE(bytes, offset + 13),
+        readF32LE(bytes, offset + 17),
+        readF32LE(bytes, offset + 21)
+      ]);
+      if (![...start, ...end].every(Number.isFinite)) {
+        throw new RangeError(`non-finite TKE_Line coordinate at offset ${offset}`);
+      }
+      entities.push(Object.freeze({
+        kind: "curve_candidate",
+        source_offset: offset,
+        primitive: "line",
+        start,
+        end,
+        source_semantics: "native_hsf_line",
+        canonical_ready: false,
+        production_ready: false
+      }));
+      offset += 25;
+      count += 1;
+      continue;
+    }
     if (opcode === 0x63) { // TKE_Circular_Arc
       if (offset + 37 > bytes.length) throw new RangeError("truncated TKE_Circular_Arc");
       const readPoint = (base) => Object.freeze([
