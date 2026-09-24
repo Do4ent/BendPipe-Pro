@@ -464,3 +464,57 @@ test("A15: newly created bend snapshots CLR instead of retaining a live tooling 
   assert.match(addBend, /clrSource:'tooling_default_at_creation'/);
   assert.match(addBend, /clrToolingId:pipeDb\[state\.diameterIndex\]\?\.id/);
 });
+
+
+test("A13: legacy runtime has real bounded undo/redo model history", () => {
+  const start = html.indexOf("const TB_HISTORY_LIMIT=50;");
+  const end = html.indexOf("\nfunction arcLength(", start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+  const history = html.slice(start, end);
+
+  assert.match(history, /const tbHistory=\{undo:\[\],redo:\[\],transaction:null,applying:false\}/);
+  assert.match(history, /function tbHistorySnapshot\(/);
+  assert.match(history, /function tbHistoryCommit\(/);
+  assert.match(history, /tbHistory\.redo\.length=0/);
+  assert.match(history, /function tbHistoryRestore\(/);
+  assert.match(history, /function tbUndo\(/);
+  assert.match(history, /function tbRedo\(/);
+  assert.match(history, /function tbModelCommand\(/);
+  assert.match(history, /poReadOnly\(\)/);
+});
+
+test("A13: Undo/Redo toolbar buttons call history instead of placeholder toasts", () => {
+  const shell = functionSlice("bindShell", "buildShell");
+
+  assert.match(shell, /tbActionUndo[^\n]*addEventListener\('click',tbUndo\)/);
+  assert.match(shell, /tbActionRedo[^\n]*addEventListener\('click',tbRedo\)/);
+  assert.match(shell, /tbHistoryUpdateUi\(\)/);
+  assert.doesNotMatch(shell, /История изменений будет доступна/);
+});
+
+test("A13/A08: primary geometry edits go through the readonly-aware command boundary", () => {
+  const edit = functionSlice("editCell", "minStraight");
+  const plane = functionSlice("commitBendPlaneChange", "lengthHint");
+  const addLine = functionSlice("addLine", "addBendVariant");
+  const addBend = functionSlice("addBendVariant", "addBend");
+  const first = functionSlice("confirmFirstSegmentDraft", "focusFirstSegmentLengthInput");
+
+  assert.match(edit, /tbModelCommand\(/);
+  assert.match(plane, /tbModelCommand\(/);
+  assert.match(addLine, /tbModelCommand\(/);
+  assert.match(addBend, /tbModelCommand\(/);
+  assert.match(first, /tbModelCommand\(/);
+});
+
+test("A13: history restore persists model and rehydrates active tube before render", () => {
+  const start = html.indexOf("function tbHistoryRestore(");
+  const end = html.indexOf("\nfunction tbUndo(", start);
+  const restore = html.slice(start, end);
+
+  assert.match(restore, /state=clone\(snapshot\.state\)/);
+  assert.match(restore, /pipeDb=clone\(snapshot\.pipeDb\)/);
+  assert.match(restore, /loadActiveTubeToState\(\)/);
+  assert.match(restore, /localStorage\.setItem\(STORAGE_KEY/);
+  assert.match(restore, /renderAll\(\)/);
+});
