@@ -54,3 +54,33 @@ test("invalid canonical primitives fail instead of producing a plausible length"
     RangeError
   );
 });
+
+
+test("A15: different bends keep independent CLR values in one canonical tube", () => {
+  const actual = centerlineLength([
+    { type: "LINE", length: 100 },
+    { type: "BEND", clr: 40, angle: 90 },
+    { type: "LINE", length: 50 },
+    { type: "BEND", clr: 80, angle: 90 },
+    { type: "LINE", length: 100 }
+  ]);
+
+  const expected = 250 + (40 + 80) * Math.PI / 2;
+  assert.ok(Math.abs(actual - expected) <= EPS);
+});
+
+test("A15: canonical bend CLR is unaffected by a later tooling radius change", () => {
+  const primitives = [
+    { type: "LINE", length: 100 },
+    { type: "BEND", clr: 65, angle: 90 },
+    { type: "LINE", length: 100 }
+  ];
+
+  const before = centerlineLength(primitives);
+  const selectedTooling = { id: "tool-22", Rb: 65 };
+  selectedTooling.Rb = 80;
+  const after = centerlineLength(primitives);
+
+  assert.equal(after, before);
+  assert.equal(primitives[1].clr, 65);
+});
