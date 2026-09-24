@@ -479,3 +479,14 @@ test('A20: native HSF polygon remains polygon evidence without invented triangul
   assert.equal(out.entities[0].kind,'polygon');
   assert.deepEqual(out.entities[0].points,[[0,0,0],[1,0,0],[0,1,0]]);
 });
+
+
+test('A20: include-segment remains an explicit scene-graph reference',()=>{
+  const name='?Include Library/31';
+  const bytes=Uint8Array.from([0x3c,name.length,...Buffer.from(name),0xff]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.entities[0].kind,'segment');
+  assert.equal(out.entities[0].action,'include');
+  assert.equal(out.entities[0].name,name);
+});
