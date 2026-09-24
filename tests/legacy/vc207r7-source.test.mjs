@@ -278,7 +278,7 @@ test("A01/A10: project-open developed bend length uses CLR only", () => {
 
 test("A11: open-preview bounds reuse the live 5 mm clearance algorithm", () => {
   const ctx = functionSlice("pipeBoundsContext", "pipeBoundsContextForTube");
-  const bounds = functionSlice("analyzePipeBounds", "boundsMessage");
+  const bounds = functionSlice("analyzePipeBounds", "analyzeTubeBounds");
   const normalize = functionSlice("poNormalizePackage", "poSelectedProjects");
 
   assert.match(ctx, /pipe:o\.pipe/);
