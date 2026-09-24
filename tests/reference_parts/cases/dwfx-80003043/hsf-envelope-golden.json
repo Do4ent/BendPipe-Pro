@@ -7,7 +7,10 @@
   "w3d_size_bytes": 7546162,
   "hsf_version": "14.50",
   "w3d_marker": "W3D V01.00",
-  "file_info_flags": [39430, 0],
+  "file_info_flags": [
+    39430,
+    0
+  ],
   "compression": {
     "start_opcode_offset": 37,
     "compressed_payload_offset": 38,
@@ -22,32 +25,79 @@
         "source_offset": 0,
         "name": "?Style Library/_dwfw3d_PublishedEdges"
       },
-      {"kind": "segment", "action": "close", "source_offset": 39},
+      {
+        "kind": "segment",
+        "action": "close",
+        "source_offset": 39
+      },
       {
         "kind": "bounds",
         "source_offset": 40,
         "shape": "cuboid",
-        "min": [-71.71809387207031, -51.2776985168457, -4.85923433303833],
-        "max": [9.149999618530273, 29.290395736694336, 116.56777954101562]
+        "min": [
+          -71.71809387207031,
+          -51.2776985168457,
+          -4.85923433303833
+        ],
+        "max": [
+          9.149999618530273,
+          29.290395736694336,
+          116.56777954101562
+        ]
       },
       {
         "kind": "view",
         "source_offset": 66,
         "projection": 0,
-        "position": [0, 0, 1.1627906560897827],
-        "target": [0, 0, 0],
-        "up_vector": [0, 1, 0],
+        "position": [
+          0,
+          0,
+          1.1627906560897827
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "up_vector": [
+          0,
+          1,
+          0
+        ],
         "field_width": 10,
         "field_height": 5,
         "name": "default"
       },
-      {"kind": "segment", "action": "open", "source_offset": 120, "name": ""}
+      {
+        "kind": "segment",
+        "action": "open",
+        "source_offset": 120,
+        "name": ""
+      },
+      {
+        "kind": "tag",
+        "source_offset": 122
+      },
+      {
+        "kind": "light",
+        "light_type": "distant",
+        "source_offset": 123,
+        "direction": [
+          0.3045180141925812,
+          0.7193400263786316,
+          -0.6243550181388855
+        ]
+      },
+      {
+        "kind": "pause",
+        "source_offset": 136
+      }
     ],
-    "next_offset": 122,
-    "unsupported_opcode_hex": "0x71",
-    "unsupported_opcode_name": "TKE_Tag",
+    "next_offset": 137,
+    "unsupported_opcode_hex": "0x22",
+    "unsupported_opcode_name": "TKE_Color",
     "complete": false
   },
   "production_ready": false,
-  "note": "Golden facts extracted from the original 80003043(A) DWFx. Prefix decoding is evidence only; parsing stops at the first unsupported opcode and must not resynchronize by scanning."
+  "note": "Golden facts extracted from the original 80003043(A) DWFx. Prefix decoding is evidence only; parsing stops at the first unsupported opcode and must not resynchronize by scanning. Current synchronized frontier is TKE_Color at decompressed offset 137."
 }
