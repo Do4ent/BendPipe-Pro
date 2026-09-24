@@ -245,12 +245,13 @@ test('A20: style visibility RGB and native circular arc remain exact source evid
     ...f32(1),...f32(0),...f32(0),
     ...f32(0),...f32(1),...f32(0),
     ...f32(-1),...f32(0),...f32(0),
-    0x00
+    0x00,
+    0xff
   ]);
-  const out=decodeHsfOpcodePrefix(bytes);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x00);
-  assert.equal(out.next_offset,51);
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,52);
   assert.match(out.unsupported_variant,/outside geometry-attributes scope/i);
   assert.deepEqual(out.entities.map((e)=>e.kind),[
     'segment','visibility','color','curve_candidate'
@@ -265,5 +266,24 @@ test('A20: style visibility RGB and native circular arc remain exact source evid
   assert.deepEqual(out.entities[3].start,[1,0,0]);
   assert.deepEqual(out.entities[3].middle,[0,1,0]);
   assert.deepEqual(out.entities[3].end,[-1,0,0]);
+  assert.equal(out.entities[3].flags,0);
+  assert.equal(out.entities[3].center,null);
   assert.equal(out.entities[3].canonical_ready,false);
+});
+
+test('A20: HSF 12.15+ circular arc can carry an explicit center point',()=>{
+  const bytes=Uint8Array.from([
+    0x63,
+    ...f32(1),...f32(0),...f32(0),
+    ...f32(0),...f32(1),...f32(0),
+    ...f32(-1),...f32(0),...f32(0),
+    0x01,
+    ...f32(0),...f32(0),...f32(0),
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,50);
+  assert.equal(out.entities[0].flags,1);
+  assert.deepEqual(out.entities[0].center,[0,0,0]);
 });
