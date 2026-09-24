@@ -125,9 +125,45 @@ export async function decodeHsfEnvelope(input, { inflateZlib = defaultInflateZli
 }
 
 /** Decode a strict, synchronized prefix of simple HSF opcodes. Stops on the first unsupported opcode. */
-export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = null } = {}) {
+export function decodeHsfOpcodePrefix(
+  input,
+  {
+    maxOpcodes = 256,
+    hsfVersion = null,
+    captureEntity = null,
+    attachSegmentPath = false
+  } = {}
+) {
   const bytes = asBytes(input);
   const entities = [];
+  const segmentStack = [];
+  const shouldCapture =
+    captureEntity == null
+      ? () => true
+      : typeof captureEntity === "function"
+        ? captureEntity
+        : (() => { throw new TypeError("captureEntity must be a function or null"); })();
+
+  const emit = (entity) => {
+    const isOpen = entity.kind === "segment" && entity.action === "open";
+    const isClose = entity.kind === "segment" && entity.action === "close";
+
+    if (isOpen) segmentStack.push(entity.name ?? "");
+
+    if (shouldCapture(entity)) {
+      if (attachSegmentPath) {
+        emit(Object.freeze({
+          ...entity,
+          segment_path: Object.freeze([...segmentStack])
+        }));
+      } else {
+        emit(entity);
+      }
+    }
+
+    if (isClose && segmentStack.length > 0) segmentStack.pop();
+  };
+
   let offset = 0;
   let count = 0;
   let geometryAttributesDepth = 0;
@@ -142,7 +178,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       const length = bytes[offset + 1];
       const end = offset + 2 + length;
       if (end > bytes.length) throw new RangeError("truncated TKE_Open_Segment name");
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "segment",
         action: "open",
         source_offset: offset,
@@ -153,13 +189,13 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       continue;
     }
     if (opcode === 0x29) {
-      entities.push(Object.freeze({ kind: "segment", action: "close", source_offset: offset }));
+      emit(Object.freeze({ kind: "segment", action: "close", source_offset: offset }));
       offset += 1;
       count += 1;
       continue;
     }
     if (opcode === 0x3a) { // TKE_Geometry_Attributes: no operands
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "geometry_scope",
         action: "open",
         source_offset: offset
@@ -172,7 +208,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
     if (opcode === 0x00) { // TKE_Termination
       if (geometryAttributesDepth > 0) {
         geometryAttributesDepth -= 1;
-        entities.push(Object.freeze({
+        emit(Object.freeze({
           kind: "geometry_scope",
           action: "close",
           source_offset: offset
@@ -190,7 +226,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       });
     }
     if (opcode === 0x71) { // TKE_Tag: no operands
-      entities.push(Object.freeze({ kind: "tag", source_offset: offset }));
+      emit(Object.freeze({ kind: "tag", source_offset: offset }));
       offset += 1;
       count += 1;
       continue;
@@ -202,7 +238,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         readF32LE(bytes, offset + 5),
         readF32LE(bytes, offset + 9)
       ]);
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "light",
         light_type: "distant",
         source_offset: offset,
@@ -213,7 +249,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       continue;
     }
     if (opcode === 0x01) { // TKE_Pause: no operands
-      entities.push(Object.freeze({ kind: "pause", source_offset: offset }));
+      emit(Object.freeze({ kind: "pause", source_offset: offset }));
       offset += 1;
       count += 1;
       continue;
@@ -285,7 +321,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         options.parameter_offset = bytes[cursor++];
       }
 
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "texture",
         source_offset: offset,
         name,
@@ -312,7 +348,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       if (cursor >= bytes.length) throw new RangeError("truncated TKE_HW3D_Image bit depth");
       const bitDepth = bytes[cursor++];
 
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "hw3d_image",
         source_offset: offset,
         name,
@@ -358,7 +394,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         });
       }
 
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "heuristics",
         source_offset: offset,
         mask,
@@ -378,7 +414,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       }
       const end = cursor + length;
       if (end > bytes.length) throw new RangeError("truncated TKE_User_Options string");
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "user_options",
         source_offset: offset,
         value: readAscii(bytes, cursor, end)
@@ -450,7 +486,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       if ((channelsMask & 0x0100) !== 0) readColorValue("environment", false, false);
       if ((channelsMask & 0x0200) !== 0) readColorValue("bump", false, false);
 
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "color",
         source_offset: offset,
         geometry_mask: geometryMask,
@@ -471,7 +507,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         if (cursor >= bytes.length) throw new RangeError("truncated TKE_Line_Weight units");
         units = bytes[cursor++];
       }
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "line_weight",
         source_offset: offset,
         weight,
@@ -497,7 +533,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         compact[6], compact[7], compact[8], 0,
         compact[9], compact[10], compact[11], 1
       ]);
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "transform",
         source_offset: offset,
         matrix,
@@ -517,7 +553,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         }
         elements.push(value);
       }
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "texture_matrix",
         source_offset: offset,
         elements: Object.freeze(elements)
@@ -605,7 +641,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         }
       }
 
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "rendering_options",
         source_offset: start,
         ...payload
@@ -619,7 +655,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       const length = bytes[offset + 1];
       const end = offset + 2 + length;
       if (end > bytes.length) throw new RangeError("truncated TKE_Include_Segment name");
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "segment",
         action: "include",
         source_offset: offset,
@@ -634,7 +670,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       const length = bytes[offset + 1];
       const end = offset + 2 + length;
       if (end > bytes.length) throw new RangeError("truncated TKE_Style_Segment name");
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "segment",
         action: "style",
         source_offset: offset,
@@ -661,7 +697,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         mask = (maskLow | (maskHigh << 8)) >>> 0;
         value = (valueLow | (valueHigh << 8)) >>> 0;
       }
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "visibility",
         source_offset: offset,
         mask,
@@ -704,7 +740,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       if (cursor + 3 > bytes.length) throw new RangeError("truncated TKE_Color_RGB value");
       const rgb = Object.freeze([bytes[cursor], bytes[cursor + 1], bytes[cursor + 2]]);
       cursor += 3;
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "color",
         source_offset: offset,
         encoding: "rgb8",
@@ -736,7 +772,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         }
         points.push(point);
       }
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "polygon",
         source_offset: offset,
         points: Object.freeze(points)
@@ -819,7 +855,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         throw new RangeError("non-finite TKE_NURBS_Curve parameter range");
       }
 
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "curve_candidate",
         source_offset: offset,
         primitive: "nurbs_curve",
@@ -853,7 +889,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       if (![...start, ...end].every(Number.isFinite)) {
         throw new RangeError(`non-finite TKE_Line coordinate at offset ${offset}`);
       }
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "curve_candidate",
         source_offset: offset,
         primitive: "line",
@@ -904,7 +940,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         }
       }
 
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "curve_candidate",
         source_offset: offset,
         primitive: "circular_arc",
@@ -1266,7 +1302,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         if (!terminated) throw new RangeError("unterminated TKE_Shell optional attributes");
       }
 
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "triangle_mesh",
         source_offset: shellOffset,
         encoding: "TKE_Shell",
@@ -1303,7 +1339,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         if (offset + 26 > bytes.length) throw new RangeError("truncated cuboid TKE_Bounding_Info");
         const values = [];
         for (let i = 0; i < 6; i += 1) values.push(readF32LE(bytes, offset + 2 + i * 4));
-        entities.push(Object.freeze({
+        emit(Object.freeze({
           kind: "bounds",
           source_offset: offset,
           shape: "cuboid",
@@ -1318,7 +1354,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         if (offset + 18 > bytes.length) throw new RangeError("truncated sphere TKE_Bounding_Info");
         const center = [readF32LE(bytes, offset + 2), readF32LE(bytes, offset + 6), readF32LE(bytes, offset + 10)];
         const radius = readF32LE(bytes, offset + 14);
-        entities.push(Object.freeze({
+        emit(Object.freeze({
           kind: "bounds",
           source_offset: offset,
           shape: "sphere",
@@ -1356,7 +1392,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       const nameLength = bytes[offset + 46];
       const end = offset + 47 + nameLength;
       if (end > bytes.length) throw new RangeError("truncated TKE_View name");
-      entities.push(Object.freeze({
+      emit(Object.freeze({
         kind: "view",
         source_offset: offset,
         projection,
@@ -1385,7 +1421,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         if (!point.every(Number.isFinite)) throw new RangeError(`non-finite TKE_Polyline point at offset ${base}`);
         points.push(Object.freeze(point));
       }
-      entities.push(Object.freeze({ kind: "polyline", source_offset: offset, points: Object.freeze(points) }));
+      emit(Object.freeze({ kind: "polyline", source_offset: offset, points: Object.freeze(points) }));
       offset = end;
       count += 1;
       continue;
