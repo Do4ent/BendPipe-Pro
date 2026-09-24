@@ -436,3 +436,30 @@ test('A20: native HSF NURBS curve preserves control points and knot evidence',()
   assert.equal(curve.end_parameter,1);
   assert.equal(curve.canonical_ready,false);
 });
+
+
+test('A20: Color_RGB consumes all documented extended geometry-mask bytes',()=>{
+  const bytes=Uint8Array.from([
+    0x7e,
+    0xff,0xff,0xff,0x01,
+    10,20,30,
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,8);
+  assert.equal(out.entities[0].kind,'color');
+  assert.equal(out.entities[0].geometry_mask,0x01ffffff);
+  assert.deepEqual(out.entities[0].geometry_bytes,[0xff,0xff,0xff,0x01]);
+  assert.deepEqual(out.entities[0].rgb_bytes,[10,20,30]);
+});
+
+test('A20: negative line weight consumes explicit units byte',()=>{
+  const bytes=Uint8Array.from([0x3d,...f32(-0.5),0x03,0xff]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,6);
+  assert.equal(out.entities[0].kind,'line_weight');
+  assert.equal(out.entities[0].weight,-0.5);
+  assert.equal(out.entities[0].units,3);
+});
