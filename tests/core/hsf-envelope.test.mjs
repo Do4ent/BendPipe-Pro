@@ -89,10 +89,20 @@ test('A20: geometry-attributes scope contains normal attribute opcodes and termi
   assert.equal(out.entities[2].action,'close');
 });
 
-test('A20: unknown opcode stops synchronized parsing instead of scanning or guessing',()=>{
-  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x28,0x01,0x61,0x55,0x01,0x02,0x03]));
+test('A20: user options decode short length and preserve exact string',()=>{
+  const out=decodeHsfOpcodePrefix(Uint8Array.from([
+    0x55,0x04,0x00,...Buffer.from('node'),0x48
+  ]));
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x55);
+  assert.equal(out.unsupported_opcode,0x48);
+  assert.equal(out.next_offset,7);
+  assert.deepEqual(out.entities[0],{kind:'user_options',source_offset:0,value:'node'});
+});
+
+test('A20: unknown opcode stops synchronized parsing instead of scanning or guessing',()=>{
+  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x28,0x01,0x61,0x48,0x01,0x02,0x03]));
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.unsupported_opcode,0x48);
   assert.equal(out.next_offset,3);
   assert.equal(out.entities.length,1);
 });
