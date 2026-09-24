@@ -490,3 +490,20 @@ test('A20: include-segment remains an explicit scene-graph reference',()=>{
   assert.equal(out.entities[0].action,'include');
   assert.equal(out.entities[0].name,name);
 });
+
+
+test('A20: modelling matrix expands 12 HSF floats to an exact 4x4 transform',()=>{
+  const compact=[1,0,0,0,1,0,0,0,1,10,20,30];
+  const bytes=Uint8Array.from([0x25,...compact.flatMap(f32),0xff]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,49);
+  assert.equal(out.entities[0].kind,'transform');
+  assert.deepEqual(out.entities[0].matrix,[
+    1,0,0,0,
+    0,1,0,0,
+    0,0,1,0,
+    10,20,30,1
+  ]);
+  assert.equal(out.entities[0].source_semantics,'native_hsf_modelling_matrix');
+});
