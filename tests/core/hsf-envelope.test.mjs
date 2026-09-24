@@ -51,12 +51,11 @@ test('A20: tag, distant light and pause advance synchronously with exact offsets
   const bytes=Uint8Array.from([
     0x71,
     0x64,...f32(1),...f32(2),...f32(3),
-    0x01,
-    0x53
+    0x01
   ]);
-  const out=decodeHsfOpcodePrefix(bytes);
+  const out=decodeHsfOpcodePrefix(bytes,{maxOpcodes:3});
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x53);
+  assert.equal(out.limit_reached,true);
   assert.deepEqual(out.entities.map((e)=>e.kind),['tag','light','pause']);
   assert.equal(out.entities[0].source_offset,0);
   assert.equal(out.entities[1].source_offset,1);
@@ -73,12 +72,11 @@ test('A20: geometry-attributes scope contains normal attribute opcodes and termi
     0x03,
     0x00,127,127,127,
     0x00,255,255,255,
-    0x00,
-    0x53
+    0x00
   ]);
-  const out=decodeHsfOpcodePrefix(bytes);
+  const out=decodeHsfOpcodePrefix(bytes,{maxOpcodes:3});
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x53);
+  assert.equal(out.limit_reached,true);
   assert.equal(out.next_offset,14);
   assert.deepEqual(out.entities.map((e)=>e.kind),['geometry_scope','color','geometry_scope']);
   assert.equal(out.entities[0].action,'open');
@@ -91,20 +89,20 @@ test('A20: geometry-attributes scope contains normal attribute opcodes and termi
 
 test('A20: user options decode short length and preserve exact string',()=>{
   const out=decodeHsfOpcodePrefix(Uint8Array.from([
-    0x55,0x04,0x00,...Buffer.from('node'),0x53
-  ]));
+    0x55,0x04,0x00,...Buffer.from('node')
+  ]),{maxOpcodes:1});
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x53);
+  assert.equal(out.limit_reached,true);
   assert.equal(out.next_offset,7);
   assert.deepEqual(out.entities[0],{kind:'user_options',source_offset:0,value:'node'});
 });
 
 test('A20: simple heuristics mask/value decode without consuming optional payloads',()=>{
   const out=decodeHsfOpcodePrefix(Uint8Array.from([
-    0x48,0x02,0x00,0xfd,0xff,0x53
-  ]));
+    0x48,0x02,0x00,0xfd,0xff
+  ]),{maxOpcodes:1});
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x53);
+  assert.equal(out.limit_reached,true);
   assert.equal(out.next_offset,5);
   assert.deepEqual(out.entities[0],{kind:'heuristics',source_offset:0,mask:0x0002,value:0xfffd});
 });
@@ -124,12 +122,11 @@ test('A20: Autodesk HW3D image descriptor keeps only resource metadata',()=>{
   const name='"ENVIRONMENT-X"';
   const bytes=Uint8Array.from([
     0xe0,name.length,...Buffer.from(name),
-    ...le32(256),...le32(128),32,
-    0x53
+    ...le32(256),...le32(128),32
   ]);
-  const out=decodeHsfOpcodePrefix(bytes);
+  const out=decodeHsfOpcodePrefix(bytes,{maxOpcodes:1});
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x53);
+  assert.equal(out.limit_reached,true);
   assert.equal(out.entities[0].kind,'hw3d_image');
   assert.equal(out.entities[0].name,name);
   assert.equal(out.entities[0].width,256);
@@ -144,12 +141,11 @@ test('A20: texture parser follows length, flags and conditional fields exactly',
     name.length,...Buffer.from(name),
     name.length,...Buffer.from(name),
     0x01,0x00,
-    0x06,
-    0x53
+    0x06
   ]);
-  const out=decodeHsfOpcodePrefix(bytes);
+  const out=decodeHsfOpcodePrefix(bytes,{maxOpcodes:1});
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x53);
+  assert.equal(out.limit_reached,true);
   assert.equal(out.entities[0].kind,'texture');
   assert.equal(out.entities[0].name,name);
   assert.equal(out.entities[0].image_name,name);
@@ -158,9 +154,9 @@ test('A20: texture parser follows length, flags and conditional fields exactly',
 });
 
 test('A20: unknown opcode stops synchronized parsing instead of scanning or guessing',()=>{
-  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x28,0x01,0x61,0x53,0x01,0x02,0x03]));
+  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x28,0x01,0x61,0xff,0x01,0x02,0x03]));
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x53);
+  assert.equal(out.unsupported_opcode,0xff);
   assert.equal(out.next_offset,3);
   assert.equal(out.entities.length,1);
 });
