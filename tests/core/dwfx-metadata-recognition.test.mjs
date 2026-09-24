@@ -61,7 +61,10 @@ test("A20: exact DWFx XML object linkage is preserved for geometry correlation",
     referenceNodeId: "TD4C6rYJ0Ui8vPcd0hGi6w",
     contentElementRef: "C++tg4ZCQ0+2QU4Qi13JRg",
     entityRef: "Cu+tg4ZCQ0+2QU4Qi13JRg",
-    source: "DWFx model/content XML"
+    instanceId: "DO+tg4ZCQ0+2QU4Qi13JRg",
+    node: 121136,
+    geometricVariation: 121137,
+    source: "DWFx content/presentation/content-definition XML"
   });
   assert.equal(
     byPart.get("10157546").source_evidence.source_object_link.contentElementRef,
@@ -82,6 +85,21 @@ test("A20: exact DWFx XML object linkage is preserved for geometry correlation",
   assert.equal(
     byPart.get("10157552").source_evidence.source_object_link.entityRef,
     "FvCtg4ZCQ0+2QU4Qi13JRg"
+  );
+  assert.deepEqual(
+    result.tubes.map((tube) => [
+      tube.part_number,
+      tube.source_evidence.source_object_link.node,
+      tube.source_evidence.source_object_link.geometricVariation
+    ]),
+    [
+      ["10160780",121136,121137],
+      ["10157546",121190,121191],
+      ["10157555",121196,121197],
+      ["10157683",121198,121199],
+      ["10157549",121270,121271],
+      ["10157552",121272,121273]
+    ]
   );
 });
 
