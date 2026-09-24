@@ -522,3 +522,35 @@ test("A13: history restore persists model and rehydrates active tube before rend
   assert.match(restore, /localStorage\.setItem\(STORAGE_KEY/);
   assert.match(restore, /renderAll\(\)/);
 });
+
+
+test("A13: delete and offset operations are atomic model commands", () => {
+  const del = functionSlice("deleteActive", "pipeOptionText");
+  const delOffset = functionSlice("deleteOffsetAssembly", "decodeEmbeddedOffsetLabHtml");
+  const standard = functionSlice("applyStandardOffsetDefinition", "createStandardOffset");
+  const createStandard = functionSlice("createStandardOffset", "standardOffsetActualValue");
+  const offset = functionSlice("insertOffset", "exportJson");
+
+  assert.match(del, /tbModelCommand\('Удалить элемент'/);
+  assert.match(delOffset, /tbModelCommand\('Удалить офсет'/);
+  assert.match(standard, /tbModelCommand\('Изменить стандартный офсет'/);
+  assert.match(createStandard, /tbModelCommand\('Добавить стандартный офсет'/);
+  assert.match(offset, /tbModelCommand\('Изменить офсет'/);
+  assert.match(offset, /tbModelCommand\('Добавить офсет'/);
+});
+
+test("A13: nested model commands reuse the active transaction instead of creating a second item", () => {
+  const start = html.indexOf("function tbModelCommand(");
+  const end = html.indexOf("\nwindow.TubeBenderHistory=", start);
+  const command = html.slice(start, end);
+
+  assert.match(command, /if\(tbHistory\.applying\|\|tbHistory\.transaction\)return mutate\(\)/);
+  assert.match(command, /const token=tbHistoryBegin\(label\)/);
+  assert.match(command, /tbHistoryCommit\(token\)/);
+});
+
+test("A13: applyEditor commits one history transaction", () => {
+  const apply = functionSlice("applyEditor", "cancelEditor");
+  assert.match(apply, /tbModelCommand\('Применить параметры элемента'/);
+  assert.match(apply, /liveUpdateEditor\(\)/);
+});
