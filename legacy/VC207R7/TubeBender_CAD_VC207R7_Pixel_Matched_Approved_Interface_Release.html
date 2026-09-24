@@ -4725,6 +4725,25 @@ body.tb-project-map #projectEditor .pt-menu-btn, body.tb-project-map #projectEdi
 'use strict';
 // v26: stock tube limit 6000 mm; segment lengths and bend angles are validated against remaining stock length.
 
+window.TubeBenderBuildInfo=Object.freeze({
+  appVersion:'VC207R7-M1',
+  projectSchemaVersion:'2.0',
+  buildChannel:'trusted-geometry-core',
+  baseline:'VC207R7',
+  dependencies:Object.freeze({
+    three:Object.freeze({source:'external',url:'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js'}),
+    tesseract:Object.freeze({source:'lazy-external',url:'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'})
+  }),
+  offlineReady:false
+});
+window.tubeBenderDependencyReport=()=>Object.freeze({
+  appVersion:window.TubeBenderBuildInfo.appVersion,
+  projectSchemaVersion:window.TubeBenderBuildInfo.projectSchemaVersion,
+  offlineReady:window.TubeBenderBuildInfo.offlineReady,
+  three:Object.freeze({loaded:!!window.THREE,...window.TubeBenderBuildInfo.dependencies.three}),
+  tesseract:Object.freeze({loaded:!!window.Tesseract,...window.TubeBenderBuildInfo.dependencies.tesseract})
+});
+
 const STORAGE_KEY = 'tb_cad_working_state_v15';
 const PIPE_KEY = 'tb_cad_working_pipe_db_v15';
 const GEOM_SCALE = 0.05;
@@ -13425,7 +13444,7 @@ function bind(){
   qs('toggleYellowDims').addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); toggleYellowDims(); });
   qs('toggleBendDims').addEventListener('click',toggleBendDims);
   qs('clearProject').addEventListener('click',()=>{ if(confirm('🧹?')){ state.rows=[]; save(); renderAll(); } });
-  qs('exportProject').addEventListener('click',()=>{ if(!confirmInvalidExport('project')) return; exportJson({ version:'VC207R3.0-interactive-dof-manipulators', state, pipeDb }, 'tubebender_project_library.json'); });
+  qs('exportProject').addEventListener('click',()=>{ if(!confirmInvalidExport('project')) return; exportJson({version:window.TubeBenderBuildInfo.appVersion,appVersion:window.TubeBenderBuildInfo.appVersion,schemaVersion:window.TubeBenderBuildInfo.projectSchemaVersion,state,pipeDb},'tubebender_project_library.json'); });
   qs('importProject').addEventListener('change',e=> importJsonFile(e.target, data=>{ if(data.pipeDb) pipeDb=data.pipeDb; if(data.state) state={...state,...data.state}; if(Array.isArray(data.tubes)) state.tubes=data.tubes; sortPipes(); ensureProject(); save(); renderPipeTable(); renderAll(); }));
   qs('openSettings').addEventListener('click',()=>{ renderPipeTable(); updateBboxCornerScaleUi(); window.setSettingsTab?.('tooling'); const d=qs('settingsModal'); if(d&&!d.open)d.showModal(); });
   qs('pipeAdd').addEventListener('click',()=>{ pipeDb.push({mm:22,inch:'—',Rb:40,Lmin:60,Ls:105,Lf:55}); sortPipes(); save(); renderPipeSelect(); renderPipeTable(); renderAll(); });
@@ -13528,11 +13547,11 @@ async function poDbAll(store){const db=await poOpenDb();if(!db)return[];return n
 async function poDbPut(store,value){const db=await poOpenDb();if(!db)return false;return new Promise(resolve=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).put(value);tx.oncomplete=()=>resolve(true);tx.onerror=()=>resolve(false);});}
 async function poDbDelete(store,id){const db=await poOpenDb();if(!db)return false;return new Promise(resolve=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).delete(id);tx.oncomplete=()=>resolve(true);tx.onerror=()=>resolve(false);});}
 async function poTrimStore(store,max){const rows=(await poDbAll(store)).sort((a,b)=>(b.savedAt||b.openedAt||0)-(a.savedAt||a.openedAt||0));await Promise.all(rows.slice(max).map(r=>poDbDelete(store,r.id)));}
-function poWorkspacePayload(){syncActiveTubeFromState();syncActiveProjectCoordinateFromState();return{version:'VC207R3.0-interactive-dof-manipulators',state:clone(state),pipeDb:clone(pipeDb)};}
+function poWorkspacePayload(){syncActiveTubeFromState();syncActiveProjectCoordinateFromState();return{version:window.TubeBenderBuildInfo.appVersion,appVersion:window.TubeBenderBuildInfo.appVersion,schemaVersion:window.TubeBenderBuildInfo.projectSchemaVersion,state:clone(state),pipeDb:clone(pipeDb)};}
 async function poStoreRecovery(kind='autosave',reason='Автоматическое восстановление'){
   try{
     const rawText=JSON.stringify(poWorkspacePayload());
-    const record={id:kind==='autosave'?'autosave-current':poUid('backup'),kind,reason,name:state?.projectName||activeProject()?.name||'Рабочая область',rawText,size:rawText.length,savedAt:Date.now(),version:'VC204',summary:poWorkspaceSummary()};
+    const record={id:kind==='autosave'?'autosave-current':poUid('backup'),kind,reason,name:state?.projectName||activeProject()?.name||'Рабочая область',rawText,size:rawText.length,savedAt:Date.now(),version:window.TubeBenderBuildInfo.appVersion,schemaVersion:window.TubeBenderBuildInfo.projectSchemaVersion,summary:poWorkspaceSummary()};
     await poDbPut('recovery',record);await poTrimStore('recovery',14);return record;
   }catch{return null;}
 }
@@ -13760,7 +13779,8 @@ function poNormalizeTube(raw,index,pkg,warnings,errors,conversions){
 function poNormalizePackage(data,meta={}){
   const warnings=[],errors=[],conversions=[];
   let sourceState=null,projects=[],candidatePipeDb=null;
-  const version=String(data?.version||data?.state?.version||data?.formatVersion||'не указана');
+  const version=String(data?.appVersion||data?.version||data?.state?.version||data?.formatVersion||'не указана');
+  const schemaVersion=String(data?.schemaVersion||data?.projectSchemaVersion||data?.state?.schemaVersion||'legacy');
 
   if(Array.isArray(data?.pipeDb))candidatePipeDb=clone(data.pipeDb);
   if(data?.state&&typeof data.state==='object'){
@@ -13793,6 +13813,7 @@ function poNormalizePackage(data,meta={}){
     meta:{name:meta.name||'project.json',size:Number(meta.size)||0,modified:meta.modified||Date.now(),source:meta.source||'device'},
     rawData:data,
     version,
+    schemaVersion,
     pipeDb:candidatePipeDb?.length?candidatePipeDb:clone(pipeDb),
     sourceState,
     projects:[],
@@ -13906,7 +13927,7 @@ function poNormalizePackage(data,meta={}){
 
   if(errors.length||!pkg.projects.length)pkg.status='error';
   else if(warnings.length)pkg.status='warning';
-  else if(conversions.length||!String(version).includes('VC183'))pkg.status='convert';
+  else if(conversions.length||schemaVersion!==String(window.TubeBenderBuildInfo?.projectSchemaVersion||'2.0'))pkg.status='convert';
   else pkg.status='ready';
 
   pkg.projects.forEach(p=>{
@@ -14327,7 +14348,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(window.Tesseract)return Promise.resolve(window.Tesseract);
     return new Promise((resolve,reject)=>{
       const existing=document.querySelector('script[data-tubebender-tesseract]');if(existing){existing.addEventListener('load',()=>resolve(window.Tesseract),{once:true});existing.addEventListener('error',reject,{once:true});return;}
-      const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.async=true;s.dataset.tubebenderTesseract='1';s.onload=()=>resolve(window.Tesseract);s.onerror=()=>reject(new Error('OCR library unavailable'));document.head.appendChild(s);
+      const s=document.createElement('script');s.src=window.TubeBenderBuildInfo?.dependencies?.tesseract?.url||'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.async=true;s.dataset.tubebenderTesseract='1';s.onload=()=>resolve(window.Tesseract);s.onerror=()=>reject(new Error('OCR library unavailable'));document.head.appendChild(s);
     });
   }
   function groupWordsIntoLines(words){
@@ -14597,7 +14618,7 @@ window.addEventListener('DOMContentLoaded',()=>{
    the persistent route graph and engineering metadata are synchronized around them. */
 (function(){
 'use strict';
-const ENG_SCHEMA='VC202.0';
+const ENG_SCHEMA=window.TubeBenderBuildInfo?.projectSchemaVersion||'2.0';
 const ENG_AXES=['+X','-X','+Y','-Y','+Z','-Z'];
 const ENG_CONSTRAINT_TYPES={parallel:'Параллельность',antiparallel:'Антипараллельность',perpendicular:'Перпендикулярность',equalLength:'Равная длина',coplanar:'В одной плоскости',fixedAxis:'Параллельно оси',distance:'Расстояние'};
 const ENG_DIM_ROLES={driving:'Ведущий',dependent:'Зависимый',reference:'Справочный'};
@@ -14679,7 +14700,7 @@ function machineSequenceCheck(t=activeTube()){const d=manufacturingData(t),issue
   const bends=g.elements.filter(x=>x.type==='BEND'),lines=g.elements.filter(x=>x.type==='LINE');
   for(const b of bends){for(const l of lines){if(Math.abs(n(l.rowIndex)-n(b.rowIndex))<=2)continue;const closest=typeof closestSegmentData==='function'?closestSegmentData(b.start,b.start,l.start,l.end):null;if(closest&&closest.distance<head+tubeRadius){issues.push(`Возможное столкновение со зоной гибочной головки у гиба ${d.steps.find(x=>x.rowIndex===b.rowIndex)?.bend||'?'}: зазор ${round(closest.distance/GEOM_SCALE,1)} мм`);break;}}}
   return {ok:!issues.length,issues:[...new Set(issues)],order:d.steps.map(x=>x.bend)};}
-function genericNc(t=activeTube(),format='YBC'){const d=manufacturingData(t),lines=[`; TubeBender CAD VC202`,`; Tube=${t.name}`,`; Style=${d.style.name}`,`; Machine=${d.machine.name}`,`; Stock=${round(d.production,3)} mm`];for(const s of d.steps){if(format==='LRA')lines.push(`L${s.L.toFixed(3)} R${s.R.toFixed(3)} A${s.commandAngle.toFixed(3)}`);else lines.push(`Y${s.Y.toFixed(3)} B${s.B.toFixed(3)} C${s.commandAngle.toFixed(3)}`);}return lines.join('\n');}
+function genericNc(t=activeTube(),format='YBC'){const d=manufacturingData(t),lines=[`; TubeBender CAD ${window.TubeBenderBuildInfo?.appVersion||'VC207R7'}`,`; Tube=${t.name}`,`; Style=${d.style.name}`,`; Machine=${d.machine.name}`,`; Stock=${round(d.production,3)} mm`];for(const s of d.steps){if(format==='LRA')lines.push(`L${s.L.toFixed(3)} R${s.R.toFixed(3)} A${s.commandAngle.toFixed(3)}`);else lines.push(`Y${s.Y.toFixed(3)} B${s.B.toFixed(3)} C${s.commandAngle.toFixed(3)}`);}return lines.join('\n');}
 window.TB_NC_POSTPROCESSORS=window.TB_NC_POSTPROCESSORS||{};window.TB_NC_POSTPROCESSORS['generic-ybc']={name:'Generic YBC',generate:t=>genericNc(t,'YBC')};window.TB_NC_POSTPROCESSORS['generic-lra']={name:'Generic LRA',generate:t=>genericNc(t,'LRA')};
 function dxfCenterlinePoints(t=activeTube(),maxDeviationMm=0.1){
   const g=geometryForTube(t);
