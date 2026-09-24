@@ -165,7 +165,9 @@ test('A20: unknown opcode stops synchronized parsing instead of scanning or gues
 function shellFixture({ optionalOpcode = 0x1c } = {}) {
   const workspace = Uint8Array.from([
     0x02,0x00,0x00,0x00,
-    ...le32(0),...le32(0),...le32(0),...le32(2),...le32(0)
+    ...le32(1),...le32(4),...le32(0),...le32(3),...le32(0),
+    0x02,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00
   ]);
   const bytes = [
     0x53,
@@ -176,6 +178,7 @@ function shellFixture({ optionalOpcode = 0x1c } = {}) {
     ...workspace,
     ...f32(1),...f32(2),...f32(3),
     ...f32(4),...f32(5),...f32(6),
+    ...f32(7),...f32(8),...f32(9),
     optionalOpcode
   ];
   if (optionalOpcode === 0x1c) {
@@ -183,6 +186,7 @@ function shellFixture({ optionalOpcode = 0x1c } = {}) {
       0x02,
       ...f32(0),...f32(0),
       ...f32(1),...f32(1),
+      ...f32(2),...f32(2),
       0x00,
       0x7a
     );
@@ -192,7 +196,7 @@ function shellFixture({ optionalOpcode = 0x1c } = {}) {
   return Uint8Array.from(bytes);
 }
 
-test('A20: TKE_Shell exposes exact post-EdgeBreaker vertices but not invented faces',()=>{
+test('A20: TKE_Shell exposes exact post-EdgeBreaker vertices and decoded connectivity',()=>{
   const out=decodeHsfOpcodePrefix(shellFixture(),{hsfVersion:'14.50'});
   assert.equal(out.complete_prefix,true);
   assert.equal(out.entities.length,1);
@@ -202,15 +206,15 @@ test('A20: TKE_Shell exposes exact post-EdgeBreaker vertices but not invented fa
   assert.equal(shell.suboptions,0x58);
   assert.equal(shell.compression_scheme,0x05);
   assert.equal(shell.edge_breaker.scheme,2);
-  assert.equal(shell.edge_breaker.point_count,2);
-  assert.deepEqual(shell.vertices,[[1,2,3],[4,5,6]]);
-  assert.equal(shell.connectivity.status,'compressed_unresolved');
+  assert.equal(shell.edge_breaker.point_count,3);
+  assert.deepEqual(shell.vertices,[[1,2,3],[4,5,6],[7,8,9]]);
+  assert.equal(shell.connectivity.status,'decoded');
   assert.equal(shell.connectivity.codec,'edgebreaker');
-  assert.equal(shell.connectivity.faces,null);
+  assert.equal(shell.connectivity.face_count,1);\n  assert.deepEqual(shell.connectivity.faces,[[0,1,2]]);
   assert.deepEqual(shell.optionals,[{
     opcode:0x1c,
     kind:'all_parameters',
-    source_offset:56,
+    source_offset:76,
     width:2,
     value_count:2,
     scalar_count:4
@@ -230,7 +234,7 @@ test('A20: unknown TKE_Shell optional stops at the exact nested opcode without r
   const out=decodeHsfOpcodePrefix(shellFixture({optionalOpcode:0x7f}),{hsfVersion:'14.50'});
   assert.equal(out.complete_prefix,false);
   assert.equal(out.unsupported_opcode,0x53);
-  assert.equal(out.next_offset,56);
+  assert.equal(out.next_offset,76);
   assert.match(out.unsupported_variant,/optional opcode 0x7f/i);
   assert.equal(out.entities.length,0);
 });
