@@ -47,10 +47,28 @@ test('A20: decodes synchronized segment, bounds, view and polyline prefix', asyn
   assert.deepEqual(out.entities[4].points,[[0,0,0],[10,0,0]]);
 });
 
-test('A20: unknown opcode stops synchronized parsing instead of scanning or guessing',()=>{
-  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x28,0x01,0x61,0x71,0x01,0x02,0x03]));
+test('A20: tag, distant light and pause advance synchronously with exact offsets',()=>{
+  const bytes=Uint8Array.from([
+    0x71,
+    0x64,...f32(1),...f32(2),...f32(3),
+    0x01,
+    0x22
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes);
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x71);
+  assert.equal(out.unsupported_opcode,0x22);
+  assert.deepEqual(out.entities.map((e)=>e.kind),['tag','light','pause']);
+  assert.equal(out.entities[0].source_offset,0);
+  assert.equal(out.entities[1].source_offset,1);
+  assert.deepEqual(out.entities[1].direction,[1,2,3]);
+  assert.equal(out.entities[2].source_offset,14);
+  assert.equal(out.next_offset,15);
+});
+
+test('A20: unknown opcode stops synchronized parsing instead of scanning or guessing',()=>{
+  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x28,0x01,0x61,0x22,0x01,0x02,0x03]));
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.unsupported_opcode,0x22);
   assert.equal(out.next_offset,3);
   assert.equal(out.entities.length,1);
 });
