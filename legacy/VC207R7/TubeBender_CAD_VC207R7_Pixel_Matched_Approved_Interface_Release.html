@@ -14079,6 +14079,177 @@ function saveMachineFromForm(){
   activeTube().engineering.machineId=m.id;
   save();renderEngineering();msg('Профиль оборудования сохранён и подтверждён');
 }
+function markDimensionLabels(){document.querySelectorAll('.label3d.direct-edit-label').forEach(el=>{el.classList.remove('eng-dependent','eng-reference');const inp=el.querySelector('input[data-row-index]');if(!inp)return;const row=state.rows[n(inp.dataset.rowIndex,-1)],field=inp.dataset.field==='L'?'L':'A',m=dimensionMeta(row,field);if(!m)return;if(m.role==='dependent'){el.classList.add('eng-dependent');inp.readOnly=true;}else if(m.role==='reference'){el.classList.add('eng-reference');inp.readOnly=true;}});}
+
+function simEnsureState(){
+  const s=ENG.sim||(ENG.sim={});
+  const defaults={running:false,index:0,timer:null,steps:[],timeline:[],phaseIndex:0,phaseProgress:0,speed:1,loop:false,showMachine:true,showGhost:true,showRaw:true,showCollisions:true,autoFit:true,preview:null,raf:0,lastTs:0,lastDraw:0,dirty:true,collisions:[],lastShape:null};
+  for(const [k,v] of Object.entries(defaults))if(s[k]===undefined)s[k]=v;
+  return s;
+}
+function simPhaseTitle(type){return ({setup:'Загрузка заготовки',feed:'Подача Y',rotate:'Поворот B',bend:'Гибка C',release:'Разжим и возврат',finish:'Формирование конечного хвоста',done:'Готовая труба'})[type]||type;}
+function simBuildTimeline(t=activeTube()){
+  const s=simEnsureState(),d=manufacturingData(t),rows=tubeRows(t),timeline=[];
+  timeline.push({type:'setup',duration:.8,title:'Загрузка прямой заготовки',bend:0,rowIndex:-1,step:null});
+  for(const step of d.steps){
+    let feedRowIndex=-1;
+    for(let i=step.rowIndex-1;i>=0;i--){if(rows[i]?.type==='LINE'){feedRowIndex=i;break;}if(rows[i]?.type==='BEND')break;}
+    const feed=Math.max(0,n(step.Y));
+    timeline.push({type:'feed',duration:Math.max(.55,Math.min(2.5,.55+feed/650)),title:`Подача перед гибом ${step.bend}`,bend:step.bend,rowIndex:feedRowIndex,bendRowIndex:step.rowIndex,step});
+    timeline.push({type:'rotate',duration:Math.max(.45,Math.min(1.8,.45+Math.abs(n(step.B))/150)),title:`Поворот трубы B${step.bend}`,bend:step.bend,rowIndex:step.rowIndex,bendRowIndex:step.rowIndex,step});
+    timeline.push({type:'bend',duration:Math.max(.7,Math.min(2.6,.65+Math.abs(n(step.commandAngle))/75)),title:`Формирование гиба ${step.bend}`,bend:step.bend,rowIndex:step.rowIndex,bendRowIndex:step.rowIndex,step});
+    timeline.push({type:'release',duration:.5,title:`Разжим после гиба ${step.bend}`,bend:step.bend,rowIndex:step.rowIndex,bendRowIndex:step.rowIndex,step});
+  }
+  const lastBend=rows.map((r,i)=>r?.type==='BEND'?i:-1).reduce((a,b)=>Math.max(a,b),-1);
+  let finalLine=-1;for(let i=rows.length-1;i>lastBend;i--)if(rows[i]?.type==='LINE'){finalLine=i;break;}
+  if(finalLine>=0){const L=Math.max(0,evalFormula(rows[finalLine].L,0));timeline.push({type:'finish',duration:Math.max(.55,Math.min(2,.55+L/650)),title:'Формирование конечного прямого участка',bend:d.steps.length,rowIndex:finalLine,bendRowIndex:-1,step:null});}
+  timeline.push({type:'done',duration:.8,title:'Труба полностью сформирована',bend:d.steps.length,rowIndex:rows.length-1,bendRowIndex:-1,step:null});
+  s.steps=d.steps;s.timeline=timeline;
+  s.phaseIndex=Math.max(0,Math.min(s.phaseIndex,timeline.length-1));
+  s.index=Math.max(0,(timeline[s.phaseIndex]?.bend||1)-1);
+  return timeline;
+}
+function simCurrentPhase(){const s=simEnsureState();if(!s.timeline.length)simBuildTimeline();return s.timeline[s.phaseIndex]||s.timeline[0]||null;}
+function simTotalDuration(){return simEnsureState().timeline.reduce((a,x)=>a+Math.max(.01,n(x.duration,1)),0);}
+function simGlobalProgress(){const s=simEnsureState(),total=simTotalDuration();if(!total)return 0;let acc=0;for(let i=0;i<s.phaseIndex;i++)acc+=n(s.timeline[i]?.duration,1);acc+=n(s.timeline[s.phaseIndex]?.duration,1)*THREE.MathUtils.clamp(n(s.phaseProgress),0,1);return THREE.MathUtils.clamp(acc/total,0,1);}
+function simSetGlobalProgress(value){const s=simEnsureState(),timeline=s.timeline.length?s.timeline:simBuildTimeline(),target=THREE.MathUtils.clamp(n(value),0,1)*simTotalDuration();let acc=0;for(let i=0;i<timeline.length;i++){const dur=Math.max(.01,n(timeline[i].duration,1));if(target<=acc+dur||i===timeline.length-1){s.phaseIndex=i;s.phaseProgress=THREE.MathUtils.clamp((target-acc)/dur,0,1);break;}acc+=dur;}s.index=Math.max(0,(simCurrentPhase()?.bend||1)-1);s.dirty=true;simRebuildScene();simUpdateUi();}
+function simRowFraction(rowIndex,phase,progress){
+  if(!phase)return 0;
+  if(phase.type==='done')return 1;
+  if(phase.type==='setup')return 0;
+  if(phase.type==='feed'){if(rowIndex<phase.rowIndex)return 1;if(rowIndex===phase.rowIndex)return progress;return 0;}
+  if(phase.type==='rotate'){return rowIndex<phase.bendRowIndex?1:0;}
+  if(phase.type==='bend'){if(rowIndex<phase.bendRowIndex)return 1;if(rowIndex===phase.bendRowIndex)return progress;return 0;}
+  if(phase.type==='release'){return rowIndex<=phase.bendRowIndex?1:0;}
+  if(phase.type==='finish'){if(rowIndex<phase.rowIndex)return 1;if(rowIndex===phase.rowIndex)return progress;return 0;}
+  return 0;
+}
+function simCenterlineLength(rows,style){const R=Math.max(0,n(style?.centerlineRadius,0));return (rows||[]).reduce((sum,r)=>sum+(r?.type==='LINE'?Math.max(0,evalFormula(r.L,0)):r?.type==='BEND'?Math.abs(THREE.MathUtils.degToRad(n(r.angle)))*R:0),0);}
+function simMaterial(color,opacity=1,emissive=0,wireframe=false){return new THREE.MeshStandardMaterial({color,roughness:.55,metalness:.16,transparent:opacity<.999,opacity,depthWrite:opacity>.72,emissive,emissiveIntensity:emissive?0.35:0,wireframe});}
+function simCylinder(a,b,r,material,meta={}){const d=b.clone().sub(a),len=d.length();if(len<1e-7)return null;const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,24,1,false),material);m.position.copy(a.clone().add(b).multiplyScalar(.5));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());m.userData={simulation:true,...meta};return m;}
+function simTube(points,r,material,meta={}){if(!points||points.length<2)return null;const curve=new THREE.CatmullRomCurve3(points,false,'centripetal',.5);const m=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(12,(points.length-1)*5),r,18,false),material);m.userData={simulation:true,...meta};return m;}
+function simArcData(start,dir,row,R,fraction=1){
+  const angle=THREE.MathUtils.degToRad(n(row.angle)),sign=angle>=0?1:-1,plane=row.plane||defaultPlaneForDirection(dir),axis=effectiveBendAxisFromDir(dir,plane,getBendRotationValue(row)).multiplyScalar(sign).normalize();
+  let radial=new THREE.Vector3().crossVectors(dir.clone().normalize(),axis).normalize();if(radial.lengthSq()<1e-10)radial=new THREE.Vector3(0,-1,0);
+  const center=start.clone().sub(radial.clone().multiplyScalar(R)),sweep=Math.abs(angle)*THREE.MathUtils.clamp(fraction,0,1),steps=Math.max(2,Math.ceil(Math.max(.02,sweep)/(Math.PI/36))),points=[];
+  for(let k=0;k<=steps;k++){const a=sweep*k/steps;points.push(center.clone().add(radial.clone().applyAxisAngle(axis,a).multiplyScalar(R)));}
+  const end=points.at(-1).clone(),out=rotateAround(dir.clone().normalize(),axis,sweep).normalize();return {points,end,dir:out,center,axis,radial,sweep,fullSweep:Math.abs(angle)};
+}
+function simAddPolylineSegments(target,points,rowIndex,kind){for(let i=1;i<points.length;i++)target.push({a:points[i-1].clone(),b:points[i].clone(),rowIndex,kind});}
+function simBuildShape(group){
+  const s=simEnsureState(),t=activeTube(),rows=tubeRows(t),style=currentStyle()||{},phase=simCurrentPhase(),progress=THREE.MathUtils.clamp(n(s.phaseProgress),0,1),tubeR=Math.max(.055,n(style.outerDiameter,22)*.5*GEOM_SCALE),bendR=Math.max(.12,n(style.centerlineRadius,50)*GEOM_SCALE);
+  const formedMat=simMaterial(0x4da3ff,1,0x09284a),currentMat=simMaterial(0xff9a3c,1,0x633000),rawMat=simMaterial(0xaeb8c5,.72,0x17202b),ghostMat=simMaterial(0x7f94ad,.13,0,true);
+  let pos=originVectorScaled().clone(),dir=startDirectionVector().clone().normalize(),formedLength=0,stopped=false,currentArc=null,currentPos=pos.clone(),currentDir=dir.clone();
+  const segments=[];
+  for(let i=0;i<rows.length;i++){
+    const row=rows[i],frac=simRowFraction(i,phase,progress);
+    if(frac<=0){stopped=true;break;}
+    if(row.type==='LINE'){
+      const full=Math.max(0,evalFormula(row.L,0))*GEOM_SCALE,len=full*frac,end=pos.clone().add(dir.clone().multiplyScalar(len)),isCurrent=frac<.999999&&phase?.rowIndex===i;
+      const mesh=simCylinder(pos,end,tubeR,isCurrent?currentMat:formedMat,{rowIndex:i,kind:'formed-line'});if(mesh)group.add(mesh);
+      if(len>1e-7)segments.push({a:pos.clone(),b:end.clone(),rowIndex:i,kind:'formed'});
+      pos=end;formedLength+=len/GEOM_SCALE;currentPos=pos.clone();currentDir=dir.clone();
+      if(frac<.999999){stopped=true;break;}
+    }else if(row.type==='BEND'){
+      const arc=simArcData(pos,dir,row,bendR,frac),isCurrent=frac<.999999&&phase?.bendRowIndex===i;
+      const mesh=simTube(arc.points,tubeR,isCurrent?currentMat:formedMat,{rowIndex:i,kind:'formed-bend'});if(mesh)group.add(mesh);
+      simAddPolylineSegments(segments,arc.points,i,'formed');
+      pos=arc.end;dir=arc.dir;formedLength+=arc.sweep*bendR/GEOM_SCALE;currentPos=pos.clone();currentDir=dir.clone();currentArc=arc;
+      if(frac<.999999){stopped=true;break;}
+    }
+  }
+  const total=simCenterlineLength(rows,style),remaining=Math.max(0,total-formedLength);
+  let rawSegment=null;
+  if(s.showRaw&&phase?.type!=='done'&&remaining>1e-5){const rawEnd=currentPos.clone().add(currentDir.clone().multiplyScalar(remaining*GEOM_SCALE));const raw=simCylinder(currentPos,rawEnd,tubeR,rawMat,{rowIndex:-1,kind:'raw-stock'});if(raw)group.add(raw);rawSegment={a:currentPos.clone(),b:rawEnd.clone(),rowIndex:-1,kind:'raw'};segments.push(rawSegment);}
+  if(s.showGhost){
+    const g=geometryForTube(t),ghost=new THREE.Group();
+    for(const el of g.elements){if(el.type==='LINE'){const m=simCylinder(el.start,el.end,Math.max(.012,tubeR*.18),ghostMat,{kind:'ghost'});if(m)ghost.add(m);}else{const row=rows[el.rowIndex],arc=simArcData(el.start,el.directionIn,row,bendR,1),m=simTube(arc.points,Math.max(.012,tubeR*.18),ghostMat,{kind:'ghost'});if(m)ghost.add(m);}}
+    group.add(ghost);
+  }
+  return {group,segments,rawSegment,tubeR,bendR,phase,progress,pos:currentPos,dir:currentDir,currentArc,remainingMm:remaining,formedLengthMm:formedLength,totalLengthMm:total};
+}
+function simOrientCylinder(mesh,axis){mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),axis.clone().normalize());}
+function simAddBoxAlong(group,center,dir,length,width,height,material){const mesh=new THREE.Mesh(new THREE.BoxGeometry(length,width,height),material);mesh.position.copy(center);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dir.clone().normalize());mesh.userData={simulation:true,machine:true};group.add(mesh);return mesh;}
+function simPhaseBendGeometry(shape){const phase=shape.phase;if(!phase||phase.bendRowIndex<0)return null;const g=geometryForTube(activeTube());return g.elements.find(x=>x.type==='BEND'&&x.rowIndex===phase.bendRowIndex)||null;}
+function simAddRotationIndicator(group,point,dir,angleDeg,tubeR){
+  const axis=dir.clone().normalize(),major=Math.max(.18,tubeR*2.7),ring=new THREE.Mesh(new THREE.TorusGeometry(major,Math.max(.008,tubeR*.11),8,52),simMaterial(0xffe46b,.45,0x4a3b00));ring.position.copy(point);ring.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),axis);group.add(ring);
+  let basis=new THREE.Vector3(0,1,0);if(Math.abs(axis.dot(basis))>.92)basis.set(1,0,0);basis.sub(axis.clone().multiplyScalar(axis.dot(basis))).normalize().applyAxisAngle(axis,THREE.MathUtils.degToRad(angleDeg));
+  const fin=simCylinder(point,point.clone().add(basis.multiplyScalar(major*1.25)),Math.max(.012,tubeR*.16),simMaterial(0xffe46b,1,0x4f3d00),{kind:'rotation-indicator'});if(fin)group.add(fin);
+}
+function simAddMachine(group,shape){
+  const s=simEnsureState();if(!s.showMachine)return null;const phase=shape.phase,bend=simPhaseBendGeometry(shape);if(!bend)return null;
+  const style=currentStyle()||{},machine=currentMachine()||{},tubeR=shape.tubeR,R=Math.max(shape.bendR,tubeR*3),axis=bend.axis.clone().normalize(),incoming=bend.directionIn.clone().normalize(),headPoint=bend.start.clone(),center=bend.center.clone();
+  const mg=new THREE.Group();mg.userData={simulation:true,machine:true};
+  const dieR=Math.max(tubeR*2.2,R*.48),dieW=Math.max(tubeR*4.2,.16),die=new THREE.Mesh(new THREE.CylinderGeometry(dieR,dieR,dieW,48,1,false),simMaterial(0xd4a94d,.92,0x3b2700));die.position.copy(center);simOrientCylinder(die,axis);mg.add(die);
+  const groove=new THREE.Mesh(new THREE.TorusGeometry(R,Math.max(.012,tubeR*.16),8,64),simMaterial(0xffd875,.55,0x4d3800));groove.position.copy(center);groove.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),axis);mg.add(groove);
+  const clampLen=Math.max(.25,n(machine.clampMin,60)*GEOM_SCALE*.9),jawMat=simMaterial(0x6f7f93,.94,0x111820),jawCenter=headPoint.clone().sub(incoming.clone().multiplyScalar(clampLen*.48));simAddBoxAlong(mg,jawCenter,incoming,clampLen,tubeR*4.6,tubeR*2.1,jawMat);
+  const pressureCenter=headPoint.clone().sub(incoming.clone().multiplyScalar(clampLen*.22)).add(axis.clone().multiplyScalar(tubeR*2.1));simAddBoxAlong(mg,pressureCenter,incoming,clampLen*.72,tubeR*3.1,tubeR*2.0,simMaterial(0x8796a8,.9,0x111820));
+  const envelopeR=Math.max(R*.9,Math.min(n(machine.headRadius,180)*GEOM_SCALE*.5,R*1.8)),envelope=new THREE.Mesh(new THREE.SphereGeometry(envelopeR,24,16),new THREE.MeshBasicMaterial({color:0x6684a8,wireframe:true,transparent:true,opacity:.12,depthWrite:false}));envelope.position.copy(headPoint);mg.add(envelope);
+  if(phase.type==='rotate')simAddRotationIndicator(mg,headPoint,incoming,n(phase.step?.B)*shape.progress,tubeR);else if(phase.step)simAddRotationIndicator(mg,headPoint,incoming,n(phase.step.B),tubeR);
+  group.add(mg);return {group:mg,headPoint,envelopeR,bend};
+}
+function simSegmentDistancePoint(point,seg){return closestSegmentData(point,point,seg.a,seg.b);}
+function simCollisionChecks(shape,machinePose){
+  const s=simEnsureState(),out=[],segs=shape.segments||[],threshold=shape.tubeR*2;
+  for(let i=0;i<segs.length;i++)for(let j=i+1;j<segs.length;j++){
+    const a=segs[i],b=segs[j];if(Math.abs(i-j)<=1)continue;if(a.rowIndex>=0&&a.rowIndex===b.rowIndex)continue;
+    const c=closestSegmentData(a.a,a.b,b.a,b.b);if(c.distance<threshold*.96)out.push({type:'tube',point:c.c1.clone().add(c.c2).multiplyScalar(.5),distance:c.distance,penetration:threshold-c.distance});
+  }
+  if(machinePose){const bendRow=shape.phase?.bendRowIndex??-999,checkR=Math.max(machinePose.envelopeR*.72,shape.bendR*.62);for(const seg of segs){if(seg.kind==='raw')continue;if(Math.abs(n(seg.rowIndex)-bendRow)<=2)continue;const c=simSegmentDistancePoint(machinePose.headPoint,seg);if(c.distance<checkR+shape.tubeR)out.push({type:'machine',point:c.c2.clone(),distance:c.distance,penetration:checkR+shape.tubeR-c.distance});}}
+  const unique=[];for(const c of out){if(!unique.some(x=>x.point.distanceTo(c.point)<Math.max(.08,shape.tubeR*1.5)))unique.push(c);}s.collisions=unique;return unique;
+}
+function simAddCollisionMarkers(group,collisions,shape){if(!simEnsureState().showCollisions)return;const mat=simMaterial(0xff2438,1,0x7a0010);for(const c of collisions){const m=new THREE.Mesh(new THREE.SphereGeometry(Math.max(.07,shape.tubeR*.85),20,14),mat);m.position.copy(c.point);m.renderOrder=9999;group.add(m);}}
+function simAddGround(scene,group){const box=new THREE.Box3().setFromObject(group);if(box.isEmpty())return;const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3()),y=box.min.y-Math.max(.12,size.y*.05),gridSize=Math.max(4,Math.ceil(Math.max(size.x,size.z)*1.35));const grid=new THREE.GridHelper(gridSize,Math.min(80,Math.max(12,Math.ceil(gridSize/.25))),0x38506f,0x1c2b3e);grid.position.set(center.x,y,center.z);grid.material.transparent=true;grid.material.opacity=.35;grid.userData={simulation:true,ground:true};scene.add(grid);return grid;}
+function simDisposePreview(){const s=simEnsureState(),p=s.preview;if(s.raf){cancelAnimationFrame(s.raf);s.raf=0;}if(p){try{if(p.group){p.scene.remove(p.group);disposeObject3D(p.group);}if(p.ground){p.scene.remove(p.ground);disposeObject3D(p.ground);}p.controls?.dispose?.();p.renderer?.dispose?.();}catch{}s.preview=null;}s.lastTs=0;s.lastDraw=0;}
+function simInitPreview(){
+  const s=simEnsureState(),canvas=E('engSimCanvas');if(!canvas||!window.THREE)return;
+  if(s.preview?.canvas===canvas){if(!s.raf)s.raf=requestAnimationFrame(simPreviewFrame);return;}
+  simDisposePreview();
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,preserveDrawingBuffer:false});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.setClearColor(0x000000,0);
+  const scene2=new THREE.Scene(),camera2=new THREE.PerspectiveCamera(42,1,.01,100000);camera2.position.set(7,5.5,7);
+  let controls2=null;try{controls2=new SimpleOrbitControls(camera2,canvas);controls2.enableDamping=true;controls2.dampingFactor=.08;}catch{if(THREE.OrbitControls)controls2=new THREE.OrbitControls(camera2,canvas);}
+  scene2.add(new THREE.HemisphereLight(0xd8eaff,0x192231,1.55));const key=new THREE.DirectionalLight(0xffffff,1.7);key.position.set(6,10,8);scene2.add(key);const rim=new THREE.DirectionalLight(0x77aaff,.7);rim.position.set(-8,4,-6);scene2.add(rim);
+  s.preview={canvas,renderer,scene:scene2,camera:camera2,controls:controls2,group:null,ground:null,view:'iso',fitted:false};s.dirty=true;s.raf=requestAnimationFrame(simPreviewFrame);simRebuildScene(true);
+}
+function simFitPreview(force=false){const s=simEnsureState(),p=s.preview;if(!p?.group)return;const box=new THREE.Box3().setFromObject(p.group);if(box.isEmpty())return;const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3()),maxDim=Math.max(size.x,size.y,size.z,.5),fov=THREE.MathUtils.degToRad(p.camera.fov),dist=Math.max(1,maxDim/(2*Math.tan(fov/2))*1.42),view=(p.camera.position.clone().sub(p.controls?.target||new THREE.Vector3())).normalize();if(!Number.isFinite(view.x)||view.lengthSq()<.5)view.set(1,.75,1).normalize();p.camera.position.copy(center.clone().add(view.multiplyScalar(dist)));p.camera.near=Math.max(.001,dist/1000);p.camera.far=Math.max(100,dist*20);p.camera.updateProjectionMatrix();if(p.controls){p.controls.target.copy(center);p.controls.update?.();}p.fitted=true;}
+function simSetView(view='iso'){const s=simEnsureState(),p=s.preview;if(!p)return;const box=p.group?new THREE.Box3().setFromObject(p.group):new THREE.Box3();const center=box.isEmpty()?new THREE.Vector3():box.getCenter(new THREE.Vector3()),size=box.isEmpty()?new THREE.Vector3(3,3,3):box.getSize(new THREE.Vector3()),d=Math.max(size.x,size.y,size.z,1)*1.8,vec=view==='front'?new THREE.Vector3(0,0,1):view==='top'?new THREE.Vector3(0,1,0):view==='right'?new THREE.Vector3(1,0,0):new THREE.Vector3(1,.78,1).normalize();p.camera.position.copy(center.clone().add(vec.multiplyScalar(d)));if(p.controls){p.controls.target.copy(center);p.controls.update?.();}p.view=view;p.fitted=true;}
+function simRebuildScene(forceFit=false){
+  const s=simEnsureState(),p=s.preview;if(!p)return;
+  if(p.group){p.scene.remove(p.group);disposeObject3D(p.group);}if(p.ground){p.scene.remove(p.ground);disposeObject3D(p.ground);p.ground=null;}
+  const group=new THREE.Group(),shape=simBuildShape(group),machinePose=simAddMachine(group,shape),collisions=simCollisionChecks(shape,machinePose);simAddCollisionMarkers(group,collisions,shape);p.scene.add(group);p.group=group;p.ground=simAddGround(p.scene,group);s.lastShape=shape;s.dirty=false;
+  if(forceFit||(!p.fitted&&s.autoFit))simFitPreview(true);simUpdateUi();
+}
+function simResizePreview(){const p=simEnsureState().preview;if(!p)return;const r=p.canvas.getBoundingClientRect(),ratio=p.renderer.getPixelRatio();if(!r.width||!r.height)return;const w=Math.round(r.width*ratio),h=Math.round(r.height*ratio);if(p.canvas.width!==w||p.canvas.height!==h){p.renderer.setSize(r.width,r.height,false);p.camera.aspect=r.width/r.height;p.camera.updateProjectionMatrix();}}
+function simAdvance(dt){const s=simEnsureState(),phase=simCurrentPhase();if(!phase)return;const duration=Math.max(.05,n(phase.duration,1));s.phaseProgress+=dt*Math.max(.05,n(s.speed,1))/duration;while(s.phaseProgress>=1){s.phaseProgress-=1;if(s.phaseIndex>=s.timeline.length-1){if(s.loop){s.phaseIndex=0;s.phaseProgress=0;}else{s.phaseIndex=s.timeline.length-1;s.phaseProgress=1;s.running=false;break;}}else s.phaseIndex++;s.index=Math.max(0,(simCurrentPhase()?.bend||1)-1);s.autoFit=false;}s.dirty=true;}
+function simPreviewFrame(ts){const s=simEnsureState(),p=s.preview;if(!p){s.raf=0;return;}const dt=s.lastTs?Math.min(.08,(ts-s.lastTs)/1000):0;s.lastTs=ts;if(s.running)simAdvance(dt);p.controls?.update?.();simResizePreview();if((s.dirty||s.running)&&ts-s.lastDraw>30){simRebuildScene(false);s.lastDraw=ts;}p.renderer.render(p.scene,p.camera);s.raf=requestAnimationFrame(simPreviewFrame);}
+function simSetPhase(index,progress=0){const s=simEnsureState();if(!s.timeline.length)simBuildTimeline();s.phaseIndex=Math.max(0,Math.min(n(index),s.timeline.length-1));s.phaseProgress=THREE.MathUtils.clamp(n(progress),0,1);s.index=Math.max(0,(simCurrentPhase()?.bend||1)-1);s.dirty=true;simRebuildScene();simUpdateUi();}
+function simStep(delta=1){const s=simEnsureState();if(!s.timeline.length)simBuildTimeline();s.running=false;simSetPhase(s.phaseIndex+delta,delta<0?0:0);}
+function toggleSimulation(){const s=simEnsureState();if(!s.timeline.length)simBuildTimeline();if(s.phaseIndex>=s.timeline.length-1&&s.phaseProgress>=.999){s.phaseIndex=0;s.phaseProgress=0;}s.running=!s.running;s.lastTs=0;s.dirty=true;simUpdateUi();}
+function stopSimulation(reset=true){const s=simEnsureState();s.running=false;clearInterval(s.timer);s.timer=null;if(reset){s.phaseIndex=0;s.phaseProgress=0;s.index=0;}s.dirty=true;simRebuildScene();simUpdateUi();}
+function simUpdateUi(){
+  const s=simEnsureState(),phase=simCurrentPhase(),step=phase?.step,shape=s.lastShape,gp=simGlobalProgress(),collisionCount=s.collisions?.length||0;
+  const set=(idv,val)=>{const el=E(idv);if(el)el.textContent=val;};
+  set('engSimPhaseName',phase?simPhaseTitle(phase.type):'—');set('engSimOperation',phase?.title||'Нет операций');
+  set('engSimBendValue',step?String(step.bend):phase?.type==='done'?String(s.steps.length):'—');set('engSimYValue',step?`${round(step.Y,2)} мм`:'—');set('engSimBValue',step?`${round(step.B*(phase?.type==='rotate'?s.phaseProgress:1),2)}°`:'—');set('engSimCValue',step?`${round(step.commandAngle*(phase?.type==='bend'?s.phaseProgress:phase?.type==='feed'||phase?.type==='rotate'?0:1),2)}°`:'—');set('engSimFormedValue',shape?`${round(shape.formedLengthMm,1)} / ${round(shape.totalLengthMm,1)} мм`:'—');
+  const badge=E('engSimCollisionBadge');if(badge){badge.textContent=collisionCount?`${collisionCount} столкн.`:'Столкновений нет';badge.className=`eng-sim-hud ${collisionCount?'eng-sim-collision':'eng-sim-ok'}`;}
+  const slider=E('engSimTimeline');if(slider&&!slider.matches(':active'))slider.value=String(gp*1000);const bar=E('engSimProgressBar');if(bar)bar.style.width=`${gp*100}%`;const play=E('engSimPlay');if(play)play.textContent=s.running?'Пауза':'Пуск';
+  document.querySelectorAll('.eng-sim-phase').forEach((el,i)=>{el.classList.toggle('active',i===s.phaseIndex);el.classList.toggle('done',i<s.phaseIndex);});
+  const status=E('engSimFrameStatus');if(status)status.textContent=`Фаза ${s.phaseIndex+1}/${s.timeline.length} · ${round(s.phaseProgress*100,0)}%`;
+}
+function addSimulationMarker(){
+  const s=simEnsureState();if(!s.running||!window.THREE||!pipeGroup)return;const phase=simCurrentPhase(),step=phase?.step;if(!step)return;const g=geometryForTube(activeTube()),el=g.elements.find(x=>x.id===step.elementId);if(!el)return;const mesh=new THREE.Mesh(new THREE.SphereGeometry(.22,24,16),new THREE.MeshStandardMaterial({color:0xff9a3c,emissive:0x7a3300,emissiveIntensity:.8,depthTest:false}));mesh.position.copy(el.start);mesh.renderOrder=9999;mesh.userData={simulationMarker:true};pipeGroup.add(mesh);try{addStaticLabel(`${simPhaseTitle(phase.type)} · гиб ${step.bend}`,el.start.clone().add(new THREE.Vector3(0,0,.38)),'eng-sim-marker-label');}catch{}
+}
+function updateStatusStrip(){const t=activeTube();if(!t)return;const d=diagnoseTube(t),s=currentStyle(),m=currentMachine(),strip=E('engineeringStatusStrip'),dot=E('engStatusDot');if(!strip)return;strip.classList.remove('hidden');dot.className='eng-status-dot '+(d.status==='under'?'under':d.status==='conflict'?'conflict':d.status==='over'?'warning':'');E('engStatusMain').textContent=d.status==='fully'?'Полностью определена':d.status==='under'?`Недоопределена · DOF ${d.underConstrained}`:d.status==='over'?`Переопределена · ${d.overConstrained}`:`Конфликтов: ${d.issues.length}`;E('engStatusStyle').textContent=s?.name||'Без стиля';E('engStatusMachine').textContent=m?.name||'Без станка';}
+function treeBadge(t){
+  try{
+    const p=projectForTube(t)||activeProject();
+    if(!t||!p) return '';
+    ensureProjectEngineering(p);ensureTubeEngineering(t,p);
+    const d=diagnoseTube(t),group=p.engineering?.groups?.find(x=>x.id===t.engineering?.groupId),cls=d.status==='fully'?'ok':d.status==='under'?'under':d.status==='over'?'under':'bad',txt=d.status==='fully'?'✓':d.status==='under'?`DOF ${d.underConstrained}`:d.status==='over'?`OVER ${d.overConstrained}`:`! ${d.issues.length}`;
+    return `<span class="pt-tube-eng-badge ${cls}" title="${esc((group?.name?group.name+' · ':'')+((d.issues||[]).join('; ')||d.status))}">${group?esc(group.name)+' · ':''}${txt}</span>`;
+  }catch(error){console.warn('Tube engineering badge unavailable',error);return '';}
+}
+function kpi(label,value,small=''){return `<div class="eng-kpi"><label>${esc(label)}</label><strong>${esc(value)}</strong><small>${esc(small)}</small></div>`;}
 function renderOverview(){const t=activeTube(),d=diagnoseTube(t),mf=manufacturingData(t),p=activeProject(),g=t.engineering.routeGraph,group=p.engineering.groups.find(x=>x.id===t.engineering.groupId);E('engOverviewContent').innerHTML=`<div class="eng-grid"><article class="eng-card span-12"><div class="eng-card-head"><span>${esc(p.name)} / ${esc(t.name)}</span><span class="eng-badge ${d.status==='fully'?'ok':d.status==='under'?'info':d.status==='over'?'warn':'bad'}">${d.status==='fully'?'Полностью определена':d.status==='under'?'Недоопределена':d.status==='over'?'Переопределена':'Конфликт'}</span></div><div class="eng-card-body"><div class="eng-kpis">${kpi('Прямых',lineElements(t).length,'элементов графа')}${kpi('Гибов',bendElements(t).length,'операций')}${kpi('Теоретическая длина',`${round(mf.theoretical,1)} мм`,'по осевой линии')}${kpi('Заготовка',`${round(mf.production,1)} мм`,'с компенсациями')}${kpi('Масса',`${round(mf.massKg,3)} кг`,'расчётная')}</div></div></article><article class="eng-card span-4"><div class="eng-card-head"><span>Идентификация</span></div><div class="eng-card-body"><div class="eng-row"><label>Номер детали</label><input id="engPartNumber" value="${esc(t.engineering.partNumber)}"></div><div class="eng-row"><label>Описание</label><input id="engDescription" value="${esc(t.engineering.description)}"></div><div class="eng-row"><label>Группа</label><select id="engGroupSelect">${p.engineering.groups.map(x=>`<option value="${x.id}" ${x.id===t.engineering.groupId?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div><div class="eng-actions"><button class="eng-btn" id="engNewGroup">Новая группа</button><button class="eng-btn" id="engRenameGroup">Переименовать</button></div><div class="eng-row"><label>Ревизия</label><input id="engTubeRevision" type="number" min="1" value="${n(t.engineering.revision,1)}"></div></div></article><article class="eng-card span-4"><div class="eng-card-head"><span>Технологический статус</span></div><div class="eng-card-body"><div class="eng-status-panel"><span class="eng-badge ${d.issues.length?'bad':'ok'}">${d.issues.length?`${d.issues.length} нарушений`:'Готово'}</span><span class="eng-badge info">${t.engineering.constraints.length} зависимостей</span><span class="eng-badge info">${Object.keys(t.engineering.dimensionRoles).length} размеров</span></div><div class="eng-note ${d.issues.length?'error':''}" style="margin-top:8px">${d.issues.length?d.issues.map(esc).join('<br>'):'Геометрия, стиль и станок прошли текущие проверки.'}</div></div></article><article class="eng-card span-4"><div class="eng-card-head"><span>Архитектура</span></div><div class="eng-card-body"><div class="eng-row"><label>Схема</label><span>${ENG_SCHEMA}</span></div><div class="eng-row"><label>Точек графа</label><span>${g.points.length}</span></div><div class="eng-row"><label>Элементов графа</label><span>${g.elements.length}</span></div><div class="eng-row"><label>Внешних ссылок</label><span>${t.engineering.externalRefs.length}</span></div><div class="eng-row"><label>Фитингов (резерв)</label><span>${t.engineering.fittings.length}</span></div><div class="eng-row"><label>Источник-эскиз</label><span>${t.engineering.sourceSketch?'OCR / изометрия':'нет'}</span></div></div></article></div>`;E('engNewGroup')?.addEventListener('click',()=>{if(!requireEngEditable())return;const name=prompt('Название группы','Новая система');if(!name)return;const g={id:id('group'),name,color:'#4da3ff'};p.engineering.groups.push(g);t.engineering.groupId=g.id;save();renderEngineering();});E('engRenameGroup')?.addEventListener('click',()=>{if(!requireEngEditable())return;const g=p.engineering.groups.find(x=>x.id===t.engineering.groupId);if(!g)return;const name=prompt('Новое название группы',g.name);if(!name)return;g.name=name;save();renderEngineering();});}
 function lineOptions(t=activeTube()){let li=0;return (tubeRows(t)||[]).filter(r=>r.type==='LINE').map(r=>`<option value="${r.elementId}">L${++li} · ${round(n(r.L),2)} мм</option>`).join('');}
 function renderElements(){const t=activeTube();syncDimensionRoles(t);let li=0,bi=0;const rows=tubeRows(t);E('engElementsTable').innerHTML=`<div class="eng-table-wrap"><table class="eng-table"><thead><tr><th>Элемент</th><th>ID</th><th>Значение</th><th>Роль размера</th><th>Статус</th></tr></thead><tbody>${rows.map(r=>{const field=r.type==='LINE'?'L':'A',label=r.type==='LINE'?`L${++li}`:`A${++bi}`,m=dimensionMeta(r,field,t),val=r.type==='LINE'?`${round(n(r.L),3)} мм`:`${round(n(r.angle),3)}°`;return `<tr><td>${label}</td><td title="${r.elementId}">${esc(r.elementId.slice(-10))}</td><td>${val}</td><td><select data-eng-dim-role="${r.elementId}" data-field="${field}">${Object.entries(ENG_DIM_ROLES).map(([k,v])=>`<option value="${k}" ${m?.role===k?'selected':''}>${v}</option>`).join('')}</select></td><td><span class="eng-badge ${m?.role==='driving'?'ok':m?.role==='dependent'?'warn':'info'}">${esc(m?.role||'')}</span></td></tr>`}).join('')}</tbody></table></div>`;E('engConstraintA').innerHTML=lineOptions(t);E('engConstraintB').innerHTML=lineOptions(t)+ENG_AXES.map(x=>`<option value="${x}">Ось ${x}</option>`).join('');document.querySelectorAll('[data-eng-dim-role]').forEach(s=>s.addEventListener('change',()=>setDimensionRole(s.dataset.engDimRole,s.dataset.field,s.value)));}
