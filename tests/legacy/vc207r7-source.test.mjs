@@ -780,3 +780,42 @@ test("A16: selected offset shows a composite editor summary instead of row zero"
   assert.match(editor, /Внутренние LINE\/BEND редактируются через параметры офсета/);
   assert.match(editor, /Составной офсет/);
 });
+
+
+test("A17: pixel-match layout patch no longer owns localized text", () => {
+  const start = html.indexOf("function setApprovedText(");
+  const end = html.indexOf("\n  let mockupRefreshQueued", start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+  const block = html.slice(start, end);
+
+  assert.doesNotMatch(block, /textContent\s*=/);
+  assert.doesNotMatch(block, /Профессиональное проектирование трубопроводов/);
+  assert.doesNotMatch(block, /＋ Новый/);
+  assert.match(block, /must not own interface language/);
+});
+
+test("A17: approved mockup refresh is queued and guarded against reentry", () => {
+  const start = html.indexOf("let mockupRefreshQueued=false;");
+  const end = html.indexOf("window.TubeBenderApprovedMockup=", start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+  const block = html.slice(start, end);
+
+  assert.match(block, /let mockupRefreshing=false/);
+  assert.match(block, /if\(mockupRefreshing\)return/);
+  assert.match(block, /function scheduleExactRefresh\(/);
+  assert.match(block, /if\(mockupRefreshQueued\)return/);
+  assert.match(block, /requestAnimationFrame/);
+  assert.doesNotMatch(block, /setTimeout\(exactRefresh,0\)/);
+});
+
+test("A17: resize schedules layout only and does not force a language rewrite", () => {
+  const start = html.indexOf("function setApprovedText(");
+  const end = html.indexOf("window.TubeBenderApprovedMockup=", start);
+  const block = html.slice(start, end);
+
+  assert.match(block, /window\.addEventListener\('resize',scheduleExactRefresh\)/);
+  assert.doesNotMatch(block, /setApprovedText\(\)/);
+  assert.doesNotMatch(block, /TubeBenderI18n\?\.apply/);
+});
