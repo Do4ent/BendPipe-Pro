@@ -675,6 +675,35 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       count += 1;
       continue;
     }
+    if (opcode === 0x47) { // TKE_Polygon
+      const pointCount = readI32LE(bytes, offset + 1);
+      if (pointCount < 3 || pointCount > 1_000_000) {
+        throw new RangeError(`invalid TKE_Polygon point count ${pointCount} at offset ${offset}`);
+      }
+      const end = offset + 5 + pointCount * 12;
+      if (end > bytes.length) throw new RangeError("truncated TKE_Polygon points");
+      const points = [];
+      for (let i = 0; i < pointCount; i += 1) {
+        const base = offset + 5 + i * 12;
+        const point = Object.freeze([
+          readF32LE(bytes, base),
+          readF32LE(bytes, base + 4),
+          readF32LE(bytes, base + 8)
+        ]);
+        if (!point.every(Number.isFinite)) {
+          throw new RangeError(`non-finite TKE_Polygon point at offset ${base}`);
+        }
+        points.push(point);
+      }
+      entities.push(Object.freeze({
+        kind: "polygon",
+        source_offset: offset,
+        points: Object.freeze(points)
+      }));
+      offset = end;
+      count += 1;
+      continue;
+    }
     if (opcode === 0x4e) { // TKE_NURBS_Curve
       let cursor = offset + 1;
       if (cursor + 6 > bytes.length) throw new RangeError("truncated TKE_NURBS_Curve header");
