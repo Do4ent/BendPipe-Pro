@@ -4720,7 +4720,7 @@ body.tb-project-map #projectEditor .pt-menu-btn, body.tb-project-map #projectEdi
       });
     });
   </script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="../../vendor/three/r160/three.min.js" data-tubebender-vendored="three-r160"></script>
 <script>
 'use strict';
 // v26: stock tube limit 6000 mm; segment lengths and bend angles are validated against remaining stock length.
@@ -4731,14 +4731,16 @@ window.TubeBenderBuildInfo=Object.freeze({
   buildChannel:'trusted-geometry-core',
   baseline:'VC207R7',
   dependencies:Object.freeze({
-    three:Object.freeze({source:'external',url:'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js'}),
+    three:Object.freeze({source:'vendored-local',url:'../../vendor/three/r160/three.min.js'}),
     tesseract:Object.freeze({source:'lazy-external',url:'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'})
   }),
+  offlineCoreReady:true,
   offlineReady:false
 });
 window.tubeBenderDependencyReport=()=>Object.freeze({
   appVersion:window.TubeBenderBuildInfo.appVersion,
   projectSchemaVersion:window.TubeBenderBuildInfo.projectSchemaVersion,
+  offlineCoreReady:window.TubeBenderBuildInfo.offlineCoreReady,
   offlineReady:window.TubeBenderBuildInfo.offlineReady,
   three:Object.freeze({loaded:!!window.THREE,...window.TubeBenderBuildInfo.dependencies.three}),
   tesseract:Object.freeze({loaded:!!window.Tesseract,...window.TubeBenderBuildInfo.dependencies.tesseract})
