@@ -126,6 +126,12 @@ export function fitCircularArcCandidate(
     Math.abs(sweepDeg)>1e-9 &&
     Math.abs(sweepDeg)<360-1e-9;
 
+  const sweepSign=Math.sign(sweep)||1;
+  const radialStart=unit(sub(src[0],center));
+  const radialEnd=unit(sub(src.at(-1),center));
+  const tangentStart=unit(mul(cross(normal,radialStart),sweepSign));
+  const tangentEnd=unit(mul(cross(normal,radialEnd),sweepSign));
+
   return Object.freeze({
     status:accepted?"candidate":"fit_rejected",
     production_ready:false,
@@ -133,6 +139,10 @@ export function fitCircularArcCandidate(
     truth_category:"inferred",
     center:freezePoint(center),
     plane_normal:freezePoint(normal),
+    start_point:freezePoint(src[0]),
+    end_point:freezePoint(src.at(-1)),
+    tangent_start:freezePoint(tangentStart),
+    tangent_end:freezePoint(tangentEnd),
     clr_mm:accepted?radius:null,
     fitted_radius_mm:radius,
     signed_sweep_deg:sweepDeg,
