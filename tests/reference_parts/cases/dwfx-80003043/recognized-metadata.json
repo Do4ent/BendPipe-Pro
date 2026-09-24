@@ -61,6 +61,15 @@
           "instanceId": "DO+tg4ZCQ0+2QU4Qi13JRg",
           "node": 121136,
           "geometricVariation": 121137
+        },
+        "w3dCrossReference": {
+          "geometricVariationSegment": "121137",
+          "variationSourceOffset": 20744227,
+          "librarySegment": "?Include Library/34001",
+          "librarySourceOffset": 10390333,
+          "status": "exact",
+          "offsetSpace": "decompressed_hsf",
+          "productionReady": false
         }
       },
       {
@@ -109,6 +118,15 @@
           "instanceId": "fO+tg4ZCQ0+2QU4Qi13JRg",
           "node": 121190,
           "geometricVariation": 121191
+        },
+        "w3dCrossReference": {
+          "geometricVariationSegment": "121191",
+          "variationSourceOffset": 20748672,
+          "librarySegment": "?Include Library/46910",
+          "librarySourceOffset": 12793026,
+          "status": "exact",
+          "offsetSpace": "decompressed_hsf",
+          "productionReady": false
         }
       },
       {
@@ -157,6 +175,15 @@
           "instanceId": "h++tg4ZCQ0+2QU4Qi13JRg",
           "node": 121196,
           "geometricVariation": 121197
+        },
+        "w3dCrossReference": {
+          "geometricVariationSegment": "121197",
+          "variationSourceOffset": 20749175,
+          "librarySegment": "?Include Library/47012",
+          "librarySourceOffset": 12876042,
+          "status": "exact",
+          "offsetSpace": "decompressed_hsf",
+          "productionReady": false
         }
       },
       {
@@ -205,6 +232,15 @@
           "instanceId": "iu+tg4ZCQ0+2QU4Qi13JRg",
           "node": 121198,
           "geometricVariation": 121199
+        },
+        "w3dCrossReference": {
+          "geometricVariationSegment": "121199",
+          "variationSourceOffset": 20749318,
+          "librarySegment": "?Include Library/47033",
+          "librarySourceOffset": 12883275,
+          "status": "exact",
+          "offsetSpace": "decompressed_hsf",
+          "productionReady": false
         }
       },
       {
@@ -253,6 +289,15 @@
           "instanceId": "FfCtg4ZCQ0+2QU4Qi13JRg",
           "node": 121270,
           "geometricVariation": 121271
+        },
+        "w3dCrossReference": {
+          "geometricVariationSegment": "121271",
+          "variationSourceOffset": 20755052,
+          "librarySegment": "?Include Library/69646",
+          "librarySourceOffset": 15611644,
+          "status": "exact",
+          "offsetSpace": "decompressed_hsf",
+          "productionReady": false
         }
       },
       {
@@ -301,6 +346,15 @@
           "instanceId": "GPCtg4ZCQ0+2QU4Qi13JRg",
           "node": 121272,
           "geometricVariation": 121273
+        },
+        "w3dCrossReference": {
+          "geometricVariationSegment": "121273",
+          "variationSourceOffset": 20755195,
+          "librarySegment": "?Include Library/69667",
+          "librarySourceOffset": 15622313,
+          "status": "exact",
+          "offsetSpace": "decompressed_hsf",
+          "productionReady": false
         }
       }
     ]
