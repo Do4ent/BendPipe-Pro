@@ -50,13 +50,26 @@ export async function decodeHsfW3d(bytes, context = {}) {
     Number.isInteger(context?.max_opcodes) && context.max_opcodes > 0
       ? context.max_opcodes
       : 1_000_000;
+  const targetTagIndices = Array.isArray(context?.target_tag_indices)
+    ? new Set(
+        context.target_tag_indices
+          .map(Number)
+          .filter((value) => Number.isInteger(value) && value >= 0)
+      )
+    : null;
   const prefix = decodeHsfOpcodePrefix(envelope.opcode_stream, {
     hsfVersion: envelope.hsf_version,
     maxOpcodes,
     attachSegmentPath: true,
-    captureEntity: (entity) =>
-      retainedKinds.has(entity.kind) ||
-      (entity.kind === "segment" && entity.action === "include")
+    captureEntity: (entity) => {
+      if (entity.kind === "tag" && targetTagIndices) {
+        return targetTagIndices.has(entity.tag_index);
+      }
+      return (
+        retainedKinds.has(entity.kind) ||
+        (entity.kind === "segment" && entity.action === "include")
+      );
+    }
   });
   const w3dComment = envelope.comments.find((entry) => /W3D\s+V/i.test(entry.text));
 
