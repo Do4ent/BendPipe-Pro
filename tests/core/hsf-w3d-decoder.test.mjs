@@ -118,6 +118,25 @@ test("A20: W3D evidence retains sequential HSF tag indices", async()=>{
   assert.deepEqual(out.entities.map((e)=>e.source_offset),[0,1]);
 });
 
+
+test("A20: target tag filter keeps only requested graphics-node provenance", async()=>{
+  const stream=Uint8Array.from([0x71,0x71,0x71,0x7a]);
+  const compressed=deflateSync(stream);
+  const bytes=Uint8Array.from([
+    ...Buffer.from(";; HSF V14.50 "),0,
+    0x49,...le32(0x9a06),
+    0x3b,...Buffer.from("W3D V01.00\n"),
+    0x49,...le32(0),
+    0x5a,...compressed,0
+  ]);
+  const out=await decodeHsfW3d(bytes,{target_tag_indices:[1]});
+  assert.equal(out.complete,true);
+  assert.equal(out.entities.length,1);
+  assert.equal(out.entities[0].kind,"tag");
+  assert.equal(out.entities[0].payload.tag_index,1);
+  assert.equal(out.entities[0].source_offset,1);
+});
+
 test("A20: configured opcode ceiling remains an explicit partial-decode blocker", async()=>{
   const stream=Uint8Array.from([
     0x28,0x01,0x61,
