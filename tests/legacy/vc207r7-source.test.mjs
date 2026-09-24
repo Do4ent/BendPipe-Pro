@@ -11,13 +11,25 @@ const SOURCE_PATH = new URL(
 const html = fs.readFileSync(SOURCE_PATH, "utf8");
 
 function functionSlice(name, nextName) {
-  const startMarker = `function ${name}(`;
-  const start = html.indexOf(startMarker);
-  assert.notEqual(start, -1, `missing function ${name}`);
+  const startCandidates = [
+    "function " + name + "(",
+    "async function " + name + "("
+  ];
+  const starts = startCandidates
+    .map((marker) => html.indexOf(marker))
+    .filter((index) => index >= 0);
+  const start = starts.length ? Math.min(...starts) : -1;
+  assert.notEqual(start, -1, "missing function " + name);
 
-  const endMarker = `\nfunction ${nextName}(`;
-  const end = html.indexOf(endMarker, start);
-  assert.notEqual(end, -1, `missing function boundary after ${name}`);
+  const endCandidates = [
+    "\nfunction " + nextName + "(",
+    "\nasync function " + nextName + "("
+  ];
+  const ends = endCandidates
+    .map((marker) => html.indexOf(marker, start + 1))
+    .filter((index) => index >= 0);
+  const end = ends.length ? Math.min(...ends) : -1;
+  assert.notEqual(end, -1, "missing function boundary after " + name);
 
   return html.slice(start, end);
 }
