@@ -5235,7 +5235,7 @@ function sendOffsetLabInit(){
     minimumStraight:minStraight(),
     incoming:{
       pipeDiameter:Number(p?.mm)||0,
-      bendRadius:Number(p?.Rb||0)+Number(p?.mm||0)/2
+      bendRadius:Number(p?.Rb||0)
     }
   },'*');
 }
@@ -5927,8 +5927,6 @@ function pipeCenterlineBoxForRows(rows=state.rows, diameterIndex=state.diameterI
   const box = new THREE.Box3();
   const add = (v)=>{ if (v && Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z)) box.expandByPoint(v.clone()); };
 
-  const p = pipeAt(diameterIndex);
-  const bendR = Math.max(.18, toNumber(p?.Rb) * GEOM_SCALE);
   let pos = originVectorScaled();
   let dir = startDirectionVector();
   add(pos);
@@ -5941,6 +5939,7 @@ function pipeCenterlineBoxForRows(rows=state.rows, diameterIndex=state.diameterI
       add(end);
       pos = end;
     } else if (r.type === 'BEND') {
+      const bendR = Math.max(.18,bendCenterlineRadiusMm(r,diameterIndex)*GEOM_SCALE);
       const angleRad = THREE.MathUtils.degToRad(toNumber(r.angle));
       const plane = r.plane || defaultPlaneForDirection(dir);
       const sign = angleRad >= 0 ? 1 : -1;
@@ -5968,7 +5967,6 @@ function pipeEnvelopeBoxForRows(rows=state.rows, diameterIndex=state.diameterInd
   const p = pipeAt(diameterIndex);
   const tubeRadius = Math.max(0, Number(p?.mm) || 0) * 0.5 * GEOM_SCALE;
   const clearance = Math.max(0, Number(clearanceMm) || 0) * GEOM_SCALE;
-  const bendR = Math.max(.18, toNumber(p?.Rb) * GEOM_SCALE);
   const box = new THREE.Box3();
 
   // Add the actual circular tube cross-section envelope at a centerline point.
@@ -5998,6 +5996,7 @@ function pipeEnvelopeBoxForRows(rows=state.rows, diameterIndex=state.diameterInd
       addSection(end, dir);
       pos = end;
     } else if (r.type === 'BEND') {
+      const bendR = Math.max(.18,bendCenterlineRadiusMm(r,diameterIndex)*GEOM_SCALE);
       const angleRad = THREE.MathUtils.degToRad(toNumber(r.angle));
       const plane = r.plane || defaultPlaneForDirection(dir);
       const sign = angleRad >= 0 ? 1 : -1;
@@ -6103,7 +6102,6 @@ function analyzePipeBounds(rows=state.rows, diameterIndex=state.diameterIndex, o
   const p=ctx.pipe||pipeAt(diameterIndex);
   const tubeRadius=Math.max(0,Number(p?.mm)||0)*.5*GEOM_SCALE;
   const clearance=Math.max(0,Number(clearanceMm)||0)*GEOM_SCALE;
-  const bendR=Math.max(.18,toNumber(p?.Rb)*GEOM_SCALE);
   const scale=Math.max(GEOM_SCALE,1e-12);
   const map=new Map();
   const markers=[];
@@ -6142,6 +6140,7 @@ function analyzePipeBounds(rows=state.rows, diameterIndex=state.diameterIndex, o
       addSection(end,dir,i,'LINE');
       pos=end;
     }else if(r.type==='BEND'){
+      const bendR=Math.max(.18,bendCenterlineRadiusMm(r,diameterIndex)*GEOM_SCALE);
       const angleRad=THREE.MathUtils.degToRad(toNumber(r.angle));
       const plane=r.plane||'XY';
       const sign=angleRad>=0?1:-1;
@@ -7206,9 +7205,35 @@ function addBoundingBoxVisual(group, allowDimensionLabels=true){
 
 function pipe(){ return pipeDb[Math.min(Math.max(0,state.diameterIndex), pipeDb.length-1)] || STANDARD_PIPES[0]; }
 function pipeAt(index){ return pipeDb[Math.min(Math.max(0,index||0), pipeDb.length-1)] || STANDARD_PIPES[0]; }
+function exactToolAtIndex(index){
+  const i=Number(index);
+  return Number.isInteger(i)&&i>=0&&Array.isArray(pipeDb)&&i<pipeDb.length?pipeDb[i]:null;
+}
+function bendCenterlineRadiusMm(row,diameterIndex=state.diameterIndex){
+  const direct=Number(row?.clr);
+  if(Number.isFinite(direct)&&direct>0)return direct;
+  const tool=exactToolAtIndex(diameterIndex);
+  const fallback=Number(tool?.Rb);
+  return Number.isFinite(fallback)&&fallback>0?fallback:0;
+}
+function snapshotLegacyBendClr(rows,diameterIndex=state.diameterIndex){
+  const tool=exactToolAtIndex(diameterIndex);
+  const fallback=Number(tool?.Rb);
+  if(!(Number.isFinite(fallback)&&fallback>0))return rows;
+  for(const row of rows||[]){
+    if(row?.type!=='BEND')continue;
+    const current=Number(row.clr);
+    if(Number.isFinite(current)&&current>0)continue;
+    row.clr=fallback;
+    row.clrSource=row.clrSource||'legacy_tooling_snapshot';
+    row.clrToolingId=row.clrToolingId||tool?.id||null;
+  }
+  return rows;
+}
 function arcLengthForRowWithPipe(row, p){
   const angle = Math.abs(toNumber(row?.angle));
-  const centerlineR = Number(p?.Rb || 0);
+  const direct=Number(row?.clr);
+  const centerlineR = Number.isFinite(direct)&&direct>0?direct:Number(p?.Rb||0);
   return Math.PI * angle / 180 * centerlineR;
 }
 function developedLengthWithRowsAndPipe(rows, diameterIndex){
@@ -7273,6 +7298,7 @@ function normalizeTubeRowStart(rows,diameterIndex=state.diameterIndex){
     normalized[0].initialStraight=true;
     normalized[0].elementId=normalized[0].elementId||elementUid('element');
   }
+  snapshotLegacyBendClr(normalized,diameterIndex);
   return normalized;
 }
 function firstStraightTechnologicalViolation(rows=state.rows,diameterIndex=state.diameterIndex){
@@ -7682,9 +7708,8 @@ function save(){
 }
 
 function arcLength(row){
-  const p = pipe();
   const angle = Math.abs(toNumber(row.angle));
-  const centerlineR = Number(p?.Rb || 0);
+  const centerlineR = bendCenterlineRadiusMm(row,state.diameterIndex);
   return Math.PI * angle / 180 * centerlineR;
 }
 function developedLength(){
@@ -10774,7 +10799,6 @@ function buildTubeCollisionGeometry(tube,project){
   if(!snap||!window.THREE) return null;
   const p=pipeAt(snap.diameterIndex);
   const radius=Math.max(0,(Number(p?.mm)||0)*0.5*GEOM_SCALE);
-  const bendR=Math.max(.18,(Number(p?.Rb)||0)*GEOM_SCALE);
   let pos=tubeOriginVectorScaled(snap),dir=tubeStartDirectionVector(snap);
   let pathS=0,pathIndex=0;
   const segments=[];
@@ -10798,6 +10822,7 @@ function buildTubeCollisionGeometry(tube,project){
       addSegment(pos,end,rowIndex,'LINE');
       pos=end;
     }else if(r.type==='BEND'){
+      const bendR=Math.max(.18,bendCenterlineRadiusMm(r,snap.diameterIndex)*GEOM_SCALE);
       const angleRad=THREE.MathUtils.degToRad(toNumber(r.angle));
       const sign=angleRad>=0?1:-1;
       const plane=r.plane||defaultPlaneForDirection(dir);
@@ -11007,7 +11032,7 @@ function makePassiveBend(start,dir,plane,angleRad,R,tubeR,rotationDeg=0,opacity=
 }
 function addPassiveVisibleTube(group,tube){
   if(!group||!tube||!tubeVisibleIn3D(tube)||tube.id===state.activeTubeId) return;
-  const p=pipeAt(tube.diameterIndex),tubeR=Math.max(.08,(Number(p?.mm)||0)/2*GEOM_SCALE),bendR=Math.max(.18,(Number(p?.Rb)||0)*GEOM_SCALE);
+  const p=pipeAt(tube.diameterIndex),tubeR=Math.max(.08,(Number(p?.mm)||0)/2*GEOM_SCALE);
   let pos=tubeOriginVectorScaled(tube),dir=tubeStartDirectionVector(tube);
   const tubeGroup=new THREE.Group();
   tubeGroup.userData={fitBounds:true,passiveTube:true,tubeId:tube.id};
@@ -11017,6 +11042,7 @@ function addPassiveVisibleTube(group,tube){
       tubeGroup.add(makePassiveCylinder(pos,end,tubeR));
       pos=end;
     }else if(r?.type==='BEND'){
+      const bendR=Math.max(.18,bendCenterlineRadiusMm(r,tube.diameterIndex)*GEOM_SCALE);
       const angle=THREE.MathUtils.degToRad(toNumber(r.angle));
       const plane=r.plane||defaultPlaneForDirection(dir);
       const b=makePassiveBend(pos,dir,plane,angle,bendR,tubeR,getBendRotationValue(r));
@@ -11546,7 +11572,7 @@ function update3D(){
         const rotationDeg = getBendRotationValue(r);
         const tangent = { ok:true };
 
-        const br = Math.max(.18, toNumber(p.Rb) * GEOM_SCALE);
+        const br = Math.max(.18,bendCenterlineRadiusMm(r,state.diameterIndex)*GEOM_SCALE);
         if(bottomParamEditorIndex===i&&!isOffsetRow(r)) addDofManipulator(pipeGroup,{type:'bend',rowIndex:i},pos.clone(),dir.clone(),r,tubeR);
         if(state.showBendDims!==false&&!isOffsetRow(r)&&bottomParamEditorIndex!==i){
           addBendDirectionToggle(pipeGroup,i,pos.clone(),dir.clone(),plane,angle,br,tubeR,rotationDeg);
@@ -12228,7 +12254,7 @@ function addBendVariant(def){
   }
   const Lmin = minStraight();
   const candidate = [
-    { type:'BEND', angle:def.angle || 90, plane:def.plane || defaultPlaneForDirection(directionAfterAllRows()), elementId:elementUid('element') },
+    { type:'BEND', angle:def.angle || 90, plane:def.plane || defaultPlaneForDirection(directionAfterAllRows()), clr:bendCenterlineRadiusMm(null,state.diameterIndex), clrSource:'tooling_default_at_creation', clrToolingId:pipeDb[state.diameterIndex]?.id||null, elementId:elementUid('element') },
     { type:'LINE', L:Lmin, autoMin:true, elementId:elementUid('element') }
   ];
   if (!rowsFitStock(candidate)) {
@@ -13352,9 +13378,9 @@ function poBuildTubePath(tube,pkg){
   if(!window.THREE)return unresolved('3D geometry engine unavailable');
   const tool=poToolFor(tube,pkg);
   if(!tool)return unresolved('tooling is unresolved');
-  const tubeDiameter=Number(tool.mm),bendRadius=Number(tool.Rb);
-  if(!(tubeDiameter>0)||!(bendRadius>0))return unresolved('tooling diameter or CLR is invalid',{tool});
-  const tubeR=tubeDiameter/2,bendR=bendRadius;
+  const tubeDiameter=Number(tool.mm);
+  if(!(tubeDiameter>0))return unresolved('tooling diameter is invalid',{tool});
+  const tubeR=tubeDiameter/2;
   const origin=tube?.origin||{x:0,y:0,z:0};
   let pos=new THREE.Vector3(Number(origin.x)||0,Number(origin.y)||0,Number(origin.z)||0);
   let dir=poAxisVector(tube?.startAxis);
@@ -13389,6 +13415,9 @@ function poBuildTubePath(tube,pkg){
     }
     if(r?.type==='BEND'){
       bendNo++;
+      const directClr=Number(r.clr),legacyClr=Number(tool.Rb);
+      const bendR=Number.isFinite(directClr)&&directClr>0?directClr:legacyClr;
+      if(!(Number.isFinite(bendR)&&bendR>0))return unresolved(`missing bend CLR at row ${rowIndex+1}`,{tool,points,segments,length:developed,radius:tubeR});
       const angle=poNumeric(r.angle,NaN,ctx);
       if(!Number.isFinite(angle))return unresolved(`invalid bend angle at row ${rowIndex+1}`,{tool,points,segments,length:developed,radius:tubeR});
       ctx['A'+bendNo]=ctx['a'+bendNo]=angle;
@@ -14396,7 +14425,7 @@ function ensureElementIds(t){(t.rows||[]).forEach(r=>{if(!r.elementId)r.elementI
 function ensureIndustrialState(){if(!Array.isArray(state.projects))return;ensureElementIds({rows:state.rows||[]});state.projects.forEach(p=>{ensureProjectEngineering(p);(p.tubes||[]).forEach(t=>{ensureElementIds(t);ensureTubeEngineering(t,p);syncDimensionRoles(t);});});const t=activeTube();if(t){ensureElementIds(t);if(t.rows!==state.rows)t.rows=state.rows;rebuildRouteGraph(t,false);}}
 function syncDimensionRoles(t){const e=t.engineering||{};(t.rows||[]).forEach((r,i)=>{const key=`${r.elementId}:${r.type==='LINE'?'L':'A'}`;if(!e.dimensionRoles[key])e.dimensionRoles[key]={role:r.standardDependent?'dependent':'driving',label:r.standardParamKey||(r.type==='LINE'?`L${(t.rows||[]).slice(0,i+1).filter(x=>x.type==='LINE').length}`:`A${(t.rows||[]).slice(0,i+1).filter(x=>x.type==='BEND').length}`),formula:r.type==='LINE'?(r.LFormula||String(r.L)):(r.angleFormula||String(r.angle))};if(r.standardDependent)e.dimensionRoles[key].role='dependent';});}
 function dimensionMeta(row,field,t=activeTube()){if(!row||!t?.engineering)return null;const key=`${row.elementId}:${field==='L'?'L':'A'}`;return t.engineering.dimensionRoles[key]||null;}
-function geometryForTube(t){if(!window.THREE||!t)return {points:[],elements:[]};const rows=tubeRows(t),p=pipeAt(t.id===state.activeTubeId?state.diameterIndex:t.diameterIndex)||{};let pos=(t.id===state.activeTubeId?originVectorScaled():tubeOriginVectorScaled(t)).clone();let dirv=(t.id===state.activeTubeId?startDirectionVector():tubeStartDirectionVector(t)).clone().normalize();const points=[{id:'P1',kind:'port',position:pos.clone(),worldMm:pos.clone().multiplyScalar(1/GEOM_SCALE)}],elements=[];for(let i=0;i<rows.length;i++){const r=rows[i];if(r.type==='LINE'){const len=Math.max(0,evalFormula(r.L,0))*GEOM_SCALE,end=pos.clone().add(dirv.clone().multiplyScalar(len));elements.push({id:r.elementId,type:'LINE',rowIndex:i,start:pos.clone(),end:end.clone(),direction:dirv.clone(),lengthMm:len/GEOM_SCALE});pos=end;points.push({id:id('pt'),kind:'lineEnd',rowIndex:i,position:pos.clone(),worldMm:pos.clone().multiplyScalar(1/GEOM_SCALE)});}else if(r.type==='BEND'){const R=Math.max(.18,n(p.Rb,50)*GEOM_SCALE),a=THREE.MathUtils.degToRad(n(r.angle)),sign=a>=0?1:-1,plane=r.plane||defaultPlaneForDirection(dirv),axis=effectiveBendAxisFromDir(dirv,plane,getBendRotationValue(r)).multiplyScalar(sign).normalize();let radial=new THREE.Vector3().crossVectors(dirv,axis).normalize();if(radial.lengthSq()<1e-10)radial=new THREE.Vector3(0,-1,0);const center=pos.clone().sub(radial.clone().multiplyScalar(R)),sweep=Math.abs(a),end=center.clone().add(radial.clone().applyAxisAngle(axis,sweep).multiplyScalar(R)),nextDir=rotateAround(dirv,axis,sweep).normalize();elements.push({id:r.elementId,type:'BEND',rowIndex:i,start:pos.clone(),end:end.clone(),center,axis,angleDeg:n(r.angle),rotationDeg:getBendRotationValue(r),plane,radiusMm:R/GEOM_SCALE,directionIn:dirv.clone(),directionOut:nextDir.clone()});pos=end;dirv=nextDir;points.push({id:id('pt'),kind:'bendEnd',rowIndex:i,position:pos.clone(),worldMm:pos.clone().multiplyScalar(1/GEOM_SCALE)});}}
+function geometryForTube(t){if(!window.THREE||!t)return {points:[],elements:[]};const rows=tubeRows(t),p=pipeAt(t.id===state.activeTubeId?state.diameterIndex:t.diameterIndex)||{};let pos=(t.id===state.activeTubeId?originVectorScaled():tubeOriginVectorScaled(t)).clone();let dirv=(t.id===state.activeTubeId?startDirectionVector():tubeStartDirectionVector(t)).clone().normalize();const points=[{id:'P1',kind:'port',position:pos.clone(),worldMm:pos.clone().multiplyScalar(1/GEOM_SCALE)}],elements=[];for(let i=0;i<rows.length;i++){const r=rows[i];if(r.type==='LINE'){const len=Math.max(0,evalFormula(r.L,0))*GEOM_SCALE,end=pos.clone().add(dirv.clone().multiplyScalar(len));elements.push({id:r.elementId,type:'LINE',rowIndex:i,start:pos.clone(),end:end.clone(),direction:dirv.clone(),lengthMm:len/GEOM_SCALE});pos=end;points.push({id:id('pt'),kind:'lineEnd',rowIndex:i,position:pos.clone(),worldMm:pos.clone().multiplyScalar(1/GEOM_SCALE)});}else if(r.type==='BEND'){const R=Math.max(.18,bendCenterlineRadiusMm(r,t.id===state.activeTubeId?state.diameterIndex:t.diameterIndex)*GEOM_SCALE),a=THREE.MathUtils.degToRad(n(r.angle)),sign=a>=0?1:-1,plane=r.plane||defaultPlaneForDirection(dirv),axis=effectiveBendAxisFromDir(dirv,plane,getBendRotationValue(r)).multiplyScalar(sign).normalize();let radial=new THREE.Vector3().crossVectors(dirv,axis).normalize();if(radial.lengthSq()<1e-10)radial=new THREE.Vector3(0,-1,0);const center=pos.clone().sub(radial.clone().multiplyScalar(R)),sweep=Math.abs(a),end=center.clone().add(radial.clone().applyAxisAngle(axis,sweep).multiplyScalar(R)),nextDir=rotateAround(dirv,axis,sweep).normalize();elements.push({id:r.elementId,type:'BEND',rowIndex:i,start:pos.clone(),end:end.clone(),center,axis,angleDeg:n(r.angle),rotationDeg:getBendRotationValue(r),plane,radiusMm:R/GEOM_SCALE,directionIn:dirv.clone(),directionOut:nextDir.clone()});pos=end;dirv=nextDir;points.push({id:id('pt'),kind:'bendEnd',rowIndex:i,position:pos.clone(),worldMm:pos.clone().multiplyScalar(1/GEOM_SCALE)});}}
 points[points.length-1].id='P2';points[points.length-1].kind='port';return {points,elements,endPosition:pos,endDirection:dirv};}
 function rebuildRouteGraph(t=activeTube(),persist=true){if(!t)return null;ensureElementIds(t);const g=geometryForTube(t),e=t.engineering||ensureTubeEngineering(t,activeProject());const previousPoints=Array.isArray(e.routeGraph?.points)?e.routeGraph.points:[];e.routeGraph={points:g.points.map((p,index)=>({id:index===0?'P1':index===g.points.length-1?'P2':(previousPoints[index]?.id||`point-${g.elements[Math.max(0,index-1)]?.id||index}`),kind:p.kind,rowIndex:p.rowIndex??null,position:{x:round(p.worldMm.x),y:round(p.worldMm.y),z:round(p.worldMm.z)}})),elements:g.elements.map(x=>({id:x.id,type:x.type,rowIndex:x.rowIndex,start:{x:round(x.start.x/GEOM_SCALE),y:round(x.start.y/GEOM_SCALE),z:round(x.start.z/GEOM_SCALE)},end:{x:round(x.end.x/GEOM_SCALE),y:round(x.end.y/GEOM_SCALE),z:round(x.end.z/GEOM_SCALE)},direction:x.direction?{x:round(x.direction.x,6),y:round(x.direction.y,6),z:round(x.direction.z,6)}:undefined,directionIn:x.directionIn?{x:round(x.directionIn.x,6),y:round(x.directionIn.y,6),z:round(x.directionIn.z,6)}:undefined,directionOut:x.directionOut?{x:round(x.directionOut.x,6),y:round(x.directionOut.y,6),z:round(x.directionOut.z,6)}:undefined,lengthMm:x.lengthMm,angleDeg:x.angleDeg,rotationDeg:x.rotationDeg,plane:x.plane,radiusMm:x.radiusMm})),updatedAt:now()};const p2=e.routeGraph.points.at(-1);if(e.ports?.P2&&!e.ports.P2.locked){e.ports.P2.position=p2?.position||null;e.ports.P2.direction=vecAxis(g.endDirection);}if(e.ports?.P1&&!e.ports.P1.locked){e.ports.P1.position=deep(t.origin||state.origin);e.ports.P1.direction=t.startAxis||state.startAxis||'+X';}if(persist)try{syncActiveTubeFromState();}catch{}return e.routeGraph;}
 function lineElements(t=activeTube()){rebuildRouteGraph(t,false);return (t?.engineering?.routeGraph?.elements||[]).filter(x=>x.type==='LINE');}
@@ -14423,7 +14452,7 @@ function solveConstraints(t=activeTube()){if(!requireEngEditable())return;if(!t)
   if(t.id===state.activeTubeId){state.rows=t.rows;recalculateParameterizedRows();}rebuildRouteGraph(t,false);diagnoseTube(t);save();renderAll();msg(changed?`Применено зависимостей: ${changed}`:'Зависимости проверены; неоднозначные связи оставлены контрольными');renderEngineering();}
 function diagnoseTube(t=activeTube()){if(!t)return {status:'conflict',issues:['Нет трубы']};rebuildRouteGraph(t,false);const p=projectForTube(t)||activeProject(),e=t.engineering,style=p.engineering.styles.find(x=>x.id===e.styleId)||p.engineering.styles[0],machine=p.engineering.machines.find(x=>x.id===e.machineId)||p.engineering.machines[0],issues=[];let conflict=false,under=0;for(const [key,m] of Object.entries(e.dimensionRoles||{})){if(m.role==='reference')under++;if(m.role==='dependent'&&!String(key).includes(':A')){} }const seenConstraints=new Set();let over=0;for(const c of e.constraints||[]){const sig=[c.type,c.a,c.b,c.value].join('|');if(c.enabled&&seenConstraints.has(sig)){over++;issues.push(`Дублирующая зависимость: ${ENG_CONSTRAINT_TYPES[c.type]||c.type}`);}seenConstraints.add(sig);const r=constraintResidual(c,t);c.lastResidual=r.value;c.lastStatus=r.ok?'ok':'conflict';c.lastText=r.text;if(!r.ok){issues.push(`${ENG_CONSTRAINT_TYPES[c.type]||c.type}: ${r.text}`);conflict=true;}}const rows=tubeRows(t),lines=rows.filter(r=>r.type==='LINE'),bends=rows.filter(r=>r.type==='BEND');for(const r of lines){if(n(r.L)<n(style?.minStraight,0)){issues.push(`Прямой участок ${round(n(r.L),1)} мм меньше Lmin ${n(style?.minStraight)} мм`);conflict=true;}}for(const r of bends){if(Math.abs(n(r.angle))>n(style?.maxBendAngle,180)){issues.push(`Угол ${round(n(r.angle),1)}° превышает стиль ${n(style?.maxBendAngle)}°`);conflict=true;}if(Math.abs(n(r.angle))>n(machine?.maxBendAngle,190)){issues.push(`Угол ${round(n(r.angle),1)}° превышает станок ${n(machine?.maxBendAngle)}°`);conflict=true;}}const dev=developedLengthWithRowsAndPipe(rows,t.diameterIndex);if(dev>n(machine?.maxStockLength,MAX_STOCK_LENGTH)){issues.push(`Заготовка ${round(dev,1)} мм длиннее лимита станка ${n(machine?.maxStockLength)} мм`);conflict=true;}const dia=n(style?.outerDiameter,pipeAt(t.diameterIndex)?.mm);if(dia>n(machine?.maxDiameter,Infinity)){issues.push(`Ø${dia} превышает станок Ø${n(machine?.maxDiameter)}`);conflict=true;}const p2=e.ports?.P2;if(p2?.locked&&p2.position){const actual=e.routeGraph.points.at(-1)?.position,dist=Math.hypot(n(actual?.x)-n(p2.position.x),n(actual?.y)-n(p2.position.y),n(actual?.z)-n(p2.position.z));if(dist>.1){issues.push(`Конец P2 не достигает порта: ${round(dist,2)} мм`);conflict=true;}}const collisions=getProjectCollisionAnalysis(p);const ccount=n(collisions.byTube?.[t.id]);if(ccount){issues.push(`Пересечения с участием трубы: ${ccount}`);conflict=true;}if(!e.ports?.P1?.locked)under++;if(!e.ports?.P2?.locked)under++;const status=conflict?'conflict':over?'over':under?'under':'fully';e.diagnostics={status,issues,overConstrained:over,underConstrained:under,updatedAt:now(),constraintCount:e.constraints.length,collisionCount:ccount};return e.diagnostics;}
 function diagnoseProject(){ensureIndustrialState();const rows=[];for(const p of state.projects||[])for(const t of p.tubes||[])rows.push({project:p,tube:t,diag:diagnoseTube(t)});ENG.lastDiagnostics=rows;return rows;}
-function manufacturingData(t=activeTube()){if(!t)return {steps:[]};const p=activeProject(),e=t.engineering,style=p.engineering.styles.find(x=>x.id===e.styleId)||p.engineering.styles[0],machine=p.engineering.machines.find(x=>x.id===e.machineId)||p.engineering.machines[0],rows=tubeRows(t),steps=[];let lineNo=0,bendNo=0,feed=0,lastRotation=0;for(let i=0;i<rows.length;i++){const r=rows[i];if(r.type==='LINE'){lineNo++;feed=n(r.L);continue;}bendNo++;const rotation=round(getBendRotationValue(r),3),angle=n(r.angle),commandAngle=round(angle+Math.sign(angle||1)*n(style.springbackDeg),3);steps.push({bend:bendNo,rowIndex:i,elementId:r.elementId,Y:round(feed,3),B:round(rotation-lastRotation,3),C:round(angle,3),L:round(feed,3),R:round(rotation-lastRotation,3),A:round(angle,3),commandAngle,plane:r.plane||'',radius:n(style.centerlineRadius),toolRadius:n(pipeAt(t.diameterIndex)?.Rb,style.centerlineRadius),axisAfter:'',notes:''});lastRotation=rotation;feed=0;}const theoretical=developedLengthWithRowsAndPipe(rows,t.diameterIndex),elong=steps.reduce((s,x)=>s+Math.abs(x.C)*n(style.elongationPerDegree),0),production=theoretical+elong+n(style.cutAllowanceStart)+n(style.cutAllowanceEnd),od=n(style.outerDiameter),wall=Math.min(n(style.wallThickness),od/2),areaMm2=Math.PI/4*(od*od-Math.max(0,od-2*wall)**2),massKg=areaMm2*production*1e-9*n(style.densityKgM3,7850);const g=rebuildRouteGraph(t,false);const xyz=(g?.points||[]).map((pt,i)=>({point:pt.id||`P${i+1}`,x:n(pt.position.x),y:n(pt.position.y),z:n(pt.position.z)}));return {steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,xyz};}
+function manufacturingData(t=activeTube()){if(!t)return {steps:[]};const p=activeProject(),e=t.engineering,style=p.engineering.styles.find(x=>x.id===e.styleId)||p.engineering.styles[0],machine=p.engineering.machines.find(x=>x.id===e.machineId)||p.engineering.machines[0],rows=tubeRows(t),steps=[];let lineNo=0,bendNo=0,feed=0,lastRotation=0;for(let i=0;i<rows.length;i++){const r=rows[i];if(r.type==='LINE'){lineNo++;feed=n(r.L);continue;}bendNo++;const rotation=round(getBendRotationValue(r),3),angle=n(r.angle),commandAngle=round(angle+Math.sign(angle||1)*n(style.springbackDeg),3);steps.push({bend:bendNo,rowIndex:i,elementId:r.elementId,Y:round(feed,3),B:round(rotation-lastRotation,3),C:round(angle,3),L:round(feed,3),R:round(rotation-lastRotation,3),A:round(angle,3),commandAngle,plane:r.plane||'',radius:bendCenterlineRadiusMm(r,t.diameterIndex),toolRadius:n(pipeAt(t.diameterIndex)?.Rb,0),axisAfter:'',notes:''});lastRotation=rotation;feed=0;}const theoretical=developedLengthWithRowsAndPipe(rows,t.diameterIndex),elong=steps.reduce((s,x)=>s+Math.abs(x.C)*n(style.elongationPerDegree),0),production=theoretical+elong+n(style.cutAllowanceStart)+n(style.cutAllowanceEnd),od=n(style.outerDiameter),wall=Math.min(n(style.wallThickness),od/2),areaMm2=Math.PI/4*(od*od-Math.max(0,od-2*wall)**2),massKg=areaMm2*production*1e-9*n(style.densityKgM3,7850);const g=rebuildRouteGraph(t,false);const xyz=(g?.points||[]).map((pt,i)=>({point:pt.id||`P${i+1}`,x:n(pt.position.x),y:n(pt.position.y),z:n(pt.position.z)}));return {steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,xyz};}
 function machineSequenceCheck(t=activeTube()){const d=manufacturingData(t),issues=[];if(!d.steps.length)return {ok:true,issues,order:[]};for(const s of d.steps){if(s.Y<n(d.machine.minFeed))issues.push(`Перед гибом ${s.bend}: подача ${s.Y} мм меньше ${d.machine.minFeed} мм`);if(Math.abs(s.B)>n(d.machine.rotationLimit,360))issues.push(`Поворот B${s.bend} превышает лимит`);}const rows=tubeRows(t),first=rows.find(r=>r.type==='LINE'),last=[...rows].reverse().find(r=>r.type==='LINE');if(n(first?.L)<n(d.machine.clampMin))issues.push(`Начальный хвост меньше зоны зажима ${d.machine.clampMin} мм`);if(n(last?.L)<n(d.machine.clampMin))issues.push(`Конечный хвост меньше зоны зажима ${d.machine.clampMin} мм`);
   const g=geometryForTube(t),head=n(d.machine.headRadius,0)*GEOM_SCALE,tubeRadius=n(d.style.outerDiameter,0)*.5*GEOM_SCALE;
   const bends=g.elements.filter(x=>x.type==='BEND'),lines=g.elements.filter(x=>x.type==='LINE');
@@ -14517,6 +14546,16 @@ function productionReleaseDecision(t=activeTube(),kind='manufacturing'){
     if(!(t.importValidation.issues||[]).length)blockers.push('Импортированная геометрия содержит неподтверждённые данные');
   }
   if(t.toolingUnresolved||!t.toolingId||toolingIndexById(t.toolingId)<0)blockers.push('Оснастка трубы не разрешена по стабильному идентификатору');
+  const toolIndex=toolingIndexById(t.toolingId),selectedTool=toolIndex>=0?pipeDb[toolIndex]:null;
+  if(selectedTool){
+    const toolClr=Number(selectedTool.Rb);
+    (tubeRows(t)||[]).forEach((row,rowIndex)=>{
+      if(row?.type!=='BEND')return;
+      const clr=bendCenterlineRadiusMm(row,t.diameterIndex);
+      if(!(clr>0))blockers.push(`Гиб ${rowIndex+1}: CLR не определён`);
+      else if(Number.isFinite(toolClr)&&toolClr>0&&Math.abs(clr-toolClr)>1e-6)blockers.push(`Гиб ${rowIndex+1}: CLR ${clr} мм не соответствует выбранной оснастке R${toolClr} мм`);
+    });
+  }
   const p=projectForTube(t)||activeProject(),e=t.engineering||{},style=p?.engineering?.styles?.find(x=>x.id===e.styleId)||null,machine=p?.engineering?.machines?.find(x=>x.id===e.machineId)||null;
   if(!style)blockers.push('Не выбран технологический стиль');else{
     if(style.confirmed!==true)blockers.push('Технологический стиль не подтверждён пользователем');
