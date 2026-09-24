@@ -1,0 +1,118 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import { deriveTubeMeshCenterline } from "../../src/recognition/tube-mesh-centerline.mjs";
+
+function addSideSurface(vertices,faces,{radius,circumference,centers,reversed=false}){
+  const start=vertices.length;
+  const ordered=reversed?[...centers].reverse():centers;
+  for(const center of ordered){
+    for(let i=0;i<circumference;i+=1){
+      const a=2*Math.PI*i/circumference;
+      vertices.push([
+        center[0],
+        center[1]+radius*Math.cos(a),
+        center[2]+radius*Math.sin(a)
+      ]);
+    }
+  }
+  for(let ring=0;ring<ordered.length-1;ring+=1){
+    for(let i=0;i<circumference;i+=1){
+      const next=(i+1)%circumference;
+      const a=start+ring*circumference+i;
+      const b=start+ring*circumference+next;
+      const c=start+(ring+1)*circumference+i;
+      const d=start+(ring+1)*circumference+next;
+      faces.push([a,b,d],[a,d,c]);
+    }
+  }
+}
+
+function straightHollowTube({badInnerRadius=false,reversedInner=false}={}){
+  const vertices=[],faces=[];
+  const centers=[[0,0,0],[1,0,0],[2,0,0],[3,0,0]];
+  addSideSurface(vertices,faces,{
+    radius:0.5,circumference:8,centers
+  });
+  addSideSurface(vertices,faces,{
+    radius:badInnerRadius?0.35:0.4,
+    circumference:7,
+    centers,
+    reversed:reversedInner
+  });
+  return {vertices,faces};
+}
+
+test("A20: hollow shell grids derive one shared centerline and explicit unit scale",()=>{
+  const mesh=straightHollowTube();
+  const result=deriveTubeMeshCenterline({
+    ...mesh,
+    outer_diameter_mm:10,
+    wall_thickness_mm:1
+  });
+
+  assert.equal(result.status,"centerline_candidate");
+  assert.equal(result.production_ready,false);
+  assert.equal(result.canonical_ready,false);
+  assert.ok(Math.abs(result.scale_mm_per_source_unit-10)<1e-9);
+  assert.equal(result.scale_method,"derived_from_outer_diameter");
+  assert.equal(result.centerline_sample_count,4);
+  assert.deepEqual(result.centerline_points_mm,[
+    [0,0,0],[10,0,0],[20,0,0],[30,0,0]
+  ]);
+  assert.ok(Math.abs(result.observed_outer_radius_mm-5)<1e-9);
+  assert.ok(Math.abs(result.observed_inner_radius_mm-4)<1e-9);
+  assert.ok(Math.abs(result.chordal_polyline_length_mm-30)<1e-9);
+});
+
+test("A20: inner and outer centerline ring order may be reversed but must geometrically agree",()=>{
+  const result=deriveTubeMeshCenterline({
+    ...straightHollowTube({reversedInner:true}),
+    outer_diameter_mm:10,
+    wall_thickness_mm:1
+  });
+  assert.equal(result.status,"centerline_candidate");
+  assert.ok(result.center_mismatch_mm<1e-9);
+  assert.deepEqual(result.centerline_points_mm,[
+    [0,0,0],[10,0,0],[20,0,0],[30,0,0]
+  ]);
+});
+
+test("A20: wall/radius mismatch remains unresolved instead of forcing a centerline",()=>{
+  const result=deriveTubeMeshCenterline({
+    ...straightHollowTube({badInnerRadius:true}),
+    outer_diameter_mm:10,
+    wall_thickness_mm:1
+  });
+  assert.equal(result.status,"unresolved");
+  assert.equal(result.production_ready,false);
+  assert.match(result.blocker,/inner radius mismatch/i);
+});
+
+test("A20: an explicit unit scale is validated rather than silently replaced",()=>{
+  const result=deriveTubeMeshCenterline({
+    ...straightHollowTube(),
+    outer_diameter_mm:10,
+    wall_thickness_mm:1,
+    scale_mm_per_source_unit:1
+  });
+  assert.equal(result.status,"unresolved");
+  assert.equal(result.diagnostics.scale_method,"explicit");
+  assert.match(result.blocker,/outer radius mismatch/i);
+});
+
+test("A20: topology with more than two side grids is rejected as ambiguous",()=>{
+  const mesh=straightHollowTube();
+  addSideSurface(mesh.vertices,mesh.faces,{
+    radius:0.3,
+    circumference:6,
+    centers:[[0,0,0],[1,0,0],[2,0,0],[3,0,0]]
+  });
+  const result=deriveTubeMeshCenterline({
+    ...mesh,
+    outer_diameter_mm:10,
+    wall_thickness_mm:1
+  });
+  assert.equal(result.status,"unresolved");
+  assert.match(result.blocker,/exactly two ring-grid side surfaces/i);
+});
