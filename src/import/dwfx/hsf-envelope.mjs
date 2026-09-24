@@ -1,4 +1,6 @@
-import { decodeEdgeBreakerConnectivity } from "./edgebreaker-connectivity.mjs";\n\nfunction asBytes(input) {
+import { decodeEdgeBreakerConnectivity } from "./edgebreaker-connectivity.mjs";
+
+function asBytes(input) {
   if (input instanceof Uint8Array) return input;
   if (input instanceof ArrayBuffer) return new Uint8Array(input);
   if (ArrayBuffer.isView(input)) {
