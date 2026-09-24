@@ -168,6 +168,7 @@ export function decodeHsfOpcodePrefix(
 
   let offset = 0;
   let count = 0;
+  let tagIndex = 0;
   let geometryAttributesDepth = 0;
 
   while (offset < bytes.length && count < maxOpcodes) {
@@ -227,8 +228,13 @@ export function decodeHsfOpcodePrefix(
         unsupported_variant: "TKE_Termination outside geometry-attributes scope"
       });
     }
-    if (opcode === 0x71) { // TKE_Tag: no operands
-      emit(Object.freeze({ kind: "tag", source_offset: offset }));
+    if (opcode === 0x71) { // TKE_Tag: no operands; assigns next sequential object index
+      emit(Object.freeze({
+        kind: "tag",
+        source_offset: offset,
+        tag_index: tagIndex
+      }));
+      tagIndex += 1;
       offset += 1;
       count += 1;
       continue;
