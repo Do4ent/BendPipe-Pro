@@ -320,13 +320,70 @@
       {
         "kind": "tag",
         "source_offset": 532
+      },
+      {
+        "kind": "texture",
+        "source_offset": 533,
+        "name": "\"ENVIRONMENT-F36F8E54-5909-41d6-9FC3-020CB8A46593\"",
+        "image_name": "\"ENVIRONMENT-F36F8E54-5909-41d6-9FC3-020CB8A46593\"",
+        "flags": 1,
+        "options": {
+          "parameter_source": 6
+        }
+      },
+      {
+        "kind": "color",
+        "source_offset": 639,
+        "geometry_mask": 1,
+        "channels_mask": 447,
+        "channels": {
+          "diffuse": {
+            "rgb_bytes": [
+              190,
+              188,
+              186
+            ]
+          },
+          "specular": {
+            "rgb_bytes": [
+              190,
+              188,
+              186
+            ]
+          },
+          "mirror": {
+            "rgb_bytes": [
+              45,
+              45,
+              45
+            ]
+          },
+          "transmission": {
+            "rgb_bytes": [
+              0,
+              0,
+              0
+            ]
+          },
+          "emission": {
+            "rgb_bytes": [
+              0,
+              0,
+              0
+            ]
+          },
+          "gloss": 14.734375,
+          "environment": {
+            "name": "\"ENVIRONMENT-F36F8E54-5909-41d6-9FC3-020CB8A46593\""
+          }
+        }
       }
     ],
-    "next_offset": 533,
-    "unsupported_opcode_hex": "0x74",
-    "unsupported_opcode_name": "TKE_Texture",
+    "next_offset": 718,
+    "unsupported_opcode_hex": "0x53",
+    "unsupported_opcode_name": "TKE_Shell",
     "complete": false
   },
   "production_ready": false,
-  "note": "Golden facts extracted from the original 80003043(A) DWFx. Prefix decoding is evidence only; parsing stops at the first unsupported opcode and must not resynchronize by scanning. Current synchronized frontier is TKE_Texture at decompressed offset 533."
+  "note": "Golden facts extracted from the original 80003043(A) DWFx. Prefix decoding is evidence only; parsing stops at the first unsupported opcode and must not resynchronize by scanning. Current synchronized frontier is the first TKE_Shell geometry at decompressed offset 718."
 }
