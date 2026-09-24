@@ -30,12 +30,27 @@ function findHeaderTerminator(bytes, start) {
   return -1;
 }
 
+async function inflateWithStream(bytes) {
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
 async function defaultInflateZlib(bytes) {
   if (typeof DecompressionStream !== "function") {
     throw new Error("No zlib inflater available; provide inflateZlib(bytes)");
   }
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate"));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
+  try {
+    return await inflateWithStream(bytes);
+  } catch (error) {
+    // Inventor W3D resources can carry one outer NUL byte after the zlib
+    // member. Node 24 rejects that byte as trailing junk whereas browsers and
+    // older Node versions may ignore it. Retry only this observed container
+    // terminator; never scan for a guessed zlib end.
+    if (bytes.length > 1 && bytes.at(-1) === 0) {
+      return inflateWithStream(bytes.subarray(0, -1));
+    }
+    throw error;
+  }
 }
 
 /** Parse only the HSF/W3D envelope and global zlib block. */
