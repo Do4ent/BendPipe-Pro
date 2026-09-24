@@ -159,3 +159,57 @@ test("A05: production release decision is exposed for UI and diagnostics", () =>
     /window\.TubeBenderEngineering=\{[^}]*productionReleaseDecision/
   );
 });
+
+
+test("A06: formula parser accepts a degree suffix", () => {
+  const formula = functionSlice("evalFormula", "recalculateParameterizedRows");
+  const value = vm.runInNewContext(
+    `${formula}\nevalFormula("45°", NaN, {});`,
+    {}
+  );
+  assert.equal(value, 45);
+});
+
+test("A06: angle edit updates numeric value and angleFormula atomically", () => {
+  const edit = functionSlice("editCell", "minStraight");
+
+  assert.match(edit, /const expression=String\(value\)\.trim\(\)/);
+  assert.match(edit, /r\.angle=a/);
+  assert.match(edit, /r\.angleFormula=expression/);
+  assert.match(edit, /if\(!changed\)\{renderAll\(\);return false;\}/);
+});
+
+test("A07: bend-plane edit goes through candidate validation before commit", () => {
+  const validation = functionSlice("collisionKeyForTube", "lengthHint");
+  const editor = functionSlice("refreshEditPanel", "checkRow");
+
+  assert.match(validation, /function validateCandidateRowsForCommit/);
+  assert.match(validation, /developedLengthWithRows/);
+  assert.match(validation, /analyzePipeBounds/);
+  assert.match(validation, /firstStraightTechnologicalViolation/);
+  assert.match(validation, /analyzeProjectTubeIntersections/);
+  assert.match(validation, /function commitBendPlaneChange/);
+  assert.match(validation, /state\.rows=candidate/);
+
+  assert.match(
+    editor,
+    /commitBendPlaneChange\(i,e\.target\.value,e\.target\)/
+  );
+  assert.doesNotMatch(
+    editor,
+    /tbEditPlane[^\n]*r\.plane=e\.target\.value/
+  );
+});
+
+test("A08: modern editing entry points enforce readonly", () => {
+  const edit = functionSlice("editCell", "minStraight");
+  const plane = functionSlice("collisionKeyForTube", "lengthHint");
+  const editor = functionSlice("refreshEditPanel", "checkRow");
+  const readOnlyUi = functionSlice("poApplyReadOnlyUi", "poCreateEditableCopy");
+
+  assert.match(edit, /poReadOnly\(\)/);
+  assert.match(plane, /poReadOnly\(\)/);
+  assert.match(editor, /data-origin-axis[^]*poReadOnly\(\)/);
+  assert.match(readOnlyUi, /#tbEditSummary input/);
+  assert.match(readOnlyUi, /#tbEditSummary select/);
+});
