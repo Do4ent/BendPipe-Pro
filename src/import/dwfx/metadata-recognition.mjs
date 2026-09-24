@@ -107,7 +107,8 @@ export function normalizeDwfxMetadataRecognition(input) {
           ),
           source_evidence: Object.freeze({
             original_geometry_recognition: clone(tube?.geometryRecognition ?? null),
-            placeholder_rows: Object.freeze(clone(placeholderRows))
+            placeholder_rows: Object.freeze(clone(placeholderRows)),
+            source_object_link: clone(tube?.sourceObjectLink ?? null)
           })
         });
       })
