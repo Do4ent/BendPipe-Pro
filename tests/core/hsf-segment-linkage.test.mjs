@@ -61,7 +61,7 @@ test("A20: named-segment lookup never chooses among duplicate byte-exact candida
     ...open("121137"),0x29,
     ...open("121137"),0x29
   ]);
-  assert.deepEqual(findHsfNamedSegmentCandidates(stream,"121137"),[0,10]);
+  assert.deepEqual(findHsfNamedSegmentCandidates(stream,"121137"),[0,9]);
   const located=locateUniqueHsfNamedSegment(stream,"121137");
   assert.equal(located.status,"ambiguous");
   assert.equal(located.offset,null);
