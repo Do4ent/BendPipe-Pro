@@ -147,6 +147,35 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256 } = {}) {
       count += 1;
       continue;
     }
+    if (opcode === 0x71) { // TKE_Tag: no operands
+      entities.push(Object.freeze({ kind: "tag", source_offset: offset }));
+      offset += 1;
+      count += 1;
+      continue;
+    }
+    if (opcode === 0x64) { // TKE_Distant_Light: Point direction
+      if (offset + 13 > bytes.length) throw new RangeError("truncated TKE_Distant_Light");
+      const direction = Object.freeze([
+        readF32LE(bytes, offset + 1),
+        readF32LE(bytes, offset + 5),
+        readF32LE(bytes, offset + 9)
+      ]);
+      entities.push(Object.freeze({
+        kind: "light",
+        light_type: "distant",
+        source_offset: offset,
+        direction
+      }));
+      offset += 13;
+      count += 1;
+      continue;
+    }
+    if (opcode === 0x01) { // TKE_Pause: no operands
+      entities.push(Object.freeze({ kind: "pause", source_offset: offset }));
+      offset += 1;
+      count += 1;
+      continue;
+    }
     if (opcode === 0x42) {
       if (offset + 2 > bytes.length) throw new RangeError("truncated TKE_Bounding_Info");
       const type = bytes[offset + 1];
