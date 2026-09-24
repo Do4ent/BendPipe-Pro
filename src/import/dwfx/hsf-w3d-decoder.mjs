@@ -39,6 +39,7 @@ export async function decodeHsfW3d(bytes, context = {}) {
   const retainedKinds = new Set([
     "transform",
     "bounds",
+    "tag",
     "polyline",
     "curve_candidate",
     "triangle_mesh",
