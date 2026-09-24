@@ -210,7 +210,8 @@ test('A20: TKE_Shell exposes exact post-EdgeBreaker vertices and decoded connect
   assert.deepEqual(shell.vertices,[[1,2,3],[4,5,6],[7,8,9]]);
   assert.equal(shell.connectivity.status,'decoded');
   assert.equal(shell.connectivity.codec,'edgebreaker');
-  assert.equal(shell.connectivity.face_count,1);\n  assert.deepEqual(shell.connectivity.faces,[[0,1,2]]);
+  assert.equal(shell.connectivity.face_count,1);
+  assert.deepEqual(shell.connectivity.faces,[[0,1,2]]);
   assert.deepEqual(shell.optionals,[{
     opcode:0x1c,
     kind:'all_parameters',
