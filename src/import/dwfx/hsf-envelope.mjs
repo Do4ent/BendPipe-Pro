@@ -152,12 +152,12 @@ export function decodeHsfOpcodePrefix(
 
     if (shouldCapture(entity)) {
       if (attachSegmentPath) {
-        emit(Object.freeze({
+        entities.push(Object.freeze({
           ...entity,
           segment_path: Object.freeze([...segmentStack])
         }));
       } else {
-        emit(entity);
+        entities.push(entity);
       }
     }
 
