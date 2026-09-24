@@ -437,8 +437,10 @@ test("A15: nominal CLR is persisted per bend and used across geometry paths", ()
   assert.match(geometry, /bendCenterlineRadiusMm\(r,/);
   assert.match(manufacturing, /radius:bendCenterlineRadiusMm\(r,t\.diameterIndex\)/);
   assert.match(manufacturing, /toolRadius:n\(pipeAt\(t\.diameterIndex\)\?\.Rb,0\)/);
-  assert.match(simulationLength, /bendCenterlineRadiusMm\(r,state\.diameterIndex\)/);
-  assert.match(simulationShape, /bendCenterlineRadiusMm\(row,/);
+  assert.match(simulationLength, /const R=Number\(r\.clr\)/);
+  assert.doesNotMatch(simulationLength, /style\?\.centerlineRadius/);
+  assert.match(simulationShape, /const clr=Number\(row\.clr\)/);
+  assert.match(simulationShape, /const phaseClr=Number\(phaseRow\?\.clr\)/);
 });
 
 test("A15: imported unknown formats cannot infer missing CLR from tooling", () => {
