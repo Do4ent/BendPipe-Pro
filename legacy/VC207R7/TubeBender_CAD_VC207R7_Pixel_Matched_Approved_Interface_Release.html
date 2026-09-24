@@ -7420,6 +7420,10 @@ function repairTubeForCheck(t, fallbackName){
   ensureToolingIds(pipeDb);
   t.id = t.id || uid();
   t.name = t.name || fallbackName || 'Pipe 1';
+  if(t.importValidation?.productionBlocked===true){
+    t.visible=t.visible!==false;
+    return t;
+  }
   if(!t.toolingId){
     const legacyIndex=validToolDiameterIndex(t.diameterIndex);
     t.toolingId=pipeDb[legacyIndex]?.id||null;
@@ -13302,31 +13306,116 @@ function poScheduleRecovery(){clearTimeout(PO.recoveryTimer);PO.recoveryTimer=se
 function poWorkspaceSummary(){const projects=state?.projects||[];const tubes=projects.reduce((n,p)=>n+(p.tubes?.length||0),0);return{projects:projects.length,tubes};}
 function poSetBusy(on,text='Анализ файла…'){PO.busy=!!on;qs('projectOpenDialog')?.classList.toggle('po-busy',!!on);if(qs('poCancelAnalysis'))qs('poCancelAnalysis').disabled=!on;if(text&&qs('poSubtitle'))qs('poSubtitle').textContent=text;}
 function poAbortAnalysis(){PO.analysisToken++;poSetBusy(false,'Анализ отменён. Выберите другой файл или запись.');}
-function poAxisVector(axis){const a=String(axis||'X').toUpperCase();if(a==='-X')return new THREE.Vector3(-1,0,0);if(a==='Y')return new THREE.Vector3(0,1,0);if(a==='-Y')return new THREE.Vector3(0,-1,0);if(a==='Z')return new THREE.Vector3(0,0,1);if(a==='-Z')return new THREE.Vector3(0,0,-1);return new THREE.Vector3(1,0,0);}
-function poPlaneNormal(plane){return plane==='YZ'?new THREE.Vector3(1,0,0):plane==='XZ'?new THREE.Vector3(0,1,0):new THREE.Vector3(0,0,1);}
+function poAxisVector(axis){
+  const a=String(axis??'').toUpperCase();
+  if(a==='X')return new THREE.Vector3(1,0,0);
+  if(a==='-X')return new THREE.Vector3(-1,0,0);
+  if(a==='Y')return new THREE.Vector3(0,1,0);
+  if(a==='-Y')return new THREE.Vector3(0,-1,0);
+  if(a==='Z')return new THREE.Vector3(0,0,1);
+  if(a==='-Z')return new THREE.Vector3(0,0,-1);
+  return null;
+}
+function poPlaneNormal(plane){
+  if(plane==='XY')return new THREE.Vector3(0,0,1);
+  if(plane==='XZ')return new THREE.Vector3(0,1,0);
+  if(plane==='YZ')return new THREE.Vector3(1,0,0);
+  return null;
+}
 function poRotate(v,axis,angle){return v.clone().applyAxisAngle(axis.clone().normalize(),angle);}
 function poEffectiveBendAxis(dir,plane='XY',rotationDeg=0){
-  const tangent=dir.clone().normalize();let base=poPlaneNormal(plane);base.sub(tangent.clone().multiplyScalar(base.dot(tangent)));
-  if(base.lengthSq()<1e-10){const helper=Math.abs(tangent.z)<.88?new THREE.Vector3(0,0,1):new THREE.Vector3(0,1,0);base=new THREE.Vector3().crossVectors(helper,tangent);}
+  const tangent=dir.clone().normalize();
+  let base=poPlaneNormal(plane);
+  if(!base)return null;
+  base.sub(tangent.clone().multiplyScalar(base.dot(tangent)));
+  if(base.lengthSq()<1e-10){
+    const helper=Math.abs(tangent.z)<.88?new THREE.Vector3(0,0,1):new THREE.Vector3(0,1,0);
+    base=new THREE.Vector3().crossVectors(helper,tangent);
+  }
   return base.normalize().applyAxisAngle(tangent,THREE.MathUtils.degToRad(Number(rotationDeg)||0)).normalize();
 }
 function poNumeric(value,fallback=0,ctx={}){if(typeof value==='number')return Number.isFinite(value)?value:fallback;const direct=Number(String(value??'').replace(',','.'));if(Number.isFinite(direct))return direct;try{return evalFormula(value,fallback,ctx);}catch{return fallback;}}
-function poToolFor(tube,pkg){const db=pkg?.pipeDb?.length?pkg.pipeDb:pipeDb;const i=Number(tube?.diameterIndex);return db?.[i]||db?.[0]||{mm:22,Rb:40,Lmin:60};}
+function poToolFor(tube,pkg){
+  const db=pkg?.pipeDb?.length?pkg.pipeDb:pipeDb;
+  if(!Array.isArray(db)||!db.length)return null;
+  const stableId=String(tube?.toolingId||'');
+  if(stableId){
+    const byId=db.find(tool=>String(tool?.id||'')===stableId);
+    if(byId)return byId;
+  }
+  const i=Number(tube?.diameterIndex);
+  return Number.isInteger(i)&&i>=0&&i<db.length?db[i]:null;
+}
 function poBuildTubePath(tube,pkg){
-  if(!window.THREE)return{points:[],segments:[],length:0};
-  const tool=poToolFor(tube,pkg),tubeR=Math.max(.1,(Number(tool.mm)||22)/2),bendR=Math.max(1,Number(tool.Rb)||40);
-  const origin=tube?.origin||{x:0,y:0,z:0};let pos=new THREE.Vector3(Number(origin.x)||0,Number(origin.y)||0,Number(origin.z)||0);
-  let dir=poAxisVector(tube?.startAxis||'X');const startPlane=tube?.startPlane||'XY';dir.applyAxisAngle(poPlaneNormal(startPlane),THREE.MathUtils.degToRad(Number(tube?.startAngle)||0)).normalize();
-  const points=[pos.clone()],segments=[];let developed=0,lineNo=0,bendNo=0;const ctx={};
-  const add=(a,b,rowIndex,rowType)=>{if(a.distanceToSquared(b)<1e-10)return;segments.push({a:a.clone(),b:b.clone(),rowIndex,rowType,radius:tubeR,pathIndex:segments.length});points.push(b.clone());};
-  (tube?.rows||[]).forEach((r,rowIndex)=>{
+  const unresolved=(reason,extra={})=>({points:[],segments:[],length:0,radius:0,tool:null,unresolved:true,reason,...extra});
+  if(!window.THREE)return unresolved('3D geometry engine unavailable');
+  const tool=poToolFor(tube,pkg);
+  if(!tool)return unresolved('tooling is unresolved');
+  const tubeDiameter=Number(tool.mm),bendRadius=Number(tool.Rb);
+  if(!(tubeDiameter>0)||!(bendRadius>0))return unresolved('tooling diameter or CLR is invalid',{tool});
+  const tubeR=tubeDiameter/2,bendR=bendRadius;
+  const origin=tube?.origin||{x:0,y:0,z:0};
+  let pos=new THREE.Vector3(Number(origin.x)||0,Number(origin.y)||0,Number(origin.z)||0);
+  let dir=poAxisVector(tube?.startAxis);
+  if(!dir)return unresolved('start axis is unsupported',{tool});
+  const startPlane=tube?.startPlane;
+  const startNormal=poPlaneNormal(startPlane);
+  if(!startNormal)return unresolved('start plane is unsupported',{tool});
+  dir.applyAxisAngle(startNormal,THREE.MathUtils.degToRad(Number(tube?.startAngle)||0)).normalize();
+
+  const points=[pos.clone()],segments=[];
+  let developed=0,lineNo=0,bendNo=0;
+  const ctx={};
+  const add=(a,b,rowIndex,rowType)=>{
+    if(a.distanceToSquared(b)<1e-10)return;
+    segments.push({a:a.clone(),b:b.clone(),rowIndex,rowType,radius:tubeR,pathIndex:segments.length});
+    points.push(b.clone());
+  };
+
+  const rows=Array.isArray(tube?.rows)?tube.rows:[];
+  for(let rowIndex=0;rowIndex<rows.length;rowIndex++){
+    const r=rows[rowIndex];
     if(r?.type==='LINE'){
-      lineNo++;const L=Math.max(0,poNumeric(r.L,0,ctx));ctx['L'+lineNo]=ctx['l'+lineNo]=L;const end=pos.clone().add(dir.clone().multiplyScalar(L));add(pos,end,rowIndex,'LINE');pos=end;developed+=L;
-    }else if(r?.type==='BEND'){
-      bendNo++;const angle=poNumeric(r.angle,0,ctx);ctx['A'+bendNo]=ctx['a'+bendNo]=angle;const sweep=Math.abs(THREE.MathUtils.degToRad(angle));const sign=angle>=0?1:-1;const axis=poEffectiveBendAxis(dir,r.plane||'XY',poNumeric(r.rot,0,ctx)).multiplyScalar(sign).normalize();let radial=new THREE.Vector3().crossVectors(dir,axis).normalize();if(radial.lengthSq()<1e-8)radial.set(0,-1,0);const center=pos.clone().sub(radial.clone().multiplyScalar(bendR));const steps=Math.max(6,Math.ceil(sweep/(Math.PI/24)));let prev=pos.clone();for(let k=1;k<=steps;k++){const next=center.clone().add(radial.clone().applyAxisAngle(axis,sweep*k/steps).multiplyScalar(bendR));add(prev,next,rowIndex,'BEND');prev=next;}pos=prev;dir=poRotate(dir,axis,sweep).normalize();developed+=sweep*(bendR+tubeR);ctx['LB'+bendNo]=ctx['lb'+bendNo]=sweep*(bendR+tubeR);
+      lineNo++;
+      const L=poNumeric(r.L,NaN,ctx);
+      if(!Number.isFinite(L)||L<0)return unresolved(`invalid straight length at row ${rowIndex+1}`,{tool,points,segments,length:developed,radius:tubeR});
+      ctx['L'+lineNo]=ctx['l'+lineNo]=L;
+      const end=pos.clone().add(dir.clone().multiplyScalar(L));
+      add(pos,end,rowIndex,'LINE');
+      pos=end;
+      developed+=L;
+      continue;
     }
-  });
-  return{points,segments,length:developed,radius:tubeR,tool};
+    if(r?.type==='BEND'){
+      bendNo++;
+      const angle=poNumeric(r.angle,NaN,ctx);
+      if(!Number.isFinite(angle))return unresolved(`invalid bend angle at row ${rowIndex+1}`,{tool,points,segments,length:developed,radius:tubeR});
+      ctx['A'+bendNo]=ctx['a'+bendNo]=angle;
+      const sweep=Math.abs(THREE.MathUtils.degToRad(angle));
+      const sign=angle>=0?1:-1;
+      const bendAxis=poEffectiveBendAxis(dir,r.plane,poNumeric(r.rot,0,ctx));
+      if(!bendAxis)return unresolved(`unsupported bend plane at row ${rowIndex+1}`,{tool,points,segments,length:developed,radius:tubeR});
+      const axis=bendAxis.multiplyScalar(sign).normalize();
+      let radial=new THREE.Vector3().crossVectors(dir,axis).normalize();
+      if(radial.lengthSq()<1e-8)radial.set(0,-1,0);
+      const center=pos.clone().sub(radial.clone().multiplyScalar(bendR));
+      const steps=Math.max(6,Math.ceil(sweep/(Math.PI/24)));
+      let prev=pos.clone();
+      for(let k=1;k<=steps;k++){
+        const next=center.clone().add(radial.clone().applyAxisAngle(axis,sweep*k/steps).multiplyScalar(bendR));
+        add(prev,next,rowIndex,'BEND');
+        prev=next;
+      }
+      pos=prev;
+      dir=poRotate(dir,axis,sweep).normalize();
+      const arcLength=sweep*bendR;
+      developed+=arcLength;
+      ctx['LB'+bendNo]=ctx['lb'+bendNo]=arcLength;
+      continue;
+    }
+    return unresolved(`unsupported element type at row ${rowIndex+1}`,{tool,points,segments,length:developed,radius:tubeR});
+  }
+  return{points,segments,length:developed,radius:tubeR,tool,unresolved:false,reason:null};
 }
 function poClosestSegments(a,b){
   const d1=a.b.clone().sub(a.a),d2=b.b.clone().sub(b.a),r=a.a.clone().sub(b.a),aa=d1.dot(d1),ee=d2.dot(d2),eps=1e-12;let s=0,t=0;
@@ -13342,14 +13431,79 @@ function poAnalyzeCollisions(project,pkg){
   return found;
 }
 function poNormalizeTube(raw,index,pkg,warnings,errors,conversions){
-  const t=clone(raw&&typeof raw==='object'?raw:{});t._poKey=poUid('tube');t.id=t.id||poUid('tubeid');t.name=t.name||`Pipe ${index+1}`;t.visible=t.visible!==false;t.diameterIndex=Number.isInteger(Number(t.diameterIndex))?Number(t.diameterIndex):0;t.origin=t.origin&&typeof t.origin==='object'?t.origin:{x:0,y:0,z:0};t.startAxis=['X','-X','Y','-Y','Z','-Z'].includes(t.startAxis)?t.startAxis:'X';t.startPlane=['XY','XZ','YZ'].includes(t.startPlane)?t.startPlane:'XY';t.startAngle=Number(t.startAngle)||0;
-  if(!Array.isArray(t.rows)){errors.push(`${t.name}: отсутствует список элементов трубы.`);t.rows=[];}
-  const valid=[];t.rows.forEach((r,ri)=>{if(r?.type==='LINE'||r?.type==='BEND')valid.push(r);else{warnings.push(`${t.name}: неизвестный элемент в строке ${ri+1} будет исключён.`);conversions.push('Удаление неизвестных типов элементов');}});t.rows=valid;
-  if(!t.rows.length){warnings.push(`${t.name}: пустая геометрия; будет создан начальный прямой участок.`);t.rows=[{type:'LINE',L:100}];conversions.push('Восстановление пустой трубы');}
-  if(t.rows[0]?.type!=='LINE'){warnings.push(`${t.name}: труба не начинается с прямого участка; начальный участок будет добавлен.`);t.rows.unshift({type:'LINE',L:100});conversions.push('Добавление обязательного начального прямого участка');}
-  const tool=poToolFor(t,pkg);if(!pkg.pipeDb?.[t.diameterIndex])warnings.push(`${t.name}: индекс оснастки недоступен; будет использована ближайшая оснастка.`);
-  const path=poBuildTubePath(t,pkg);t._poPath=path;t._poLength=path.length;t._poLines=t.rows.filter(r=>r.type==='LINE').length;t._poBends=t.rows.filter(r=>r.type==='BEND').length;t._poDiameter=Number(tool.mm)||0;t._poIssues=[];
-  const min=Number(tool.Lmin)||0;t.rows.forEach((r,ri)=>{if(r.type==='LINE'&&poNumeric(r.L,0)<min){t._poIssues.push({level:'warn',text:`Участок ${ri+1} меньше Lmin ${min} мм`});}});
+  const t=clone(raw&&typeof raw==='object'?raw:{});
+  t._poKey=poUid('tube');
+  t.id=t.id||poUid('tubeid');
+  t.name=t.name||`Pipe ${index+1}`;
+  t.visible=t.visible!==false;
+  t.origin=t.origin&&typeof t.origin==='object'?t.origin:{x:0,y:0,z:0};
+
+  const sourceRows=Array.isArray(t.rows)?clone(t.rows):null;
+  t.importEvidence={
+    ...(t.importEvidence&&typeof t.importEvidence==='object'?t.importEvidence:{}),
+    sourceRows:sourceRows===null?null:clone(sourceRows),
+    unsupportedRows:[]
+  };
+  t.importValidation={productionBlocked:false,issues:[]};
+  const block=(message)=>{
+    t.importValidation.productionBlocked=true;
+    t.importValidation.issues.push(message);
+    errors.push(`${t.name}: ${message}`);
+  };
+
+  if(!Number.isInteger(Number(t.diameterIndex)))t.diameterIndex=null;
+  else t.diameterIndex=Number(t.diameterIndex);
+
+  if(!['X','-X','Y','-Y','Z','-Z'].includes(t.startAxis))block('неподдерживаемая или отсутствующая начальная ось; значение сохранено без подстановки X.');
+  if(!['XY','XZ','YZ'].includes(t.startPlane))block('неподдерживаемая или отсутствующая начальная плоскость; значение сохранено без подстановки XY.');
+  if(!Number.isFinite(Number(t.startAngle)))block('начальный угол не является числом; исходное значение сохранено.');
+  else t.startAngle=Number(t.startAngle);
+
+  if(sourceRows===null){
+    t.rows=[];
+    block('отсутствует список элементов трубы; фиктивная геометрия не создаётся.');
+  }else{
+    const supported=[];
+    sourceRows.forEach((r,ri)=>{
+      if(r?.type==='LINE'||r?.type==='BEND'){
+        supported.push(clone(r));
+        if(r.type==='LINE'&&!Number.isFinite(poNumeric(r.L,NaN)))block(`неопределённая длина прямого участка в строке ${ri+1}; размер не угадывается.`);
+        if(r.type==='BEND'&&!Number.isFinite(poNumeric(r.angle,NaN)))block(`неопределённый угол гиба в строке ${ri+1}; размер не угадывается.`);
+      }else{
+        const evidence={index:ri,row:clone(r)};
+        t.importEvidence.unsupportedRows.push(evidence);
+        block(`неподдерживаемый элемент в строке ${ri+1} сохранён как исходное доказательство и блокирует производство.`);
+      }
+    });
+    t.rows=supported;
+  }
+
+  if(!t.rows.length)block('нет распознанной производственной геометрии; LINE 100 не создаётся.');
+  if(t.rows.length&&t.rows[0]?.type!=='LINE')block('геометрия не начинается с прямого участка; начальный LINE не добавляется автоматически.');
+
+  const tool=poToolFor(t,pkg);
+  if(!tool){
+    t.toolingUnresolved=true;
+    block('оснастка не разрешена точно; первая или ближайшая оснастка не подставляется.');
+  }else{
+    t.toolingUnresolved=false;
+    if(!t.toolingId&&tool.id)t.toolingId=tool.id;
+  }
+
+  const path=poBuildTubePath(t,pkg);
+  if(path?.unresolved)block(`предпросмотр геометрии неполон: ${path.reason}.`);
+  t._poPath=path;
+  t._poLength=path.length;
+  t._poLines=t.rows.filter(r=>r.type==='LINE').length;
+  t._poBends=t.rows.filter(r=>r.type==='BEND').length;
+  t._poDiameter=tool&&Number.isFinite(Number(tool.mm))?Number(tool.mm):0;
+  t._poIssues=[];
+
+  const min=tool&&Number.isFinite(Number(tool.Lmin))?Number(tool.Lmin):null;
+  if(min!==null)t.rows.forEach((r,ri)=>{
+    if(r.type==='LINE'&&poNumeric(r.L,NaN)<min)t._poIssues.push({level:'warn',text:`Участок ${ri+1} меньше Lmin ${min} мм`});
+  });
+
   return t;
 }
 function poNormalizePackage(data,meta={}){
@@ -14180,6 +14334,10 @@ body.tb-project-map #projectEditor .pt-combo:hover{background:#0a1d2b!important;
 function openPrintReport(){const w=window.open('','_blank');if(!w)return ptToast('Разрешите всплывающие окна для отчёта');w.document.open();w.document.write(reportHtml());w.document.close();}
 function productionReleaseDecision(t=activeTube(),kind='manufacturing'){
   const blockers=[];if(!t)return {allowed:false,blockers:['Нет активной трубы']};
+  if(t.importValidation?.productionBlocked===true){
+    for(const issue of t.importValidation.issues||[])blockers.push(`Импорт: ${issue}`);
+    if(!(t.importValidation.issues||[]).length)blockers.push('Импортированная геометрия содержит неподтверждённые данные');
+  }
   if(t.toolingUnresolved||!t.toolingId||toolingIndexById(t.toolingId)<0)blockers.push('Оснастка трубы не разрешена по стабильному идентификатору');
   const p=projectForTube(t)||activeProject(),e=t.engineering||{},style=p?.engineering?.styles?.find(x=>x.id===e.styleId)||null,machine=p?.engineering?.machines?.find(x=>x.id===e.machineId)||null;
   if(!style)blockers.push('Не выбран технологический стиль');else{
@@ -14196,6 +14354,12 @@ function productionReleaseDecision(t=activeTube(),kind='manufacturing'){
   }
   try{const diag=diagnoseTube(t);for(const issue of diag?.issues||[])blockers.push(issue);}catch(error){blockers.push(`Ошибка инженерной диагностики: ${error?.message||error}`);}
   try{const bounds=analyzePipeBounds(tubeRows(t),t.diameterIndex);if(!bounds?.valid)blockers.push('Труба нарушает габарит корпуса или минимальный зазор');}catch(error){blockers.push(`Ошибка проверки габаритов: ${error?.message||error}`);}
+  try{
+    const collisions=getProjectCollisionAnalysis(p)?.collisions||[];
+    if(collisions.length)blockers.push(`Проект содержит пересечения труб: ${collisions.length}`);
+  }catch(error){
+    blockers.push(`Ошибка проверки пересечений проекта: ${error?.message||error}`);
+  }
   return {allowed:blockers.length===0,blockers:[...new Set(blockers)]};
 }
 function exportManufacturing(kind){
@@ -14826,8 +14990,26 @@ function refreshChecks(){
   const rows=state.rows||[],lengths=rows.filter(r=>r.type==='LINE').every(r=>num(r.L)>=minStraight()-1e-6),angles=rows.filter(r=>r.type==='BEND').every(r=>num(r.angle)!==0&&Math.abs(num(r.angle))<=180);
   results.push([mt('segmentLengths'),lengths?'passed':'violation',''],[mt('bendAngles'),angles?'passed':'violation','']);
   let stockStatus='not_checked',stockDetail='';try{const total=developedLength();stockStatus=total<=MAX_STOCK_LENGTH+1e-6?'passed':'violation';if(stockStatus!=='passed')stockDetail=`Длина ${fmt(total,1)} мм превышает лимит ${fmt(MAX_STOCK_LENGTH,1)} мм`;}catch(error){stockStatus='calculation_error';stockDetail=error?.message||String(error);}results.push(['Длина заготовки',stockStatus,stockDetail]);
-  try{const coll=getProjectCollisionAnalysis(activeProject()),rel=(coll?.collisions||[]).filter(c=>c.tubeAId===state.activeTubeId||c.tubeBId===state.activeTubeId),self=rel.filter(c=>c.self),other=rel.filter(c=>!c.self);results.push([mt('selfIntersections'),self.length===0?'passed':'violation',self.length?`Пересечений: ${self.length}`:''],[mt('otherTubes'),other.length===0?'passed':'violation',other.length?`Пересечений: ${other.length}`:'']);}
-  catch(error){const detail=error?.message||String(error);results.push([mt('selfIntersections'),'calculation_error',detail],[mt('otherTubes'),'calculation_error',detail]);}
+  try{
+    const coll=getProjectCollisionAnalysis(activeProject());
+    const all=coll?.collisions||[];
+    const rel=all.filter(c=>c.tubeAId===state.activeTubeId||c.tubeBId===state.activeTubeId);
+    const self=rel.filter(c=>c.self),other=rel.filter(c=>!c.self);
+    const inactiveOnly=all.filter(c=>c.tubeAId!==state.activeTubeId&&c.tubeBId!==state.activeTubeId);
+    results.push(
+      [mt('selfIntersections'),self.length===0?'passed':'violation',self.length?`Пересечений: ${self.length}`:''],
+      [mt('otherTubes'),other.length===0?'passed':'violation',other.length?`Пересечений: ${other.length}`:''],
+      ['Пересечения проекта',all.length===0?'passed':'violation',all.length?`Всего: ${all.length}; без активной трубы: ${inactiveOnly.length}`:'']
+    );
+  }
+  catch(error){
+    const detail=error?.message||String(error);
+    results.push(
+      [mt('selfIntersections'),'calculation_error',detail],
+      [mt('otherTubes'),'calculation_error',detail],
+      ['Пересечения проекта','calculation_error',detail]
+    );
+  }
   let techStatus='not_checked',techDetail='Инженерная диагностика ещё не выполнена';try{const diag=window.TubeBenderEngineering?.diagnoseTube?.(activeTube());if(diag){techStatus=(diag.issues||[]).length?'violation':'passed';techDetail=(diag.issues||[]).join('; ');}}catch(error){techStatus='calculation_error';techDetail=error?.message||String(error);}results.push([mt('technology'),techStatus,techDetail]);
   const errors=results.filter(([,status])=>status!=='passed').length;let warnings=0;try{warnings=firstStraightTechnologicalViolation()?1:0;}catch{}
   host.innerHTML=`<div class="tb-check-list">${results.map(x=>checkRow(x[0],x[1],x[2])).join('')}</div><div class="tb-check-totals"><div><div class="tb-check-total-label">${mt('errors')}</div><div class="tb-check-total-value ${errors?'warn':''}">${errors}</div></div><div><div class="tb-check-total-label">${mt('warnings')}</div><div class="tb-check-total-value warn">${warnings}</div></div></div><button class="tb-check-more" id="tbChecksMore">Подробнее　›</button>`;['tbChecksDot','tb3DStatus'].forEach(id=>{const d=$(id);if(d)d.className='tb-status-dot'+(errors?' bad':warnings?' warn':'');});$('tbChecksMore')?.addEventListener('click',()=>window.TubeBenderEngineering?.open?.('overview'));
