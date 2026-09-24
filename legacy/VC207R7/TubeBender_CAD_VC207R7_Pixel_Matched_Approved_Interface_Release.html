@@ -7538,6 +7538,7 @@ function evalFormula(expr, fallback = NaN, userContext = null){
     .replace(/π/gi, 'PI')
     .replace(/\bмм\b/gi, '')
     .replace(/\bmm\b/gi, '')
+    .replace(/[°º]/g, '')
     .replace(/(\d),(\d)/g, '$1.$2')
     .replace(/(\d)\s*[xX]\s*(\d)/g, '$1*$2')
     .replace(/\^/g, '**');
@@ -12046,17 +12047,43 @@ function renderSegments(){
   });
 }
 function editCell(i,field,value){
+  if(poReadOnly()){ptToast('Проект открыт только для просмотра');renderAll();return false;}
   const r=state.rows[i];
-  if(!r) return;
+  if(!r) return false;
   if(isOffsetRow(r)){
     selectOffsetAssembly(r.assemblyId,false);
     openOffsetModule(r.assemblyId);
     ptToast('Офсет редактируется как единый элемент');
-    return;
+    return false;
   }
-  if (field === 'L' && r.type==='LINE') { const v = evalFormula(value, NaN); if(validLineLength(v, i)) { r.L = v; r.LFormula = String(value).trim(); } else alert(`Length must be from ${fmt(minStraight(),1)} mm to ${fmt(maxAllowedLineLength(i),1)} mm, and total stock length must not exceed ${fmt(MAX_STOCK_LENGTH,0)} mm`); }
-  if (field === 'angle' && r.type==='BEND') { const a = evalFormula(value, NaN); if(validBendAngle(a, i)) r.angle = a; else alert(`Angle must be from -180° to +180°, not 0, and total stock length ≤ ${fmt(MAX_STOCK_LENGTH,0)} mm`); }
-  save(); renderAll();
+  let changed=false;
+  if(field==='L'&&r.type==='LINE'){
+    const expression=String(value).trim();
+    const v=evalFormula(expression,NaN);
+    if(validLineLength(v,i)){
+      r.L=v;
+      r.LFormula=expression;
+      changed=true;
+    }else{
+      alert(`Length must be from ${fmt(minStraight(),1)} mm to ${fmt(maxAllowedLineLength(i),1)} mm, and total stock length must not exceed ${fmt(MAX_STOCK_LENGTH,0)} mm`);
+    }
+  }
+  if(field==='angle'&&r.type==='BEND'){
+    const expression=String(value).trim();
+    const a=evalFormula(expression,NaN);
+    if(validBendAngle(a,i)){
+      r.angle=a;
+      r.angleFormula=expression;
+      changed=true;
+    }else{
+      alert(`Angle must be from -180° to +180°, not 0, and total stock length ≤ ${fmt(MAX_STOCK_LENGTH,0)} mm`);
+    }
+  }
+  if(!changed){renderAll();return false;}
+  syncActiveTubeFromState();
+  save();
+  renderAll();
+  return true;
 }
 function minStraight(){
   const p=pipe();
@@ -12085,6 +12112,76 @@ function validBendAngle(a, rowIndex=-1){
     lastBoundsAssessment = boundsAssessment(before, analyzePipeBounds(rows));
     if (!lastBoundsAssessment.allowed) return false;
   }
+  return true;
+}
+function collisionKeyForTube(c,tubeId){
+  if(!c)return '';
+  if(c.self)return ['self',tubeId,Math.min(Number(c.rowA),Number(c.rowB)),Math.max(Number(c.rowA),Number(c.rowB))].join('|');
+  const a=[String(c.tubeAId),Number(c.rowA)],b=[String(c.tubeBId),Number(c.rowB)];
+  const ordered=String(a[0])<=String(b[0])?[a,b]:[b,a];
+  return ['inter',ordered[0][0],ordered[0][1],ordered[1][0],ordered[1][1]].join('|');
+}
+function validateCandidateRowsForCommit(candidateRows,inputEl=null){
+  if(poReadOnly())return {allowed:false,reason:'readonly',message:'Проект открыт только для просмотра'};
+  const rows=clone(candidateRows||[]);
+  for(const row of rows){
+    if(row?.type==='LINE'&&!(Number(row.L)>=minStraight()))return {allowed:false,reason:'line',message:`Прямой участок короче Lmin ${fmt(minStraight(),1)} мм`};
+    if(row?.type==='BEND'&&!(Number.isFinite(Number(row.angle))&&Number(row.angle)!==0&&Math.abs(Number(row.angle))<=180))return {allowed:false,reason:'angle',message:'Недопустимый угол гиба'};
+  }
+  const developed=developedLengthWithRows(rows);
+  if(!(Number.isFinite(developed)&&developed<=MAX_STOCK_LENGTH+1e-6))return {allowed:false,reason:'stock',message:`Общая длина превысит ${fmt(MAX_STOCK_LENGTH,0)} мм`};
+
+  const beforeBounds=analyzePipeBounds(state.rows,state.diameterIndex);
+  const afterBounds=analyzePipeBounds(rows,state.diameterIndex);
+  const assessment=boundsAssessment(beforeBounds,afterBounds);
+  if(!assessment.allowed)return {allowed:false,reason:'bounds',message:assessment.message||boundsErrorMessage(),assessment};
+
+  const beforeTechnology=firstStraightTechnologicalViolation(state.rows,state.diameterIndex);
+  const afterTechnology=firstStraightTechnologicalViolation(rows,state.diameterIndex);
+  if(!beforeTechnology&&afterTechnology)return {allowed:false,reason:'technology',message:'Изменение создаёт новое технологическое нарушение'};
+
+  const tube=activeTube(),project=activeProject();
+  if(tube&&project&&typeof analyzeProjectTubeIntersections==='function'){
+    const buildProject=rowsValue=>{
+      const cp=clone(project);
+      cp.tubes=(cp.tubes||[]).map(t=>{
+        if(t.id!==tube.id)return t;
+        t.rows=clone(rowsValue);
+        t.diameterIndex=state.diameterIndex;
+        t.toolingId=state.toolingId||t.toolingId||null;
+        return t;
+      });
+      return cp;
+    };
+    const beforeCollisions=analyzeProjectTubeIntersections(buildProject(state.rows));
+    const afterCollisions=analyzeProjectTubeIntersections(buildProject(rows));
+    const beforeKeys=new Set((beforeCollisions?.collisions||[]).filter(c=>c.tubeAId===tube.id||c.tubeBId===tube.id).map(c=>collisionKeyForTube(c,tube.id)));
+    const created=(afterCollisions?.collisions||[]).filter(c=>c.tubeAId===tube.id||c.tubeBId===tube.id).filter(c=>!beforeKeys.has(collisionKeyForTube(c,tube.id)));
+    if(created.length)return {allowed:false,reason:'collision',message:`Изменение создаёт новое пересечение трубы (${created.length})`,collisions:created};
+  }
+
+  if(inputEl)setInputValidity(inputEl,true);
+  return {allowed:true,reason:'valid',assessment};
+}
+function commitBendPlaneChange(rowIndex,plane,inputEl=null){
+  if(poReadOnly()){ptToast('Проект открыт только для просмотра');if(inputEl)inputEl.value=state.rows?.[rowIndex]?.plane||'XY';return false;}
+  const index=Number(rowIndex),row=state.rows?.[index];
+  if(!Number.isInteger(index)||!row||row.type!=='BEND'||isOffsetRow(row)){ptToast('Плоскость этого элемента нельзя редактировать отдельно');return false;}
+  const normalized=String(plane||'').toUpperCase();
+  if(!['XY','XZ','YZ'].includes(normalized)){ptToast('Недопустимая плоскость гиба');if(inputEl)inputEl.value=row.plane||'XY';return false;}
+  if(normalized===row.plane)return true;
+  const candidate=clone(state.rows);
+  candidate[index].plane=normalized;
+  const validation=validateCandidateRowsForCommit(candidate,inputEl);
+  if(!validation.allowed){
+    if(inputEl){inputEl.value=row.plane||'XY';setInputValidity(inputEl,false);}
+    ptToast(validation.message||'Изменение плоскости отклонено проверками');
+    return false;
+  }
+  state.rows=candidate;
+  syncActiveTubeFromState();
+  save();
+  renderAll();
   return true;
 }
 function lengthHint(rowIndex=-1){
@@ -13035,6 +13132,7 @@ function bind(){
   buildBendPicker();
   setupMiniAxisClickHandlers();
   qs('pipeSelect').addEventListener('change',e=>{
+    if(poReadOnly()){ptToast('Проект открыт только для просмотра');renderPipeSelect();return;}
     const before = analyzePipeBounds(rowsForStartPointValidation());
     const old = state.diameterIndex;
     const oldToolingId = state.toolingId;
@@ -13368,7 +13466,7 @@ async function poExecuteOpen(){
   }catch(e){console.error(e);ptToast('Не удалось открыть проект: '+e.message);}finally{PO.suppressDirty=false;poSetBusy(false,'Готово');}
 }
 function poDownloadReport(){const pkg=PO.current;if(!pkg)return ptToast('Сначала выберите файл');const report={file:pkg.meta,version:pkg.version,status:poStatusText(pkg.status),summary:pkg.summary,errors:pkg.errors,warnings:pkg.warnings,conversions:[...new Set(pkg.conversions)],projects:pkg.projects.map(p=>({name:p.name,tubes:p.tubes.map(t=>({name:t.name,diameter:t._poDiameter,length:t._poLength,lines:t._poLines,bends:t._poBends,issues:t._poIssues}))}))};downloadJsonFile(report,safeFileName(pkg.meta.name.replace(/\.json$/i,''))+'_inspection.json');}
-function poApplyReadOnlyUi(){const ro=poReadOnly();document.body.classList.toggle('workspace-readonly',ro);qs('poReadOnlyBanner')?.classList.toggle('hidden',!ro);const selectors=['[data-action="projectNew"]','[data-action="projectCopy"]','[data-action="projectRename"]','[data-action="projectDelete"]','[data-action="tubeNew"]','[data-action="tubeCopy"]','[data-action="tubeRename"]','[data-action="tubeDelete"]','#addLine','#addBend','#openOffset','#openSketchRecognizer','#editorApply','#editorDelete','#openSettings','#clearProject'];document.querySelectorAll(selectors.join(',')).forEach(el=>{el.classList.toggle('po-readonly-disabled',ro);if('disabled'in el)el.disabled=ro;});}
+function poApplyReadOnlyUi(){const ro=poReadOnly();document.body.classList.toggle('workspace-readonly',ro);qs('poReadOnlyBanner')?.classList.toggle('hidden',!ro);const selectors=['[data-action="projectNew"]','[data-action="projectCopy"]','[data-action="projectRename"]','[data-action="projectDelete"]','[data-action="tubeNew"]','[data-action="tubeCopy"]','[data-action="tubeRename"]','[data-action="tubeDelete"]','#addLine','#addBend','#openOffset','#openSketchRecognizer','#editorApply','#editorDelete','#openSettings','#clearProject','#tbEditSummary input','#tbEditSummary select'];document.querySelectorAll(selectors.join(',')).forEach(el=>{el.classList.toggle('po-readonly-disabled',ro);if('disabled'in el)el.disabled=ro;});}
 function poCreateEditableCopy(){if(!poReadOnly())return;const p=activeProject();syncActiveTubeFromState();const cp=clone(p);cp.id=uid();cp.name=uniqueName(p.name+' copy',state.projects.map(x=>x.name));cp.tubes=cp.tubes.map(t=>({...t,id:uid()}));state.projects.push(cp);state.activeProjectId=cp.id;state.activeTubeId=cp.tubes[0].id;state.workspaceReadOnly=false;state.workspaceDirty=true;syncProjectToLegacy();loadActiveTubeToState();save();renderAll();poApplyReadOnlyUi();ptToast('Создана редактируемая копия');}
 function poOpenDialog(source='recent'){
   const d=qs('projectOpenDialog');if(!d)return;PO.current=null;PO.currentRecord=null;PO.selected.clear();PO.focusKey=null;PO.source=source||PO.settings.source||'recent';qs('poSearch').value='';qs('poStatusFilter').value=PO.settings.status||'all';qs('poSort').value=PO.settings.sort||'modified-desc';poUpdateSourceUi();if(!d.open)d.showModal();poInitPreview();poSetSource(PO.source);setTimeout(()=>qs('poSearch')?.focus(),40);
@@ -14704,14 +14802,14 @@ function refreshEditPanel(){
  const box=(title,body,cls='')=>`<section class="tb-edit-box ${cls}"><div class="tb-edit-box-title">${title}</div>${body}</section>`;
  const pg=rows=>`<div class="tb-prop-grid">${rows.map(([l,v,id,disabled=false,type='input'])=>type==='select'?`<label>${l}</label><select ${id?`id="${id}"`:''}>${v}</select>`:`<label>${l}</label><input ${id?`id="${id}"`:''} value="${v}" ${disabled?'disabled':''}>`).join('')}</div>`;
  const dof=(x,y,z,rx,ry,rz,editable=false)=>`<div class="tb-dof-grid"><span class="tb-dof-icon" style="color:#ff5e57">↕</span><span class="tb-axis-chip x">X</span><input value="${x}" ${editable?'data-origin-axis="x"':''}><span class="tb-dof-icon" style="color:#ff5e57">⟳</span><span class="tb-axis-chip x">Rx</span><input value="${rx}" disabled><span class="tb-dof-icon" style="color:#7ee45f">↕</span><span class="tb-axis-chip y">Y</span><input value="${y}" ${editable?'data-origin-axis="y"':''}><span class="tb-dof-icon" style="color:#7ee45f">⟳</span><span class="tb-axis-chip y">Ry</span><input value="${ry}" disabled><span class="tb-dof-icon" style="color:#42a6ff">↕</span><span class="tb-axis-chip z">Z</span><input value="${z}" ${editable?'data-origin-axis="z"':''}><span class="tb-dof-icon" style="color:#42a6ff">⟳</span><span class="tb-axis-chip z">Rz</span><input value="${rz}" disabled></div>`;
- if(originEditorOpen){const o=state.origin||{};if(head){head.textContent=mt('start');head.className='tb-edit-caption start';}host.innerHTML=`<div class="tb-edit-dashboard">${box('Параметры',pg([[mt('angle'),'—','',true],[mt('radius'),radius+' мм','',true],['Длина до гиба','—','',true],['Длина после гиба','—','',true],[mt('plane'),'—','',true]]))}${box('Положение в корпусе',pg([['Длина',num(o.x)+' мм'],['Глубина',num(o.y)+' мм'],['Высота',num(o.z)+' мм']]))}${box('Степени свободы (DOF)',dof(num(o.x),num(o.y),num(o.z),'0.0°','0.0°','0.0°',true))}${box('Тип гиба','<div class="tb-bend-preview"><span>Начальная точка</span></div>','preview')}</div>`;host.querySelectorAll('[data-origin-axis]').forEach(inp=>inp.addEventListener('change',()=>{const a=inp.dataset.originAxis,v=Number(inp.value);if(Number.isFinite(v)){const before=analyzePipeBounds(rowsForStartPointValidation());const old=state.origin[a];state.origin[a]=v;if(!validatePipeBounds(inp,rowsForStartPointValidation(),state.diameterIndex,before))state.origin[a]=old;save();renderAll();}}));return;}
+ if(originEditorOpen){const o=state.origin||{};if(head){head.textContent=mt('start');head.className='tb-edit-caption start';}host.innerHTML=`<div class="tb-edit-dashboard">${box('Параметры',pg([[mt('angle'),'—','',true],[mt('radius'),radius+' мм','',true],['Длина до гиба','—','',true],['Длина после гиба','—','',true],[mt('plane'),'—','',true]]))}${box('Положение в корпусе',pg([['Длина',num(o.x)+' мм'],['Глубина',num(o.y)+' мм'],['Высота',num(o.z)+' мм']]))}${box('Степени свободы (DOF)',dof(num(o.x),num(o.y),num(o.z),'0.0°','0.0°','0.0°',true))}${box('Тип гиба','<div class="tb-bend-preview"><span>Начальная точка</span></div>','preview')}</div>`;host.querySelectorAll('[data-origin-axis]').forEach(inp=>inp.addEventListener('change',()=>{if(poReadOnly()){ptToast('Проект открыт только для просмотра');renderAll();return;}const a=inp.dataset.originAxis,v=Number(inp.value);if(Number.isFinite(v)){const before=analyzePipeBounds(rowsForStartPointValidation());const old=state.origin[a];state.origin[a]=v;if(!validatePipeBounds(inp,rowsForStartPointValidation(),state.diameterIndex,before)){state.origin[a]=old;renderAll();return;}syncActiveTubeFromState();save();renderAll();}}));return;}
  const i=Number(bottomParamEditorIndex),r=state.rows?.[i];if(!r){if(head){head.textContent=mt('noSelection');head.className='tb-edit-caption';}host.innerHTML=`<div class="tb-edit-dashboard">${box('Параметры','<div class="tb-edit-note">Выберите начальную точку, прямой участок или гиб в дереве проекта.</div>')}${box('Положение в корпусе','<div class="tb-edit-note">Координаты появятся после выбора элемента.</div>')}${box('Степени свободы (DOF)','<div class="tb-edit-note">DoF-манипулятор отображается только для начальной точки и выбранного гиба.</div>')}${box('Тип гиба','<div class="tb-bend-preview"><span>Нет выбора</span></div>','preview')}</div>`;return;}
  let md={xyz:[]};try{md=manufacturingData(activeTube());}catch{}const pt=md.xyz?.[Math.min(md.xyz.length-1,Math.max(0,i+1))]||{x:'—',y:'—',z:'—'};
  if(r.type==='BEND'){
    let bendNo=0;for(let k=0;k<=i;k++)if(state.rows[k]?.type==='BEND')bendNo++;if(head){head.textContent=`${mt('bend')} ${bendNo}`;head.className='tb-edit-caption bend';}
    const planeOpts=['XY','XZ','YZ'].map(v=>`<option ${r.plane===v?'selected':''}>${v}</option>`).join('');const before=state.rows?.[i-1]?.type==='LINE'?num(state.rows[i-1].L):0,after=state.rows?.[i+1]?.type==='LINE'?num(state.rows[i+1].L):0;
    host.innerHTML=`<div class="tb-edit-dashboard">${box('Параметры',pg([[mt('angle'),num(r.angle).toFixed(1)+'°','tbEditAngle'],[mt('radius'),radius+' мм','',true],['Длина до гиба',before+' мм','tbEditBefore'],['Длина после гиба',after+' мм','tbEditAfter'],[mt('plane'),planeOpts,'tbEditPlane',false,'select']]))}${box('Положение в корпусе',pg([['Длина от начала',pt.x+' мм','',true],['Смещение по глубине',pt.y+' мм','',true],['Смещение по высоте',pt.z+' мм','',true]]))}${box('Степени свободы (DOF)',dof(pt.x,pt.y,pt.z,'0.0°','0.0°',num(getBendRotationValue(r)).toFixed(1)+'°'))}${box('Тип гиба','<div class="tb-bend-preview"><div class="tb-bend-preview-shape"></div><span>По радиусу</span></div>','preview')}</div>`;
-   $('tbEditAngle')?.addEventListener('change',e=>editCell(i,'angle',e.target.value));$('tbEditPlane')?.addEventListener('change',e=>{r.plane=e.target.value;save();renderAll();});$('tbEditBefore')?.addEventListener('change',e=>{if(state.rows[i-1]?.type==='LINE')editCell(i-1,'L',String(e.target.value).replace(' мм',''));});$('tbEditAfter')?.addEventListener('change',e=>{if(state.rows[i+1]?.type==='LINE')editCell(i+1,'L',String(e.target.value).replace(' мм',''));});
+   $('tbEditAngle')?.addEventListener('change',e=>editCell(i,'angle',e.target.value));$('tbEditPlane')?.addEventListener('change',e=>commitBendPlaneChange(i,e.target.value,e.target));$('tbEditBefore')?.addEventListener('change',e=>{if(state.rows[i-1]?.type==='LINE')editCell(i-1,'L',String(e.target.value).replace(' мм',''));});$('tbEditAfter')?.addEventListener('change',e=>{if(state.rows[i+1]?.type==='LINE')editCell(i+1,'L',String(e.target.value).replace(' мм',''));});
  } else {
    let straightNo=0;for(let k=0;k<=i;k++)if(state.rows[k]?.type==='LINE')straightNo++;if(head){head.textContent=`${mt('straight')} ${straightNo}`;head.className='tb-edit-caption straight';}
    host.innerHTML=`<div class="tb-edit-dashboard">${box('Параметры',pg([[mt('length'),num(r.L)+' мм','tbEditLength'],['Lmin',minStraight()+' мм','',true],[mt('radius'),'—','',true],['Направление','Жёлтые стрелки','',true],[mt('plane'),'—','',true]]))}${box('Положение в корпусе',pg([['Длина',pt.x+' мм','',true],['Глубина',pt.y+' мм','',true],['Высота',pt.z+' мм','',true]]))}${box('Степени свободы (DOF)','<div class="tb-edit-note">Направление выбранного прямого участка меняется жёлтыми стрелками в 3D. Все проверки выполняются после каждого изменения.</div>')}${box('Тип гиба','<div class="tb-bend-preview"><span>Прямой участок</span></div>','preview')}</div>`;$('tbEditLength')?.addEventListener('change',e=>editCell(i,'L',String(e.target.value).replace(' мм','')));
