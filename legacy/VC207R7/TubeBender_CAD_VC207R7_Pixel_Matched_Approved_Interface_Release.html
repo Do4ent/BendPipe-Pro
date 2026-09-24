@@ -6367,30 +6367,29 @@ function handleFirstSegmentDraftInput(input, errorEl, confirmBtn){
   refreshInitialDirectionAndPreview();
   return result;
 }
-function confirmFirstSegmentDraft(input=null, errorEl=null, confirmBtn=null){
-  if (input) state.firstSegmentDraft = String(input.value ?? '');
-  const result = firstSegmentDraftValidation(state.firstSegmentDraft, true);
-  setFirstSegmentDraftFeedback(input, errorEl, confirmBtn, result);
-  if (!result.ok) {
-    input?.focus?.();
-    return false;
-  }
-  ensureConstructionMetadata();
-  const first=state.rows[0];
-  first.type='LINE';
-  first.L=Number(result.value.toFixed(6));
-  first.LFormula=result.formula;
-  first.formula=result.formula;
-  first.initialStraight=true;
-  first.elementId=first.elementId||elementUid('element');
-  state.firstSegmentDraft = '';
-  originEditorOpen = false;
-  bottomParamEditorIndex = 0;
-  save();
-  renderAll();
-  setTimeout(()=>focusBottomParamInput(0, 'lineLength'), 0);
-  if (typeof ptToast === 'function') ptToast('Первый прямой участок создан');
-  return true;
+function confirmFirstSegmentDraft(input=null,errorEl=null,confirmBtn=null){
+  if(input)state.firstSegmentDraft=String(input.value??'');
+  const result=firstSegmentDraftValidation(state.firstSegmentDraft,true);
+  setFirstSegmentDraftFeedback(input,errorEl,confirmBtn,result);
+  if(!result.ok){input?.focus?.();return false;}
+  return tbModelCommand('Создать первый прямой участок',()=>{
+    ensureConstructionMetadata();
+    const first=state.rows[0];
+    first.type='LINE';
+    first.L=Number(result.value.toFixed(6));
+    first.LFormula=result.formula;
+    first.formula=result.formula;
+    first.initialStraight=true;
+    first.elementId=first.elementId||elementUid('element');
+    state.firstSegmentDraft='';
+    originEditorOpen=false;
+    bottomParamEditorIndex=0;
+    save();
+    renderAll();
+    setTimeout(()=>focusBottomParamInput(0,'lineLength'),0);
+    ptToast?.('Первый прямой участок создан');
+    return true;
+  });
 }
 function focusFirstSegmentLengthInput(){
   const input = document.querySelector('.first-segment-length-input');
@@ -7706,6 +7705,134 @@ function save(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   localStorage.setItem(PIPE_KEY, JSON.stringify(pipeDb));
 }
+
+const TB_HISTORY_LIMIT=50;
+const tbHistory={undo:[],redo:[],transaction:null,applying:false};
+function tbHistorySnapshot(){
+  syncActiveTubeFromState();
+  syncActiveProjectCoordinateFromState();
+  return {state:clone(state),pipeDb:clone(pipeDb)};
+}
+function tbHistorySnapshotKey(snapshot){return JSON.stringify(snapshot);}
+function tbHistoryUpdateUi(){
+  const undo=qs('tbActionUndo'),redo=qs('tbActionRedo');
+  const readOnly=typeof poReadOnly==='function'&&poReadOnly();
+  const canUndo=tbHistory.undo.length>0&&!readOnly;
+  const canRedo=tbHistory.redo.length>0&&!readOnly;
+  if(undo){
+    undo.disabled=!canUndo;
+    undo.classList.toggle('disabled',!canUndo);
+    undo.title=canUndo?`Отменить: ${tbHistory.undo.at(-1)?.label||'изменение'}`:'Нет действий для отмены';
+  }
+  if(redo){
+    redo.disabled=!canRedo;
+    redo.classList.toggle('disabled',!canRedo);
+    redo.title=canRedo?`Повторить: ${tbHistory.redo.at(-1)?.label||'изменение'}`:'Нет действий для повтора';
+  }
+}
+function tbHistoryBegin(label){
+  if(tbHistory.applying||tbHistory.transaction)return null;
+  const token={label:String(label||'Изменение'),before:tbHistorySnapshot()};
+  tbHistory.transaction=token;
+  return token;
+}
+function tbHistoryCancel(token){
+  if(token&&tbHistory.transaction===token)tbHistory.transaction=null;
+  tbHistoryUpdateUi();
+  return false;
+}
+function tbHistoryCommit(token){
+  if(!token||tbHistory.transaction!==token)return false;
+  const after=tbHistorySnapshot();
+  tbHistory.transaction=null;
+  if(tbHistorySnapshotKey(token.before)===tbHistorySnapshotKey(after)){
+    tbHistoryUpdateUi();
+    return false;
+  }
+  tbHistory.undo.push({label:token.label,before:token.before,after});
+  if(tbHistory.undo.length>TB_HISTORY_LIMIT)tbHistory.undo.splice(0,tbHistory.undo.length-TB_HISTORY_LIMIT);
+  tbHistory.redo.length=0;
+  tbHistoryUpdateUi();
+  return true;
+}
+function tbHistoryClear(){
+  tbHistory.undo.length=0;
+  tbHistory.redo.length=0;
+  tbHistory.transaction=null;
+  tbHistoryUpdateUi();
+}
+function tbHistoryRestore(snapshot){
+  if(!snapshot?.state||!Array.isArray(snapshot?.pipeDb))return false;
+  tbHistory.applying=true;
+  try{
+    state=clone(snapshot.state);
+    pipeDb=clone(snapshot.pipeDb);
+    ensureToolingIds(pipeDb);
+    loadedCoordinateProjectId=null;
+    syncProjectToLegacy();
+    loadActiveTubeToState();
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+    localStorage.setItem(PIPE_KEY,JSON.stringify(pipeDb));
+    try{closeEditor();}catch{}
+    originEditorOpen=false;
+    bottomParamEditorIndex=null;
+    bendRotationEditorIndex=null;
+    renderAll();
+    return true;
+  }finally{
+    tbHistory.applying=false;
+    tbHistoryUpdateUi();
+  }
+}
+function tbUndo(){
+  if(typeof poReadOnly==='function'&&poReadOnly()){ptToast('Проект открыт только для просмотра');return false;}
+  if(tbHistory.transaction)return false;
+  const entry=tbHistory.undo.pop();
+  if(!entry){tbHistoryUpdateUi();return false;}
+  if(!tbHistoryRestore(entry.before)){tbHistory.undo.push(entry);return false;}
+  tbHistory.redo.push(entry);
+  tbHistoryUpdateUi();
+  ptToast(`Отменено: ${entry.label}`);
+  return true;
+}
+function tbRedo(){
+  if(typeof poReadOnly==='function'&&poReadOnly()){ptToast('Проект открыт только для просмотра');return false;}
+  if(tbHistory.transaction)return false;
+  const entry=tbHistory.redo.pop();
+  if(!entry){tbHistoryUpdateUi();return false;}
+  if(!tbHistoryRestore(entry.after)){tbHistory.redo.push(entry);return false;}
+  tbHistory.undo.push(entry);
+  tbHistoryUpdateUi();
+  ptToast(`Повторено: ${entry.label}`);
+  return true;
+}
+function tbModelCommand(label,mutate){
+  if(typeof mutate!=='function')throw new TypeError('Model command requires a mutator');
+  if(typeof poReadOnly==='function'&&poReadOnly()){
+    ptToast('Проект открыт только для просмотра');
+    tbHistoryUpdateUi();
+    return false;
+  }
+  if(tbHistory.applying||tbHistory.transaction)return mutate();
+  const token=tbHistoryBegin(label);
+  try{
+    const result=mutate();
+    if(result===false){tbHistoryCancel(token);return false;}
+    tbHistoryCommit(token);
+    return result===undefined?true:result;
+  }catch(error){
+    tbHistoryCancel(token);
+    throw error;
+  }
+}
+window.TubeBenderHistory={
+  undo:tbUndo,
+  redo:tbRedo,
+  clear:tbHistoryClear,
+  canUndo:()=>tbHistory.undo.length>0,
+  canRedo:()=>tbHistory.redo.length>0,
+  execute:tbModelCommand
+};
 
 function arcLength(row){
   const angle = Math.abs(toNumber(row.angle));
@@ -12078,43 +12205,34 @@ function renderSegments(){
   });
 }
 function editCell(i,field,value){
-  if(poReadOnly()){ptToast('Проект открыт только для просмотра');renderAll();return false;}
-  const r=state.rows[i];
-  if(!r) return false;
-  if(isOffsetRow(r)){
-    selectOffsetAssembly(r.assemblyId,false);
-    openOffsetModule(r.assemblyId);
-    ptToast('Офсет редактируется как единый элемент');
-    return false;
-  }
-  let changed=false;
-  if(field==='L'&&r.type==='LINE'){
-    const expression=String(value).trim();
-    const v=evalFormula(expression,NaN);
-    if(validLineLength(v,i)){
-      r.L=v;
-      r.LFormula=expression;
-      changed=true;
-    }else{
-      alert(`Length must be from ${fmt(minStraight(),1)} mm to ${fmt(maxAllowedLineLength(i),1)} mm, and total stock length must not exceed ${fmt(MAX_STOCK_LENGTH,0)} mm`);
+  return tbModelCommand(field==='angle'?'Изменить угол гиба':'Изменить длину',()=>{
+    const r=state.rows[i];
+    if(!r)return false;
+    if(isOffsetRow(r)){
+      selectOffsetAssembly(r.assemblyId,false);
+      openOffsetModule(r.assemblyId);
+      ptToast('Офсет редактируется как единый элемент');
+      return false;
     }
-  }
-  if(field==='angle'&&r.type==='BEND'){
-    const expression=String(value).trim();
-    const a=evalFormula(expression,NaN);
-    if(validBendAngle(a,i)){
-      r.angle=a;
-      r.angleFormula=expression;
-      changed=true;
-    }else{
-      alert(`Angle must be from -180° to +180°, not 0, and total stock length ≤ ${fmt(MAX_STOCK_LENGTH,0)} mm`);
+    let changed=false;
+    if(field==='L'&&r.type==='LINE'){
+      const expression=String(value).trim();
+      const v=evalFormula(expression,NaN);
+      if(validLineLength(v,i)){r.L=v;r.LFormula=expression;changed=true;}
+      else alert(`Length must be from ${fmt(minStraight(),1)} mm to ${fmt(maxAllowedLineLength(i),1)} mm, and total stock length must not exceed ${fmt(MAX_STOCK_LENGTH,0)} mm`);
     }
-  }
-  if(!changed){renderAll();return false;}
-  syncActiveTubeFromState();
-  save();
-  renderAll();
-  return true;
+    if(field==='angle'&&r.type==='BEND'){
+      const expression=String(value).trim();
+      const a=evalFormula(expression,NaN);
+      if(validBendAngle(a,i)){r.angle=a;r.angleFormula=expression;changed=true;}
+      else alert(`Angle must be from -180° to +180°, not 0, and total stock length ≤ ${fmt(MAX_STOCK_LENGTH,0)} mm`);
+    }
+    if(!changed){renderAll();return false;}
+    syncActiveTubeFromState();
+    save();
+    renderAll();
+    return true;
+  });
 }
 function minStraight(){
   const p=pipe();
@@ -12195,25 +12313,26 @@ function validateCandidateRowsForCommit(candidateRows,inputEl=null){
   return {allowed:true,reason:'valid',assessment};
 }
 function commitBendPlaneChange(rowIndex,plane,inputEl=null){
-  if(poReadOnly()){ptToast('Проект открыт только для просмотра');if(inputEl)inputEl.value=state.rows?.[rowIndex]?.plane||'XY';return false;}
-  const index=Number(rowIndex),row=state.rows?.[index];
-  if(!Number.isInteger(index)||!row||row.type!=='BEND'||isOffsetRow(row)){ptToast('Плоскость этого элемента нельзя редактировать отдельно');return false;}
-  const normalized=String(plane||'').toUpperCase();
-  if(!['XY','XZ','YZ'].includes(normalized)){ptToast('Недопустимая плоскость гиба');if(inputEl)inputEl.value=row.plane||'XY';return false;}
-  if(normalized===row.plane)return true;
-  const candidate=clone(state.rows);
-  candidate[index].plane=normalized;
-  const validation=validateCandidateRowsForCommit(candidate,inputEl);
-  if(!validation.allowed){
-    if(inputEl){inputEl.value=row.plane||'XY';setInputValidity(inputEl,false);}
-    ptToast(validation.message||'Изменение плоскости отклонено проверками');
-    return false;
-  }
-  state.rows=candidate;
-  syncActiveTubeFromState();
-  save();
-  renderAll();
-  return true;
+  return tbModelCommand('Изменить плоскость гиба',()=>{
+    const index=Number(rowIndex),row=state.rows?.[index];
+    if(!Number.isInteger(index)||!row||row.type!=='BEND'||isOffsetRow(row)){ptToast('Плоскость этого элемента нельзя редактировать отдельно');return false;}
+    const normalized=String(plane||'').toUpperCase();
+    if(!['XY','XZ','YZ'].includes(normalized)){ptToast('Недопустимая плоскость гиба');if(inputEl)inputEl.value=row.plane||'XY';return false;}
+    if(normalized===row.plane)return false;
+    const candidate=clone(state.rows);
+    candidate[index].plane=normalized;
+    const validation=validateCandidateRowsForCommit(candidate,inputEl);
+    if(!validation.allowed){
+      if(inputEl){inputEl.value=row.plane||'XY';setInputValidity(inputEl,false);}
+      ptToast(validation.message||'Изменение плоскости отклонено проверками');
+      return false;
+    }
+    state.rows=candidate;
+    syncActiveTubeFromState();
+    save();
+    renderAll();
+    return true;
+  });
 }
 function lengthHint(rowIndex=-1){
   return `min Lmin = ${fmt(minStraight(),1)} mm · ${stockLimitMessage(rowIndex)}`;
@@ -12227,44 +12346,49 @@ function rowsFitStock(extraRows=[]){
 }
 function addLine(){
   ensureConstructionMetadata();
-  const L = Math.min(minStraight(), maxAllowedLineLength(-1));
+  const L=Math.min(minStraight(),maxAllowedLineLength(-1));
   const candidate={type:'LINE',L,elementId:elementUid('element')};
-  if (!validLineLength(L) || !rowsFitStock([candidate])) { alert(lastBoundsAssessment?.message || `Remaining tube length is less than Lmin, stock is exceeded, or the pipe would leave the bounding box.`); return; }
-  if (!(state.rows || []).length) state.firstSegmentDraft = '';
-  state.rows.push(candidate); save(); renderAll(); const b=qs('addLine'); if(b) flash(b);
+  if(!validLineLength(L)||!rowsFitStock([candidate])){
+    alert(lastBoundsAssessment?.message||'Remaining tube length is less than Lmin, stock is exceeded, or the pipe would leave the bounding box.');
+    return false;
+  }
+  return tbModelCommand('Добавить прямой участок',()=>{
+    if(!(state.rows||[]).length)state.firstSegmentDraft='';
+    state.rows.push(candidate);
+    save();
+    renderAll();
+    const b=qs('addLine');if(b)flash(b);
+    return true;
+  });
 }
 function addBendVariant(def){
   ensureConstructionMetadata();
-  if(state.rows[0]?.type!=='LINE'){
-    ptToast('Сначала создайте прямой участок');
-    return;
-  }
-  def = def || currentBendDef();
+  if(state.rows[0]?.type!=='LINE'){ptToast('Сначала создайте прямой участок');return false;}
+  def=def||currentBendDef();
   if(def.standardOffset){
     state.bendMode=def.id;
     save();
-    createStandardOffset();
-    return;
+    return createStandardOffset();
   }
   if(def.offset){
     state.bendMode=def.id;
     save();
     openOffsetModule(null,def.moduleType);
-    return;
+    return false;
   }
-  const Lmin = minStraight();
-  const candidate = [
-    { type:'BEND', angle:def.angle || 90, plane:def.plane || defaultPlaneForDirection(directionAfterAllRows()), clr:bendCenterlineRadiusMm(null,state.diameterIndex), clrSource:'tooling_default_at_creation', clrToolingId:pipeDb[state.diameterIndex]?.id||null, elementId:elementUid('element') },
-    { type:'LINE', L:Lmin, autoMin:true, elementId:elementUid('element') }
+  const Lmin=minStraight();
+  const candidate=[
+    {type:'BEND',angle:def.angle||90,plane:def.plane||defaultPlaneForDirection(directionAfterAllRows()),clr:bendCenterlineRadiusMm(null,state.diameterIndex),clrSource:'tooling_default_at_creation',clrToolingId:pipeDb[state.diameterIndex]?.id||null,elementId:elementUid('element')},
+    {type:'LINE',L:Lmin,autoMin:true,elementId:elementUid('element')}
   ];
-  if (!rowsFitStock(candidate)) {
-    alert(lastBoundsAssessment?.message || `Cannot add bend: stock is exceeded or the pipe would leave the bounding box.`);
-    return;
-  }
-  state.rows.push(...candidate);
-  save();
-  renderAll();
-  flash(qs('bendPickerBtn'));
+  if(!rowsFitStock(candidate)){alert(lastBoundsAssessment?.message||'Cannot add bend: stock is exceeded or the pipe would leave the bounding box.');return false;}
+  return tbModelCommand('Добавить гиб',()=>{
+    state.rows.push(...candidate);
+    save();
+    renderAll();
+    flash(qs('bendPickerBtn'));
+    return true;
+  });
 }
 function addBend(){
   addBendVariant(currentBendDef());
@@ -15204,8 +15328,9 @@ function bindShell(){
   $('tbActionOpen')?.addEventListener('click',()=>$('projectOpenQuick')?.click());
   $('tbActionSave')?.addEventListener('click',()=>{try{save();ptToast('Проект сохранён');}catch{}});
   $('tbActionSettings')?.addEventListener('click',()=>$('openSettings')?.click());
-  $('tbActionUndo')?.addEventListener('click',()=>ptToast('История изменений будет доступна после внедрения журнала команд'));
-  $('tbActionRedo')?.addEventListener('click',()=>ptToast('История изменений будет доступна после внедрения журнала команд'));
+  $('tbActionUndo')?.addEventListener('click',tbUndo);
+  $('tbActionRedo')?.addEventListener('click',tbRedo);
+  tbHistoryUpdateUi();
   $('tbActionHelp')?.addEventListener('click',()=>ptToast('Выберите элемент дерева проекта. Его параметры появятся в панели редактирования.'));$('tbLayersButton')?.addEventListener('click',()=>window.TubeBenderEngineering?.open?.('overview'));$('tbTreeFilter')?.addEventListener('click',()=>ptToast('Фильтр дерева: используйте строку поиска.'));
   $('tbNewProjectTop')?.addEventListener('click',showNewProjectDialog);
   $('tbTreeAdd')?.addEventListener('click',()=>ptActions?.tubeNew?.());$('tbTreeCopy')?.addEventListener('click',()=>ptActions?.tubeCopy?.());$('tbTreeDelete')?.addEventListener('click',()=>ptActions?.tubeDelete?.());
