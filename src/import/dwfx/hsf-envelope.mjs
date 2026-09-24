@@ -125,7 +125,7 @@ export async function decodeHsfEnvelope(input, { inflateZlib = defaultInflateZli
 }
 
 /** Decode a strict, synchronized prefix of simple HSF opcodes. Stops on the first unsupported opcode. */
-export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256 } = {}) {
+export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = null } = {}) {
   const bytes = asBytes(input);
   const entities = [];
   let offset = 0;
@@ -456,6 +456,243 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256 } = {}) {
         geometry_mask: geometryMask,
         channels_mask: channelsMask,
         channels: Object.freeze(channels)
+      }));
+      offset = cursor;
+      count += 1;
+      continue;
+    }
+    if (opcode === 0x53) { // TKE_Shell
+      const shellOffset = offset;
+      let cursor = offset + 1;
+      if (cursor >= bytes.length) throw new RangeError("truncated TKE_Shell suboptions");
+
+      const suboptions = bytes[cursor++];
+      let suboptions2 = 0;
+      if ((suboptions & 0x80) !== 0) {
+        suboptions2 = readU16LE(bytes, cursor);
+        cursor += 2;
+        if ((suboptions2 & 0x000b) !== 0) {
+          return Object.freeze({
+            entities: Object.freeze(entities),
+            next_offset: shellOffset,
+            complete_prefix: false,
+            unsupported_opcode: opcode,
+            unsupported_variant: `TKE_Shell expanded suboptions 0x${suboptions2.toString(16)} are not decoded yet`
+          });
+        }
+      }
+
+      if ((suboptions & 0x20) !== 0) {
+        return Object.freeze({
+          entities: Object.freeze(entities),
+          next_offset: shellOffset,
+          complete_prefix: false,
+          unsupported_opcode: opcode,
+          unsupported_variant: "TKE_Shell bounding-only representation is not decoded yet"
+        });
+      }
+
+      let refinementIndex = null;
+      if ((suboptions & 0x10) === 0) {
+        refinementIndex = readI32LE(bytes, cursor);
+        cursor += 4;
+      }
+      if (cursor >= bytes.length) throw new RangeError("truncated TKE_Shell LOD");
+      const lod = bytes[cursor++];
+
+      let compressionScheme = 0;
+      let workspaceLength = 0;
+      let edgeBreaker = null;
+      let vertices = Object.freeze([]);
+      const hasCompressedPoints = (suboptions & 0x01) !== 0;
+      const hasConnectivityCompression = (suboptions & 0x40) !== 0;
+
+      if (hasCompressedPoints || hasConnectivityCompression) {
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Shell compression scheme");
+        compressionScheme = bytes[cursor++];
+
+        if (compressionScheme !== 0x05) {
+          return Object.freeze({
+            entities: Object.freeze(entities),
+            next_offset: shellOffset,
+            complete_prefix: false,
+            unsupported_opcode: opcode,
+            unsupported_variant: `TKE_Shell compression scheme ${compressionScheme} is not decoded yet`
+          });
+        }
+
+        workspaceLength = readI32LE(bytes, cursor);
+        cursor += 4;
+        if (workspaceLength < 24 || cursor + workspaceLength > bytes.length) {
+          throw new RangeError("invalid or truncated TKE_Shell EdgeBreaker workspace");
+        }
+
+        const workspaceStart = cursor;
+        const workspaceEnd = workspaceStart + workspaceLength;
+        const edgeScheme = bytes[workspaceStart];
+        const mtableScheme = bytes[workspaceStart + 1];
+        const pointsScheme = bytes[workspaceStart + 2];
+        const normalsScheme = bytes[workspaceStart + 3];
+        const opsLength = readI32LE(bytes, workspaceStart + 4);
+        const mtableLength = readI32LE(bytes, workspaceStart + 8);
+        const packedPointsLength = readI32LE(bytes, workspaceStart + 12);
+        const pointCount = readI32LE(bytes, workspaceStart + 16);
+        const normalsLength = readI32LE(bytes, workspaceStart + 20);
+
+        if (
+          edgeScheme !== 2 ||
+          mtableScheme !== 0 ||
+          opsLength < 0 ||
+          mtableLength < 0 ||
+          packedPointsLength < 0 ||
+          normalsLength < 0 ||
+          pointCount < 0 ||
+          pointCount > 10_000_000
+        ) {
+          return Object.freeze({
+            entities: Object.freeze(entities),
+            next_offset: shellOffset,
+            complete_prefix: false,
+            unsupported_opcode: opcode,
+            unsupported_variant: "TKE_Shell EdgeBreaker header variant is not decoded yet"
+          });
+        }
+
+        const align4 = (value) => value + ((4 - (value % 4)) % 4);
+        const expectedWorkspace =
+          24 + align4(opsLength) + align4(mtableLength) + align4(packedPointsLength);
+        if (expectedWorkspace !== workspaceLength) {
+          return Object.freeze({
+            entities: Object.freeze(entities),
+            next_offset: shellOffset,
+            complete_prefix: false,
+            unsupported_opcode: opcode,
+            unsupported_variant:
+              `TKE_Shell EdgeBreaker workspace length mismatch: header implies ${expectedWorkspace}, stream has ${workspaceLength}`
+          });
+        }
+
+        edgeBreaker = Object.freeze({
+          scheme: edgeScheme,
+          mtable_scheme: mtableScheme,
+          points_scheme: pointsScheme,
+          normals_scheme: normalsScheme,
+          ops_length: opsLength,
+          mtable_length: mtableLength,
+          packed_points_length: packedPointsLength,
+          point_count: pointCount,
+          normals_length: normalsLength,
+          workspace_offset: workspaceStart,
+          workspace_length: workspaceLength
+        });
+        cursor = workspaceEnd;
+
+        if (!hasCompressedPoints) {
+          const version = Number.parseFloat(String(hsfVersion ?? ""));
+          if (!Number.isFinite(version)) {
+            return Object.freeze({
+              entities: Object.freeze(entities),
+              next_offset: shellOffset,
+              complete_prefix: false,
+              unsupported_opcode: opcode,
+              unsupported_variant: "TKE_Shell requires HSF version to resolve post-EdgeBreaker point layout"
+            });
+          }
+          if (version >= 6.51) {
+            const pointBytes = pointCount * 12;
+            if (cursor + pointBytes > bytes.length) {
+              throw new RangeError("truncated TKE_Shell uncompressed point array");
+            }
+            const decodedVertices = new Array(pointCount);
+            for (let i = 0; i < pointCount; i += 1) {
+              const base = cursor + i * 12;
+              const point = Object.freeze([
+                readF32LE(bytes, base),
+                readF32LE(bytes, base + 4),
+                readF32LE(bytes, base + 8)
+              ]);
+              if (!point.every(Number.isFinite)) {
+                throw new RangeError(`non-finite TKE_Shell vertex at offset ${base}`);
+              }
+              decodedVertices[i] = point;
+            }
+            vertices = Object.freeze(decodedVertices);
+            cursor += pointBytes;
+          }
+        }
+      } else {
+        return Object.freeze({
+          entities: Object.freeze(entities),
+          next_offset: shellOffset,
+          complete_prefix: false,
+          unsupported_opcode: opcode,
+          unsupported_variant: "uncompressed TKE_Shell connectivity is not decoded yet"
+        });
+      }
+
+      const optionals = [];
+      if ((suboptions & 0x08) !== 0) {
+        const pointCount = edgeBreaker?.point_count ?? 0;
+        let terminated = false;
+        while (cursor < bytes.length) {
+          const optionalOffset = cursor;
+          const optionalOpcode = bytes[cursor++];
+          if (optionalOpcode === 0x00) {
+            terminated = true;
+            break;
+          }
+          if (optionalOpcode === 0x1c) { // OPT_ALL_PARAMETERS
+            if (cursor >= bytes.length) throw new RangeError("truncated OPT_ALL_PARAMETERS width");
+            const width = bytes[cursor++];
+            if (width < 1 || width > 4) {
+              throw new RangeError(`invalid OPT_ALL_PARAMETERS width ${width}`);
+            }
+            const floatCount = pointCount * width;
+            const byteCount = floatCount * 4;
+            if (cursor + byteCount > bytes.length) {
+              throw new RangeError("truncated OPT_ALL_PARAMETERS values");
+            }
+            optionals.push(Object.freeze({
+              opcode: optionalOpcode,
+              kind: "all_parameters",
+              source_offset: optionalOffset,
+              width,
+              value_count: pointCount,
+              scalar_count: floatCount
+            }));
+            cursor += byteCount;
+            continue;
+          }
+
+          return Object.freeze({
+            entities: Object.freeze(entities),
+            next_offset: optionalOffset,
+            complete_prefix: false,
+            unsupported_opcode: opcode,
+            unsupported_variant:
+              `TKE_Shell optional opcode 0x${optionalOpcode.toString(16).padStart(2, "0")} is not decoded yet`
+          });
+        }
+        if (!terminated) throw new RangeError("unterminated TKE_Shell optional attributes");
+      }
+
+      entities.push(Object.freeze({
+        kind: "triangle_mesh",
+        source_offset: shellOffset,
+        encoding: "TKE_Shell",
+        suboptions,
+        suboptions2,
+        refinement_index: refinementIndex,
+        lod,
+        compression_scheme: compressionScheme,
+        connectivity: Object.freeze({
+          status: hasConnectivityCompression ? "compressed_unresolved" : "unresolved",
+          codec: hasConnectivityCompression ? "edgebreaker" : null,
+          faces: null
+        }),
+        edge_breaker: edgeBreaker,
+        vertices,
+        optionals: Object.freeze(optionals)
       }));
       offset = cursor;
       count += 1;
