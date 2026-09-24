@@ -100,6 +100,24 @@ test("A20: full decoder filters display-only records and attaches segment proven
   assert.match(out.diagnostics.join(" "),/Retained 1 geometry\/provenance entities/i);
 });
 
+
+test("A20: W3D evidence retains sequential HSF tag indices", async()=>{
+  const stream=Uint8Array.from([0x71,0x71,0x7a]);
+  const compressed=deflateSync(stream);
+  const bytes=Uint8Array.from([
+    ...Buffer.from(";; HSF V14.50 "),0,
+    0x49,...le32(0x9a06),
+    0x3b,...Buffer.from("W3D V01.00\n"),
+    0x49,...le32(0),
+    0x5a,...compressed,0
+  ]);
+  const out=await decodeHsfW3d(bytes);
+  assert.equal(out.complete,true);
+  assert.deepEqual(out.entities.map((e)=>e.kind),["tag","tag"]);
+  assert.deepEqual(out.entities.map((e)=>e.payload.tag_index),[0,1]);
+  assert.deepEqual(out.entities.map((e)=>e.source_offset),[0,1]);
+});
+
 test("A20: configured opcode ceiling remains an explicit partial-decode blocker", async()=>{
   const stream=Uint8Array.from([
     0x28,0x01,0x61,
