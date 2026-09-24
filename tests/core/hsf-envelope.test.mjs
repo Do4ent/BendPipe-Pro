@@ -463,3 +463,19 @@ test('A20: negative line weight consumes explicit units byte',()=>{
   assert.equal(out.entities[0].weight,-0.5);
   assert.equal(out.entities[0].units,3);
 });
+
+
+test('A20: native HSF polygon remains polygon evidence without invented triangulation',()=>{
+  const bytes=Uint8Array.from([
+    0x47,...le32(3),
+    ...f32(0),...f32(0),...f32(0),
+    ...f32(1),...f32(0),...f32(0),
+    ...f32(0),...f32(1),...f32(0),
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,41);
+  assert.equal(out.entities[0].kind,'polygon');
+  assert.deepEqual(out.entities[0].points,[[0,0,0],[1,0,0],[0,1,0]]);
+});
