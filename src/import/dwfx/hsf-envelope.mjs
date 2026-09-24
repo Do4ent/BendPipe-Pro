@@ -588,6 +588,21 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       count += 1;
       continue;
     }
+    if (opcode === 0x3c) { // TKE_Include_Segment
+      if (offset + 2 > bytes.length) throw new RangeError("truncated TKE_Include_Segment");
+      const length = bytes[offset + 1];
+      const end = offset + 2 + length;
+      if (end > bytes.length) throw new RangeError("truncated TKE_Include_Segment name");
+      entities.push(Object.freeze({
+        kind: "segment",
+        action: "include",
+        source_offset: offset,
+        name: readAscii(bytes, offset + 2, end)
+      }));
+      offset = end;
+      count += 1;
+      continue;
+    }
     if (opcode === 0x7b) { // TKE_Style_Segment
       if (offset + 2 > bytes.length) throw new RangeError("truncated TKE_Style_Segment");
       const length = bytes[offset + 1];
