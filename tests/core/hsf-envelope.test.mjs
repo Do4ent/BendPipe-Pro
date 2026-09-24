@@ -287,3 +287,21 @@ test('A20: HSF 12.15+ circular arc can carry an explicit center point',()=>{
   assert.equal(out.entities[0].flags,1);
   assert.deepEqual(out.entities[0].center,[0,0,0]);
 });
+
+
+test('A20: native HSF line is preserved as non-canonical curve evidence',()=>{
+  const bytes=Uint8Array.from([
+    0x6c,
+    ...f32(1),...f32(2),...f32(3),
+    ...f32(4),...f32(5),...f32(6),
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,25);
+  assert.equal(out.entities[0].kind,'curve_candidate');
+  assert.equal(out.entities[0].primitive,'line');
+  assert.deepEqual(out.entities[0].start,[1,2,3]);
+  assert.deepEqual(out.entities[0].end,[4,5,6]);
+  assert.equal(out.entities[0].canonical_ready,false);
+});
