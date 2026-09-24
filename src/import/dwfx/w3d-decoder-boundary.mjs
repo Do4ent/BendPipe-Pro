@@ -17,6 +17,7 @@ const ALLOWED_KINDS = new Set([
   "tag",
   "light",
   "pause",
+  "color",
   "polyline",
   "triangle_mesh",
   "curve_candidate",
