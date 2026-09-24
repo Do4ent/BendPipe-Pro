@@ -407,3 +407,32 @@ test('A20: texture matrix stays separate from model geometry transforms',()=>{
   assert.equal(out.entities[0].kind,'texture_matrix');
   assert.deepEqual(out.entities[0].elements,values);
 });
+
+
+test('A20: native HSF NURBS curve preserves control points and knot evidence',()=>{
+  const knots=[0,0,0,0,1,1,1,1];
+  const bytes=Uint8Array.from([
+    0x4e,
+    0x02,
+    0x03,
+    ...le32(4),
+    ...f32(0),...f32(0),...f32(0),
+    ...f32(1),...f32(0),...f32(0),
+    ...f32(2),...f32(0),...f32(0),
+    ...f32(3),...f32(0),...f32(0),
+    ...knots.flatMap(f32),
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  const curve=out.entities[0];
+  assert.equal(curve.kind,'curve_candidate');
+  assert.equal(curve.primitive,'nurbs_curve');
+  assert.equal(curve.degree,3);
+  assert.deepEqual(curve.control_points,[[0,0,0],[1,0,0],[2,0,0],[3,0,0]]);
+  assert.equal(curve.weights,null);
+  assert.deepEqual(curve.knots,knots);
+  assert.equal(curve.start_parameter,0);
+  assert.equal(curve.end_parameter,1);
+  assert.equal(curve.canonical_ready,false);
+});
