@@ -6022,18 +6022,19 @@ function pipeEnvelopeBoxForRows(rows=state.rows, diameterIndex=state.diameterInd
 }
 
 function pipeBoundsContext(rows=state.rows, diameterIndex=state.diameterIndex, overrides=null){
-  const o = overrides && typeof overrides === 'object' ? overrides : {};
+  const o=overrides&&typeof overrides==='object'?overrides:{};
   return {
-    rows: Array.isArray(rows) ? rows : [],
+    rows:Array.isArray(rows)?rows:[],
     diameterIndex,
-    origin: clone(o.origin || state.origin || {x:0,y:0,z:0}),
-    startAxis: o.startAxis || state.startAxis || 'X',
-    startPlane: o.startPlane || state.startPlane || 'XY',
-    startAngle: Number.isFinite(Number(o.startAngle)) ? Number(o.startAngle) : (Number(state.startAngle)||0),
-    bbox: clone(o.bbox || state.bbox || {x:3000,y:1000,z:1000}),
-    bboxAnchor: clone(o.bboxAnchor || state.bboxAnchor || {x:0,y:0,z:0}),
-    coordinateOffset: clone(o.coordinateOffset || state.coordinateOffset || {x:0,y:0,z:0}),
-    axisSigns: clone(o.axisSigns || state.axisSigns || {x:1,y:1,z:1})
+    pipe:o.pipe&&typeof o.pipe==='object'?o.pipe:null,
+    origin:clone(o.origin||state.origin||{x:0,y:0,z:0}),
+    startAxis:o.startAxis||state.startAxis||'X',
+    startPlane:o.startPlane||state.startPlane||'XY',
+    startAngle:Number.isFinite(Number(o.startAngle))?Number(o.startAngle):(Number(state.startAngle)||0),
+    bbox:clone(o.bbox||state.bbox||{x:3000,y:1000,z:1000}),
+    bboxAnchor:clone(o.bboxAnchor||state.bboxAnchor||{x:0,y:0,z:0}),
+    coordinateOffset:clone(o.coordinateOffset||state.coordinateOffset||{x:0,y:0,z:0}),
+    axisSigns:clone(o.axisSigns||state.axisSigns||{x:1,y:1,z:1})
   };
 }
 function pipeBoundsContextForTube(t){
@@ -6099,7 +6100,7 @@ function analyzePipeBounds(rows=state.rows, diameterIndex=state.diameterIndex, o
   if(!window.THREE) return {valid:true,violationCount:0,violations:[],violatingRows:[],maxPenetrationMm:0,totalPenetrationMm:0};
   const ctx=pipeBoundsContext(rows,diameterIndex,overrides);
   const bb=contextBBoxBox3(ctx);
-  const p=pipeAt(diameterIndex);
+  const p=ctx.pipe||pipeAt(diameterIndex);
   const tubeRadius=Math.max(0,Number(p?.mm)||0)*.5*GEOM_SCALE;
   const clearance=Math.max(0,Number(clearanceMm)||0)*GEOM_SCALE;
   const bendR=Math.max(.18,toNumber(p?.Rb)*GEOM_SCALE);
@@ -13507,27 +13508,162 @@ function poNormalizeTube(raw,index,pkg,warnings,errors,conversions){
   return t;
 }
 function poNormalizePackage(data,meta={}){
-  const warnings=[],errors=[],conversions=[];let sourceState=null,projects=[],candidatePipeDb=null,version=String(data?.version||data?.state?.version||data?.formatVersion||'не указана');
+  const warnings=[],errors=[],conversions=[];
+  let sourceState=null,projects=[],candidatePipeDb=null;
+  const version=String(data?.version||data?.state?.version||data?.formatVersion||'не указана');
+
   if(Array.isArray(data?.pipeDb))candidatePipeDb=clone(data.pipeDb);
   if(data?.state&&typeof data.state==='object'){
-    sourceState=clone(data.state);if(Array.isArray(sourceState.projects))projects=clone(sourceState.projects);else if(Array.isArray(sourceState.tubes)){projects=[{id:poUid('p'),name:sourceState.projectName||'Imported project',tubes:clone(sourceState.tubes)}];conversions.push('Преобразование старой библиотеки труб в структуру проектов');}
+    sourceState=clone(data.state);
+    if(Array.isArray(sourceState.projects))projects=clone(sourceState.projects);
+    else if(Array.isArray(sourceState.tubes)){
+      projects=[{id:poUid('p'),name:sourceState.projectName||'Imported project',bbox:clone(sourceState.bbox),bboxAnchor:clone(sourceState.bboxAnchor),coordinateOffset:clone(sourceState.coordinateOffset),tubes:clone(sourceState.tubes)}];
+      conversions.push('Преобразование старой библиотеки труб в структуру проектов');
+    }
   }else if(data?.type==='TubeBenderProject'&&data.project)projects=[clone(data.project)];
-  else if(data?.type==='TubeBenderTube'&&data.tube){projects=[{id:poUid('p'),name:data.name||'Imported project',tubes:[clone(data.tube)]}];conversions.push('Создание проекта для импортируемой трубы');}
-  else if(Array.isArray(data?.projects)){projects=clone(data.projects);sourceState=clone(data);}
+  else if(data?.type==='TubeBenderTube'&&data.tube){
+    projects=[{id:poUid('p'),name:data.name||'Imported project',tubes:[clone(data.tube)]}];
+    conversions.push('Создание проекта для импортируемой трубы');
+  }else if(Array.isArray(data?.projects)){projects=clone(data.projects);sourceState=clone(data);}
   else if(data?.project?.tubes)projects=[clone(data.project)];
-  else if(Array.isArray(data?.tubes)){projects=[{id:data.id||poUid('p'),name:data.name||data.projectName||'Imported project',tubes:clone(data.tubes)}];conversions.push('Преобразование автономного проекта');}
-  else if(Array.isArray(data?.rows)){projects=[{id:poUid('p'),name:'Imported project',tubes:[clone(data)]}];conversions.push('Создание проекта из данных одной трубы');}
-  else errors.push('Не найдена поддерживаемая структура проекта или трубы.');
-  const pkg={id:poUid('pkg'),meta:{name:meta.name||'project.json',size:Number(meta.size)||0,modified:meta.modified||Date.now(),source:meta.source||'device'},rawData:data,version,pipeDb:candidatePipeDb?.length?candidatePipeDb:clone(pipeDb),sourceState,projects:[],warnings,errors,conversions,status:'ready',summary:{},collisions:[]};
+  else if(Array.isArray(data?.tubes)){
+    projects=[{id:data.id||poUid('p'),name:data.name||data.projectName||'Imported project',bbox:clone(data.bbox),bboxAnchor:clone(data.bboxAnchor),coordinateOffset:clone(data.coordinateOffset),tubes:clone(data.tubes)}];
+    conversions.push('Преобразование автономного проекта');
+  }else if(Array.isArray(data?.rows)){
+    projects=[{id:poUid('p'),name:'Imported project',tubes:[clone(data)]}];
+    conversions.push('Создание проекта из данных одной трубы');
+  }else errors.push('Не найдена поддерживаемая структура проекта или трубы.');
+
+  const validBbox=(b)=>b&&typeof b==='object'&&['x','y','z'].every(k=>Number.isFinite(Number(b[k]))&&Number(b[k])>0);
+  const normalizedBbox=(b)=>({x:Number(b.x),y:Number(b.y),z:Number(b.z)});
+  const sourceBbox=validBbox(sourceState?.bbox)?normalizedBbox(sourceState.bbox):null;
+
+  const pkg={
+    id:poUid('pkg'),
+    meta:{name:meta.name||'project.json',size:Number(meta.size)||0,modified:meta.modified||Date.now(),source:meta.source||'device'},
+    rawData:data,
+    version,
+    pipeDb:candidatePipeDb?.length?candidatePipeDb:clone(pipeDb),
+    sourceState,
+    projects:[],
+    warnings,
+    errors,
+    conversions,
+    status:'ready',
+    summary:{},
+    collisions:[],
+    bbox:sourceBbox,
+    boundsClearanceMm:PIPE_BBOX_CLEARANCE_MM
+  };
+
   projects.forEach((raw,pi)=>{
-    const p=clone(raw&&typeof raw==='object'?raw:{});p._poKey=poUid('project');p.id=p.id||poUid('projectid');p.name=p.name||`Project ${pi+1}`;p.tubes=Array.isArray(p.tubes)?p.tubes:[];if(!p.tubes.length)warnings.push(`${p.name}: проект не содержит труб.`);p.tubes=p.tubes.map((t,ti)=>poNormalizeTube(t,ti,pkg,warnings,errors,conversions));p._poIssues=[];pkg.projects.push(p);
+    const p=clone(raw&&typeof raw==='object'?raw:{});
+    p._poKey=poUid('project');
+    p.id=p.id||poUid('projectid');
+    p.name=p.name||`Project ${pi+1}`;
+    p.tubes=Array.isArray(p.tubes)?p.tubes:[];
+    if(!p.tubes.length)warnings.push(`${p.name}: проект не содержит труб.`);
+
+    const projectBbox=validBbox(p.bbox)?normalizedBbox(p.bbox):sourceBbox;
+    if(!projectBbox){
+      p._poBoundsUnresolved=true;
+      errors.push(`${p.name}: отсутствуют валидные размеры корпуса; рамка 3000×1000×1000 не подставляется.`);
+    }else{
+      p.bbox=projectBbox;
+      if(!pkg.bbox)pkg.bbox=clone(projectBbox);
+    }
+
+    p.tubes=p.tubes.map((t,ti)=>poNormalizeTube(t,ti,pkg,warnings,errors,conversions));
+    p._poIssues=[];
+    pkg.projects.push(p);
   });
-  const bbox=sourceState?.bbox&&typeof sourceState.bbox==='object'?sourceState.bbox:{x:3000,y:1000,z:1000};pkg.bbox={x:Number(bbox.x)||3000,y:Number(bbox.y)||1000,z:Number(bbox.z)||1000};
-  const usedIds=new Set();pkg.projects.forEach(p=>{if(usedIds.has(p.id)){warnings.push(`${p.name}: повторяющийся идентификатор проекта будет заменён.`);conversions.push('Замена повторяющихся идентификаторов');}usedIds.add(p.id);p.tubes.forEach(t=>{if(usedIds.has(t.id)){warnings.push(`${t.name}: повторяющийся идентификатор трубы будет заменён.`);conversions.push('Замена повторяющихся идентификаторов');}usedIds.add(t.id);const anchor=p.bboxAnchor||sourceState?.bboxAnchor||{x:0,y:0,z:0};const min={x:Number(anchor.x)?-pkg.bbox.x:0,y:Number(anchor.y)?-pkg.bbox.y:0,z:Number(anchor.z)?-pkg.bbox.z:0};const max={x:Number(anchor.x)?0:pkg.bbox.x,y:Number(anchor.y)?0:pkg.bbox.y,z:Number(anchor.z)?0:pkg.bbox.z};const out=(t._poPath?.points||[]).some(pt=>pt.x-t._poPath.radius<min.x||pt.x+t._poPath.radius>max.x||pt.y-t._poPath.radius<min.y||pt.y+t._poPath.radius>max.y||pt.z-t._poPath.radius<min.z||pt.z+t._poPath.radius>max.z);if(out){t._poIssues.push({level:'warn',text:'Выход за габаритную рамку'});warnings.push(`${t.name}: часть трубы выходит за габаритную рамку.`);}});});
-  pkg.projects.forEach(p=>{const c=poAnalyzeCollisions(p,pkg);pkg.collisions.push(...c);c.forEach(hit=>{hit.tubeA._poIssues.push({level:'error',text:hit.self?'Самопересечение':'Пересечение с '+hit.tubeB.name});if(!hit.self)hit.tubeB._poIssues.push({level:'error',text:'Пересечение с '+hit.tubeA.name});});});
-  let tubes=0,length=0,hidden=0,bends=0;pkg.projects.forEach(p=>p.tubes.forEach(t=>{tubes++;length+=t._poLength||0;bends+=t._poBends||0;if(!t.visible)hidden++;}));pkg.summary={projects:pkg.projects.length,tubes,length,hidden,bends,collisions:pkg.collisions.length};
-  if(errors.length||!pkg.projects.length)pkg.status='error';else if(warnings.length)pkg.status='warning';else if(conversions.length||!String(version).includes('VC183'))pkg.status='convert';else pkg.status='ready';
-  pkg.projects.forEach(p=>{p._selected=true;p.tubes.forEach(t=>t._selected=true);});return pkg;
+
+  const usedIds=new Set();
+  pkg.projects.forEach(p=>{
+    if(usedIds.has(p.id)){
+      warnings.push(`${p.name}: повторяющийся идентификатор проекта будет заменён.`);
+      conversions.push('Замена повторяющихся идентификаторов');
+    }
+    usedIds.add(p.id);
+
+    p.tubes.forEach(t=>{
+      if(usedIds.has(t.id)){
+        warnings.push(`${t.name}: повторяющийся идентификатор трубы будет заменён.`);
+        conversions.push('Замена повторяющихся идентификаторов');
+      }
+      usedIds.add(t.id);
+
+      if(p._poBoundsUnresolved){
+        t.importValidation=t.importValidation||{productionBlocked:false,issues:[]};
+        t.importValidation.productionBlocked=true;
+        t.importValidation.issues.push('корпус проекта не определён; проверка зазора не выполнена.');
+        return;
+      }
+      if(t.importValidation?.productionBlocked===true)return;
+
+      const tool=poToolFor(t,pkg);
+      if(!tool)return;
+      try{
+        const bounds=analyzePipeBounds(
+          t.rows,
+          t.diameterIndex,
+          {
+            pipe:tool,
+            origin:t.origin||{x:0,y:0,z:0},
+            startAxis:t.startAxis,
+            startPlane:t.startPlane,
+            startAngle:t.startAngle,
+            bbox:p.bbox,
+            bboxAnchor:p.bboxAnchor||sourceState?.bboxAnchor||{x:0,y:0,z:0},
+            coordinateOffset:p.coordinateOffset||sourceState?.coordinateOffset||{x:0,y:0,z:0},
+            axisSigns:p.axisSigns||sourceState?.axisSigns||{x:1,y:1,z:1}
+          },
+          PIPE_BBOX_CLEARANCE_MM
+        );
+        t._poBoundsAnalysis=bounds;
+        if(!bounds.valid){
+          const text=`Нарушен корпус или минимальный зазор ${PIPE_BBOX_CLEARANCE_MM} мм`;
+          t._poIssues.push({level:'warn',text});
+          warnings.push(`${t.name}: ${text}.`);
+        }
+      }catch(error){
+        t.importValidation=t.importValidation||{productionBlocked:false,issues:[]};
+        t.importValidation.productionBlocked=true;
+        const reason=`ошибка общей проверки корпуса/зазора: ${error?.message||error}`;
+        t.importValidation.issues.push(reason);
+        errors.push(`${t.name}: ${reason}`);
+      }
+    });
+  });
+
+  pkg.projects.forEach(p=>{
+    const c=poAnalyzeCollisions(p,pkg);
+    pkg.collisions.push(...c);
+    c.forEach(hit=>{
+      hit.tubeA._poIssues.push({level:'error',text:hit.self?'Самопересечение':'Пересечение с '+hit.tubeB.name});
+      if(!hit.self)hit.tubeB._poIssues.push({level:'error',text:'Пересечение с '+hit.tubeA.name});
+    });
+  });
+
+  let tubes=0,length=0,hidden=0,bends=0;
+  pkg.projects.forEach(p=>p.tubes.forEach(t=>{
+    tubes++;
+    length+=t._poLength||0;
+    bends+=t._poBends||0;
+    if(!t.visible)hidden++;
+  }));
+  pkg.summary={projects:pkg.projects.length,tubes,length,hidden,bends,collisions:pkg.collisions.length};
+
+  if(errors.length||!pkg.projects.length)pkg.status='error';
+  else if(warnings.length)pkg.status='warning';
+  else if(conversions.length||!String(version).includes('VC183'))pkg.status='convert';
+  else pkg.status='ready';
+
+  pkg.projects.forEach(p=>{
+    p._selected=true;
+    p.tubes.forEach(t=>t._selected=true);
+  });
+  return pkg;
 }
 function poSelectedProjects(){
   const pkg=PO.current;if(!pkg)return[];return pkg.projects.map(p=>({...p,tubes:p.tubes.filter(t=>PO.selected.has(t._poKey))})).filter(p=>PO.selected.has(p._poKey)&&p.tubes.length);
