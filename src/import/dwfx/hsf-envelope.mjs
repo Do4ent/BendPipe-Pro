@@ -176,6 +176,80 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256 } = {}) {
       count += 1;
       continue;
     }
+    if (opcode === 0x22) { // TKE_Color
+      let cursor = offset + 1;
+      if (cursor >= bytes.length) throw new RangeError("truncated TKE_Color geometry mask");
+      let geometryMask = bytes[cursor++];
+      if ((geometryMask & 0x80) !== 0) {
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Color extended geometry mask");
+        geometryMask |= bytes[cursor++] << 8;
+      }
+      if ((geometryMask & 0x00008000) !== 0) {
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Color extended color geometry mask");
+        geometryMask |= bytes[cursor++] << 16;
+      }
+      if ((geometryMask & 0x00800000) !== 0) {
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Color secondary geometry mask");
+        geometryMask = (geometryMask | (bytes[cursor++] << 24)) >>> 0;
+      } else {
+        geometryMask >>>= 0;
+      }
+
+      if (cursor >= bytes.length) throw new RangeError("truncated TKE_Color channels mask");
+      let channelsMask = bytes[cursor++];
+      if ((channelsMask & 0x80) !== 0) {
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Color extended channels mask");
+        channelsMask |= bytes[cursor++] << 8;
+      }
+
+      const channels = {};
+      const readColorValue = (channelName, extendedLength = false, rgbAllowed = true) => {
+        if (cursor >= bytes.length) throw new RangeError(`truncated TKE_Color ${channelName} length`);
+        let length = bytes[cursor++];
+        if (extendedLength && length === 255) {
+          length = readU32LE(bytes, cursor);
+          cursor += 4;
+        }
+        if (rgbAllowed && length === 0) {
+          if (cursor + 3 > bytes.length) throw new RangeError(`truncated TKE_Color ${channelName} RGB`);
+          const rgb = Object.freeze([bytes[cursor], bytes[cursor + 1], bytes[cursor + 2]]);
+          cursor += 3;
+          channels[channelName] = Object.freeze({ rgb_bytes: rgb });
+          return;
+        }
+        const end = cursor + length;
+        if (end > bytes.length) throw new RangeError(`truncated TKE_Color ${channelName} name`);
+        channels[channelName] = Object.freeze({ name: readAscii(bytes, cursor, end) });
+        cursor = end;
+      };
+
+      if ((channelsMask & 0x0001) !== 0) readColorValue("diffuse", true, true);
+      if ((channelsMask & 0x0002) !== 0) readColorValue("specular", false, true);
+      if ((channelsMask & 0x0004) !== 0) readColorValue("mirror", false, true);
+      if ((channelsMask & 0x0008) !== 0) readColorValue("transmission", false, true);
+      if ((channelsMask & 0x0010) !== 0) readColorValue("emission", false, true);
+      if ((channelsMask & 0x0020) !== 0) {
+        channels.gloss = readF32LE(bytes, cursor);
+        cursor += 4;
+      }
+      if ((channelsMask & 0x0040) !== 0) {
+        channels.index = readF32LE(bytes, cursor);
+        cursor += 4;
+      }
+      if ((channelsMask & 0x0100) !== 0) readColorValue("environment", false, false);
+      if ((channelsMask & 0x0200) !== 0) readColorValue("bump", false, false);
+
+      entities.push(Object.freeze({
+        kind: "color",
+        source_offset: offset,
+        geometry_mask: geometryMask,
+        channels_mask: channelsMask,
+        channels: Object.freeze(channels)
+      }));
+      offset = cursor;
+      count += 1;
+      continue;
+    }
     if (opcode === 0x42) {
       if (offset + 2 > bytes.length) throw new RangeError("truncated TKE_Bounding_Info");
       const type = bytes[offset + 1];
