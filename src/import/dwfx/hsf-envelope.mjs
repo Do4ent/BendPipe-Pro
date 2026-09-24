@@ -461,6 +461,94 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       count += 1;
       continue;
     }
+    if (opcode === 0x52) { // TKE_Rendering_Options (strict supported subset)
+      const start = offset;
+      let cursor = offset + 1;
+      const mask = readU32LE(bytes, cursor);
+      cursor += 4;
+      if ((mask & 0x80000000) !== 0) {
+        return Object.freeze({
+          entities: Object.freeze(entities),
+          next_offset: start,
+          complete_prefix: false,
+          unsupported_opcode: opcode,
+          unsupported_variant: "extended TKE_Rendering_Options mask is not decoded yet"
+        });
+      }
+      const value = readU32LE(bytes, cursor);
+      cursor += 4;
+
+      const ATTRIBUTE_LOCK = 0x00100000;
+      const supportedTopLevelMask = ATTRIBUTE_LOCK;
+      if ((mask & ~supportedTopLevelMask) !== 0) {
+        return Object.freeze({
+          entities: Object.freeze(entities),
+          next_offset: start,
+          complete_prefix: false,
+          unsupported_opcode: opcode,
+          unsupported_variant:
+            `TKE_Rendering_Options mask 0x${mask.toString(16)} contains unsupported options`
+        });
+      }
+
+      const payload = { mask, value };
+      if ((mask & value & ATTRIBUTE_LOCK) !== 0) {
+        const lockMask = readU32LE(bytes, cursor);
+        cursor += 4;
+        const lockValue = readU32LE(bytes, cursor);
+        cursor += 4;
+        payload.lock_mask = lockMask;
+        payload.lock_value = lockValue;
+
+        const LOCK_COLOR = 0x00000004;
+        const LOCK_VISIBILITY = 0x08000000;
+        if ((lockMask & lockValue & LOCK_VISIBILITY) !== 0) {
+          return Object.freeze({
+            entities: Object.freeze(entities),
+            next_offset: start,
+            complete_prefix: false,
+            unsupported_opcode: opcode,
+            unsupported_variant: "TKE_Rendering_Options visibility lock payload is not decoded yet"
+          });
+        }
+
+        if ((lockMask & lockValue & LOCK_COLOR) !== 0) {
+          const colorMask = readU32LE(bytes, cursor);
+          cursor += 4;
+          const colorValue = readU32LE(bytes, cursor);
+          cursor += 4;
+          payload.color_lock_mask = colorMask;
+          payload.color_lock_value = colorValue;
+
+          const FACE_OR_FRONT = 0x00001001;
+          if ((colorValue & ~FACE_OR_FRONT) !== 0) {
+            return Object.freeze({
+              entities: Object.freeze(entities),
+              next_offset: start,
+              complete_prefix: false,
+              unsupported_opcode: opcode,
+              unsupported_variant:
+                `TKE_Rendering_Options color-lock value 0x${colorValue.toString(16)} requires unsupported per-geometry payloads`
+            });
+          }
+          if ((colorValue & FACE_OR_FRONT) !== 0) {
+            payload.face_color_lock_mask = readU16LE(bytes, cursor);
+            cursor += 2;
+            payload.face_color_lock_value = readU16LE(bytes, cursor);
+            cursor += 2;
+          }
+        }
+      }
+
+      entities.push(Object.freeze({
+        kind: "rendering_options",
+        source_offset: start,
+        ...payload
+      }));
+      offset = cursor;
+      count += 1;
+      continue;
+    }
     if (opcode === 0x7b) { // TKE_Style_Segment
       if (offset + 2 > bytes.length) throw new RangeError("truncated TKE_Style_Segment");
       const length = bytes[offset + 1];
