@@ -213,6 +213,50 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256 } = {}) {
       count += 1;
       continue;
     }
+    if (opcode === 0x48) { // TKE_Heuristics
+      let cursor = offset + 1;
+      let mask = readU16LE(bytes, cursor);
+      cursor += 2;
+      if ((mask & 0x8000) !== 0) {
+        mask = (mask | (readU16LE(bytes, cursor) << 16)) >>> 0;
+        cursor += 2;
+      }
+      let value = readU16LE(bytes, cursor);
+      cursor += 2;
+      if ((mask & 0x8000) !== 0) {
+        value = (value | (readU16LE(bytes, cursor) << 16)) >>> 0;
+        cursor += 2;
+      }
+
+      const enabled = (mask & value) >>> 0;
+      const payloadBits =
+        0x00000040 | // related selection limit
+        0x00000080 | // internal shell limit
+        0x0000000c | // extras (handedness / quick moves)
+        0x00010000 | // culling
+        0x00200000 | // ordered weights
+        0x00400000 | // internal polyline limit
+        0x01000000;  // selection level
+      if ((enabled & payloadBits) !== 0 || (mask & 0x00200000) !== 0 || (mask & 0x01000000) !== 0) {
+        return Object.freeze({
+          entities: Object.freeze(entities),
+          next_offset: offset,
+          complete_prefix: false,
+          unsupported_opcode: opcode,
+          unsupported_variant: "TKE_Heuristics optional payload requires version-aware decoding"
+        });
+      }
+
+      entities.push(Object.freeze({
+        kind: "heuristics",
+        source_offset: offset,
+        mask,
+        value
+      }));
+      offset = cursor;
+      count += 1;
+      continue;
+    }
     if (opcode === 0x55) { // TKE_User_Options
       let cursor = offset + 1;
       let length = readU16LE(bytes, cursor);
