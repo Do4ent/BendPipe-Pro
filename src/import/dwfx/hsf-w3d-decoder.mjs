@@ -32,7 +32,7 @@ function evidenceEntity(entity, index) {
  */
 export async function decodeHsfW3d(bytes, context = {}) {
   const envelope = await decodeHsfEnvelope(bytes);
-  const prefix = decodeHsfOpcodePrefix(envelope.opcode_stream);
+  const prefix = decodeHsfOpcodePrefix(envelope.opcode_stream, { hsfVersion: envelope.hsf_version });
   const w3dComment = envelope.comments.find((entry) => /W3D\s+V/i.test(entry.text));
 
   const diagnostics = [
