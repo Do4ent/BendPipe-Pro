@@ -71,6 +71,39 @@ test("A02: checks panel distinguishes calculation errors from passed", () => {
   assert.match(checks, /TubeBenderEngineering\?\.diagnoseTube/);
 });
 
+test("A03: legacy tooling records have stable IDs and sort resynchronizes references", () => {
+  const helpers = functionSlice("toolingIdToken", "ensureBoxAndOriginState");
+
+  assert.match(helpers, /function ensureToolingIds/);
+  assert.match(helpers, /function toolingIndexById/);
+  assert.match(helpers, /function resyncToolingReferences/);
+  assert.match(helpers, /function toolingInUse/);
+  assert.match(helpers, /pipeDb\.sort/);
+  assert.match(helpers, /resyncToolingReferences\(\)/);
+});
+
+test("A03: tube persistence carries toolingId and unresolved state", () => {
+  const createTube = functionSlice("createCheckedTube", "repairTubeForCheck");
+  const repairTube = functionSlice("repairTubeForCheck", "verifyProjectHasCheckedPipe");
+  const syncTube = functionSlice("syncActiveTubeFromState", "loadActiveTubeToState");
+
+  assert.match(createTube, /toolingId/);
+  assert.match(createTube, /toolingUnresolved/);
+  assert.match(repairTube, /toolingIndexById/);
+  assert.match(repairTube, /toolingUnresolved=true/);
+  assert.match(syncTube, /t\.toolingId=state\.toolingId/);
+});
+
+test("A03: tooling selector uses IDs rather than array positions", () => {
+  const renderSelect = functionSlice("renderPipeSelect", "renderPipeTable");
+  const table = functionSlice("renderPipeTable", "renderLangList");
+
+  assert.match(renderSelect, /opt\.value = String\(p\.id\)/);
+  assert.doesNotMatch(renderSelect, /opt\.value = String\(i\)/);
+  assert.match(table, /toolingInUse\(tool\.id\)/);
+  assert.match(table, /Сначала явно назначьте другую оснастку/);
+});
+
 test("A04: new engineering defaults do not silently inject Steel or Generic CNC", () => {
   const style = functionSlice("defaultStyle", "defaultMachine");
   const machine = functionSlice("defaultMachine", "ensureProjectEngineering");
@@ -104,6 +137,8 @@ test("A05: manufacturing export evaluates production release before any download
   assert.notEqual(end, -1);
   const block = html.slice(start, end);
 
+  assert.match(block, /toolingUnresolved/);
+  assert.match(block, /toolingIndexById/);
   assert.match(block, /style\.confirmed!==true/);
   assert.match(block, /machine\.confirmed!==true/);
   assert.match(block, /analyzePipeBounds/);
