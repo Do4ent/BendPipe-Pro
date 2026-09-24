@@ -383,3 +383,32 @@ test("A15: project-open preview honors explicit bend CLR before legacy tooling C
   assert.match(preview, /Number\.isFinite\(directClr\)&&directClr>0\?directClr:legacyClr/);
   assert.match(preview, /const arcLength=sweep\*bendR/);
 });
+
+
+test("A15: simulation uses per-bend CLR instead of one global style radius", () => {
+  const length = functionSlice("simCenterlineLength", "simMaterial");
+  const shape = functionSlice("simBuildShape", "simEquipmentEnvelope");
+  const machine = functionSlice("simAddMachine", "simSegmentDistancePoint");
+  const collision = functionSlice("simCollisionChecks", "simAddCollisionMarkers");
+
+  assert.match(length, /bendCenterlineRadiusMm\(r,diameterIndex\)/);
+  assert.doesNotMatch(length, /style\?\.centerlineRadius/);
+  assert.match(shape, /bendCenterlineRadiusMm\(row,t\?\.diameterIndex\?\?state\.diameterIndex\)/);
+  assert.doesNotMatch(shape, /shape\.bendR/);
+  assert.match(machine, /bend\.radiusMm/);
+  assert.match(machine, /bendRadius:R/);
+  assert.match(collision, /machinePose\.bendRadius/);
+});
+
+test("A15: bend editor shows persisted CLR and origin does not pretend to have one", () => {
+  const editor = functionSlice("refreshEditPanel", "checkRow");
+
+  assert.match(
+    editor,
+    /bendCenterlineRadiusMm\(r,state\.diameterIndex\)\+' мм'/
+  );
+  assert.match(
+    editor,
+    /\[mt\('angle'\),'—','',true\],\[mt\('radius'\),'—','',true\]/
+  );
+});
