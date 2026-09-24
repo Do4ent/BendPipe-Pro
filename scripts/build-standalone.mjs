@@ -24,9 +24,12 @@ if (!source.includes(localTag)) {
 }
 
 const safeThree = three.replace(/<\/script/gi, "<\\/script");
+const bundledThree =
+  `<script data-tubebender-bundled="three-r160">\n${safeThree}\n</script>`;
+
 let output = source.replace(
   localTag,
-  `<script data-tubebender-bundled="three-r160">\n${safeThree}\n</script>`
+  () => bundledThree
 );
 
 output = output.replace(
