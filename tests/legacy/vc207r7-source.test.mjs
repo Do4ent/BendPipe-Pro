@@ -274,3 +274,25 @@ test("A01/A10: project-open developed bend length uses CLR only", () => {
   assert.match(pathBuilder, /const arcLength=sweep\*bendR/);
   assert.doesNotMatch(pathBuilder, /sweep\*\(bendR\+tubeR\)/);
 });
+
+
+test("A11: open-preview bounds reuse the live 5 mm clearance algorithm", () => {
+  const ctx = functionSlice("pipeBoundsContext", "pipeBoundsContextForTube");
+  const bounds = functionSlice("analyzePipeBounds", "boundsMessage");
+  const normalize = functionSlice("poNormalizePackage", "poSelectedProjects");
+
+  assert.match(ctx, /pipe:o\.pipe/);
+  assert.match(bounds, /ctx\.pipe\|\|pipeAt\(diameterIndex\)/);
+  assert.match(normalize, /analyzePipeBounds\(/);
+  assert.match(normalize, /PIPE_BBOX_CLEARANCE_MM/);
+  assert.match(normalize, /boundsClearanceMm:PIPE_BBOX_CLEARANCE_MM/);
+  assert.doesNotMatch(normalize, /_poPath\?\.points[^]*pt\.x-t\._poPath\.radius/);
+});
+
+test("A11: missing corpus dimensions block import instead of inventing 3000x1000x1000", () => {
+  const normalize = functionSlice("poNormalizePackage", "poSelectedProjects");
+
+  assert.match(normalize, /_poBoundsUnresolved=true/);
+  assert.match(normalize, /рамка 3000×1000×1000 не подставляется/);
+  assert.match(normalize, /productionBlocked=true/);
+});
