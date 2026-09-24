@@ -86,12 +86,36 @@ test("A20: exact HSF scene evidence kinds are accepted without becoming canonica
           confidence: 1,
           reason: "fixture",
           payload: { name: "default" }
+        },
+        {
+          kind: "tag",
+          source_offset: 80,
+          transform: null,
+          confidence: 1,
+          reason: "fixture",
+          payload: {}
+        },
+        {
+          kind: "light",
+          source_offset: 81,
+          transform: null,
+          confidence: 1,
+          reason: "fixture",
+          payload: { light_type: "distant", direction: [0, 0, -1] }
+        },
+        {
+          kind: "pause",
+          source_offset: 94,
+          transform: null,
+          confidence: 1,
+          reason: "fixture",
+          payload: {}
         }
       ]
     })
   });
 
-  assert.deepEqual(result.entities.map((entity) => entity.kind), ["segment", "bounds", "view"]);
+  assert.deepEqual(result.entities.map((entity) => entity.kind), ["segment", "bounds", "view", "tag", "light", "pause"]);
   assert.equal(result.production_ready, false);
   assert.equal(result.decode_status, "decoded_partial");
 });
