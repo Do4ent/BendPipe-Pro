@@ -7,6 +7,11 @@ function asBytes(input) {
   throw new TypeError("HSF input must be an ArrayBuffer or Uint8Array");
 }
 
+function readU16LE(bytes, offset) {
+  if (offset + 2 > bytes.length) throw new RangeError("truncated uint16 operand");
+  return new DataView(bytes.buffer, bytes.byteOffset + offset, 2).getUint16(0, true);
+}
+
 function readU32LE(bytes, offset) {
   if (offset + 4 > bytes.length) throw new RangeError("truncated uint32 operand");
   return new DataView(bytes.buffer, bytes.byteOffset + offset, 4).getUint32(0, true);
@@ -205,6 +210,25 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256 } = {}) {
     if (opcode === 0x01) { // TKE_Pause: no operands
       entities.push(Object.freeze({ kind: "pause", source_offset: offset }));
       offset += 1;
+      count += 1;
+      continue;
+    }
+    if (opcode === 0x55) { // TKE_User_Options
+      let cursor = offset + 1;
+      let length = readU16LE(bytes, cursor);
+      cursor += 2;
+      if (length === 0xffff) {
+        length = readU32LE(bytes, cursor);
+        cursor += 4;
+      }
+      const end = cursor + length;
+      if (end > bytes.length) throw new RangeError("truncated TKE_User_Options string");
+      entities.push(Object.freeze({
+        kind: "user_options",
+        source_offset: offset,
+        value: readAscii(bytes, cursor, end)
+      }));
+      offset = end;
       count += 1;
       continue;
     }
