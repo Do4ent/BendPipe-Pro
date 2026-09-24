@@ -54,8 +54,9 @@ test("A01: legacy centerline length no longer adds OD/2 to CLR", () => {
   const withPipe = functionSlice("arcLengthForRowWithPipe", "developedLengthWithRowsAndPipe");
   const active = functionSlice("arcLength", "developedLength");
 
-  assert.match(withPipe, /centerlineR\s*=\s*Number\(p\?\.Rb\s*\|\|\s*0\)/);
-  assert.match(active, /centerlineR\s*=\s*Number\(p\?\.Rb\s*\|\|\s*0\)/);
+  assert.match(withPipe, /direct=Number\(row\?\.clr\)/);
+  assert.match(withPipe, /Number\.isFinite\(direct\)&&direct>0\?direct:Number\(p\?\.Rb\|\|0\)/);
+  assert.match(active, /bendCenterlineRadiusMm\(row,state\.diameterIndex\)/);
 
   assert.doesNotMatch(withPipe, /Rb[^;\n]*\+[^;\n]*(?:mm|outerDiameter)/);
   assert.doesNotMatch(active, /Rb[^;\n]*\+[^;\n]*(?:mm|outerDiameter)/);
@@ -372,29 +373,30 @@ test("A15: manufacturing reports nominal CLR separately from tooling CLR", () =>
   assert.match(mf, /radius:bendCenterlineRadiusMm\(r,t\.diameterIndex\)/);
   assert.match(mf, /toolRadius:n\(pipeAt\(t\.diameterIndex\)\?\.Rb,0\)/);
   assert.match(gate, /CLR .*не соответствует выбранной оснастке/);
-  assert.match(gate, /bendCenterlineRadiusMm\(row,t\.diameterIndex\)/);
+  assert.match(gate, /const clr=Number\(row\.clr\)/);
+  assert.match(gate, /номинальный CLR не сохранён в геометрии/);
 });
 
-test("A15: project-open preview honors explicit bend CLR before legacy tooling CLR", () => {
+test("A15: project-open preview requires explicit bend CLR after normalization", () => {
   const preview = functionSlice("poBuildTubePath", "poClosestSegments");
 
-  assert.match(preview, /directClr=Number\(r\.clr\)/);
-  assert.match(preview, /legacyClr=Number\(tool\.Rb\)/);
-  assert.match(preview, /Number\.isFinite\(directClr\)&&directClr>0\?directClr:legacyClr/);
+  assert.match(preview, /const bendR=Number\(r\.clr\)/);
+  assert.match(preview, /missing bend CLR at row/);
+  assert.doesNotMatch(preview, /legacyClr=Number\(tool\.Rb\)/);
   assert.match(preview, /const arcLength=sweep\*bendR/);
 });
 
 
 test("A15: simulation uses per-bend CLR instead of one global style radius", () => {
   const length = functionSlice("simCenterlineLength", "simMaterial");
-  const shape = functionSlice("simBuildShape", "simEquipmentEnvelope");
+  const shape = functionSlice("simBuildShape", "simOrientCylinder");
   const machine = functionSlice("simAddMachine", "simSegmentDistancePoint");
   const collision = functionSlice("simCollisionChecks", "simAddCollisionMarkers");
 
-  assert.match(length, /bendCenterlineRadiusMm\(r,diameterIndex\)/);
+  assert.match(length, /const R=Number\(r\.clr\)/);
   assert.doesNotMatch(length, /style\?\.centerlineRadius/);
-  assert.match(shape, /bendCenterlineRadiusMm\(row,t\?\.diameterIndex\?\?state\.diameterIndex\)/);
-  assert.doesNotMatch(shape, /shape\.bendR/);
+  assert.match(shape, /const clr=Number\(row\.clr\)/);
+  assert.match(shape, /const phaseClr=Number\(phaseRow\?\.clr\)/);
   assert.match(machine, /bend\.radiusMm/);
   assert.match(machine, /bendRadius:R/);
   assert.match(collision, /machinePose\.bendRadius/);
