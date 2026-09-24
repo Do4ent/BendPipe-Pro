@@ -347,3 +347,28 @@ test('A20: unsupported rendering-options bits block at opcode start',()=>{
   assert.equal(out.next_offset,0);
   assert.match(out.unsupported_variant,/unsupported options/i);
 });
+
+
+test('A20: non-EdgeBreaker shell decodes exact vertices and trivial face list',()=>{
+  const bytes=Uint8Array.from([
+    0x53,
+    0x12,
+    0x00,
+    ...le32(3),
+    ...f32(0),...f32(0),...f32(0),
+    ...f32(1),...f32(0),...f32(0),
+    ...f32(0),...f32(1),...f32(0),
+    0x01,
+    ...le32(5),
+    0x08,3,0,1,2,
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  const shell=out.entities[0];
+  assert.equal(shell.kind,'triangle_mesh');
+  assert.deepEqual(shell.vertices,[[0,0,0],[1,0,0],[0,1,0]]);
+  assert.equal(shell.connectivity.status,'decoded');
+  assert.equal(shell.connectivity.codec,'trivial_face_list');
+  assert.deepEqual(shell.connectivity.faces,[3,0,1,2]);
+});
