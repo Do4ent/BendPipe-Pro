@@ -13415,8 +13415,7 @@ function poBuildTubePath(tube,pkg){
     }
     if(r?.type==='BEND'){
       bendNo++;
-      const directClr=Number(r.clr),legacyClr=Number(tool.Rb);
-      const bendR=Number.isFinite(directClr)&&directClr>0?directClr:legacyClr;
+      const bendR=Number(r.clr);
       if(!(Number.isFinite(bendR)&&bendR>0))return unresolved(`missing bend CLR at row ${rowIndex+1}`,{tool,points,segments,length:developed,radius:tubeR});
       const angle=poNumeric(r.angle,NaN,ctx);
       if(!Number.isFinite(angle))return unresolved(`invalid bend angle at row ${rowIndex+1}`,{tool,points,segments,length:developed,radius:tubeR});
@@ -13518,6 +13517,21 @@ function poNormalizeTube(raw,index,pkg,warnings,errors,conversions){
   }else{
     t.toolingUnresolved=false;
     if(!t.toolingId&&tool.id)t.toolingId=tool.id;
+    const legacyTubeBenderVersion=/^VC\d+/i.test(String(pkg?.version||''));
+    const legacyClr=Number(tool.Rb);
+    for(const row of t.rows){
+      if(row?.type!=='BEND')continue;
+      const direct=Number(row.clr);
+      if(Number.isFinite(direct)&&direct>0)continue;
+      if(legacyTubeBenderVersion&&Number.isFinite(legacyClr)&&legacyClr>0){
+        row.clr=legacyClr;
+        row.clrSource='legacy_tooling_snapshot';
+        row.clrToolingId=tool.id||null;
+        conversions.push('Миграция CLR гиба из исторической оснастки TubeBender');
+      }else{
+        block('CLR гиба отсутствует; для неизвестного формата радиус оснастки не подставляется.');
+      }
+    }
   }
 
   const path=poBuildTubePath(t,pkg);
@@ -14551,8 +14565,8 @@ function productionReleaseDecision(t=activeTube(),kind='manufacturing'){
     const toolClr=Number(selectedTool.Rb);
     (tubeRows(t)||[]).forEach((row,rowIndex)=>{
       if(row?.type!=='BEND')return;
-      const clr=bendCenterlineRadiusMm(row,t.diameterIndex);
-      if(!(clr>0))blockers.push(`Гиб ${rowIndex+1}: CLR не определён`);
+      const clr=Number(row.clr);
+      if(!(Number.isFinite(clr)&&clr>0))blockers.push(`Гиб ${rowIndex+1}: номинальный CLR не сохранён в геометрии`);
       else if(Number.isFinite(toolClr)&&toolClr>0&&Math.abs(clr-toolClr)>1e-6)blockers.push(`Гиб ${rowIndex+1}: CLR ${clr} мм не соответствует выбранной оснастке R${toolClr} мм`);
     });
   }
@@ -14661,7 +14675,18 @@ function simRowFraction(rowIndex,phase,progress){
   if(phase.type==='finish'){if(rowIndex<phase.rowIndex)return 1;if(rowIndex===phase.rowIndex)return progress;return 0;}
   return 0;
 }
-function simCenterlineLength(rows,style,diameterIndex=state.diameterIndex){return (rows||[]).reduce((sum,r)=>sum+(r?.type==='LINE'?Math.max(0,evalFormula(r.L,0)):r?.type==='BEND'?Math.abs(THREE.MathUtils.degToRad(n(r.angle)))*bendCenterlineRadiusMm(r,diameterIndex):0),0);}
+function simCenterlineLength(rows,style){
+  const fallback={Rb:Number(style?.centerlineRadius)};
+  return (rows||[]).reduce((sum,r)=>{
+    if(r?.type==='LINE')return sum+Math.max(0,evalFormula(r.L,0));
+    if(r?.type==='BEND'){
+      const R=bendCenterlineRadiusMm(r,state.diameterIndex)||Number(fallback.Rb)||0;
+      if(!(R>0))throw new RangeError('Simulation BEND CLR is not defined');
+      return sum+Math.abs(THREE.MathUtils.degToRad(n(r.angle)))*R;
+    }
+    return sum;
+  },0);
+}
 function simMaterial(color,opacity=1,emissive=0,wireframe=false){return new THREE.MeshStandardMaterial({color,roughness:.55,metalness:.16,transparent:opacity<.999,opacity,depthWrite:opacity>.72,emissive,emissiveIntensity:emissive?0.35:0,wireframe});}
 function simCylinder(a,b,r,material,meta={}){const d=b.clone().sub(a),len=d.length();if(len<1e-7)return null;const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,24,1,false),material);m.position.copy(a.clone().add(b).multiplyScalar(.5));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());m.userData={simulation:true,...meta};return m;}
 function simTube(points,r,material,meta={}){if(!points||points.length<2)return null;const curve=new THREE.CatmullRomCurve3(points,false,'centripetal',.5);const m=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(12,(points.length-1)*5),r,18,false),material);m.userData={simulation:true,...meta};return m;}
@@ -14688,7 +14713,9 @@ function simBuildShape(group){
       pos=end;formedLength+=len/GEOM_SCALE;currentPos=pos.clone();currentDir=dir.clone();
       if(frac<.999999){stopped=true;break;}
     }else if(row.type==='BEND'){
-      const bendR=Math.max(.12,bendCenterlineRadiusMm(row,t?.diameterIndex??state.diameterIndex)*GEOM_SCALE);
+      const clr=bendCenterlineRadiusMm(row,t.id===state.activeTubeId?state.diameterIndex:t.diameterIndex);
+      if(!(clr>0))throw new RangeError(`Simulation BEND CLR is not defined at row ${i+1}`);
+      const bendR=Math.max(.12,clr*GEOM_SCALE);
       const arc=simArcData(pos,dir,row,bendR,frac),isCurrent=frac<.999999&&phase?.bendRowIndex===i;
       const mesh=simTube(arc.points,tubeR,isCurrent?currentMat:formedMat,{rowIndex:i,kind:'formed-bend'});if(mesh)group.add(mesh);
       simAddPolylineSegments(segments,arc.points,i,'formed');
@@ -14696,15 +14723,34 @@ function simBuildShape(group){
       if(frac<.999999){stopped=true;break;}
     }
   }
-  const total=simCenterlineLength(rows,style,t?.diameterIndex??state.diameterIndex),remaining=Math.max(0,total-formedLength);
+  const total=simCenterlineLength(rows,style),remaining=Math.max(0,total-formedLength);
   let rawSegment=null;
-  if(s.showRaw&&phase?.type!=='done'&&remaining>1e-5){const rawEnd=currentPos.clone().add(currentDir.clone().multiplyScalar(remaining*GEOM_SCALE));const raw=simCylinder(currentPos,rawEnd,tubeR,rawMat,{rowIndex:-1,kind:'raw-stock'});if(raw)group.add(raw);rawSegment={a:currentPos.clone(),b:rawEnd.clone(),rowIndex:-1,kind:'raw'};segments.push(rawSegment);}
+  if(s.showRaw&&phase?.type!=='done'&&remaining>1e-5){
+    const rawEnd=currentPos.clone().add(currentDir.clone().multiplyScalar(remaining*GEOM_SCALE));
+    const raw=simCylinder(currentPos,rawEnd,tubeR,rawMat,{rowIndex:-1,kind:'raw-stock'});
+    if(raw)group.add(raw);
+    rawSegment={a:currentPos.clone(),b:rawEnd.clone(),rowIndex:-1,kind:'raw'};
+    segments.push(rawSegment);
+  }
   if(s.showGhost){
     const g=geometryForTube(t),ghost=new THREE.Group();
-    for(const el of g.elements){if(el.type==='LINE'){const m=simCylinder(el.start,el.end,Math.max(.012,tubeR*.18),ghostMat,{kind:'ghost'});if(m)ghost.add(m);}else{const row=rows[el.rowIndex],ghostR=Math.max(.12,bendCenterlineRadiusMm(row,t?.diameterIndex??state.diameterIndex)*GEOM_SCALE),arc=simArcData(el.start,el.directionIn,row,ghostR,1),m=simTube(arc.points,Math.max(.012,tubeR*.18),ghostMat,{kind:'ghost'});if(m)ghost.add(m);}}
+    for(const el of g.elements){
+      if(el.type==='LINE'){
+        const m=simCylinder(el.start,el.end,Math.max(.012,tubeR*.18),ghostMat,{kind:'ghost'});
+        if(m)ghost.add(m);
+      }else{
+        const row=rows[el.rowIndex],ghostR=Math.max(.12,Number(el.radiusMm)*GEOM_SCALE);
+        const arc=simArcData(el.start,el.directionIn,row,ghostR,1);
+        const m=simTube(arc.points,Math.max(.012,tubeR*.18),ghostMat,{kind:'ghost'});
+        if(m)ghost.add(m);
+      }
+    }
     group.add(ghost);
   }
-  return {group,segments,rawSegment,tubeR,phase,progress,pos:currentPos,dir:currentDir,currentArc,remainingMm:remaining,formedLengthMm:formedLength,totalLengthMm:total};
+  const phaseRow=Number.isInteger(Number(phase?.bendRowIndex))?rows[Number(phase.bendRowIndex)]:null;
+  const phaseClr=bendCenterlineRadiusMm(phaseRow,t.id===state.activeTubeId?state.diameterIndex:t.diameterIndex);
+  const machineBendR=phaseClr>0?Math.max(.12,phaseClr*GEOM_SCALE):Math.max(.12,tubeR*3);
+  return {group,segments,rawSegment,tubeR,bendR:machineBendR,phase,progress,pos:currentPos,dir:currentDir,currentArc,remainingMm:remaining,formedLengthMm:formedLength,totalLengthMm:total};
 }
 function simOrientCylinder(mesh,axis){mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),axis.clone().normalize());}
 function simAddBoxAlong(group,center,dir,length,width,height,material){const mesh=new THREE.Mesh(new THREE.BoxGeometry(length,width,height),material);mesh.position.copy(center);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dir.clone().normalize());mesh.userData={simulation:true,machine:true};group.add(mesh);return mesh;}
