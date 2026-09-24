@@ -871,12 +871,22 @@ test("A18: open-project compatibility is schema-driven rather than tied to VC183
   assert.doesNotMatch(normalize, /String\(version\)\.includes\('VC183'\)/);
 });
 
-test("A18: external dependencies are explicit and offline readiness is not overstated", () => {
+test("A18: core dependency is vendored while optional OCR remains explicit", () => {
   assert.match(html, /dependencies:Object\.freeze\(\{/);
-  assert.match(html, /three:Object\.freeze\(\{source:'external'/);
+  assert.match(html, /three:Object\.freeze\(\{source:'vendored-local'/);
+  assert.match(html, /url:'\.\.\/\.\.\/vendor\/three\/r160\/three\.min\.js'/);
   assert.match(html, /tesseract:Object\.freeze\(\{source:'lazy-external'/);
+  assert.match(html, /offlineCoreReady:true/);
   assert.match(html, /offlineReady:false/);
   assert.match(html, /window\.tubeBenderDependencyReport=/);
+  assert.match(
+    html,
+    /<script src="\.\.\/\.\.\/vendor\/three\/r160\/three\.min\.js" data-tubebender-vendored="three-r160"><\/script>/
+  );
+  assert.doesNotMatch(
+    html,
+    /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/three@/
+  );
   assert.match(
     html,
     /s\.src=window\.TubeBenderBuildInfo\?\.dependencies\?\.tesseract\?\.url/
