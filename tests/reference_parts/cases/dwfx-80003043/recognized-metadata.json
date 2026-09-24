@@ -57,7 +57,10 @@
           "referenceNodeId": "TD4C6rYJ0Ui8vPcd0hGi6w",
           "contentElementRef": "C++tg4ZCQ0+2QU4Qi13JRg",
           "entityRef": "Cu+tg4ZCQ0+2QU4Qi13JRg",
-          "source": "DWFx model/content XML"
+          "source": "DWFx content/presentation/content-definition XML",
+          "instanceId": "DO+tg4ZCQ0+2QU4Qi13JRg",
+          "node": 121136,
+          "geometricVariation": 121137
         }
       },
       {
@@ -102,7 +105,10 @@
           "referenceNodeId": "gT4C6rYJ0Ui8vPcd0hGi6w",
           "contentElementRef": "e++tg4ZCQ0+2QU4Qi13JRg",
           "entityRef": "eu+tg4ZCQ0+2QU4Qi13JRg",
-          "source": "DWFx model/content XML"
+          "source": "DWFx content/presentation/content-definition XML",
+          "instanceId": "fO+tg4ZCQ0+2QU4Qi13JRg",
+          "node": 121190,
+          "geometricVariation": 121191
         }
       },
       {
@@ -147,7 +153,10 @@
           "referenceNodeId": "hj4C6rYJ0Ui8vPcd0hGi6w",
           "contentElementRef": "hu+tg4ZCQ0+2QU4Qi13JRg",
           "entityRef": "he+tg4ZCQ0+2QU4Qi13JRg",
-          "source": "DWFx model/content XML"
+          "source": "DWFx content/presentation/content-definition XML",
+          "instanceId": "h++tg4ZCQ0+2QU4Qi13JRg",
+          "node": 121196,
+          "geometricVariation": 121197
         }
       },
       {
@@ -192,7 +201,10 @@
           "referenceNodeId": "hz4C6rYJ0Ui8vPcd0hGi6w",
           "contentElementRef": "ie+tg4ZCQ0+2QU4Qi13JRg",
           "entityRef": "iO+tg4ZCQ0+2QU4Qi13JRg",
-          "source": "DWFx model/content XML"
+          "source": "DWFx content/presentation/content-definition XML",
+          "instanceId": "iu+tg4ZCQ0+2QU4Qi13JRg",
+          "node": 121198,
+          "geometricVariation": 121199
         }
       },
       {
@@ -237,7 +249,10 @@
           "referenceNodeId": "xT4C6rYJ0Ui8vPcd0hGi6w",
           "contentElementRef": "FPCtg4ZCQ0+2QU4Qi13JRg",
           "entityRef": "E_Ctg4ZCQ0+2QU4Qi13JRg",
-          "source": "DWFx model/content XML"
+          "source": "DWFx content/presentation/content-definition XML",
+          "instanceId": "FfCtg4ZCQ0+2QU4Qi13JRg",
+          "node": 121270,
+          "geometricVariation": 121271
         }
       },
       {
@@ -282,7 +297,10 @@
           "referenceNodeId": "xj4C6rYJ0Ui8vPcd0hGi6w",
           "contentElementRef": "F_Ctg4ZCQ0+2QU4Qi13JRg",
           "entityRef": "FvCtg4ZCQ0+2QU4Qi13JRg",
-          "source": "DWFx model/content XML"
+          "source": "DWFx content/presentation/content-definition XML",
+          "instanceId": "GPCtg4ZCQ0+2QU4Qi13JRg",
+          "node": 121272,
+          "geometricVariation": 121273
         }
       }
     ]
