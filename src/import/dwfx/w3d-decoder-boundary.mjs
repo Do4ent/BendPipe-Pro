@@ -11,6 +11,9 @@ function asBytes(input) {
 
 const ALLOWED_KINDS = new Set([
   "transform",
+  "segment",
+  "bounds",
+  "view",
   "polyline",
   "triangle_mesh",
   "curve_candidate",
@@ -68,12 +71,6 @@ function normalizeDecoderEntity(entity, index) {
   };
 }
 
-/**
- * Execute a W3D decoder implementation behind a strict boundary.
- *
- * The decoder returns source evidence only. Even a complete decoder cannot set
- * production readiness or canonical geometry here.
- */
 export async function decodeW3dResource({
   evidence,
   bytes,
