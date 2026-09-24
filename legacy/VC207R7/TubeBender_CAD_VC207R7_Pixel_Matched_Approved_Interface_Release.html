@@ -5624,6 +5624,8 @@ let state = {
   activeTubeId: null,
   tubes: [],
   diameterIndex: 6,
+  toolingId: null,
+  toolingUnresolved: false,
   rows: [
     { type: 'LINE', L: 100 },
     { type: 'BEND', angle: 90, plane: 'XY' },
@@ -5681,7 +5683,93 @@ let editingOffsetAssemblyId = null;
 
 function qs(id){ return document.getElementById(id); }
 function clone(v){ return JSON.parse(JSON.stringify(v)); }
-function sortPipes(){ pipeDb.sort((a,b)=>Number(a.mm)-Number(b.mm)); }
+function toolingIdToken(value){
+  const s=String(value??'na').trim().replace(/[^0-9A-Za-z]+/g,'_').replace(/^_+|_+$/g,'');
+  return s||'na';
+}
+function ensureToolingIds(db=pipeDb){
+  const used=new Set();
+  (db||[]).forEach((p,index)=>{
+    if(!p||typeof p!=='object')return;
+    let candidate=String(p.id||'').trim();
+    if(!candidate||used.has(candidate)){
+      const base=`tool-${toolingIdToken(p.mm)}-r${toolingIdToken(p.Rb)}`;
+      candidate=base;
+      let suffix=2;
+      while(used.has(candidate))candidate=`${base}-${suffix++}`;
+      p.id=candidate;
+    }
+    used.add(candidate);
+  });
+  return db;
+}
+function toolingIndexById(toolingId){
+  const id=String(toolingId||'').trim();
+  if(!id)return -1;
+  return pipeDb.findIndex(p=>String(p?.id||'')===id);
+}
+function allTubeRecords(){
+  const out=[],seen=new Set();
+  const add=t=>{
+    if(!t||typeof t!=='object')return;
+    const key=t.id||t;
+    if(seen.has(key))return;
+    seen.add(key);out.push(t);
+  };
+  (state?.tubes||[]).forEach(add);
+  (state?.projects||[]).forEach(p=>(p?.tubes||[]).forEach(add));
+  return out;
+}
+function resyncToolingReferences(){
+  ensureToolingIds(pipeDb);
+  for(const t of allTubeRecords()){
+    if(!t.toolingId){
+      const legacy=pipeDb[Number(t.diameterIndex)];
+      if(legacy?.id)t.toolingId=legacy.id;
+    }
+    const idx=toolingIndexById(t.toolingId);
+    if(idx>=0){
+      t.diameterIndex=idx;
+      t.toolingUnresolved=false;
+    }else if(t.toolingId){
+      t.toolingUnresolved=true;
+    }
+  }
+  if(!state.toolingId){
+    const legacy=pipeDb[Number(state.diameterIndex)];
+    if(legacy?.id)state.toolingId=legacy.id;
+  }
+  const active=(state.projects||[]).flatMap(p=>p?.tubes||[]).find(t=>t?.id===state.activeTubeId)
+    ||(state.tubes||[]).find(t=>t?.id===state.activeTubeId);
+  const activeId=active?.toolingId||state.toolingId;
+  const activeIndex=toolingIndexById(activeId);
+  if(activeIndex>=0){
+    state.toolingId=activeId;
+    state.diameterIndex=activeIndex;
+    state.toolingUnresolved=false;
+  }else if(activeId){
+    state.toolingUnresolved=true;
+  }
+}
+function toolingInUse(toolingId){
+  const id=String(toolingId||'');
+  return !!id&&allTubeRecords().some(t=>String(t?.toolingId||'')===id);
+}
+function sortPipes(){
+  ensureToolingIds(pipeDb);
+  for(const t of allTubeRecords()){
+    if(!t.toolingId){
+      const legacy=pipeDb[Number(t.diameterIndex)];
+      if(legacy?.id)t.toolingId=legacy.id;
+    }
+  }
+  if(!state.toolingId){
+    const legacy=pipeDb[Number(state.diameterIndex)];
+    if(legacy?.id)state.toolingId=legacy.id;
+  }
+  pipeDb.sort((a,b)=>Number(a.mm)-Number(b.mm));
+  resyncToolingReferences();
+}
 
 function ensureBoxAndOriginState(){
   if (!state.bbox || typeof state.bbox !== 'object') state.bbox = {};
@@ -7235,7 +7323,16 @@ function syncActiveTubeFromState(){
   const t = activeTube();
   if (!t) return;
   t.name = t.name || 'Pipe';
+  const resolved=toolingIndexById(state.toolingId);
+  if(resolved>=0)state.diameterIndex=resolved;
+  if(!state.toolingId){
+    const tool=pipeDb[state.diameterIndex];
+    if(tool?.id)state.toolingId=tool.id;
+  }
+  t.toolingId=state.toolingId||null;
+  t.toolingUnresolved=toolingIndexById(t.toolingId)<0;
   t.diameterIndex = state.diameterIndex;
+  state.toolingUnresolved=t.toolingUnresolved;
   state.rows=normalizeTubeRowStart(state.rows,state.diameterIndex);
   t.rows = clone(state.rows);
   t.dimensions = clone(state.dimensions || {});
@@ -7252,7 +7349,21 @@ function syncActiveTubeFromState(){
 function loadActiveTubeToState(){
   const t = activeTube();
   if (!t) return;
-  state.diameterIndex = Number.isInteger(t.diameterIndex) ? t.diameterIndex : 0;
+  ensureToolingIds(pipeDb);
+  let resolved=toolingIndexById(t.toolingId);
+  if(resolved<0&&!t.toolingId){
+    resolved=validToolDiameterIndex(t.diameterIndex);
+    t.toolingId=pipeDb[resolved]?.id||null;
+  }
+  if(resolved<0){
+    t.toolingUnresolved=true;
+    resolved=validToolDiameterIndex(t.diameterIndex);
+  }else{
+    t.toolingUnresolved=false;
+  }
+  state.diameterIndex=resolved;
+  state.toolingId=t.toolingId||pipeDb[resolved]?.id||null;
+  state.toolingUnresolved=t.toolingUnresolved;
   state.rows = normalizeTubeRowStart(Array.isArray(t.rows) ? clone(t.rows) : defaultRows(),state.diameterIndex);
   state.dimensions = (t.dimensions && typeof t.dimensions === 'object') ? clone(t.dimensions) : {};
   state.baseDimensions = (t.baseDimensions && typeof t.baseDimensions === 'object') ? clone(t.baseDimensions) : {};
@@ -7262,14 +7373,12 @@ function loadActiveTubeToState(){
   state.startPlane = t.startPlane || 'XY';
   state.startAngle = Number(t.startAngle) || 0;
   state.firstSegmentDraft = String(t.firstSegmentDraft ?? '');
-  // VC202: loading or switching to a tube always makes it visible.
   t.visible = true;
   selectedAssemblyId = null;
   editingOffsetAssemblyId = null;
   ensureConstructionMetadata();
   ensureBoxAndOriginState();
 }
-
 function validToolDiameterIndex(preferredIndex){
   if (!Array.isArray(pipeDb) || !pipeDb.length) return 0;
   const i = Number(preferredIndex);
@@ -7282,15 +7391,17 @@ function starterPipeRows(){
   return [initialStraightRow(validToolDiameterIndex(state.diameterIndex))];
 }
 function createCheckedTube(name){
-  // VC173: every new pipe begins with a mandatory straight segment.
-  // The frame is never resized here. Yellow baseline dimensions remain visible immediately.
   state.showYellowDims = true;
+  ensureToolingIds(pipeDb);
   const center = bboxCenterMm();
   const diameterIndex=validToolDiameterIndex(state.diameterIndex);
+  const toolingId=pipeDb[diameterIndex]?.id||null;
   return {
     id: uid(),
     name: name || 'Pipe 1',
     diameterIndex,
+    toolingId,
+    toolingUnresolved:!toolingId,
     rows: [initialStraightRow(diameterIndex)],
     dimensions: {},
     baseDimensions: {},
@@ -7306,9 +7417,21 @@ function createCheckedTube(name){
 }
 function repairTubeForCheck(t, fallbackName){
   if (!t || typeof t !== 'object') t = {};
+  ensureToolingIds(pipeDb);
   t.id = t.id || uid();
   t.name = t.name || fallbackName || 'Pipe 1';
-  t.diameterIndex = validToolDiameterIndex(t.diameterIndex);
+  if(!t.toolingId){
+    const legacyIndex=validToolDiameterIndex(t.diameterIndex);
+    t.toolingId=pipeDb[legacyIndex]?.id||null;
+  }
+  const resolved=toolingIndexById(t.toolingId);
+  if(resolved>=0){
+    t.diameterIndex=resolved;
+    t.toolingUnresolved=false;
+  }else{
+    t.diameterIndex=validToolDiameterIndex(t.diameterIndex);
+    t.toolingUnresolved=true;
+  }
   t.rows = normalizeTubeRowStart(t.rows,t.diameterIndex);
   t.dimensions = (t.dimensions && typeof t.dimensions === 'object') ? t.dimensions : {};
   t.baseDimensions = (t.baseDimensions && typeof t.baseDimensions === 'object') ? t.baseDimensions : {};
@@ -12457,24 +12580,41 @@ function renderPipeSelect(){
   sortPipes();
 
   const active = activeTube();
-  if (active && Number.isInteger(active.diameterIndex)) {
-    state.diameterIndex = validToolDiameterIndex(active.diameterIndex);
-  } else {
-    state.diameterIndex = validToolDiameterIndex(state.diameterIndex);
+  if(active){
+    if(!active.toolingId){
+      const legacy=pipeDb[validToolDiameterIndex(active.diameterIndex)];
+      if(legacy?.id)active.toolingId=legacy.id;
+    }
+    const idx=toolingIndexById(active.toolingId);
+    if(idx>=0){
+      active.diameterIndex=idx;
+      active.toolingUnresolved=false;
+      state.diameterIndex=idx;
+      state.toolingId=active.toolingId;
+      state.toolingUnresolved=false;
+    }else{
+      active.toolingUnresolved=true;
+      state.toolingId=active.toolingId||state.toolingId;
+      state.toolingUnresolved=true;
+    }
+  }else{
+    const idx=toolingIndexById(state.toolingId);
+    if(idx>=0)state.diameterIndex=idx;
+    else state.diameterIndex=validToolDiameterIndex(state.diameterIndex);
   }
 
   sel.innerHTML = '';
-  pipeDb.forEach((p, i) => {
+  pipeDb.forEach((p) => {
     const opt = document.createElement('option');
-    opt.value = String(i);
+    opt.value = String(p.id);
     opt.textContent = pipeOptionText(p);
     sel.appendChild(opt);
   });
 
-  sel.value = String(state.diameterIndex);
+  const selectedId=state.toolingId||pipeDb[state.diameterIndex]?.id||'';
+  sel.value = String(selectedId);
   updatePipeSelectWidth();
 }
-
 function renderPipeTable(){
   const body = qs('pipeTableBody'); body.innerHTML = ''; sortPipes();
   pipeDb.forEach((p,i)=>{
@@ -12488,10 +12628,18 @@ function renderPipeTable(){
     if(k!=='inch') v=evalFormula(v, pipeDb[i][k]); pipeDb[i][k]=v;
     const after=analyzePipeBounds(); const assessment=boundsAssessment(before,after);
     if(!assessment.allowed){ pipeDb[i][k]=oldValue; markBoundsInvalid(null,assessment.message); renderPipeTable(); return; }
-    sortPipes(); state.diameterIndex = Math.min(state.diameterIndex, pipeDb.length-1); save(); renderPipeSelect(); renderPipeTable(); renderAll();
+    sortPipes(); save(); renderPipeSelect(); renderPipeTable(); renderAll();
   }));
   body.querySelectorAll('[data-pdel]').forEach(el=>el.addEventListener('click',()=>{
-    if(pipeDb.length<=1) return; pipeDb.splice(Number(el.dataset.pdel),1); state.diameterIndex=Math.min(state.diameterIndex,pipeDb.length-1); save(); renderPipeSelect(); renderPipeTable(); renderAll();
+    if(pipeDb.length<=1) return;
+    const index=Number(el.dataset.pdel),tool=pipeDb[index];
+    if(tool?.id&&toolingInUse(tool.id)){
+      ptToast('Эта оснастка используется трубой. Сначала явно назначьте другую оснастку.');
+      return;
+    }
+    pipeDb.splice(index,1);
+    sortPipes();
+    save(); renderPipeSelect(); renderPipeTable(); renderAll();
   }));
 }
 function renderLangList(filter=''){
@@ -12889,13 +13037,24 @@ function bind(){
   qs('pipeSelect').addEventListener('change',e=>{
     const before = analyzePipeBounds(rowsForStartPointValidation());
     const old = state.diameterIndex;
+    const oldToolingId = state.toolingId;
     const oldTube = activeTube();
     const oldTubeDiameter = oldTube ? oldTube.diameterIndex : old;
-    const candidate = validToolDiameterIndex(Number(e.target.value));
+    const oldTubeToolingId = oldTube ? oldTube.toolingId : oldToolingId;
+    const candidateId = String(e.target.value||'');
+    const candidate = toolingIndexById(candidateId);
+    if(candidate<0){
+      ptToast('Выбранная оснастка не найдена');
+      renderPipeSelect();
+      return;
+    }
     state.diameterIndex = candidate;
+    state.toolingId = candidateId;
+    state.toolingUnresolved = false;
     if (developedLength() > MAX_STOCK_LENGTH + 1e-6) {
       state.diameterIndex = old;
-      if (oldTube) oldTube.diameterIndex = oldTubeDiameter;
+      state.toolingId = oldToolingId;
+      if (oldTube) {oldTube.diameterIndex = oldTubeDiameter;oldTube.toolingId=oldTubeToolingId;}
       alert(`Selected tooling would make developed length exceed ${fmt(MAX_STOCK_LENGTH,0)} mm.`);
       renderPipeSelect();
       renderProjectBar();
@@ -12903,7 +13062,8 @@ function bind(){
     }
     if (!validatePipeBounds(e.target, rowsForStartPointValidation(), candidate, before)) {
       state.diameterIndex = old;
-      if (oldTube) oldTube.diameterIndex = oldTubeDiameter;
+      state.toolingId = oldToolingId;
+      if (oldTube) {oldTube.diameterIndex = oldTubeDiameter;oldTube.toolingId=oldTubeToolingId;}
       renderPipeSelect();
       renderProjectBar();
       renderAll();
@@ -12911,7 +13071,11 @@ function bind(){
     }
     setInputValidity(e.target, true);
     const t = activeTube();
-    if (t) t.diameterIndex = state.diameterIndex;
+    if (t) {
+      t.diameterIndex = state.diameterIndex;
+      t.toolingId = state.toolingId;
+      t.toolingUnresolved = false;
+    }
     syncActiveTubeFromState();
     save();
     renderPipeSelect();
@@ -13821,54 +13985,10 @@ function currentStyle(){const p=activeProject(),e=activeEng();return p?.engineer
 function currentMachine(){const p=activeProject(),e=activeEng();return p?.engineering?.machines?.find(x=>x.id===e?.machineId)||p?.engineering?.machines?.[0]||null;}
 function defaultStyle(project,diameterIndex=state.diameterIndex){
   const p=pipeAt(diameterIndex)||{};
-  return {
-    id:id('style'),
-    name:`Ø${n(p.mm,22)} / R${n(p.Rb,50)}`,
-    standard:'Custom',
-    material:'Copper',
-    densityKgM3:null,
-    outerDiameter:n(p.mm,22),
-    wallThickness:null,
-    centerlineRadius:n(p.Rb,50),
-    minStraight:n(p.Lmin,60),
-    minTail:n(p.Lmin,60),
-    maxBendAngle:180,
-    allowedAngles:'any',
-    springbackDeg:null,
-    elongationPerDegree:null,
-    cutAllowanceStart:null,
-    cutAllowanceEnd:null,
-    clampLength:null,
-    maxOvalityPct:null,
-    mandrel:'',
-    pressureDie:'',
-    confirmed:false,
-    revision:1,
-    createdAt:now()
-  };
+  return {id:id('style'),name:`Ø${n(p.mm,22)} / R${n(p.Rb,50)}`,standard:'Custom',material:'Copper',densityKgM3:null,outerDiameter:n(p.mm,22),wallThickness:null,centerlineRadius:n(p.Rb,50),minStraight:n(p.Lmin,60),minTail:n(p.Lmin,60),maxBendAngle:180,allowedAngles:'any',springbackDeg:null,elongationPerDegree:null,cutAllowanceStart:null,cutAllowanceEnd:null,clampLength:null,maxOvalityPct:null,mandrel:'',pressureDie:'',confirmed:false,revision:1,createdAt:now()};
 }
 function defaultMachine(){
-  return {
-    id:id('machine'),
-    name:'Оборудование не выбрано',
-    manufacturer:'',
-    model:'',
-    technology:null,
-    maxDiameter:null,
-    maxStockLength:null,
-    minFeed:null,
-    maxBendAngle:null,
-    bendSide:'',
-    headRadius:null,
-    headLength:null,
-    headHeight:null,
-    clampMin:null,
-    rotationLimit:null,
-    ncPost:null,
-    supportsReverse:null,
-    confirmed:false,
-    createdAt:now()
-  };
+  return {id:id('machine'),name:'Оборудование не выбрано',manufacturer:'',model:'',technology:null,maxDiameter:null,maxStockLength:null,minFeed:null,maxBendAngle:null,bendSide:'',headRadius:null,headLength:null,headHeight:null,clampMin:null,rotationLimit:null,ncPost:null,supportsReverse:null,confirmed:false,createdAt:now()};
 }
 function ensureProjectEngineering(p){if(!p.engineering||typeof p.engineering!=='object')p.engineering={};const x=p.engineering;x.schema=ENG_SCHEMA;if(!Array.isArray(x.groups))x.groups=[{id:id('group'),name:'Основная система',color:'#4da3ff'}];if(!Array.isArray(x.styles)||!x.styles.length)x.styles=[defaultStyle(p)];if(!Array.isArray(x.machines)||!x.machines.length)x.machines=[defaultMachine()];if(!Array.isArray(x.toolingProfiles))x.toolingProfiles=[];if(!Array.isArray(x.revisions))x.revisions=[];if(!x.reportSettings)x.reportSettings={company:'',author:'',partNumber:'',drawingNumber:'',includeSketch:true,includeDiagnostics:true};return x;}
 function ensureTubeEngineering(t,p=projectForTube(t)||activeProject()){
@@ -13961,76 +14081,33 @@ body.tb-project-map #projectEditor .pt-combo:hover{background:#0a1d2b!important;
 </head><body><h1>TubeBender Bend Report</h1><div class="meta"><div><b>Проект:</b> ${esc(p.name)}</div><div><b>Труба:</b> ${esc(t.name)}</div><div><b>Деталь:</b> ${esc(t.engineering.partNumber||settings.partNumber||'')}</div><div><b>Ревизия:</b> ${esc(t.engineering.revision)}</div><div><b>Стиль:</b> ${esc(d.style.name)}</div><div><b>Станок:</b> ${esc(d.machine.name)}</div><div><b>Материал:</b> ${esc(d.style.material)}</div><div><b>Ø × S:</b> ${d.style.outerDiameter} × ${d.style.wallThickness} мм</div><div><b>Теоретическая длина:</b> ${round(d.theoretical,2)} мм</div><div><b>Производственная длина:</b> ${round(d.production,2)} мм</div><div><b>Расчётная масса:</b> ${round(d.massKg,3)} кг</div></div><table><thead><tr><th>№</th><th>Y/L</th><th>B/R</th><th>Угол</th><th>Команда</th><th>Радиус</th><th>Плоскость</th></tr></thead><tbody>${d.steps.map(x=>`<tr><td>${x.bend}</td><td>${x.Y}</td><td>${x.B}</td><td>${x.C}°</td><td>${x.commandAngle}°</td><td>${x.radius}</td><td>${esc(x.plane)}</td></tr>`).join('')}</tbody></table><h2>Диагностика</h2><div class="${diag.issues.length?'bad':''}">${diag.issues.length?diag.issues.map(x=>`• ${esc(x)}`).join('<br>'):'Нарушений не обнаружено'}</div><h2>QR payload</h2><div class="qr">${esc(JSON.stringify({project:p.id,tube:t.id,revision:t.engineering.revision,part:t.engineering.partNumber||'',length:round(d.production,2)}))}</div><script>window.onload=()=>window.print()<\/script></body></html>`;}
 function openPrintReport(){const w=window.open('','_blank');if(!w)return ptToast('Разрешите всплывающие окна для отчёта');w.document.open();w.document.write(reportHtml());w.document.close();}
 function productionReleaseDecision(t=activeTube(),kind='manufacturing'){
-  const blockers=[];
-  if(!t)return {allowed:false,blockers:['Нет активной трубы']};
-  const p=projectForTube(t)||activeProject();
-  const e=t.engineering||{};
-  const style=p?.engineering?.styles?.find(x=>x.id===e.styleId)||null;
-  const machine=p?.engineering?.machines?.find(x=>x.id===e.machineId)||null;
-
-  if(!style)blockers.push('Не выбран технологический стиль');
-  else{
+  const blockers=[];if(!t)return {allowed:false,blockers:['Нет активной трубы']};
+  if(t.toolingUnresolved||!t.toolingId||toolingIndexById(t.toolingId)<0)blockers.push('Оснастка трубы не разрешена по стабильному идентификатору');
+  const p=projectForTube(t)||activeProject(),e=t.engineering||{},style=p?.engineering?.styles?.find(x=>x.id===e.styleId)||null,machine=p?.engineering?.machines?.find(x=>x.id===e.machineId)||null;
+  if(!style)blockers.push('Не выбран технологический стиль');else{
     if(style.confirmed!==true)blockers.push('Технологический стиль не подтверждён пользователем');
     if(!String(style.material||'').trim())blockers.push('Не указан материал');
     if(!(Number(style.wallThickness)>0))blockers.push('Не подтверждена толщина стенки');
     if(!(Number(style.densityKgM3)>0))blockers.push('Не подтверждена плотность материала');
-    for(const field of ['springbackDeg','elongationPerDegree','cutAllowanceStart','cutAllowanceEnd']){
-      if(style[field]===null||style[field]===undefined||style[field]==='')blockers.push(`Не подтверждён параметр ${field}`);
-    }
+    for(const field of ['springbackDeg','elongationPerDegree','cutAllowanceStart','cutAllowanceEnd'])if(style[field]===null||style[field]===undefined||style[field]==='')blockers.push(`Не подтверждён параметр ${field}`);
   }
-
-  if(!machine)blockers.push('Не выбрано оборудование');
-  else{
+  if(!machine)blockers.push('Не выбрано оборудование');else{
     if(machine.confirmed!==true)blockers.push('Профиль оборудования не подтверждён пользователем');
-    for(const field of ['maxDiameter','maxStockLength','maxBendAngle','clampMin']){
-      if(!(Number(machine[field])>0))blockers.push(`Не подтверждён параметр оборудования ${field}`);
-    }
+    for(const field of ['maxDiameter','maxStockLength','maxBendAngle','clampMin'])if(!(Number(machine[field])>0))blockers.push(`Не подтверждён параметр оборудования ${field}`);
     if(kind==='nc'&&!String(machine.ncPost||'').trim())blockers.push('Для NC-экспорта не выбран постпроцессор');
   }
-
-  try{
-    const diag=diagnoseTube(t);
-    for(const issue of diag?.issues||[])blockers.push(issue);
-  }catch(error){
-    blockers.push(`Ошибка инженерной диагностики: ${error?.message||error}`);
-  }
-
-  try{
-    const bounds=analyzePipeBounds(tubeRows(t),t.diameterIndex);
-    if(!bounds?.valid)blockers.push('Труба нарушает габарит корпуса или минимальный зазор');
-  }catch(error){
-    blockers.push(`Ошибка проверки габаритов: ${error?.message||error}`);
-  }
-
+  try{const diag=diagnoseTube(t);for(const issue of diag?.issues||[])blockers.push(issue);}catch(error){blockers.push(`Ошибка инженерной диагностики: ${error?.message||error}`);}
+  try{const bounds=analyzePipeBounds(tubeRows(t),t.diameterIndex);if(!bounds?.valid)blockers.push('Труба нарушает габарит корпуса или минимальный зазор');}catch(error){blockers.push(`Ошибка проверки габаритов: ${error?.message||error}`);}
   return {allowed:blockers.length===0,blockers:[...new Set(blockers)]};
 }
 function exportManufacturing(kind){
-  const t=activeTube();
-  const gate=productionReleaseDecision(t,kind);
-  if(!gate.allowed){
-    const summary=gate.blockers.slice(0,3).join('; ');
-    msg(`Экспорт заблокирован: ${summary}`);
-    ptToast(`Производственный экспорт заблокирован (${gate.blockers.length})`);
-    console.warn('TubeBender production release blocked',gate);
-    return false;
-  }
+  const t=activeTube(),gate=productionReleaseDecision(t,kind);if(!gate.allowed){const summary=gate.blockers.slice(0,3).join('; ');msg(`Экспорт заблокирован: ${summary}`);ptToast(`Производственный экспорт заблокирован (${gate.blockers.length})`);console.warn('TubeBender production release blocked',gate);return false;}
   const d=manufacturingData(t),base=safeName(`${activeProject().name}_${t.name}`);
-  if(kind==='csv'){
-    const rows=[['Bend','Y','B','C','Command angle','Radius','Plane'],...d.steps.map(x=>[x.bend,x.Y,x.B,x.C,x.commandAngle,x.radius,x.plane])];
-    downloadText(base+'_bend_report.csv','\uFEFF'+rows.map(r=>r.map(csvCell).join(';')).join('\n'),'text/csv;charset=utf-8');
-  }else if(kind==='json'){
-    downloadText(base+'_manufacturing.json',JSON.stringify({schema:ENG_SCHEMA,release:{status:'production',allowed:true},project:activeProject().name,tube:t.name,engineering:t.engineering,manufacturing:d,diagnostics:diagnoseTube(t)},null,2),'application/json');
-  }else if(kind==='dxf'){
-    downloadText(base+'.dxf',dxfForTube(t),'application/dxf');
-  }else if(kind==='nc'){
-    const post=window.TB_NC_POSTPROCESSORS[d.machine.ncPost];
-    if(!post){ptToast('NC-постпроцессор недоступен');return false;}
-    downloadText(base+'.nc',post.generate(t),'text/plain');
-  }else if(kind==='xmlxls'){
-    const table=d.steps.map(x=>`<Row><Cell><Data ss:Type="Number">${x.bend}</Data></Cell><Cell><Data ss:Type="Number">${x.Y}</Data></Cell><Cell><Data ss:Type="Number">${x.B}</Data></Cell><Cell><Data ss:Type="Number">${x.C}</Data></Cell></Row>`).join('');
-    const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Bends"><Table><Row><Cell><Data ss:Type="String">Bend</Data></Cell><Cell><Data ss:Type="String">Y</Data></Cell><Cell><Data ss:Type="String">B</Data></Cell><Cell><Data ss:Type="String">C</Data></Cell></Row>${table}</Table></Worksheet></Workbook>`;
-    downloadText(base+'_bend_report.xml',xml,'application/xml');
-  }
+  if(kind==='csv'){const rows=[['Bend','Y','B','C','Command angle','Radius','Plane'],...d.steps.map(x=>[x.bend,x.Y,x.B,x.C,x.commandAngle,x.radius,x.plane])];downloadText(base+'_bend_report.csv','\uFEFF'+rows.map(r=>r.map(csvCell).join(';')).join('\n'),'text/csv;charset=utf-8');}
+  else if(kind==='json')downloadText(base+'_manufacturing.json',JSON.stringify({schema:ENG_SCHEMA,release:{status:'production',allowed:true},project:activeProject().name,tube:t.name,engineering:t.engineering,manufacturing:d,diagnostics:diagnoseTube(t)},null,2),'application/json');
+  else if(kind==='dxf')downloadText(base+'.dxf',dxfForTube(t),'application/dxf');
+  else if(kind==='nc'){const post=window.TB_NC_POSTPROCESSORS[d.machine.ncPost];if(!post){ptToast('NC-постпроцессор недоступен');return false;}downloadText(base+'.nc',post.generate(t),'text/plain');}
+  else if(kind==='xmlxls'){const table=d.steps.map(x=>`<Row><Cell><Data ss:Type="Number">${x.bend}</Data></Cell><Cell><Data ss:Type="Number">${x.Y}</Data></Cell><Cell><Data ss:Type="Number">${x.B}</Data></Cell><Cell><Data ss:Type="Number">${x.C}</Data></Cell></Row>`).join('');const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Bends"><Table><Row><Cell><Data ss:Type="String">Bend</Data></Cell><Cell><Data ss:Type="String">Y</Data></Cell><Cell><Data ss:Type="String">B</Data></Cell><Cell><Data ss:Type="String">C</Data></Cell></Row>${table}</Table></Worksheet></Workbook>`;downloadText(base+'_bend_report.xml',xml,'application/xml');}
   return true;
 }
 function axisOrderPermutations(){return [['X','Y','Z'],['X','Z','Y'],['Y','X','Z'],['Y','Z','X'],['Z','X','Y'],['Z','Y','X']];}
@@ -14049,35 +14126,16 @@ function setDimensionRole(elementId,field,role){if(!requireEngEditable())return;
 function styleToPipeDb(style){let idx=pipeDb.findIndex(x=>Math.abs(n(x.mm)-n(style.outerDiameter))<.001&&Math.abs(n(x.Rb)-n(style.centerlineRadius))<.001);if(idx<0){pipeDb.push({mm:n(style.outerDiameter),inch:'',Rb:n(style.centerlineRadius),Lmin:n(style.minStraight),name:style.name});sortPipes();idx=pipeDb.findIndex(x=>Math.abs(n(x.mm)-n(style.outerDiameter))<.001&&Math.abs(n(x.Rb)-n(style.centerlineRadius))<.001);}return idx;}
 function applyStyle(styleId){if(!requireEngEditable())return;const p=activeProject(),t=activeTube(),s=p.engineering.styles.find(x=>x.id===styleId);if(!s)return;t.engineering.styleId=s.id;t.diameterIndex=styleToPipeDb(s);state.diameterIndex=t.diameterIndex;save();renderAll();renderEngineering();}
 function saveStyleFromForm(){
-  if(!requireEngEditable())return;
-  const p=activeProject();
-  let s=p.engineering.styles.find(x=>x.id===E('engStyleSelect').value);
-  if(!s){s=defaultStyle(p);p.engineering.styles.push(s);}
+  if(!requireEngEditable())return;const p=activeProject();let s=p.engineering.styles.find(x=>x.id===E('engStyleSelect').value);if(!s){s=defaultStyle(p);p.engineering.styles.push(s);}
   const fields=['name','standard','material','densityKgM3','outerDiameter','wallThickness','centerlineRadius','minStraight','minTail','maxBendAngle','allowedAngles','springbackDeg','elongationPerDegree','cutAllowanceStart','cutAllowanceEnd','clampLength','maxOvalityPct','mandrel','pressureDie'];
-  for(const f of fields){
-    const el=E('engStyle_'+f);
-    if(el)s[f]=['name','standard','material','allowedAngles','mandrel','pressureDie'].includes(f)?el.value:n(el.value);
-  }
-  s.confirmed=true;
-  s.revision=n(s.revision,1)+1;
-  activeTube().engineering.styleId=s.id;
-  state.diameterIndex=activeTube().diameterIndex=styleToPipeDb(s);
-  save();renderAll();renderEngineering();msg('Стиль сохранён, подтверждён и применён');
+  for(const f of fields){const el=E('engStyle_'+f);if(el)s[f]=['name','standard','material','allowedAngles','mandrel','pressureDie'].includes(f)?el.value:n(el.value);}
+  s.confirmed=true;s.revision=n(s.revision,1)+1;activeTube().engineering.styleId=s.id;state.diameterIndex=activeTube().diameterIndex=styleToPipeDb(s);state.toolingId=pipeDb[state.diameterIndex]?.id||state.toolingId;activeTube().toolingId=state.toolingId;activeTube().toolingUnresolved=false;save();renderAll();renderEngineering();msg('Стиль сохранён, подтверждён и применён');
 }
 function saveMachineFromForm(){
-  if(!requireEngEditable())return;
-  const p=activeProject();
-  let m=p.engineering.machines.find(x=>x.id===E('engMachineSelect').value);
-  if(!m){m=defaultMachine();p.engineering.machines.push(m);}
-  const strings=['name','manufacturer','model','bendSide','ncPost'];
-  const fields=['name','manufacturer','model','maxDiameter','maxStockLength','minFeed','maxBendAngle','bendSide','headRadius','headLength','headHeight','clampMin','rotationLimit','ncPost'];
-  for(const f of fields){
-    const el=E('engMachine_'+f);
-    if(el)m[f]=strings.includes(f)?el.value:n(el.value);
-  }
-  m.confirmed=true;
-  activeTube().engineering.machineId=m.id;
-  save();renderEngineering();msg('Профиль оборудования сохранён и подтверждён');
+  if(!requireEngEditable())return;const p=activeProject();let m=p.engineering.machines.find(x=>x.id===E('engMachineSelect').value);if(!m){m=defaultMachine();p.engineering.machines.push(m);}
+  const strings=['name','manufacturer','model','bendSide','ncPost'];const fields=['name','manufacturer','model','maxDiameter','maxStockLength','minFeed','maxBendAngle','bendSide','headRadius','headLength','headHeight','clampMin','rotationLimit','ncPost'];
+  for(const f of fields){const el=E('engMachine_'+f);if(el)m[f]=strings.includes(f)?el.value:n(el.value);}
+  m.confirmed=true;activeTube().engineering.machineId=m.id;save();renderEngineering();msg('Профиль оборудования сохранён и подтверждён');
 }
 function markDimensionLabels(){document.querySelectorAll('.label3d.direct-edit-label').forEach(el=>{el.classList.remove('eng-dependent','eng-reference');const inp=el.querySelector('input[data-row-index]');if(!inp)return;const row=state.rows[n(inp.dataset.rowIndex,-1)],field=inp.dataset.field==='L'?'L':'A',m=dimensionMeta(row,field);if(!m)return;if(m.role==='dependent'){el.classList.add('eng-dependent');inp.readOnly=true;}else if(m.role==='reference'){el.classList.add('eng-reference');inp.readOnly=true;}});}
 
@@ -14660,73 +14718,21 @@ function refreshEditPanel(){
  }
 }
 function checkRow(label,status,detail=''){
-  const ok=status==='passed';
-  const stateText=status==='passed'?'OK':status==='calculation_error'?'Ошибка расчёта':status==='not_checked'?'Не проверено':'Ошибка';
-  const icon=status==='passed'?'✓':status==='not_checked'?'?':'!';
-  const title=String(detail||'').replace(/"/g,'&quot;');
+  const ok=status==='passed',stateText=status==='passed'?'OK':status==='calculation_error'?'Ошибка расчёта':status==='not_checked'?'Не проверено':'Ошибка',icon=status==='passed'?'✓':status==='not_checked'?'?':'!',title=String(detail||'').replace(/"/g,'&quot;');
   return `<div class="tb-check-row ${ok?'':'bad'}" title="${title}"><span class="tb-check-icon">${icon}</span><span>${label}</span><span class="tb-check-state">${stateText}</span></div>`;
 }
 function refreshChecks(){
-  const host=$('tbChecksPanel');if(!host)return;
-  const results=[];
-  let bounds=null;
-  try{
-    bounds=analyzePipeBounds();
-    const status=bounds?.valid?'passed':'violation';
-    const detail=bounds?.valid?'':'Нарушен габарит корпуса или минимальный зазор';
-    results.push([mt('inBody'),status,detail],['Зазор 5 мм',status,detail]);
-  }catch(error){
-    const detail=error?.message||String(error);
-    results.push([mt('inBody'),'calculation_error',detail],['Зазор 5 мм','calculation_error',detail]);
-  }
-
-  const rows=state.rows||[];
-  const lengths=rows.filter(r=>r.type==='LINE').every(r=>num(r.L)>=minStraight()-1e-6);
-  const angles=rows.filter(r=>r.type==='BEND').every(r=>num(r.angle)!==0&&Math.abs(num(r.angle))<=180);
-  results.push([mt('segmentLengths'),lengths?'passed':'violation','']);
-  results.push([mt('bendAngles'),angles?'passed':'violation','']);
-
-  let stockStatus='not_checked',stockDetail='';
-  try{
-    const total=developedLength();
-    stockStatus=total<=MAX_STOCK_LENGTH+1e-6?'passed':'violation';
-    if(stockStatus!=='passed')stockDetail=`Длина ${fmt(total,1)} мм превышает лимит ${fmt(MAX_STOCK_LENGTH,1)} мм`;
-  }catch(error){
-    stockStatus='calculation_error';stockDetail=error?.message||String(error);
-  }
-  results.push(['Длина заготовки',stockStatus,stockDetail]);
-
-  try{
-    const coll=getProjectCollisionAnalysis(activeProject());
-    const rel=(coll?.collisions||[]).filter(c=>c.tubeAId===state.activeTubeId||c.tubeBId===state.activeTubeId);
-    const self=rel.filter(c=>c.self),other=rel.filter(c=>!c.self);
-    results.push([mt('selfIntersections'),self.length===0?'passed':'violation',self.length?`Пересечений: ${self.length}`:'']);
-    results.push([mt('otherTubes'),other.length===0?'passed':'violation',other.length?`Пересечений: ${other.length}`:'']);
-  }catch(error){
-    const detail=error?.message||String(error);
-    results.push([mt('selfIntersections'),'calculation_error',detail]);
-    results.push([mt('otherTubes'),'calculation_error',detail]);
-  }
-
-  let techStatus='not_checked',techDetail='Инженерная диагностика ещё не выполнена';
-  try{
-    const diag=window.TubeBenderEngineering?.diagnoseTube?.(activeTube());
-    if(diag){
-      techStatus=(diag.issues||[]).length?'violation':'passed';
-      techDetail=(diag.issues||[]).join('; ');
-    }
-  }catch(error){
-    techStatus='calculation_error';
-    techDetail=error?.message||String(error);
-  }
-  results.push([mt('technology'),techStatus,techDetail]);
-
-  const errors=results.filter(([,status])=>status!=='passed').length;
-  let warnings=0;
-  try{warnings=firstStraightTechnologicalViolation()?1:0;}catch{}
-  host.innerHTML=`<div class="tb-check-list">${results.map(x=>checkRow(x[0],x[1],x[2])).join('')}</div><div class="tb-check-totals"><div><div class="tb-check-total-label">${mt('errors')}</div><div class="tb-check-total-value ${errors?'warn':''}">${errors}</div></div><div><div class="tb-check-total-label">${mt('warnings')}</div><div class="tb-check-total-value warn">${warnings}</div></div></div><button class="tb-check-more" id="tbChecksMore">Подробнее　›</button>`;
-  ['tbChecksDot','tb3DStatus'].forEach(id=>{const d=$(id);if(d)d.className='tb-status-dot'+(errors?' bad':warnings?' warn':'');});
-  $('tbChecksMore')?.addEventListener('click',()=>window.TubeBenderEngineering?.open?.('overview'));
+  const host=$('tbChecksPanel');if(!host)return;const results=[];let bounds=null;
+  try{bounds=analyzePipeBounds();const status=bounds?.valid?'passed':'violation',detail=bounds?.valid?'':'Нарушен габарит корпуса или минимальный зазор';results.push([mt('inBody'),status,detail],['Зазор 5 мм',status,detail]);}
+  catch(error){const detail=error?.message||String(error);results.push([mt('inBody'),'calculation_error',detail],['Зазор 5 мм','calculation_error',detail]);}
+  const rows=state.rows||[],lengths=rows.filter(r=>r.type==='LINE').every(r=>num(r.L)>=minStraight()-1e-6),angles=rows.filter(r=>r.type==='BEND').every(r=>num(r.angle)!==0&&Math.abs(num(r.angle))<=180);
+  results.push([mt('segmentLengths'),lengths?'passed':'violation',''],[mt('bendAngles'),angles?'passed':'violation','']);
+  let stockStatus='not_checked',stockDetail='';try{const total=developedLength();stockStatus=total<=MAX_STOCK_LENGTH+1e-6?'passed':'violation';if(stockStatus!=='passed')stockDetail=`Длина ${fmt(total,1)} мм превышает лимит ${fmt(MAX_STOCK_LENGTH,1)} мм`;}catch(error){stockStatus='calculation_error';stockDetail=error?.message||String(error);}results.push(['Длина заготовки',stockStatus,stockDetail]);
+  try{const coll=getProjectCollisionAnalysis(activeProject()),rel=(coll?.collisions||[]).filter(c=>c.tubeAId===state.activeTubeId||c.tubeBId===state.activeTubeId),self=rel.filter(c=>c.self),other=rel.filter(c=>!c.self);results.push([mt('selfIntersections'),self.length===0?'passed':'violation',self.length?`Пересечений: ${self.length}`:''],[mt('otherTubes'),other.length===0?'passed':'violation',other.length?`Пересечений: ${other.length}`:'']);}
+  catch(error){const detail=error?.message||String(error);results.push([mt('selfIntersections'),'calculation_error',detail],[mt('otherTubes'),'calculation_error',detail]);}
+  let techStatus='not_checked',techDetail='Инженерная диагностика ещё не выполнена';try{const diag=window.TubeBenderEngineering?.diagnoseTube?.(activeTube());if(diag){techStatus=(diag.issues||[]).length?'violation':'passed';techDetail=(diag.issues||[]).join('; ');}}catch(error){techStatus='calculation_error';techDetail=error?.message||String(error);}results.push([mt('technology'),techStatus,techDetail]);
+  const errors=results.filter(([,status])=>status!=='passed').length;let warnings=0;try{warnings=firstStraightTechnologicalViolation()?1:0;}catch{}
+  host.innerHTML=`<div class="tb-check-list">${results.map(x=>checkRow(x[0],x[1],x[2])).join('')}</div><div class="tb-check-totals"><div><div class="tb-check-total-label">${mt('errors')}</div><div class="tb-check-total-value ${errors?'warn':''}">${errors}</div></div><div><div class="tb-check-total-label">${mt('warnings')}</div><div class="tb-check-total-value warn">${warnings}</div></div></div><button class="tb-check-more" id="tbChecksMore">Подробнее　›</button>`;['tbChecksDot','tb3DStatus'].forEach(id=>{const d=$(id);if(d)d.className='tb-status-dot'+(errors?' bad':warnings?' warn':'');});$('tbChecksMore')?.addEventListener('click',()=>window.TubeBenderEngineering?.open?.('overview'));
 }
 function refreshTechnology(){const host=$('tbTechnologyInfo');if(!host)return;const p=pipe?.(),d=num(p?.mm),method=d<19?mt('manual'):mt('mechanized');host.innerHTML=`<div class="tb-tech-title">Медные трубы</div><div class="tb-tech-meta">до 19 мм — ручной<br>19 мм и больше — станок без ЧПУ</div>`;}
 function refreshHeader(){const p=activeProject?.(),t=activeTube?.();if($('tbBottomProject'))$('tbBottomProject').textContent=`${mt('projectName')}: ${p?.name||'—'}`;const sub=document.querySelector('.tb-brand-sub');if(sub&&String(state?.lang||'ru').toLowerCase()==='ru')sub.textContent='Профессиональное проектирование трубопроводов';}
