@@ -589,3 +589,98 @@ test("A13: Undo and Redo are disabled while a DoF transaction is open", () => {
   assert.match(ui, /!tbHistory\.transaction/);
   assert.match(begin, /tbHistoryUpdateUi\(\)/);
 });
+
+
+test("A14: simulation selects manual or mechanized non-CNC technology explicitly", () => {
+  const tech = functionSlice("simEnsureState", "simPhaseTitle");
+
+  assert.match(tech, /function simTechnologyForTube/);
+  assert.match(tech, /manual_bender/);
+  assert.match(tech, /mechanized_non_cnc/);
+  assert.match(tech, /od<19/);
+  assert.match(tech, /source:'diameter_default'/);
+  assert.match(tech, /kind:'unknown'/);
+});
+
+test("A14: manual simulation uses a hand-bender workflow without clamp or powered-bend phases", () => {
+  const timeline = functionSlice("simBuildTimeline", "simCurrentPhase");
+
+  assert.match(timeline, /technology\.kind==='manual'/);
+  assert.match(timeline, /type:'manual_setup'/);
+  assert.match(timeline, /type:'align_mark'/);
+  assert.match(timeline, /type:'manual_rotate'/);
+  assert.match(timeline, /type:'manual_bend'/);
+  assert.match(timeline, /type:'manual_remove'/);
+
+  const manualStart = timeline.indexOf("if(technology.kind==='manual')");
+  const mechanizedStart = timeline.indexOf("}else{", manualStart);
+  const manualBlock = timeline.slice(manualStart, mechanizedStart);
+  assert.doesNotMatch(manualBlock, /type:'clamp'/);
+  assert.doesNotMatch(manualBlock, /type:'powered_bend'/);
+  assert.doesNotMatch(manualBlock, /type:'head_return'/);
+});
+
+test("A14: mechanized non-CNC simulation keeps feed and rotation manual", () => {
+  const timeline = functionSlice("simBuildTimeline", "simCurrentPhase");
+
+  assert.match(timeline, /type:'machine_setup'/);
+  assert.match(timeline, /type:'manual_feed'/);
+  assert.match(timeline, /type:'manual_rotate'/);
+  assert.match(timeline, /type:'clamp'/);
+  assert.match(timeline, /type:'powered_bend'/);
+  assert.match(timeline, /type:'head_return'/);
+  assert.match(timeline, /type:'unclamp'/);
+  assert.doesNotMatch(timeline, /automatic_(?:feed|rotate|carriage)/i);
+});
+
+test("A14: simulation row progression understands technology-specific phases", () => {
+  const rowFraction = functionSlice("simRowFraction", "simCenterlineLength");
+
+  assert.match(rowFraction, /manual_setup/);
+  assert.match(rowFraction, /machine_setup/);
+  assert.match(rowFraction, /align_mark/);
+  assert.match(rowFraction, /manual_feed/);
+  assert.match(rowFraction, /manual_bend/);
+  assert.match(rowFraction, /powered_bend/);
+  assert.match(rowFraction, /head_return/);
+  assert.match(rowFraction, /unclamp/);
+});
+
+test("A14: manual machine model exposes a handle when handle length is defined", () => {
+  const machine = functionSlice("simAddMachine", "simSegmentDistancePoint");
+
+  assert.match(machine, /technology==='manual'/);
+  assert.match(machine, /machine\.handleLength/);
+  assert.match(machine, /kind:'manual-handle'/);
+  assert.match(machine, /handleSegment/);
+  assert.match(machine, /coverage:handleSegment\?'die_and_handle':'die_only'/);
+});
+
+test("A14: collision checks include raw stock and manual handle workspace", () => {
+  const collision = functionSlice("simCollisionChecks", "simAddCollisionMarkers");
+
+  assert.doesNotMatch(collision, /if\(seg\.kind==='raw'\)continue/);
+  assert.match(collision, /seg\.kind!=='raw'/);
+  assert.match(collision, /machinePose\.handleSegment/);
+  assert.match(collision, /type:'manual-handle'/);
+  assert.match(collision, /type:machinePose\.technology==='manual'\?'manual-die':'machine-head'/);
+});
+
+test("A14: simulation UI names the actual technology and warns when it is only diameter-derived", () => {
+  const render = functionSlice("renderSimulation", "renderAutoroute");
+  const helpers = functionSlice("simEnsureState", "simPhaseTitle");
+
+  assert.match(render, /techLabel=simTechnologyLabel/);
+  assert.match(render, /techHelp=simTechnologyHelp/);
+  assert.match(render, /3D-симуляция · \$\{esc\(techLabel\)\}/);
+  assert.match(helpers, /требует подтверждения профиля/);
+  assert.match(helpers, /Автоматическая каретка и автоматические переходы не моделируются/);
+});
+
+test("A14: unresolved technology produces a blocked simulation phase", () => {
+  const timeline = functionSlice("simBuildTimeline", "simCurrentPhase");
+
+  assert.match(timeline, /technology\.kind==='unknown'/);
+  assert.match(timeline, /type:'blocked'/);
+  assert.match(timeline, /Не определён тип оборудования/);
+});
