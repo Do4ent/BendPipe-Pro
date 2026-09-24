@@ -56,7 +56,7 @@ test('A20: tag, distant light and pause advance synchronously with exact offsets
   ]);
   const out=decodeHsfOpcodePrefix(bytes);
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x22);
+  assert.equal(out.unsupported_opcode,0x3a);
   assert.deepEqual(out.entities.map((e)=>e.kind),['tag','light','pause']);
   assert.equal(out.entities[0].source_offset,0);
   assert.equal(out.entities[1].source_offset,1);
@@ -65,8 +65,28 @@ test('A20: tag, distant light and pause advance synchronously with exact offsets
   assert.equal(out.next_offset,15);
 });
 
+test('A20: color parser follows documented extended geometry and channel masks',()=>{
+  const bytes=Uint8Array.from([
+    0x22,
+    0x80,0x02,
+    0x03,
+    0x00,127,127,127,
+    0x00,255,255,255,
+    0x3a
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes);
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.unsupported_opcode,0x3a);
+  assert.equal(out.next_offset,12);
+  assert.equal(out.entities[0].kind,'color');
+  assert.equal(out.entities[0].geometry_mask,0x0280);
+  assert.equal(out.entities[0].channels_mask,0x0003);
+  assert.deepEqual(out.entities[0].channels.diffuse.rgb_bytes,[127,127,127]);
+  assert.deepEqual(out.entities[0].channels.specular.rgb_bytes,[255,255,255]);
+});
+
 test('A20: unknown opcode stops synchronized parsing instead of scanning or guessing',()=>{
-  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x28,0x01,0x61,0x22,0x01,0x02,0x03]));
+  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x28,0x01,0x61,0x3a,0x01,0x02,0x03]));
   assert.equal(out.complete_prefix,false);
   assert.equal(out.unsupported_opcode,0x22);
   assert.equal(out.next_offset,3);
