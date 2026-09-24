@@ -33,7 +33,7 @@ function circumcircle3d(a,b,c,collinearTolerance){
   const center=add(a,mul(add(term1,term2),1/(2*w2)));
   const radius=dist(center,a);
   const normal=unit(w);
-  if(!(radius>0)&&Number.isFinite(radius))return null;
+  if(!(radius>0)||!Number.isFinite(radius))return null;
   return {center,radius,normal};
 }
 
