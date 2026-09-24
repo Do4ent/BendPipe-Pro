@@ -133,10 +133,14 @@ export function decodeHsfOpcodePrefix(
     maxOpcodes = 256,
     hsfVersion = null,
     captureEntity = null,
-    attachSegmentPath = false
+    attachSegmentPath = false,
+    stopAfterRootSegmentClose = false
   } = {}
 ) {
   const bytes = asBytes(input);
+  if (stopAfterRootSegmentClose && bytes[0] !== 0x28) {
+    throw new RangeError("root-segment decode must start at TKE_Open_Segment");
+  }
   const entities = [];
   const segmentStack = [];
   const shouldCapture =
@@ -195,6 +199,14 @@ export function decodeHsfOpcodePrefix(
       emit(Object.freeze({ kind: "segment", action: "close", source_offset: offset }));
       offset += 1;
       count += 1;
+      if (stopAfterRootSegmentClose && segmentStack.length === 0) {
+        return Object.freeze({
+          entities: Object.freeze(entities),
+          next_offset: offset,
+          complete_prefix: false,
+          root_segment_complete: true
+        });
+      }
       continue;
     }
     if (opcode === 0x3a) { // TKE_Geometry_Attributes: no operands
