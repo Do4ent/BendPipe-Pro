@@ -461,6 +461,108 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       count += 1;
       continue;
     }
+    if (opcode === 0x7b) { // TKE_Style_Segment
+      if (offset + 2 > bytes.length) throw new RangeError("truncated TKE_Style_Segment");
+      const length = bytes[offset + 1];
+      const end = offset + 2 + length;
+      if (end > bytes.length) throw new RangeError("truncated TKE_Style_Segment name");
+      entities.push(Object.freeze({
+        kind: "segment",
+        action: "style",
+        source_offset: offset,
+        name: readAscii(bytes, offset + 2, end)
+      }));
+      offset = end;
+      count += 1;
+      continue;
+    }
+    if (opcode === 0x56) { // TKE_Visibility
+      if (offset + 3 > bytes.length) throw new RangeError("truncated TKE_Visibility");
+      let cursor = offset + 1;
+      const maskLow = bytes[cursor++];
+      const valueLow = bytes[cursor++];
+      let mask = maskLow;
+      let value = valueLow;
+      let maskHigh = null;
+      let valueHigh = null;
+      if ((maskLow & 0x80) !== 0) {
+        maskHigh = readU16LE(bytes, cursor);
+        cursor += 2;
+        valueHigh = readU16LE(bytes, cursor);
+        cursor += 2;
+        mask = (maskLow | (maskHigh << 8)) >>> 0;
+        value = (valueLow | (valueHigh << 8)) >>> 0;
+      }
+      entities.push(Object.freeze({
+        kind: "visibility",
+        source_offset: offset,
+        mask,
+        value,
+        mask_low: maskLow,
+        value_low: valueLow,
+        mask_high: maskHigh,
+        value_high: valueHigh
+      }));
+      offset = cursor;
+      count += 1;
+      continue;
+    }
+    if (opcode === 0x7e) { // TKE_Color_RGB
+      if (offset + 5 > bytes.length) throw new RangeError("truncated TKE_Color_RGB");
+      let cursor = offset + 1;
+      const geometryLow = bytes[cursor++];
+      let geometryHigh = null;
+      let geometryMask = geometryLow;
+      if ((geometryLow & 0x80) !== 0) {
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Color_RGB geometry mask");
+        geometryHigh = bytes[cursor++];
+        geometryMask = (geometryLow | (geometryHigh << 8)) >>> 0;
+      }
+      if (cursor + 3 > bytes.length) throw new RangeError("truncated TKE_Color_RGB value");
+      const rgb = Object.freeze([bytes[cursor], bytes[cursor + 1], bytes[cursor + 2]]);
+      cursor += 3;
+      entities.push(Object.freeze({
+        kind: "color",
+        source_offset: offset,
+        encoding: "rgb8",
+        geometry_mask: geometryMask,
+        geometry_bytes: Object.freeze(
+          geometryHigh == null ? [geometryLow] : [geometryLow, geometryHigh]
+        ),
+        rgb_bytes: rgb
+      }));
+      offset = cursor;
+      count += 1;
+      continue;
+    }
+    if (opcode === 0x63) { // TKE_Circular_Arc
+      if (offset + 37 > bytes.length) throw new RangeError("truncated TKE_Circular_Arc");
+      const readPoint = (base) => Object.freeze([
+        readF32LE(bytes, base),
+        readF32LE(bytes, base + 4),
+        readF32LE(bytes, base + 8)
+      ]);
+      const start = readPoint(offset + 1);
+      const middle = readPoint(offset + 13);
+      const end = readPoint(offset + 25);
+      if (![...start, ...middle, ...end].every(Number.isFinite)) {
+        throw new RangeError(`non-finite TKE_Circular_Arc coordinate at offset ${offset}`);
+      }
+      entities.push(Object.freeze({
+        kind: "curve_candidate",
+        source_offset: offset,
+        primitive: "circular_arc",
+        start,
+        middle,
+        end,
+        source_semantics: "native_hsf_circular_arc",
+        canonical_ready: false,
+        production_ready: false
+      }));
+      offset += 37;
+      count += 1;
+      continue;
+    }
     if (opcode === 0x53) { // TKE_Shell
       const shellOffset = offset;
       let cursor = offset + 1;
