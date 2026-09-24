@@ -811,11 +811,17 @@ test("A17: approved mockup refresh is queued and guarded against reentry", () =>
 });
 
 test("A17: resize schedules layout only and does not force a language rewrite", () => {
-  const start = html.indexOf("function setApprovedText(");
-  const end = html.indexOf("window.TubeBenderApprovedMockup=", start);
-  const block = html.slice(start, end);
+  const start = html.indexOf("function exactRefresh(");
+  const end = html.indexOf("function scheduleExactRefresh(", start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+  const refresh = html.slice(start, end);
 
-  assert.match(block, /window\.addEventListener\('resize',scheduleExactRefresh\)/);
-  assert.doesNotMatch(block, /setApprovedText\(\)/);
-  assert.doesNotMatch(block, /TubeBenderI18n\?\.apply/);
+  const layoutStart = html.indexOf("let mockupRefreshQueued=false;");
+  const layoutEnd = html.indexOf("window.TubeBenderApprovedMockup=", layoutStart);
+  const layout = html.slice(layoutStart, layoutEnd);
+
+  assert.match(layout, /window\.addEventListener\('resize',scheduleExactRefresh\)/);
+  assert.doesNotMatch(refresh, /setApprovedText\(\)/);
+  assert.doesNotMatch(refresh, /TubeBenderI18n\?\.apply/);
 });
