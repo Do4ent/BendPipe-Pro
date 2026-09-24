@@ -825,3 +825,60 @@ test("A17: resize schedules layout only and does not force a language rewrite", 
   assert.doesNotMatch(refresh, /setApprovedText\(\)/);
   assert.doesNotMatch(refresh, /TubeBenderI18n\?\.apply/);
 });
+
+
+test("A18: app and project schema versions have one runtime source of truth", () => {
+  assert.match(html, /window\.TubeBenderBuildInfo=Object\.freeze\(\{/);
+  assert.match(html, /appVersion:'VC207R7-M1'/);
+  assert.match(html, /projectSchemaVersion:'2\.0'/);
+  assert.match(html, /buildChannel:'trusted-geometry-core'/);
+});
+
+test("A18: project export and recovery use centralized version metadata", () => {
+  const workspace = functionSlice("poWorkspacePayload", "poStoreRecovery");
+  const recovery = functionSlice("poStoreRecovery", "poScheduleRecovery");
+
+  assert.match(workspace, /version:window\.TubeBenderBuildInfo\.appVersion/);
+  assert.match(workspace, /schemaVersion:window\.TubeBenderBuildInfo\.projectSchemaVersion/);
+  assert.match(recovery, /version:window\.TubeBenderBuildInfo\.appVersion/);
+  assert.match(recovery, /schemaVersion:window\.TubeBenderBuildInfo\.projectSchemaVersion/);
+
+  assert.doesNotMatch(workspace, /VC207R3\.0-interactive-dof-manipulators/);
+  assert.doesNotMatch(recovery, /version:'VC204'/);
+});
+
+test("A18: engineering schema and generated NC header use build metadata", () => {
+  assert.match(
+    html,
+    /const ENG_SCHEMA=window\.TubeBenderBuildInfo\?\.projectSchemaVersion\|\|'2\.0'/
+  );
+  assert.match(
+    html,
+    /TubeBender CAD \$\{window\.TubeBenderBuildInfo\?\.appVersion\|\|'VC207R7'\}/
+  );
+  assert.doesNotMatch(
+    html,
+    /const ENG_SCHEMA='VC202\.0'/
+  );
+});
+
+test("A18: open-project compatibility is schema-driven rather than tied to VC183 text", () => {
+  const normalize = functionSlice("poNormalizePackage", "poSelectedProjects");
+
+  assert.match(normalize, /const schemaVersion=String\(/);
+  assert.match(normalize, /schemaVersion,/);
+  assert.match(normalize, /schemaVersion!==String\(window\.TubeBenderBuildInfo\?\.projectSchemaVersion\|\|'2\.0'\)/);
+  assert.doesNotMatch(normalize, /String\(version\)\.includes\('VC183'\)/);
+});
+
+test("A18: external dependencies are explicit and offline readiness is not overstated", () => {
+  assert.match(html, /dependencies:Object\.freeze\(\{/);
+  assert.match(html, /three:Object\.freeze\(\{source:'external'/);
+  assert.match(html, /tesseract:Object\.freeze\(\{source:'lazy-external'/);
+  assert.match(html, /offlineReady:false/);
+  assert.match(html, /window\.tubeBenderDependencyReport=/);
+  assert.match(
+    html,
+    /s\.src=window\.TubeBenderBuildInfo\?\.dependencies\?\.tesseract\?\.url/
+  );
+});
