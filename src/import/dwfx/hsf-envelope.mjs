@@ -481,6 +481,32 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       count += 1;
       continue;
     }
+    if (opcode === 0x25) { // TKE_Modelling_Matrix
+      if (offset + 49 > bytes.length) throw new RangeError("truncated TKE_Modelling_Matrix");
+      const compact = [];
+      for (let i = 0; i < 12; i += 1) {
+        const value = readF32LE(bytes, offset + 1 + i * 4);
+        if (!Number.isFinite(value)) {
+          throw new RangeError(`non-finite TKE_Modelling_Matrix element at offset ${offset + 1 + i * 4}`);
+        }
+        compact.push(value);
+      }
+      const matrix = Object.freeze([
+        compact[0], compact[1], compact[2], 0,
+        compact[3], compact[4], compact[5], 0,
+        compact[6], compact[7], compact[8], 0,
+        compact[9], compact[10], compact[11], 1
+      ]);
+      entities.push(Object.freeze({
+        kind: "transform",
+        source_offset: offset,
+        matrix,
+        source_semantics: "native_hsf_modelling_matrix"
+      }));
+      offset += 49;
+      count += 1;
+      continue;
+    }
     if (opcode === 0x24) { // TKE_Texture_Matrix
       if (offset + 49 > bytes.length) throw new RangeError("truncated TKE_Texture_Matrix");
       const elements = [];
