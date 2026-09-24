@@ -36,6 +36,20 @@ test("legacy VC207R7 inline JavaScript remains syntax-valid", () => {
   assert.ok(count >= 8, `expected at least 8 inline scripts, compiled ${count}`);
 });
 
+test("legacy engineering and simulation helper surface is preserved", () => {
+  for (const name of [
+    "markDimensionLabels",
+    "simEnsureState",
+    "simBuildTimeline",
+    "simCenterlineLength",
+    "treeBadge",
+    "kpi",
+    "renderOverview"
+  ]) {
+    assert.ok(html.includes(`function ${name}(`), `missing function ${name}`);
+  }
+});
+
 test("A01: legacy centerline length no longer adds OD/2 to CLR", () => {
   const withPipe = functionSlice("arcLengthForRowWithPipe", "developedLengthWithRowsAndPipe");
   const active = functionSlice("arcLength", "developedLength");
@@ -77,7 +91,7 @@ test("A04: new engineering defaults do not silently inject Steel or Generic CNC"
 
 test("A04: saving style and machine explicitly confirms user-entered profiles", () => {
   const styleSave = functionSlice("saveStyleFromForm", "saveMachineFromForm");
-  const machineSave = functionSlice("saveMachineFromForm", "renderOverview");
+  const machineSave = functionSlice("saveMachineFromForm", "markDimensionLabels");
 
   assert.match(styleSave, /s\.confirmed=true/);
   assert.match(machineSave, /m\.confirmed=true/);
