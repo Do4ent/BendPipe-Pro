@@ -52,7 +52,7 @@ test('A20: tag, distant light and pause advance synchronously with exact offsets
     0x71,
     0x64,...f32(1),...f32(2),...f32(3),
     0x01,
-    0x22
+    0x3a
   ]);
   const out=decodeHsfOpcodePrefix(bytes);
   assert.equal(out.complete_prefix,false);
@@ -88,7 +88,7 @@ test('A20: color parser follows documented extended geometry and channel masks',
 test('A20: unknown opcode stops synchronized parsing instead of scanning or guessing',()=>{
   const out=decodeHsfOpcodePrefix(Uint8Array.from([0x28,0x01,0x61,0x3a,0x01,0x02,0x03]));
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x22);
+  assert.equal(out.unsupported_opcode,0x3a);
   assert.equal(out.next_offset,3);
   assert.equal(out.entities.length,1);
 });
