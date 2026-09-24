@@ -554,3 +554,38 @@ test("A13: applyEditor commits one history transaction", () => {
   assert.match(apply, /tbModelCommand\('Применить параметры элемента'/);
   assert.match(apply, /liveUpdateEditor\(\)/);
 });
+
+
+test("A13: one completed DoF drag creates one history item", () => {
+  const start = functionSlice("dofStartInteraction", "dofApplyRotationFromBaseline");
+  const handlers = functionSlice("installDofPointerHandlers", "update3D");
+  const commit = functionSlice("dofCommitInteraction", "dofCancelInteraction");
+  const cancel = functionSlice("dofCancelInteraction", "hideDofAngleEditor");
+
+  assert.match(start, /historyToken=tbHistoryBegin\('Изменить DoF'\)/);
+  assert.match(start, /poReadOnly\(\)/);
+
+  const moveStart = handlers.indexOf("window.addEventListener('pointermove'");
+  const finishStart = handlers.indexOf("const finish=");
+  assert.ok(moveStart >= 0);
+  assert.ok(finishStart > moveStart);
+  const moveBlock = handlers.slice(moveStart, finishStart);
+  const finishBlock = handlers.slice(finishStart);
+
+  assert.doesNotMatch(moveBlock, /tbHistoryCommit/);
+  assert.match(finishBlock, /tbHistoryCommit\(I\.historyToken\)/);
+  assert.match(finishBlock, /I\.base=dofCaptureBaseline\(\)/);
+  assert.match(finishBlock, /I\.historyToken=tbHistoryBegin\('Изменить DoF'\)/);
+
+  assert.match(commit, /tbHistoryCommit\(I\.historyToken\)/);
+  assert.match(cancel, /tbHistoryCancel\(I\.historyToken\)/);
+  assert.match(cancel, /dofRestoreBaseline\(I\.base\)/);
+});
+
+test("A13: Undo and Redo are disabled while a DoF transaction is open", () => {
+  const ui = functionSlice("tbHistoryUpdateUi", "tbHistoryBegin");
+  const begin = functionSlice("tbHistoryBegin", "tbHistoryCancel");
+
+  assert.match(ui, /!tbHistory\.transaction/);
+  assert.match(begin, /tbHistoryUpdateUi\(\)/);
+});
