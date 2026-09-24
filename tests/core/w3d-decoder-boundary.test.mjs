@@ -17,7 +17,7 @@ test("A19: decoder boundary preserves provenance and never sets production-ready
   const result = await decodeW3dResource({
     evidence,
     bytes: new Uint8Array([1,2,3,4]),
-    decoder: async (_bytes, context) => ({
+    decoder: async () => ({
       complete: true,
       diagnostics: ["synthetic decoder fixture"],
       entities: [{
@@ -54,6 +54,46 @@ test("A19: partial decoder coverage stays explicit", async () => {
   assert.equal(result.decode_status, "decoded_partial");
   assert.equal(result.production_ready, false);
   assert.match(result.diagnostics.join(" "), /partial resource coverage/i);
+});
+
+test("A20: exact HSF scene evidence kinds are accepted without becoming canonical geometry", async () => {
+  const result = await decodeW3dResource({
+    evidence: baseEvidence(),
+    bytes: new Uint8Array([1]),
+    decoder: async () => ({
+      complete: false,
+      entities: [
+        {
+          kind: "segment",
+          source_offset: 0,
+          transform: null,
+          confidence: 1,
+          reason: "fixture",
+          payload: { action: "open", name: "abc" }
+        },
+        {
+          kind: "bounds",
+          source_offset: 5,
+          transform: null,
+          confidence: 1,
+          reason: "fixture",
+          payload: { shape: "cuboid" }
+        },
+        {
+          kind: "view",
+          source_offset: 31,
+          transform: null,
+          confidence: 1,
+          reason: "fixture",
+          payload: { name: "default" }
+        }
+      ]
+    })
+  });
+
+  assert.deepEqual(result.entities.map((entity) => entity.kind), ["segment", "bounds", "view"]);
+  assert.equal(result.production_ready, false);
+  assert.equal(result.decode_status, "decoded_partial");
 });
 
 test("A19: decoder cannot emit unsupported entity kinds", async () => {
