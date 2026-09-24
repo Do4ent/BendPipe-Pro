@@ -24,6 +24,7 @@ const ALLOWED_KINDS = new Set([
   "hw3d_image",
   "texture",
   "visibility",
+  "rendering_options",
   "polyline",
   "triangle_mesh",
   "curve_candidate",
