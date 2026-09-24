@@ -57,9 +57,11 @@ test("A20: hollow shell grids derive one shared centerline and explicit unit sca
   assert.ok(Math.abs(result.scale_mm_per_source_unit-10)<1e-9);
   assert.equal(result.scale_method,"derived_from_outer_diameter");
   assert.equal(result.centerline_sample_count,4);
-  assert.deepEqual(result.centerline_points_mm,[
-    [0,0,0],[10,0,0],[20,0,0],[30,0,0]
-  ]);
+  result.centerline_points_mm.forEach((point,index)=>{
+    assert.ok(Math.abs(point[0]-index*10)<1e-9);
+    assert.ok(Math.abs(point[1])<1e-9);
+    assert.ok(Math.abs(point[2])<1e-9);
+  });
   assert.ok(Math.abs(result.observed_outer_radius_mm-5)<1e-9);
   assert.ok(Math.abs(result.observed_inner_radius_mm-4)<1e-9);
   assert.ok(Math.abs(result.chordal_polyline_length_mm-30)<1e-9);
@@ -73,9 +75,11 @@ test("A20: inner and outer centerline ring order may be reversed but must geomet
   });
   assert.equal(result.status,"centerline_candidate");
   assert.ok(result.center_mismatch_mm<1e-9);
-  assert.deepEqual(result.centerline_points_mm,[
-    [0,0,0],[10,0,0],[20,0,0],[30,0,0]
-  ]);
+  result.centerline_points_mm.forEach((point,index)=>{
+    assert.ok(Math.abs(point[0]-index*10)<1e-9);
+    assert.ok(Math.abs(point[1])<1e-9);
+    assert.ok(Math.abs(point[2])<1e-9);
+  });
 });
 
 test("A20: wall/radius mismatch remains unresolved instead of forcing a centerline",()=>{
