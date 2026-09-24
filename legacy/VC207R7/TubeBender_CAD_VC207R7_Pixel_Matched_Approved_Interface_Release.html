@@ -7724,8 +7724,8 @@ function tbHistorySnapshotKey(snapshot){return JSON.stringify(snapshot);}
 function tbHistoryUpdateUi(){
   const undo=qs('tbActionUndo'),redo=qs('tbActionRedo');
   const readOnly=typeof poReadOnly==='function'&&poReadOnly();
-  const canUndo=tbHistory.undo.length>0&&!readOnly;
-  const canRedo=tbHistory.redo.length>0&&!readOnly;
+  const canUndo=tbHistory.undo.length>0&&!readOnly&&!tbHistory.transaction;
+  const canRedo=tbHistory.redo.length>0&&!readOnly&&!tbHistory.transaction;
   if(undo){
     undo.disabled=!canUndo;
     undo.classList.toggle('disabled',!canUndo);
@@ -7741,6 +7741,7 @@ function tbHistoryBegin(label){
   if(tbHistory.applying||tbHistory.transaction)return null;
   const token={label:String(label||'Изменение'),before:tbHistorySnapshot()};
   tbHistory.transaction=token;
+  tbHistoryUpdateUi();
   return token;
 }
 function tbHistoryCancel(token){
@@ -11462,17 +11463,29 @@ function dofAssessChecks(base){
   const diagOk=now.diagIssues<=base.diagIssues&&now.machineIssues<=base.machineIssues;
   return {allowed:boundsOk&&collisionsOk&&anglesOk&&stockOk&&techOk&&diagOk,now,boundsOk,collisionsOk,anglesOk,stockOk,techOk,diagOk};
 }
+function dofCaptureBaseline(){
+  const transitions=dofTransitionSnapshot();
+  const base={
+    rows:dofCloneRows(),
+    startAxis:state.startAxis,
+    startPlane:state.startPlane,
+    startAngle:state.startAngle,
+    origin:clone(state.origin||{}),
+    transitions,
+    startDir:startDirectionVector().clone(),
+    checks:null
+  };
+  base.checks=dofCaptureChecks();
+  return base;
+}
 function dofStartInteraction(target,axisKey,anchorWorld=null){
+  if(typeof poReadOnly==='function'&&poReadOnly()){ptToast('Проект открыт только для просмотра');return false;}
   if(!target||!['x','y','z'].includes(axisKey))return false;
   const selected=dofSelectedTarget();
   if(!selected||dofTargetKey(selected)!==dofTargetKey(target))return false;
   if(dofInteraction)dofCommitInteraction();
-  const transitions=dofTransitionSnapshot();
-  const base={
-    rows:dofCloneRows(),startAxis:state.startAxis,startPlane:state.startPlane,startAngle:state.startAngle,
-    origin:clone(state.origin||{}),transitions,startDir:startDirectionVector().clone(),checks:null
-  };
-  base.checks=dofCaptureChecks();
+  const base=dofCaptureBaseline();
+  const transitions=base.transitions;
   let axisWorld;
   if(target.type==='origin')axisWorld=coordinateAxisVector(axisKey).normalize();
   else{
@@ -11481,7 +11494,19 @@ function dofStartInteraction(target,axisKey,anchorWorld=null){
     const basis=dofLocalBasis(target,new THREE.Vector3(),cap.incoming,state.rows[target.rowIndex]);
     axisWorld=basis[axisKey].clone().normalize();
   }
-  dofInteraction={target:{...target},targetKey:dofTargetKey(target),axisKey,axisWorld,base,value:0,lastValidValue:0,checks:{allowed:true},anchorWorld:anchorWorld?.clone?.()||null};
+  const historyToken=tbHistoryBegin('Изменить DoF');
+  dofInteraction={
+    target:{...target},
+    targetKey:dofTargetKey(target),
+    axisKey,
+    axisWorld,
+    base,
+    value:0,
+    lastValidValue:0,
+    checks:{allowed:true},
+    anchorWorld:anchorWorld?.clone?.()||null,
+    historyToken
+  };
   const el=ensureDofAngleEditor(),input=el.querySelector('#dofAngleInput'),badge=el.querySelector('#dofAxisBadge'),check=el.querySelector('#dofCheckText');
   badge.textContent='R'+axisKey.toUpperCase();
   input.value='0';input.title=dofT('angle');
@@ -11543,22 +11568,38 @@ function dofPreviewAngle(value,fromInput=false){
   return assessment.allowed;
 }
 function dofCommitInteraction(){
-  const I=dofInteraction;if(!I){hideDofAngleEditor();return true;}
+  const I=dofInteraction;
+  if(!I){hideDofAngleEditor();return true;}
   if(!I.checks?.allowed){
     dofRestoreBaseline(I.base);
-    dofInteraction=null;dofPointerState=null;hideDofAngleEditor();
+    tbHistoryCancel(I.historyToken);
+    dofInteraction=null;
+    dofPointerState=null;
+    hideDofAngleEditor();
     dofRefreshDynamicUi();
     ptToast(dofT('restored'));
   }else{
-    dofInteraction=null;dofPointerState=null;hideDofAngleEditor();
-    save();renderAll();
+    save();
+    renderAll();
+    tbHistoryCommit(I.historyToken);
+    dofInteraction=null;
+    dofPointerState=null;
+    hideDofAngleEditor();
   }
   markViewerDirty();
   return true;
 }
 function dofCancelInteraction(){
-  const I=dofInteraction;if(I){dofRestoreBaseline(I.base);dofInteraction=null;dofPointerState=null;dofRefreshDynamicUi();}
-  hideDofAngleEditor();markViewerDirty();
+  const I=dofInteraction;
+  if(I){
+    dofRestoreBaseline(I.base);
+    tbHistoryCancel(I.historyToken);
+    dofInteraction=null;
+    dofPointerState=null;
+    dofRefreshDynamicUi();
+  }
+  hideDofAngleEditor();
+  markViewerDirty();
 }
 function hideDofAngleEditor(){const el=qs('dofAngleEditor');if(el){el.classList.remove('visible','invalid');}}
 function dofToggleSign(){
@@ -11613,11 +11654,14 @@ function installDofPointerHandlers(){
   const canvas=renderer.domElement;
   canvas.addEventListener('pointerdown',event=>{
     if(event.button!==0)return;
+    if(typeof poReadOnly==='function'&&poReadOnly())return;
     const hit=pickDofFromScreen(event);
     if(!hit)return;
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();
     if(hit.kind==='linear'){handleDofTap(hit,event);return;}
-    if(!dofInteraction||dofInteraction.targetKey!==dofTargetKey(hit.target)||dofInteraction.axisKey!==hit.axisKey)dofStartInteraction(hit.target,hit.axisKey,hit.labelWorld||hit.headWorld);
+    if(!dofInteraction||dofInteraction.targetKey!==dofTargetKey(hit.target)||dofInteraction.axisKey!==hit.axisKey){
+      if(!dofStartInteraction(hit.target,hit.axisKey,hit.labelWorld||hit.headWorld))return;
+    }
     const startAngle=dofPointerAngle(event,hit.origin);
     dofPointerState={pointerId:event.pointerId,hit,startX:event.clientX,startY:event.clientY,startAngle,startValue:Number(dofInteraction?.value)||0,moved:false,started:performance.now()};
     try{canvas.setPointerCapture?.(event.pointerId);}catch{}
@@ -11640,9 +11684,32 @@ function installDofPointerHandlers(){
     try{canvas.releasePointerCapture?.(event.pointerId);}catch{}
     if(cancelled){dofCancelInteraction();return;}
     if(!p.moved){handleDofTap(p.hit,event);return;}
-    if(dofInteraction?.checks?.allowed){save();syncActiveTubeFromState();}
-    else{dofRestoreBaseline(dofInteraction?.base);dofRefreshDynamicUi();ptToast(dofT('restored'));}
-    const input=qs('dofAngleInput');if(input){input.focus?.();input.select?.();}
+    if(dofInteraction?.checks?.allowed){
+      const I=dofInteraction;
+      save();
+      syncActiveTubeFromState();
+      tbHistoryCommit(I.historyToken);
+      I.base=dofCaptureBaseline();
+      I.value=0;
+      I.lastValidValue=0;
+      I.checks={allowed:true};
+      I.historyToken=tbHistoryBegin('Изменить DoF');
+      const input=qs('dofAngleInput');
+      if(input){input.value='0';input.focus?.();input.select?.();}
+    }else{
+      const I=dofInteraction;
+      dofRestoreBaseline(I?.base);
+      tbHistoryCancel(I?.historyToken);
+      dofRefreshDynamicUi();
+      if(I){
+        I.base=dofCaptureBaseline();
+        I.value=0;
+        I.lastValidValue=0;
+        I.checks={allowed:true};
+        I.historyToken=tbHistoryBegin('Изменить DoF');
+      }
+      ptToast(dofT('restored'));
+    }
   };
   window.addEventListener('pointerup',e=>finish(e,false),{capture:true,passive:false});
   window.addEventListener('pointercancel',e=>finish(e,true),{capture:true,passive:false});
