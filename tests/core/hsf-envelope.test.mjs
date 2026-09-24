@@ -234,3 +234,36 @@ test('A20: unknown TKE_Shell optional stops at the exact nested opcode without r
   assert.match(out.unsupported_variant,/optional opcode 0x7f/i);
   assert.equal(out.entities.length,0);
 });
+
+
+test('A20: style visibility RGB and native circular arc remain exact source evidence',()=>{
+  const bytes=Uint8Array.from([
+    0x7b,0x03,...Buffer.from('sty'),
+    0x56,0x01,0xfe,
+    0x7e,0x86,0x10,65,63,62,
+    0x63,
+    ...f32(1),...f32(0),...f32(0),
+    ...f32(0),...f32(1),...f32(0),
+    ...f32(-1),...f32(0),...f32(0),
+    0x00
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes);
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.unsupported_opcode,0x00);
+  assert.equal(out.next_offset,51);
+  assert.match(out.unsupported_variant,/outside geometry-attributes scope/i);
+  assert.deepEqual(out.entities.map((e)=>e.kind),[
+    'segment','visibility','color','curve_candidate'
+  ]);
+  assert.equal(out.entities[0].action,'style');
+  assert.equal(out.entities[0].name,'sty');
+  assert.equal(out.entities[1].mask,1);
+  assert.equal(out.entities[1].value,0xfe);
+  assert.equal(out.entities[2].geometry_mask,0x1086);
+  assert.deepEqual(out.entities[2].rgb_bytes,[65,63,62]);
+  assert.equal(out.entities[3].primitive,'circular_arc');
+  assert.deepEqual(out.entities[3].start,[1,0,0]);
+  assert.deepEqual(out.entities[3].middle,[0,1,0]);
+  assert.deepEqual(out.entities[3].end,[-1,0,0]);
+  assert.equal(out.entities[3].canonical_ready,false);
+});
