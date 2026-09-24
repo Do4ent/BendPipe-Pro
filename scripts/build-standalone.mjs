@@ -37,7 +37,7 @@ output = output.replace(
 if (/cdn\.jsdelivr\.net\/npm\/three@/i.test(output)) {
   throw new Error("Standalone build still references the Three.js CDN");
 }
-if (/script\s+src=["'][^"']*three/i.test(output)) {
+if (/<script\b[^>]*\bsrc=["'][^"']*three[^"']*["'][^>]*>/i.test(output)) {
   throw new Error("Standalone build still contains an external Three.js script tag");
 }
 if (!output.includes('data-tubebender-bundled="three-r160"')) {
