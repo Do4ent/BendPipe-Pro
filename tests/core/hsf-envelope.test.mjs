@@ -372,3 +372,38 @@ test('A20: non-EdgeBreaker shell decodes exact vertices and trivial face list',(
   assert.equal(shell.connectivity.codec,'trivial_face_list');
   assert.deepEqual(shell.connectivity.faces,[3,0,1,2]);
 });
+
+
+test('A20: compressed all-normal optional is length-delimited evidence, not invented vectors',()=>{
+  const workspace=Uint8Array.from([1,2,3,4,5,6]);
+  const bytes=Uint8Array.from([
+    0x53,0x1a,0x00,
+    ...le32(3),
+    ...f32(0),...f32(0),...f32(0),
+    ...f32(1),...f32(0),...f32(0),
+    ...f32(0),...f32(1),...f32(0),
+    0x01,...le32(5),0x08,3,0,1,2,
+    0x01,0x07,0x0c,...le32(workspace.length),...workspace,
+    0x00,
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  const opt=out.entities[0].optionals[0];
+  assert.equal(opt.kind,'all_normals_compressed');
+  assert.equal(opt.compression_scheme,7);
+  assert.equal(opt.bits_per_sample,12);
+  assert.equal(opt.workspace_length,6);
+  assert.equal(opt.normal_count,3);
+  assert.equal(opt.values_decoded,false);
+});
+
+test('A20: texture matrix stays separate from model geometry transforms',()=>{
+  const values=[1,0,0,0,1,0,0,0,1,2,3,4];
+  const bytes=Uint8Array.from([0x24,...values.flatMap(f32),0xff]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,49);
+  assert.equal(out.entities[0].kind,'texture_matrix');
+  assert.deepEqual(out.entities[0].elements,values);
+});
