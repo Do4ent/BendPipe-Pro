@@ -218,6 +218,85 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256 } = {}) {
       count += 1;
       continue;
     }
+    if (opcode === 0x74) { // TKE_Texture
+      let cursor = offset + 1;
+      const readTextureString = (label) => {
+        if (cursor >= bytes.length) throw new RangeError(`truncated TKE_Texture ${label} length`);
+        let length = bytes[cursor++];
+        if (length === 0xff) {
+          length = readI32LE(bytes, cursor);
+          cursor += 4;
+          if (length < 0) throw new RangeError(`negative TKE_Texture ${label} length`);
+        }
+        const end = cursor + length;
+        if (end > bytes.length) throw new RangeError(`truncated TKE_Texture ${label}`);
+        const value = readAscii(bytes, cursor, end);
+        cursor = end;
+        return value;
+      };
+
+      const name = readTextureString("name");
+      const imageName = readTextureString("image name");
+      let flags = readU16LE(bytes, cursor);
+      cursor += 2;
+      if ((flags & 0x8000) !== 0) {
+        flags = (flags | (readU16LE(bytes, cursor) << 16)) >>> 0;
+        cursor += 2;
+      }
+
+      const options = {};
+      const readByteOption = (bit, key) => {
+        if ((flags & bit) === 0) return;
+        if (cursor >= bytes.length) throw new RangeError(`truncated TKE_Texture ${key}`);
+        options[key] = bytes[cursor++];
+      };
+      readByteOption(0x00000001, "parameter_source");
+      readByteOption(0x00000002, "tiling");
+      readByteOption(0x00000004, "interpolation");
+      readByteOption(0x00000008, "decimation");
+      readByteOption(0x00000010, "red_mapping");
+      readByteOption(0x00000020, "green_mapping");
+      readByteOption(0x00000040, "blue_mapping");
+      readByteOption(0x00000080, "alpha_mapping");
+      readByteOption(0x00000100, "parameter_function");
+      readByteOption(0x00000200, "layout");
+
+      if ((flags & 0x00000800) !== 0) {
+        options.value_scale = Object.freeze([
+          readF32LE(bytes, cursor),
+          readF32LE(bytes, cursor + 4)
+        ]);
+        cursor += 8;
+      }
+      if ((flags & 0x00000400) !== 0) {
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Texture transform length");
+        const length = bytes[cursor++];
+        const end = cursor + length;
+        if (end > bytes.length) throw new RangeError("truncated TKE_Texture transform");
+        options.transform_segment = readAscii(bytes, cursor, end);
+        cursor = end;
+      }
+      if ((flags & (0x00010000 | 0x00020000)) !== 0) {
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Texture apply mode");
+        options.apply_mode = bytes[cursor++];
+      }
+      if ((flags & 0x00040000) !== 0) {
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Texture parameter offset");
+        options.parameter_offset = bytes[cursor++];
+      }
+
+      entities.push(Object.freeze({
+        kind: "texture",
+        source_offset: offset,
+        name,
+        image_name: imageName,
+        flags,
+        options: Object.freeze(options)
+      }));
+      offset = cursor;
+      count += 1;
+      continue;
+    }
     if (opcode === 0xe0) { // TKE_HW3D_Image
       let cursor = offset + 1;
       if (cursor >= bytes.length) throw new RangeError("truncated TKE_HW3D_Image name length");
