@@ -1,0 +1,53 @@
+{
+  "source_file": "ITEM[80003043(A)]-DOC[80003043(A)]-Components WTB, CoolMaster, NO-014.5.dwfx",
+  "source_sha256": "c2c378a60d3cca9a86d9f129bb04c554950bfca9ceecfb1565333b13ab3efa2a",
+  "source_size_bytes": 8520087,
+  "w3d_package_path": "dwf/documents/D492C1C0-C853-479F-948D-2EF82213214F/sections/com.autodesk.dwf.eModel_B397CB9F-AFD9-49E2-B574-1E95FC7F3AEA/19D23681-07EF-4A95-8CB7-0AC1F404CFE5.w3d",
+  "w3d_sha256": "697dacf55b7a2811c10d9ed961002f622fe974eaef6e6933085736e17dda5e5b",
+  "w3d_size_bytes": 7546162,
+  "hsf_version": "14.50",
+  "w3d_marker": "W3D V01.00",
+  "file_info_flags": [39430, 0],
+  "compression": {
+    "start_opcode_offset": 37,
+    "compressed_payload_offset": 38,
+    "decompressed_size_bytes": 20757548
+  },
+  "decompressed_hsf_sha256": "4d4ec8fcbb3de7b62fdff83aebe3f09d888c3557b2ccfb05dcc17f9083386407",
+  "synchronized_prefix": {
+    "entities": [
+      {
+        "kind": "segment",
+        "action": "open",
+        "source_offset": 0,
+        "name": "?Style Library/_dwfw3d_PublishedEdges"
+      },
+      {"kind": "segment", "action": "close", "source_offset": 39},
+      {
+        "kind": "bounds",
+        "source_offset": 40,
+        "shape": "cuboid",
+        "min": [-71.71809387207031, -51.2776985168457, -4.85923433303833],
+        "max": [9.149999618530273, 29.290395736694336, 116.56777954101562]
+      },
+      {
+        "kind": "view",
+        "source_offset": 66,
+        "projection": 0,
+        "position": [0, 0, 1.1627906560897827],
+        "target": [0, 0, 0],
+        "up_vector": [0, 1, 0],
+        "field_width": 10,
+        "field_height": 5,
+        "name": "default"
+      },
+      {"kind": "segment", "action": "open", "source_offset": 120, "name": ""}
+    ],
+    "next_offset": 122,
+    "unsupported_opcode_hex": "0x71",
+    "unsupported_opcode_name": "TKE_Tag",
+    "complete": false
+  },
+  "production_ready": false,
+  "note": "Golden facts extracted from the original 80003043(A) DWFx. Prefix decoding is evidence only; parsing stops at the first unsupported opcode and must not resynchronize by scanning."
+}
