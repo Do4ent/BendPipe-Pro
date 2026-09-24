@@ -720,3 +720,63 @@ test("A14: NC export is not shown for manual or non-CNC profiles", () => {
   assert.match(manufacturing, /ncApplicable\?'<button class="eng-btn primary" data-eng-export="nc">NC<\/button>'/);
   assert.match(manufacturing, /simTechnologyForTube\(activeTube\(\),d\)/);
 });
+
+
+test("A16: project tree groups offset rows by assemblyId", () => {
+  const tree = functionSlice("refreshProjectTree", "refreshEditPanel");
+
+  assert.match(tree, /ensureConstructionMetadata\(\)/);
+  assert.match(tree, /renderedAssemblies=new Set\(\)/);
+  assert.match(tree, /r\?\.assemblyId&&r\?\.assemblyType==='offset'/);
+  assert.match(tree, /data-tree-assembly=/);
+  assert.match(tree, /offsetAssemblyRows\(assemblyId\)/);
+  assert.match(tree, /offsetDisplayName\(assemblyId\)/);
+  assert.match(tree, /data-tree-assembly-part=/);
+});
+
+test("A16: offset children select the assembly rather than an independent row", () => {
+  const tree = functionSlice("refreshProjectTree", "refreshEditPanel");
+
+  assert.match(
+    tree,
+    /data-tree-assembly-part[\s\S]*selectOffsetAssembly\(n\.dataset\.treeAssemblyPart,false\)/
+  );
+  assert.doesNotMatch(
+    tree,
+    /data-tree-assembly-part[\s\S]*selectConstructionRow\(Number\(n\.dataset\.treeRowRef\)\)/
+  );
+});
+
+test("A16: composite offset collapse state is persisted in the tree", () => {
+  const tree = functionSlice("refreshProjectTree", "refreshEditPanel");
+
+  assert.match(tree, /state\.collapsedAssemblies\?\.\[assemblyId\]===true/);
+  assert.match(tree, /data-tree-assembly-toggle/);
+  assert.match(tree, /state\.collapsedAssemblies\[id\]=!/);
+  assert.match(tree, /save\(\);refreshProjectTree\(\)/);
+});
+
+test("A16: null bottom selection cannot become row zero", () => {
+  const editor = functionSlice("refreshEditPanel", "checkRow");
+  const tree = functionSlice("refreshProjectTree", "refreshEditPanel");
+
+  assert.match(
+    editor,
+    /Number\.isInteger\(bottomParamEditorIndex\)&&bottomParamEditorIndex>=0/
+  );
+  assert.doesNotMatch(editor, /const i=Number\(bottomParamEditorIndex\)/);
+  assert.match(
+    tree,
+    /Number\.isInteger\(bottomParamEditorIndex\)&&bottomParamEditorIndex===i/
+  );
+});
+
+test("A16: selected offset shows a composite editor summary instead of row zero", () => {
+  const editor = functionSlice("refreshEditPanel", "checkRow");
+
+  assert.match(editor, /if\(selectedAssemblyId\)/);
+  assert.match(editor, /offsetAssemblyRows\(selectedAssemblyId\)/);
+  assert.match(editor, /offsetAssemblyDefinition\(selectedAssemblyId\)/);
+  assert.match(editor, /Внутренние LINE\/BEND редактируются через параметры офсета/);
+  assert.match(editor, /Составной офсет/);
+});
