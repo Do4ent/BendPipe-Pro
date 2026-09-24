@@ -52,6 +52,39 @@ test("A19: exact DWFx metadata remains source truth with provenance", () => {
   assert.equal(p10157549.metadata.developed_length.value, 512.3);
 });
 
+
+test("A20: exact DWFx XML object linkage is preserved for geometry correlation", () => {
+  const result = normalizeDwfxMetadataRecognition(input);
+  const byPart = new Map(result.tubes.map((tube) => [tube.part_number, tube]));
+
+  assert.deepEqual(byPart.get("10160780").source_evidence.source_object_link, {
+    referenceNodeId: "TD4C6rYJ0Ui8vPcd0hGi6w",
+    contentElementRef: "C++tg4ZCQ0+2QU4Qi13JRg",
+    entityRef: "Cu+tg4ZCQ0+2QU4Qi13JRg",
+    source: "DWFx model/content XML"
+  });
+  assert.equal(
+    byPart.get("10157546").source_evidence.source_object_link.contentElementRef,
+    "e++tg4ZCQ0+2QU4Qi13JRg"
+  );
+  assert.equal(
+    byPart.get("10157555").source_evidence.source_object_link.entityRef,
+    "he+tg4ZCQ0+2QU4Qi13JRg"
+  );
+  assert.equal(
+    byPart.get("10157683").source_evidence.source_object_link.referenceNodeId,
+    "hz4C6rYJ0Ui8vPcd0hGi6w"
+  );
+  assert.equal(
+    byPart.get("10157549").source_evidence.source_object_link.contentElementRef,
+    "FPCtg4ZCQ0+2QU4Qi13JRg"
+  );
+  assert.equal(
+    byPart.get("10157552").source_evidence.source_object_link.entityRef,
+    "FvCtg4ZCQ0+2QU4Qi13JRg"
+  );
+});
+
 test("A19: DWFx metadata normalizer refuses non-DWFx input", () => {
   assert.throws(
     () => normalizeDwfxMetadataRecognition({ source: { format: "STEP" } }),
