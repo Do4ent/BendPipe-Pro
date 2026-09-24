@@ -14676,12 +14676,11 @@ function simRowFraction(rowIndex,phase,progress){
   return 0;
 }
 function simCenterlineLength(rows,style){
-  const fallback={Rb:Number(style?.centerlineRadius)};
   return (rows||[]).reduce((sum,r)=>{
     if(r?.type==='LINE')return sum+Math.max(0,evalFormula(r.L,0));
     if(r?.type==='BEND'){
-      const R=bendCenterlineRadiusMm(r,state.diameterIndex)||Number(fallback.Rb)||0;
-      if(!(R>0))throw new RangeError('Simulation BEND CLR is not defined');
+      const R=Number(r.clr);
+      if(!(Number.isFinite(R)&&R>0))throw new RangeError('Simulation BEND CLR is not defined in geometry');
       return sum+Math.abs(THREE.MathUtils.degToRad(n(r.angle)))*R;
     }
     return sum;
@@ -14713,8 +14712,8 @@ function simBuildShape(group){
       pos=end;formedLength+=len/GEOM_SCALE;currentPos=pos.clone();currentDir=dir.clone();
       if(frac<.999999){stopped=true;break;}
     }else if(row.type==='BEND'){
-      const clr=bendCenterlineRadiusMm(row,t.id===state.activeTubeId?state.diameterIndex:t.diameterIndex);
-      if(!(clr>0))throw new RangeError(`Simulation BEND CLR is not defined at row ${i+1}`);
+      const clr=Number(row.clr);
+      if(!(Number.isFinite(clr)&&clr>0))throw new RangeError(`Simulation BEND CLR is not defined at row ${i+1}`);
       const bendR=Math.max(.12,clr*GEOM_SCALE);
       const arc=simArcData(pos,dir,row,bendR,frac),isCurrent=frac<.999999&&phase?.bendRowIndex===i;
       const mesh=simTube(arc.points,tubeR,isCurrent?currentMat:formedMat,{rowIndex:i,kind:'formed-bend'});if(mesh)group.add(mesh);
@@ -14748,8 +14747,8 @@ function simBuildShape(group){
     group.add(ghost);
   }
   const phaseRow=Number.isInteger(Number(phase?.bendRowIndex))?rows[Number(phase.bendRowIndex)]:null;
-  const phaseClr=bendCenterlineRadiusMm(phaseRow,t.id===state.activeTubeId?state.diameterIndex:t.diameterIndex);
-  const machineBendR=phaseClr>0?Math.max(.12,phaseClr*GEOM_SCALE):Math.max(.12,tubeR*3);
+  const phaseClr=Number(phaseRow?.clr);
+  const machineBendR=Number.isFinite(phaseClr)&&phaseClr>0?Math.max(.12,phaseClr*GEOM_SCALE):Math.max(.12,tubeR*3);
   return {group,segments,rawSegment,tubeR,bendR:machineBendR,phase,progress,pos:currentPos,dir:currentDir,currentArc,remainingMm:remaining,formedLengthMm:formedLength,totalLengthMm:total};
 }
 function simOrientCylinder(mesh,axis){mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),axis.clone().normalize());}
