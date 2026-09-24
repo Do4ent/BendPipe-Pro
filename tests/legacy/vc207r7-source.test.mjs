@@ -412,3 +412,51 @@ test("A15: bend editor shows persisted CLR and origin does not pretend to have o
     /\[mt\('angle'\),'—','',true\],\[mt\('radius'\),'—','',true\]/
   );
 });
+
+
+test("A15: nominal CLR is persisted per bend and used across geometry paths", () => {
+  const helpers = html.slice(
+    html.indexOf("function exactToolAtIndex("),
+    html.indexOf("function developedLengthWithRowsAndPipe(")
+  );
+  const normalize = functionSlice("normalizeTubeRowStart", "firstStraightTechnologicalViolation");
+  const bounds = functionSlice("analyzePipeBounds", "analyzeTubeBounds");
+  const collision = functionSlice("buildTubeCollisionGeometry", "tubeBoxesOverlap");
+  const geometry = functionSlice("geometryForTube", "rebuildRouteGraph");
+  const manufacturing = functionSlice("manufacturingData", "machineSequenceCheck");
+  const simulationLength = functionSlice("simCenterlineLength", "simMaterial");
+  const simulationShape = functionSlice("simBuildShape", "simOrientCylinder");
+
+  assert.match(helpers, /Number\(row\?\.clr\)/);
+  assert.match(helpers, /legacy_tooling_snapshot/);
+  assert.match(normalize, /snapshotLegacyBendClr\(normalized,diameterIndex\)/);
+  assert.match(bounds, /bendCenterlineRadiusMm\(r,diameterIndex\)/);
+  assert.match(collision, /bendCenterlineRadiusMm\(r,snap\.diameterIndex\)/);
+  assert.match(geometry, /bendCenterlineRadiusMm\(r,/);
+  assert.match(manufacturing, /radius:bendCenterlineRadiusMm\(r,t\.diameterIndex\)/);
+  assert.match(manufacturing, /toolRadius:n\(pipeAt\(t\.diameterIndex\)\?\.Rb,0\)/);
+  assert.match(simulationLength, /bendCenterlineRadiusMm\(r,state\.diameterIndex\)/);
+  assert.match(simulationShape, /bendCenterlineRadiusMm\(row,/);
+});
+
+test("A15: imported unknown formats cannot infer missing CLR from tooling", () => {
+  const normalize = functionSlice("poNormalizeTube", "poNormalizePackage");
+  const path = functionSlice("poBuildTubePath", "poClosestSegments");
+  const gate = functionSlice("productionReleaseDecision", "exportManufacturing");
+
+  assert.match(normalize, /legacyTubeBenderVersion=\/\^VC\\d\+\/i/);
+  assert.match(normalize, /CLR гиба отсутствует/);
+  assert.match(normalize, /legacy_tooling_snapshot/);
+  assert.match(path, /const bendR=Number\(r\.clr\)/);
+  assert.doesNotMatch(path, /legacyClr=Number\(tool\.Rb\)/);
+  assert.match(gate, /const clr=Number\(row\.clr\)/);
+  assert.match(gate, /номинальный CLR не сохранён в геометрии/);
+});
+
+test("A15: newly created bend snapshots CLR instead of retaining a live tooling dependency", () => {
+  const addBend = functionSlice("addBendVariant", "addBend");
+
+  assert.match(addBend, /clr:bendCenterlineRadiusMm\(null,state\.diameterIndex\)/);
+  assert.match(addBend, /clrSource:'tooling_default_at_creation'/);
+  assert.match(addBend, /clrToolingId:pipeDb\[state\.diameterIndex\]\?\.id/);
+});
