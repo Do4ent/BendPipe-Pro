@@ -461,6 +461,26 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       count += 1;
       continue;
     }
+    if (opcode === 0x3d) { // TKE_Line_Weight
+      if (offset + 5 > bytes.length) throw new RangeError("truncated TKE_Line_Weight");
+      const weight = readF32LE(bytes, offset + 1);
+      if (!Number.isFinite(weight)) throw new RangeError("non-finite TKE_Line_Weight");
+      let cursor = offset + 5;
+      let units = null;
+      if (weight < 0) {
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Line_Weight units");
+        units = bytes[cursor++];
+      }
+      entities.push(Object.freeze({
+        kind: "line_weight",
+        source_offset: offset,
+        weight,
+        units
+      }));
+      offset = cursor;
+      count += 1;
+      continue;
+    }
     if (opcode === 0x24) { // TKE_Texture_Matrix
       if (offset + 49 > bytes.length) throw new RangeError("truncated TKE_Texture_Matrix");
       const elements = [];
@@ -617,13 +637,28 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
     if (opcode === 0x7e) { // TKE_Color_RGB
       if (offset + 5 > bytes.length) throw new RangeError("truncated TKE_Color_RGB");
       let cursor = offset + 1;
-      const geometryLow = bytes[cursor++];
-      let geometryHigh = null;
-      let geometryMask = geometryLow;
-      if ((geometryLow & 0x80) !== 0) {
-        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Color_RGB geometry mask");
-        geometryHigh = bytes[cursor++];
-        geometryMask = (geometryLow | (geometryHigh << 8)) >>> 0;
+      const geometryBytes = [];
+      let geometryMask = bytes[cursor++];
+      geometryBytes.push(geometryMask);
+      if ((geometryMask & 0x00000080) !== 0) {
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Color_RGB extended geometry mask");
+        const value = bytes[cursor++];
+        geometryBytes.push(value);
+        geometryMask |= value << 8;
+      }
+      if ((geometryMask & 0x00008000) !== 0) {
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Color_RGB extended color geometry mask");
+        const value = bytes[cursor++];
+        geometryBytes.push(value);
+        geometryMask |= value << 16;
+      }
+      if ((geometryMask & 0x00800000) !== 0) {
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Color_RGB secondary geometry mask");
+        const value = bytes[cursor++];
+        geometryBytes.push(value);
+        geometryMask = (geometryMask | (value << 24)) >>> 0;
+      } else {
+        geometryMask >>>= 0;
       }
       if (cursor + 3 > bytes.length) throw new RangeError("truncated TKE_Color_RGB value");
       const rgb = Object.freeze([bytes[cursor], bytes[cursor + 1], bytes[cursor + 2]]);
@@ -633,9 +668,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         source_offset: offset,
         encoding: "rgb8",
         geometry_mask: geometryMask,
-        geometry_bytes: Object.freeze(
-          geometryHigh == null ? [geometryLow] : [geometryLow, geometryHigh]
-        ),
+        geometry_bytes: Object.freeze(geometryBytes),
         rgb_bytes: rgb
       }));
       offset = cursor;
