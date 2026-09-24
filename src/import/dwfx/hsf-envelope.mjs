@@ -12,6 +12,11 @@ function readU16LE(bytes, offset) {
   return new DataView(bytes.buffer, bytes.byteOffset + offset, 2).getUint16(0, true);
 }
 
+function readI32LE(bytes, offset) {
+  if (offset + 4 > bytes.length) throw new RangeError("truncated int32 operand");
+  return new DataView(bytes.buffer, bytes.byteOffset + offset, 4).getInt32(0, true);
+}
+
 function readU32LE(bytes, offset) {
   if (offset + 4 > bytes.length) throw new RangeError("truncated uint32 operand");
   return new DataView(bytes.buffer, bytes.byteOffset + offset, 4).getUint32(0, true);
@@ -210,6 +215,33 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256 } = {}) {
     if (opcode === 0x01) { // TKE_Pause: no operands
       entities.push(Object.freeze({ kind: "pause", source_offset: offset }));
       offset += 1;
+      count += 1;
+      continue;
+    }
+    if (opcode === 0xe0) { // TKE_HW3D_Image
+      let cursor = offset + 1;
+      if (cursor >= bytes.length) throw new RangeError("truncated TKE_HW3D_Image name length");
+      const nameLength = bytes[cursor++];
+      const nameEnd = cursor + nameLength;
+      if (nameEnd > bytes.length) throw new RangeError("truncated TKE_HW3D_Image name");
+      const name = readAscii(bytes, cursor, nameEnd);
+      cursor = nameEnd;
+      const width = readI32LE(bytes, cursor);
+      cursor += 4;
+      const height = readI32LE(bytes, cursor);
+      cursor += 4;
+      if (cursor >= bytes.length) throw new RangeError("truncated TKE_HW3D_Image bit depth");
+      const bitDepth = bytes[cursor++];
+
+      entities.push(Object.freeze({
+        kind: "hw3d_image",
+        source_offset: offset,
+        name,
+        width,
+        height,
+        bit_depth: bitDepth
+      }));
+      offset = cursor;
       count += 1;
       continue;
     }
