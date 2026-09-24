@@ -137,10 +137,30 @@ test('A20: Autodesk HW3D image descriptor keeps only resource metadata',()=>{
   assert.equal(out.entities[0].bit_depth,32);
 });
 
-test('A20: unknown opcode stops synchronized parsing instead of scanning or guessing',()=>{
-  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x28,0x01,0x61,0x74,0x01,0x02,0x03]));
+test('A20: texture parser follows length, flags and conditional fields exactly',()=>{
+  const name='"ENVIRONMENT-X"';
+  const bytes=Uint8Array.from([
+    0x74,
+    name.length,...Buffer.from(name),
+    name.length,...Buffer.from(name),
+    0x01,0x00,
+    0x06,
+    0x53
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes);
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x74);
+  assert.equal(out.unsupported_opcode,0x53);
+  assert.equal(out.entities[0].kind,'texture');
+  assert.equal(out.entities[0].name,name);
+  assert.equal(out.entities[0].image_name,name);
+  assert.equal(out.entities[0].flags,1);
+  assert.equal(out.entities[0].options.parameter_source,6);
+});
+
+test('A20: unknown opcode stops synchronized parsing instead of scanning or guessing',()=>{
+  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x28,0x01,0x61,0x53,0x01,0x02,0x03]));
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.unsupported_opcode,0x53);
   assert.equal(out.next_offset,3);
   assert.equal(out.entities.length,1);
 });
