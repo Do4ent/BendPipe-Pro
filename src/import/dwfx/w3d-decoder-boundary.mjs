@@ -27,6 +27,7 @@ const ALLOWED_KINDS = new Set([
   "rendering_options",
   "texture_matrix",
   "line_weight",
+  "polygon",
   "polyline",
   "triangle_mesh",
   "curve_candidate",
