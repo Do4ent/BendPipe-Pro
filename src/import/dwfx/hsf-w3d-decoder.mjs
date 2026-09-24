@@ -5,16 +5,20 @@ function hexByte(value) {
 }
 
 function evidenceEntity(entity, index) {
+  const transform =
+    entity.kind === "transform" && Array.isArray(entity.matrix)
+      ? [...entity.matrix]
+      : null;
   const common = {
     entity_id: `hsf-${entity.kind}-${index + 1}`,
     kind: entity.kind,
     source_offset: entity.source_offset,
-    transform: null,
+    transform,
     confidence: 1,
     reason: `Decoded from synchronized HSF opcode stream at decompressed offset ${entity.source_offset}.`
   };
 
-  const { kind, source_offset, ...payload } = entity;
+  const { kind, source_offset, matrix, ...payload } = entity;
   return {
     ...common,
     payload: {
