@@ -296,3 +296,18 @@ test("A11: missing corpus dimensions block import instead of inventing 3000x1000
   assert.match(normalize, /рамка 3000×1000×1000 не подставляется/);
   assert.match(normalize, /productionBlocked=true/);
 });
+
+
+test("A12: DXF samples bend curvature with an explicit 0.1 mm centerline deviation limit", () => {
+  const sampler = functionSlice("dxfCenterlinePoints", "dxfForTube");
+  const dxf = functionSlice("dxfForTube", "reportHtml");
+
+  assert.match(sampler, /maxDeviationMm=0\.1/);
+  assert.match(sampler, /sagittaStep=2\*Math\.acos\(ratio\)/);
+  assert.match(sampler, /Math\.ceil\(sweep\/maxStep\)/);
+  assert.match(sampler, /applyAxisAngle\(element\.axis/);
+  assert.match(dxf, /MAX_CENTERLINE_DEVIATION_MM/);
+  assert.match(dxf, /TUBE_CENTERLINE/);
+  assert.doesNotMatch(dxf, /rebuildRouteGraph\(t,false\)/);
+  assert.doesNotMatch(dxf, /g\.points\|\|\[\]/);
+});
