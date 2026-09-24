@@ -240,13 +240,93 @@
         "source_offset": 211,
         "mask": 2,
         "value": 65533
+      },
+      {
+        "kind": "hw3d_image",
+        "source_offset": 216,
+        "name": "\"ENVIRONMENT-F36F8E54-5909-41d6-9FC3-020CB8A46593\"",
+        "width": 256,
+        "height": 256,
+        "bit_depth": 32
+      },
+      {
+        "kind": "hw3d_image",
+        "source_offset": 277,
+        "name": "\"7bffc8aa-b4a1-4b6a-b9fd-26875d1788e3\"",
+        "width": 267,
+        "height": 267,
+        "bit_depth": 32
+      },
+      {
+        "kind": "hw3d_image",
+        "source_offset": 326,
+        "name": "\"ca706aeb-9aa7-4e90-a964-0ef8eb764ef6\"",
+        "width": 200,
+        "height": 200,
+        "bit_depth": 32
+      },
+      {
+        "kind": "hw3d_image",
+        "source_offset": 375,
+        "name": "\"28cbf2b9-50c3-44bc-896d-27f5921945ad\"",
+        "width": 363,
+        "height": 313,
+        "bit_depth": 32
+      },
+      {
+        "kind": "hw3d_image",
+        "source_offset": 424,
+        "name": "\"648d8979-ff74-4856-ba3e-0e36ae508d26\"",
+        "width": 601,
+        "height": 795,
+        "bit_depth": 32
+      },
+      {
+        "kind": "segment",
+        "action": "open",
+        "source_offset": 473,
+        "name": "?Include Library/4"
+      },
+      {
+        "kind": "tag",
+        "source_offset": 493
+      },
+      {
+        "kind": "user_options",
+        "source_offset": 494,
+        "value": "node"
+      },
+      {
+        "kind": "segment",
+        "action": "open",
+        "source_offset": 501,
+        "name": ""
+      },
+      {
+        "kind": "tag",
+        "source_offset": 503
+      },
+      {
+        "kind": "user_options",
+        "source_offset": 504,
+        "value": "non_measurable_geometry"
+      },
+      {
+        "kind": "segment",
+        "action": "open",
+        "source_offset": 530,
+        "name": ""
+      },
+      {
+        "kind": "tag",
+        "source_offset": 532
       }
     ],
-    "next_offset": 216,
-    "unsupported_opcode_hex": "0xE0",
-    "unsupported_opcode_name": "TKE_HW3D_Image",
+    "next_offset": 533,
+    "unsupported_opcode_hex": "0x74",
+    "unsupported_opcode_name": "TKE_Texture",
     "complete": false
   },
   "production_ready": false,
-  "note": "Golden facts extracted from the original 80003043(A) DWFx. Prefix decoding is evidence only; parsing stops at the first unsupported opcode and must not resynchronize by scanning. Current synchronized frontier is TKE_HW3D_Image at decompressed offset 216."
+  "note": "Golden facts extracted from the original 80003043(A) DWFx. Prefix decoding is evidence only; parsing stops at the first unsupported opcode and must not resynchronize by scanning. Current synchronized frontier is TKE_Texture at decompressed offset 533."
 }
