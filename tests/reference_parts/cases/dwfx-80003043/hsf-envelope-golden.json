@@ -17,373 +17,50 @@
     "decompressed_size_bytes": 20757548
   },
   "decompressed_hsf_sha256": "4d4ec8fcbb3de7b62fdff83aebe3f09d888c3557b2ccfb05dcc17f9083386407",
-  "synchronized_prefix": {
-    "entities": [
-      {
-        "kind": "segment",
-        "action": "open",
-        "source_offset": 0,
-        "name": "?Style Library/_dwfw3d_PublishedEdges"
-      },
-      {
-        "kind": "segment",
-        "action": "close",
-        "source_offset": 39
-      },
-      {
-        "kind": "bounds",
-        "source_offset": 40,
-        "shape": "cuboid",
-        "min": [
-          -71.71809387207031,
-          -51.2776985168457,
-          -4.85923433303833
-        ],
-        "max": [
-          9.149999618530273,
-          29.290395736694336,
-          116.56777954101562
-        ]
-      },
-      {
-        "kind": "view",
-        "source_offset": 66,
-        "projection": 0,
-        "position": [
-          0,
-          0,
-          1.1627906560897827
-        ],
-        "target": [
-          0,
-          0,
-          0
-        ],
-        "up_vector": [
-          0,
-          1,
-          0
-        ],
-        "field_width": 10,
-        "field_height": 5,
-        "name": "default"
-      },
-      {
-        "kind": "segment",
-        "action": "open",
-        "source_offset": 120,
-        "name": ""
-      },
-      {
-        "kind": "tag",
-        "source_offset": 122
-      },
-      {
-        "kind": "light",
-        "light_type": "distant",
-        "source_offset": 123,
-        "direction": [
-          0.3045180141925812,
-          0.7193400263786316,
-          -0.6243550181388855
-        ]
-      },
-      {
-        "kind": "pause",
-        "source_offset": 136
-      },
-      {
-        "kind": "color",
-        "source_offset": 137,
-        "geometry_mask": 640,
-        "channels_mask": 3,
-        "channels": {
-          "diffuse": {
-            "rgb_bytes": [
-              127,
-              127,
-              127
-            ]
-          },
-          "specular": {
-            "rgb_bytes": [
-              255,
-              255,
-              255
-            ]
-          }
-        }
-      },
-      {
-        "kind": "geometry_scope",
-        "action": "open",
-        "source_offset": 149
-      },
-      {
-        "kind": "color",
-        "source_offset": 150,
-        "geometry_mask": 384,
-        "channels_mask": 1,
-        "channels": {
-          "diffuse": {
-            "rgb_bytes": [
-              51,
-              51,
-              51
-            ]
-          }
-        }
-      },
-      {
-        "kind": "geometry_scope",
-        "action": "close",
-        "source_offset": 158
-      },
-      {
-        "kind": "segment",
-        "action": "close",
-        "source_offset": 159
-      },
-      {
-        "kind": "segment",
-        "action": "open",
-        "source_offset": 160,
-        "name": ""
-      },
-      {
-        "kind": "tag",
-        "source_offset": 162
-      },
-      {
-        "kind": "light",
-        "light_type": "distant",
-        "source_offset": 163,
-        "direction": [
-          -0.48208698630332947,
-          -0.6427879929542542,
-          0.5953279733657837
-        ]
-      },
-      {
-        "kind": "pause",
-        "source_offset": 176
-      },
-      {
-        "kind": "color",
-        "source_offset": 177,
-        "geometry_mask": 640,
-        "channels_mask": 3,
-        "channels": {
-          "diffuse": {
-            "rgb_bytes": [
-              90,
-              91,
-              102
-            ]
-          },
-          "specular": {
-            "rgb_bytes": [
-              180,
-              183,
-              205
-            ]
-          }
-        }
-      },
-      {
-        "kind": "geometry_scope",
-        "action": "open",
-        "source_offset": 189
-      },
-      {
-        "kind": "color",
-        "source_offset": 190,
-        "geometry_mask": 384,
-        "channels_mask": 1,
-        "channels": {
-          "diffuse": {
-            "rgb_bytes": [
-              36,
-              36,
-              41
-            ]
-          }
-        }
-      },
-      {
-        "kind": "geometry_scope",
-        "action": "close",
-        "source_offset": 198
-      },
-      {
-        "kind": "segment",
-        "action": "close",
-        "source_offset": 199
-      },
-      {
-        "kind": "segment",
-        "action": "open",
-        "source_offset": 200,
-        "name": "3"
-      },
-      {
-        "kind": "tag",
-        "source_offset": 203
-      },
-      {
-        "kind": "user_options",
-        "source_offset": 204,
-        "value": "node"
-      },
-      {
-        "kind": "heuristics",
-        "source_offset": 211,
-        "mask": 2,
-        "value": 65533
-      },
-      {
-        "kind": "hw3d_image",
-        "source_offset": 216,
-        "name": "\"ENVIRONMENT-F36F8E54-5909-41d6-9FC3-020CB8A46593\"",
-        "width": 256,
-        "height": 256,
-        "bit_depth": 32
-      },
-      {
-        "kind": "hw3d_image",
-        "source_offset": 277,
-        "name": "\"7bffc8aa-b4a1-4b6a-b9fd-26875d1788e3\"",
-        "width": 267,
-        "height": 267,
-        "bit_depth": 32
-      },
-      {
-        "kind": "hw3d_image",
-        "source_offset": 326,
-        "name": "\"ca706aeb-9aa7-4e90-a964-0ef8eb764ef6\"",
-        "width": 200,
-        "height": 200,
-        "bit_depth": 32
-      },
-      {
-        "kind": "hw3d_image",
-        "source_offset": 375,
-        "name": "\"28cbf2b9-50c3-44bc-896d-27f5921945ad\"",
-        "width": 363,
-        "height": 313,
-        "bit_depth": 32
-      },
-      {
-        "kind": "hw3d_image",
-        "source_offset": 424,
-        "name": "\"648d8979-ff74-4856-ba3e-0e36ae508d26\"",
-        "width": 601,
-        "height": 795,
-        "bit_depth": 32
-      },
-      {
-        "kind": "segment",
-        "action": "open",
-        "source_offset": 473,
-        "name": "?Include Library/4"
-      },
-      {
-        "kind": "tag",
-        "source_offset": 493
-      },
-      {
-        "kind": "user_options",
-        "source_offset": 494,
-        "value": "node"
-      },
-      {
-        "kind": "segment",
-        "action": "open",
-        "source_offset": 501,
-        "name": ""
-      },
-      {
-        "kind": "tag",
-        "source_offset": 503
-      },
-      {
-        "kind": "user_options",
-        "source_offset": 504,
-        "value": "non_measurable_geometry"
-      },
-      {
-        "kind": "segment",
-        "action": "open",
-        "source_offset": 530,
-        "name": ""
-      },
-      {
-        "kind": "tag",
-        "source_offset": 532
-      },
-      {
-        "kind": "texture",
-        "source_offset": 533,
-        "name": "\"ENVIRONMENT-F36F8E54-5909-41d6-9FC3-020CB8A46593\"",
-        "image_name": "\"ENVIRONMENT-F36F8E54-5909-41d6-9FC3-020CB8A46593\"",
-        "flags": 1,
-        "options": {
-          "parameter_source": 6
-        }
-      },
-      {
-        "kind": "color",
-        "source_offset": 639,
-        "geometry_mask": 1,
-        "channels_mask": 447,
-        "channels": {
-          "diffuse": {
-            "rgb_bytes": [
-              190,
-              188,
-              186
-            ]
-          },
-          "specular": {
-            "rgb_bytes": [
-              190,
-              188,
-              186
-            ]
-          },
-          "mirror": {
-            "rgb_bytes": [
-              45,
-              45,
-              45
-            ]
-          },
-          "transmission": {
-            "rgb_bytes": [
-              0,
-              0,
-              0
-            ]
-          },
-          "emission": {
-            "rgb_bytes": [
-              0,
-              0,
-              0
-            ]
-          },
-          "gloss": 14.734375,
-          "environment": {
-            "name": "\"ENVIRONMENT-F36F8E54-5909-41d6-9FC3-020CB8A46593\""
-          }
-        }
-      }
-    ],
-    "next_offset": 718,
-    "unsupported_opcode_hex": "0x53",
-    "unsupported_opcode_name": "TKE_Shell",
-    "complete": false
-  },
   "production_ready": false,
-  "note": "Golden facts extracted from the original 80003043(A) DWFx. Prefix decoding is evidence only; parsing stops at the first unsupported opcode and must not resynchronize by scanning. Current synchronized frontier is the first TKE_Shell geometry at decompressed offset 718."
+  "note": "Golden facts extracted from the original 80003043(A) DWFx. The HSF/W3D opcode stream now decodes synchronously from offset 0 through TKE_Stop_Compression without byte scanning or guessed lengths. Full binary decoding does not by itself promote scene geometry to canonical tube centerlines or production-ready manufacturing data.",
+  "full_stream_validation": {
+    "complete": true,
+    "stop_compression_offset": 20757547,
+    "opcode_records_before_stop": 617568,
+    "opcode_records_including_stop": 617569,
+    "retained_geometry_provenance_entities": 132833,
+    "representative_offsets": {
+      "first_shell": 718,
+      "first_rendering_options": 20132,
+      "first_nurbs_curve": 275217,
+      "modelling_matrix_near_tail": 20513239
+    },
+    "opcode_histogram": {
+      "TKE_Open_Segment": 121300,
+      "TKE_Close_Segment": 121300,
+      "TKE_Tag": 121299,
+      "TKE_Color_RGB": 119049,
+      "TKE_Line": 76679,
+      "TKE_Polyline": 28226,
+      "TKE_Circular_Arc": 20902,
+      "TKE_Polygon": 3850,
+      "TKE_User_Options": 1296,
+      "TKE_Color": 777,
+      "TKE_Shell": 771,
+      "TKE_Modelling_Matrix": 549,
+      "TKE_Include_Segment": 531,
+      "TKE_Texture": 371,
+      "TKE_Visibility": 195,
+      "TKE_Style_Segment": 175,
+      "TKE_Texture_Matrix": 112,
+      "TKE_Rendering_Options": 107,
+      "TKE_NURBS_Curve": 28,
+      "TKE_Heuristics": 15,
+      "TKE_Line_Weight": 14,
+      "TKE_HW3D_Image": 12,
+      "TKE_Distant_Light": 2,
+      "TKE_Pause": 2,
+      "TKE_Geometry_Attributes": 2,
+      "TKE_Termination": 2,
+      "TKE_Bounding_Info": 1,
+      "TKE_View": 1,
+      "TKE_Stop_Compression": 1
+    }
+  }
 }
