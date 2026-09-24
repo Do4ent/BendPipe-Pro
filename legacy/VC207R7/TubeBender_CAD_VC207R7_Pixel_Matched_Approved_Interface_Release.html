@@ -14661,7 +14661,7 @@ function simRowFraction(rowIndex,phase,progress){
   if(phase.type==='finish'){if(rowIndex<phase.rowIndex)return 1;if(rowIndex===phase.rowIndex)return progress;return 0;}
   return 0;
 }
-function simCenterlineLength(rows,style){const R=Math.max(0,n(style?.centerlineRadius,0));return (rows||[]).reduce((sum,r)=>sum+(r?.type==='LINE'?Math.max(0,evalFormula(r.L,0)):r?.type==='BEND'?Math.abs(THREE.MathUtils.degToRad(n(r.angle)))*R:0),0);}
+function simCenterlineLength(rows,style,diameterIndex=state.diameterIndex){return (rows||[]).reduce((sum,r)=>sum+(r?.type==='LINE'?Math.max(0,evalFormula(r.L,0)):r?.type==='BEND'?Math.abs(THREE.MathUtils.degToRad(n(r.angle)))*bendCenterlineRadiusMm(r,diameterIndex):0),0);}
 function simMaterial(color,opacity=1,emissive=0,wireframe=false){return new THREE.MeshStandardMaterial({color,roughness:.55,metalness:.16,transparent:opacity<.999,opacity,depthWrite:opacity>.72,emissive,emissiveIntensity:emissive?0.35:0,wireframe});}
 function simCylinder(a,b,r,material,meta={}){const d=b.clone().sub(a),len=d.length();if(len<1e-7)return null;const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,24,1,false),material);m.position.copy(a.clone().add(b).multiplyScalar(.5));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());m.userData={simulation:true,...meta};return m;}
 function simTube(points,r,material,meta={}){if(!points||points.length<2)return null;const curve=new THREE.CatmullRomCurve3(points,false,'centripetal',.5);const m=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(12,(points.length-1)*5),r,18,false),material);m.userData={simulation:true,...meta};return m;}
@@ -14674,7 +14674,7 @@ function simArcData(start,dir,row,R,fraction=1){
 }
 function simAddPolylineSegments(target,points,rowIndex,kind){for(let i=1;i<points.length;i++)target.push({a:points[i-1].clone(),b:points[i].clone(),rowIndex,kind});}
 function simBuildShape(group){
-  const s=simEnsureState(),t=activeTube(),rows=tubeRows(t),style=currentStyle()||{},phase=simCurrentPhase(),progress=THREE.MathUtils.clamp(n(s.phaseProgress),0,1),tubeR=Math.max(.055,n(style.outerDiameter,22)*.5*GEOM_SCALE),bendR=Math.max(.12,n(style.centerlineRadius,50)*GEOM_SCALE);
+  const s=simEnsureState(),t=activeTube(),rows=tubeRows(t),style=currentStyle()||{},phase=simCurrentPhase(),progress=THREE.MathUtils.clamp(n(s.phaseProgress),0,1),tubeR=Math.max(.055,n(style.outerDiameter,22)*.5*GEOM_SCALE);
   const formedMat=simMaterial(0x4da3ff,1,0x09284a),currentMat=simMaterial(0xff9a3c,1,0x633000),rawMat=simMaterial(0xaeb8c5,.72,0x17202b),ghostMat=simMaterial(0x7f94ad,.13,0,true);
   let pos=originVectorScaled().clone(),dir=startDirectionVector().clone().normalize(),formedLength=0,stopped=false,currentArc=null,currentPos=pos.clone(),currentDir=dir.clone();
   const segments=[];
@@ -14688,6 +14688,7 @@ function simBuildShape(group){
       pos=end;formedLength+=len/GEOM_SCALE;currentPos=pos.clone();currentDir=dir.clone();
       if(frac<.999999){stopped=true;break;}
     }else if(row.type==='BEND'){
+      const bendR=Math.max(.12,bendCenterlineRadiusMm(row,t?.diameterIndex??state.diameterIndex)*GEOM_SCALE);
       const arc=simArcData(pos,dir,row,bendR,frac),isCurrent=frac<.999999&&phase?.bendRowIndex===i;
       const mesh=simTube(arc.points,tubeR,isCurrent?currentMat:formedMat,{rowIndex:i,kind:'formed-bend'});if(mesh)group.add(mesh);
       simAddPolylineSegments(segments,arc.points,i,'formed');
@@ -14695,15 +14696,15 @@ function simBuildShape(group){
       if(frac<.999999){stopped=true;break;}
     }
   }
-  const total=simCenterlineLength(rows,style),remaining=Math.max(0,total-formedLength);
+  const total=simCenterlineLength(rows,style,t?.diameterIndex??state.diameterIndex),remaining=Math.max(0,total-formedLength);
   let rawSegment=null;
   if(s.showRaw&&phase?.type!=='done'&&remaining>1e-5){const rawEnd=currentPos.clone().add(currentDir.clone().multiplyScalar(remaining*GEOM_SCALE));const raw=simCylinder(currentPos,rawEnd,tubeR,rawMat,{rowIndex:-1,kind:'raw-stock'});if(raw)group.add(raw);rawSegment={a:currentPos.clone(),b:rawEnd.clone(),rowIndex:-1,kind:'raw'};segments.push(rawSegment);}
   if(s.showGhost){
     const g=geometryForTube(t),ghost=new THREE.Group();
-    for(const el of g.elements){if(el.type==='LINE'){const m=simCylinder(el.start,el.end,Math.max(.012,tubeR*.18),ghostMat,{kind:'ghost'});if(m)ghost.add(m);}else{const row=rows[el.rowIndex],arc=simArcData(el.start,el.directionIn,row,bendR,1),m=simTube(arc.points,Math.max(.012,tubeR*.18),ghostMat,{kind:'ghost'});if(m)ghost.add(m);}}
+    for(const el of g.elements){if(el.type==='LINE'){const m=simCylinder(el.start,el.end,Math.max(.012,tubeR*.18),ghostMat,{kind:'ghost'});if(m)ghost.add(m);}else{const row=rows[el.rowIndex],ghostR=Math.max(.12,bendCenterlineRadiusMm(row,t?.diameterIndex??state.diameterIndex)*GEOM_SCALE),arc=simArcData(el.start,el.directionIn,row,ghostR,1),m=simTube(arc.points,Math.max(.012,tubeR*.18),ghostMat,{kind:'ghost'});if(m)ghost.add(m);}}
     group.add(ghost);
   }
-  return {group,segments,rawSegment,tubeR,bendR,phase,progress,pos:currentPos,dir:currentDir,currentArc,remainingMm:remaining,formedLengthMm:formedLength,totalLengthMm:total};
+  return {group,segments,rawSegment,tubeR,phase,progress,pos:currentPos,dir:currentDir,currentArc,remainingMm:remaining,formedLengthMm:formedLength,totalLengthMm:total};
 }
 function simOrientCylinder(mesh,axis){mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),axis.clone().normalize());}
 function simAddBoxAlong(group,center,dir,length,width,height,material){const mesh=new THREE.Mesh(new THREE.BoxGeometry(length,width,height),material);mesh.position.copy(center);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dir.clone().normalize());mesh.userData={simulation:true,machine:true};group.add(mesh);return mesh;}
@@ -14715,7 +14716,7 @@ function simAddRotationIndicator(group,point,dir,angleDeg,tubeR){
 }
 function simAddMachine(group,shape){
   const s=simEnsureState();if(!s.showMachine)return null;const phase=shape.phase,bend=simPhaseBendGeometry(shape);if(!bend)return null;
-  const style=currentStyle()||{},machine=currentMachine()||{},tubeR=shape.tubeR,R=Math.max(shape.bendR,tubeR*3),axis=bend.axis.clone().normalize(),incoming=bend.directionIn.clone().normalize(),headPoint=bend.start.clone(),center=bend.center.clone();
+  const style=currentStyle()||{},machine=currentMachine()||{},tubeR=shape.tubeR,R=Math.max(Number(bend.radiusMm||0)*GEOM_SCALE,tubeR*3),axis=bend.axis.clone().normalize(),incoming=bend.directionIn.clone().normalize(),headPoint=bend.start.clone(),center=bend.center.clone();
   const mg=new THREE.Group();mg.userData={simulation:true,machine:true};
   const dieR=Math.max(tubeR*2.2,R*.48),dieW=Math.max(tubeR*4.2,.16),die=new THREE.Mesh(new THREE.CylinderGeometry(dieR,dieR,dieW,48,1,false),simMaterial(0xd4a94d,.92,0x3b2700));die.position.copy(center);simOrientCylinder(die,axis);mg.add(die);
   const groove=new THREE.Mesh(new THREE.TorusGeometry(R,Math.max(.012,tubeR*.16),8,64),simMaterial(0xffd875,.55,0x4d3800));groove.position.copy(center);groove.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),axis);mg.add(groove);
@@ -14723,7 +14724,7 @@ function simAddMachine(group,shape){
   const pressureCenter=headPoint.clone().sub(incoming.clone().multiplyScalar(clampLen*.22)).add(axis.clone().multiplyScalar(tubeR*2.1));simAddBoxAlong(mg,pressureCenter,incoming,clampLen*.72,tubeR*3.1,tubeR*2.0,simMaterial(0x8796a8,.9,0x111820));
   const envelopeR=Math.max(R*.9,Math.min(n(machine.headRadius,180)*GEOM_SCALE*.5,R*1.8)),envelope=new THREE.Mesh(new THREE.SphereGeometry(envelopeR,24,16),new THREE.MeshBasicMaterial({color:0x6684a8,wireframe:true,transparent:true,opacity:.12,depthWrite:false}));envelope.position.copy(headPoint);mg.add(envelope);
   if(phase.type==='rotate')simAddRotationIndicator(mg,headPoint,incoming,n(phase.step?.B)*shape.progress,tubeR);else if(phase.step)simAddRotationIndicator(mg,headPoint,incoming,n(phase.step.B),tubeR);
-  group.add(mg);return {group:mg,headPoint,envelopeR,bend};
+  group.add(mg);return {group:mg,headPoint,envelopeR,bend,bendRadius:R};
 }
 function simSegmentDistancePoint(point,seg){return closestSegmentData(point,point,seg.a,seg.b);}
 function simCollisionChecks(shape,machinePose){
@@ -14732,7 +14733,7 @@ function simCollisionChecks(shape,machinePose){
     const a=segs[i],b=segs[j];if(Math.abs(i-j)<=1)continue;if(a.rowIndex>=0&&a.rowIndex===b.rowIndex)continue;
     const c=closestSegmentData(a.a,a.b,b.a,b.b);if(c.distance<threshold*.96)out.push({type:'tube',point:c.c1.clone().add(c.c2).multiplyScalar(.5),distance:c.distance,penetration:threshold-c.distance});
   }
-  if(machinePose){const bendRow=shape.phase?.bendRowIndex??-999,checkR=Math.max(machinePose.envelopeR*.72,shape.bendR*.62);for(const seg of segs){if(seg.kind==='raw')continue;if(Math.abs(n(seg.rowIndex)-bendRow)<=2)continue;const c=simSegmentDistancePoint(machinePose.headPoint,seg);if(c.distance<checkR+shape.tubeR)out.push({type:'machine',point:c.c2.clone(),distance:c.distance,penetration:checkR+shape.tubeR-c.distance});}}
+  if(machinePose){const bendRow=shape.phase?.bendRowIndex??-999,checkR=Math.max(machinePose.envelopeR*.72,machinePose.bendRadius*.62);for(const seg of segs){if(seg.kind==='raw')continue;if(Math.abs(n(seg.rowIndex)-bendRow)<=2)continue;const c=simSegmentDistancePoint(machinePose.headPoint,seg);if(c.distance<checkR+shape.tubeR)out.push({type:'machine',point:c.c2.clone(),distance:c.distance,penetration:checkR+shape.tubeR-c.distance});}}
   const unique=[];for(const c of out){if(!unique.some(x=>x.point.distanceTo(c.point)<Math.max(.08,shape.tubeR*1.5)))unique.push(c);}s.collisions=unique;return unique;
 }
 function simAddCollisionMarkers(group,collisions,shape){if(!simEnsureState().showCollisions)return;const mat=simMaterial(0xff2438,1,0x7a0010);for(const c of collisions){const m=new THREE.Mesh(new THREE.SphereGeometry(Math.max(.07,shape.tubeR*.85),20,14),mat);m.position.copy(c.point);m.renderOrder=9999;group.add(m);}}
@@ -15179,17 +15180,17 @@ function refreshProjectTree(){
   host.innerHTML=items.join('');host.querySelector('#tbCurrentBodyStar')?.addEventListener('click',e=>{e.stopPropagation();makeCurrentBodyPreferred();});host.querySelectorAll('[data-tree-tube]').forEach(n=>n.addEventListener('click',()=>switchTube(n.dataset.treeTube)));host.querySelectorAll('[data-tree-eye]').forEach(n=>n.addEventListener('click',e=>{e.stopPropagation();const t=(p.tubes||[]).find(x=>x.id===n.dataset.treeEye);if(!t||t.id===state.activeTubeId)return;t.visible=t.visible===false;save();renderAll();}));host.querySelector('[data-tree-origin]')?.addEventListener('click',()=>{try{if(dofInteraction)dofCommitInteraction();hideDofAngleEditor();originEditorOpen=true;bottomParamEditorIndex=null;selectedAssemblyId=null;renderAll();}catch{}});host.querySelectorAll('[data-tree-row]').forEach(n=>n.addEventListener('click',()=>selectConstructionRow(Number(n.dataset.treeRow))));
 }
 function refreshEditPanel(){
- const host=$('tbEditSummary');if(!host)return;const p=pipe?.();const radius=num(p?.Rb);const head=$('tbEditHeadSelection');
+ const host=$('tbEditSummary');if(!host)return;const p=pipe?.();const head=$('tbEditHeadSelection');
  const box=(title,body,cls='')=>`<section class="tb-edit-box ${cls}"><div class="tb-edit-box-title">${title}</div>${body}</section>`;
  const pg=rows=>`<div class="tb-prop-grid">${rows.map(([l,v,id,disabled=false,type='input'])=>type==='select'?`<label>${l}</label><select ${id?`id="${id}"`:''}>${v}</select>`:`<label>${l}</label><input ${id?`id="${id}"`:''} value="${v}" ${disabled?'disabled':''}>`).join('')}</div>`;
  const dof=(x,y,z,rx,ry,rz,editable=false)=>`<div class="tb-dof-grid"><span class="tb-dof-icon" style="color:#ff5e57">↕</span><span class="tb-axis-chip x">X</span><input value="${x}" ${editable?'data-origin-axis="x"':''}><span class="tb-dof-icon" style="color:#ff5e57">⟳</span><span class="tb-axis-chip x">Rx</span><input value="${rx}" disabled><span class="tb-dof-icon" style="color:#7ee45f">↕</span><span class="tb-axis-chip y">Y</span><input value="${y}" ${editable?'data-origin-axis="y"':''}><span class="tb-dof-icon" style="color:#7ee45f">⟳</span><span class="tb-axis-chip y">Ry</span><input value="${ry}" disabled><span class="tb-dof-icon" style="color:#42a6ff">↕</span><span class="tb-axis-chip z">Z</span><input value="${z}" ${editable?'data-origin-axis="z"':''}><span class="tb-dof-icon" style="color:#42a6ff">⟳</span><span class="tb-axis-chip z">Rz</span><input value="${rz}" disabled></div>`;
- if(originEditorOpen){const o=state.origin||{};if(head){head.textContent=mt('start');head.className='tb-edit-caption start';}host.innerHTML=`<div class="tb-edit-dashboard">${box('Параметры',pg([[mt('angle'),'—','',true],[mt('radius'),radius+' мм','',true],['Длина до гиба','—','',true],['Длина после гиба','—','',true],[mt('plane'),'—','',true]]))}${box('Положение в корпусе',pg([['Длина',num(o.x)+' мм'],['Глубина',num(o.y)+' мм'],['Высота',num(o.z)+' мм']]))}${box('Степени свободы (DOF)',dof(num(o.x),num(o.y),num(o.z),'0.0°','0.0°','0.0°',true))}${box('Тип гиба','<div class="tb-bend-preview"><span>Начальная точка</span></div>','preview')}</div>`;host.querySelectorAll('[data-origin-axis]').forEach(inp=>inp.addEventListener('change',()=>{if(poReadOnly()){ptToast('Проект открыт только для просмотра');renderAll();return;}const a=inp.dataset.originAxis,v=Number(inp.value);if(Number.isFinite(v)){const before=analyzePipeBounds(rowsForStartPointValidation());const old=state.origin[a];state.origin[a]=v;if(!validatePipeBounds(inp,rowsForStartPointValidation(),state.diameterIndex,before)){state.origin[a]=old;renderAll();return;}syncActiveTubeFromState();save();renderAll();}}));return;}
+ if(originEditorOpen){const o=state.origin||{};if(head){head.textContent=mt('start');head.className='tb-edit-caption start';}host.innerHTML=`<div class="tb-edit-dashboard">${box('Параметры',pg([[mt('angle'),'—','',true],[mt('radius'),'—','',true],['Длина до гиба','—','',true],['Длина после гиба','—','',true],[mt('plane'),'—','',true]]))}${box('Положение в корпусе',pg([['Длина',num(o.x)+' мм'],['Глубина',num(o.y)+' мм'],['Высота',num(o.z)+' мм']]))}${box('Степени свободы (DOF)',dof(num(o.x),num(o.y),num(o.z),'0.0°','0.0°','0.0°',true))}${box('Тип гиба','<div class="tb-bend-preview"><span>Начальная точка</span></div>','preview')}</div>`;host.querySelectorAll('[data-origin-axis]').forEach(inp=>inp.addEventListener('change',()=>{if(poReadOnly()){ptToast('Проект открыт только для просмотра');renderAll();return;}const a=inp.dataset.originAxis,v=Number(inp.value);if(Number.isFinite(v)){const before=analyzePipeBounds(rowsForStartPointValidation());const old=state.origin[a];state.origin[a]=v;if(!validatePipeBounds(inp,rowsForStartPointValidation(),state.diameterIndex,before)){state.origin[a]=old;renderAll();return;}syncActiveTubeFromState();save();renderAll();}}));return;}
  const i=Number(bottomParamEditorIndex),r=state.rows?.[i];if(!r){if(head){head.textContent=mt('noSelection');head.className='tb-edit-caption';}host.innerHTML=`<div class="tb-edit-dashboard">${box('Параметры','<div class="tb-edit-note">Выберите начальную точку, прямой участок или гиб в дереве проекта.</div>')}${box('Положение в корпусе','<div class="tb-edit-note">Координаты появятся после выбора элемента.</div>')}${box('Степени свободы (DOF)','<div class="tb-edit-note">DoF-манипулятор отображается только для начальной точки и выбранного гиба.</div>')}${box('Тип гиба','<div class="tb-bend-preview"><span>Нет выбора</span></div>','preview')}</div>`;return;}
  let md={xyz:[]};try{md=manufacturingData(activeTube());}catch{}const pt=md.xyz?.[Math.min(md.xyz.length-1,Math.max(0,i+1))]||{x:'—',y:'—',z:'—'};
  if(r.type==='BEND'){
    let bendNo=0;for(let k=0;k<=i;k++)if(state.rows[k]?.type==='BEND')bendNo++;if(head){head.textContent=`${mt('bend')} ${bendNo}`;head.className='tb-edit-caption bend';}
    const planeOpts=['XY','XZ','YZ'].map(v=>`<option ${r.plane===v?'selected':''}>${v}</option>`).join('');const before=state.rows?.[i-1]?.type==='LINE'?num(state.rows[i-1].L):0,after=state.rows?.[i+1]?.type==='LINE'?num(state.rows[i+1].L):0;
-   host.innerHTML=`<div class="tb-edit-dashboard">${box('Параметры',pg([[mt('angle'),num(r.angle).toFixed(1)+'°','tbEditAngle'],[mt('radius'),radius+' мм','',true],['Длина до гиба',before+' мм','tbEditBefore'],['Длина после гиба',after+' мм','tbEditAfter'],[mt('plane'),planeOpts,'tbEditPlane',false,'select']]))}${box('Положение в корпусе',pg([['Длина от начала',pt.x+' мм','',true],['Смещение по глубине',pt.y+' мм','',true],['Смещение по высоте',pt.z+' мм','',true]]))}${box('Степени свободы (DOF)',dof(pt.x,pt.y,pt.z,'0.0°','0.0°',num(getBendRotationValue(r)).toFixed(1)+'°'))}${box('Тип гиба','<div class="tb-bend-preview"><div class="tb-bend-preview-shape"></div><span>По радиусу</span></div>','preview')}</div>`;
+   host.innerHTML=`<div class="tb-edit-dashboard">${box('Параметры',pg([[mt('angle'),num(r.angle).toFixed(1)+'°','tbEditAngle'],[mt('radius'),bendCenterlineRadiusMm(r,state.diameterIndex)+' мм','',true],['Длина до гиба',before+' мм','tbEditBefore'],['Длина после гиба',after+' мм','tbEditAfter'],[mt('plane'),planeOpts,'tbEditPlane',false,'select']]))}${box('Положение в корпусе',pg([['Длина от начала',pt.x+' мм','',true],['Смещение по глубине',pt.y+' мм','',true],['Смещение по высоте',pt.z+' мм','',true]]))}${box('Степени свободы (DOF)',dof(pt.x,pt.y,pt.z,'0.0°','0.0°',num(getBendRotationValue(r)).toFixed(1)+'°'))}${box('Тип гиба','<div class="tb-bend-preview"><div class="tb-bend-preview-shape"></div><span>По радиусу</span></div>','preview')}</div>`;
    $('tbEditAngle')?.addEventListener('change',e=>editCell(i,'angle',e.target.value));$('tbEditPlane')?.addEventListener('change',e=>commitBendPlaneChange(i,e.target.value,e.target));$('tbEditBefore')?.addEventListener('change',e=>{if(state.rows[i-1]?.type==='LINE')editCell(i-1,'L',String(e.target.value).replace(' мм',''));});$('tbEditAfter')?.addEventListener('change',e=>{if(state.rows[i+1]?.type==='LINE')editCell(i+1,'L',String(e.target.value).replace(' мм',''));});
  } else {
    let straightNo=0;for(let k=0;k<=i;k++)if(state.rows[k]?.type==='LINE')straightNo++;if(head){head.textContent=`${mt('straight')} ${straightNo}`;head.className='tb-edit-caption straight';}
