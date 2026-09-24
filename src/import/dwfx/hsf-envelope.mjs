@@ -968,6 +968,54 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
             terminated = true;
             break;
           }
+          if (optionalOpcode === 0x01) { // OPT_ALL_NORMALS_COMPRESSED
+            const version = Number.parseFloat(String(hsfVersion ?? ""));
+            if (!Number.isFinite(version) || version < 6.50) {
+              return Object.freeze({
+                entities: Object.freeze(entities),
+                next_offset: optionalOffset,
+                complete_prefix: false,
+                unsupported_opcode: opcode,
+                unsupported_variant:
+                  "OPT_ALL_NORMALS_COMPRESSED pre-6.50 layout is not decoded yet"
+              });
+            }
+            if (cursor + 6 > bytes.length) {
+              throw new RangeError("truncated OPT_ALL_NORMALS_COMPRESSED header");
+            }
+            const normalCompressionScheme = bytes[cursor++];
+            const bitsPerSample = bytes[cursor++];
+            if (![0x01, 0x03, 0x07].includes(normalCompressionScheme)) {
+              return Object.freeze({
+                entities: Object.freeze(entities),
+                next_offset: optionalOffset,
+                complete_prefix: false,
+                unsupported_opcode: opcode,
+                unsupported_variant:
+                  `OPT_ALL_NORMALS_COMPRESSED scheme ${normalCompressionScheme} is not decoded yet`
+              });
+            }
+            const normalWorkspaceLength = readI32LE(bytes, cursor);
+            cursor += 4;
+            if (
+              normalWorkspaceLength < 0 ||
+              cursor + normalWorkspaceLength > bytes.length
+            ) {
+              throw new RangeError("invalid or truncated OPT_ALL_NORMALS_COMPRESSED workspace");
+            }
+            optionals.push(Object.freeze({
+              opcode: optionalOpcode,
+              kind: "all_normals_compressed",
+              source_offset: optionalOffset,
+              compression_scheme: normalCompressionScheme,
+              bits_per_sample: bitsPerSample,
+              workspace_length: normalWorkspaceLength,
+              normal_count: pointCount,
+              values_decoded: false
+            }));
+            cursor += normalWorkspaceLength;
+            continue;
+          }
           if (optionalOpcode === 0x1c) { // OPT_ALL_PARAMETERS
             if (cursor >= bytes.length) throw new RangeError("truncated OPT_ALL_PARAMETERS width");
             const width = bytes[cursor++];
