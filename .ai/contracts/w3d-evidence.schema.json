@@ -5,120 +5,55 @@
   "description": "Traceable evidence extracted from a DWFx W3D resource before canonical tube geometry is accepted.",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "resource_id",
-    "source",
-    "byte_length",
-    "decode_status",
-    "production_ready",
-    "entities",
-    "diagnostics"
-  ],
+  "required": ["resource_id", "source", "byte_length", "decode_status", "production_ready", "entities", "diagnostics"],
   "properties": {
-    "resource_id": {
-      "type": "string",
-      "minLength": 1
-    },
+    "resource_id": {"type": "string", "minLength": 1},
     "source": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "dwfx_file",
-        "package_path"
-      ],
+      "required": ["dwfx_file", "package_path"],
       "properties": {
-        "dwfx_file": {
-          "type": "string",
-          "minLength": 1
-        },
-        "package_path": {
-          "type": "string",
-          "minLength": 1
-        }
+        "dwfx_file": {"type": "string", "minLength": 1},
+        "package_path": {"type": "string", "minLength": 1}
       }
     },
-    "byte_length": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "header_hex": {
-      "type": "string"
-    },
-    "decode_status": {
-      "enum": [
-        "binary_unparsed",
-        "decoded_partial",
-        "decoded"
-      ]
-    },
-    "production_ready": {
-      "const": false
-    },
+    "byte_length": {"type": "integer", "minimum": 0},
+    "header_hex": {"type": "string"},
+    "decode_status": {"enum": ["binary_unparsed", "decoded_partial", "decoded"]},
+    "production_ready": {"const": false},
     "entities": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "entity_id",
-          "kind",
-          "source_offset",
-          "transform",
-          "confidence",
-          "reason"
-        ],
+        "required": ["entity_id", "kind", "source_offset", "transform", "confidence", "reason"],
         "properties": {
-          "entity_id": {
-            "type": "string",
-            "minLength": 1
-          },
+          "entity_id": {"type": "string", "minLength": 1},
           "kind": {
             "enum": [
               "transform",
+              "segment",
+              "bounds",
+              "view",
               "polyline",
               "triangle_mesh",
               "curve_candidate",
               "unknown_chunk"
             ]
           },
-          "source_offset": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "minimum": 0
-          },
+          "source_offset": {"type": ["integer", "null"], "minimum": 0},
           "transform": {
-            "type": [
-              "array",
-              "null"
-            ],
+            "type": ["array", "null"],
             "minItems": 16,
             "maxItems": 16,
-            "items": {
-              "type": "number"
-            }
+            "items": {"type": "number"}
           },
-          "confidence": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          },
-          "reason": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "reason": {"type": ["string", "null"]},
           "payload": {}
         }
       }
     },
-    "diagnostics": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    }
+    "diagnostics": {"type": "array", "items": {"type": "string"}}
   }
 }
