@@ -684,3 +684,39 @@ test("A14: unresolved technology produces a blocked simulation phase", () => {
   assert.match(timeline, /type:'blocked'/);
   assert.match(timeline, /Не определён тип оборудования/);
 });
+
+
+test("A14: equipment profile UI exposes manual and mechanized non-CNC technology", () => {
+  const machine = functionSlice("renderMachine", "renderManufacturing");
+
+  assert.match(machine, /engMachine_technology/);
+  assert.match(machine, /value="manual"/);
+  assert.match(machine, /value="mechanized_non_cnc"/);
+  assert.match(machine, /Ручной трубогиб/);
+  assert.match(machine, /Механизированный без ЧПУ/);
+  assert.doesNotMatch(machine, /engMachine_ncPost/);
+});
+
+test("A14: equipment profile persists manual handle geometry inputs", () => {
+  const defaults = functionSlice("defaultMachine", "ensureProjectEngineering");
+  const save = functionSlice("saveMachineFromForm", "markDimensionLabels");
+  const render = functionSlice("renderMachine", "renderManufacturing");
+
+  assert.match(defaults, /handleLength:null/);
+  assert.match(defaults, /handleWorkspaceRadius:null/);
+  assert.match(render, /handleLength/);
+  assert.match(render, /handleWorkspaceRadius/);
+  assert.match(save, /'technology'/);
+  assert.match(save, /'handleLength'/);
+  assert.match(save, /'handleWorkspaceRadius'/);
+  assert.match(save, /m\.ncPost=null/);
+});
+
+test("A14: NC export is not shown for manual or non-CNC profiles", () => {
+  const manufacturing = functionSlice("renderManufacturing", "renderSimulation");
+
+  assert.match(manufacturing, /ncApplicable=String\(d\.machine\?\.technology\|\|''\)\.toLowerCase\(\)==='cnc'/);
+  assert.match(manufacturing, /NC: не применяется/);
+  assert.match(manufacturing, /ncApplicable\?'<button class="eng-btn primary" data-eng-export="nc">NC<\/button>'/);
+  assert.match(manufacturing, /simTechnologyForTube\(activeTube\(\),d\)/);
+});
