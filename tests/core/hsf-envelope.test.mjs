@@ -65,30 +65,34 @@ test('A20: tag, distant light and pause advance synchronously with exact offsets
   assert.equal(out.next_offset,15);
 });
 
-test('A20: color parser follows documented extended geometry and channel masks',()=>{
+test('A20: geometry-attributes scope contains normal attribute opcodes and terminates explicitly',()=>{
   const bytes=Uint8Array.from([
+    0x3a,
     0x22,
     0x80,0x02,
     0x03,
     0x00,127,127,127,
     0x00,255,255,255,
-    0x3a
+    0x00,
+    0x55
   ]);
   const out=decodeHsfOpcodePrefix(bytes);
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x3a);
-  assert.equal(out.next_offset,12);
-  assert.equal(out.entities[0].kind,'color');
-  assert.equal(out.entities[0].geometry_mask,0x0280);
-  assert.equal(out.entities[0].channels_mask,0x0003);
-  assert.deepEqual(out.entities[0].channels.diffuse.rgb_bytes,[127,127,127]);
-  assert.deepEqual(out.entities[0].channels.specular.rgb_bytes,[255,255,255]);
+  assert.equal(out.unsupported_opcode,0x55);
+  assert.equal(out.next_offset,14);
+  assert.deepEqual(out.entities.map((e)=>e.kind),['geometry_scope','color','geometry_scope']);
+  assert.equal(out.entities[0].action,'open');
+  assert.equal(out.entities[1].geometry_mask,0x0280);
+  assert.equal(out.entities[1].channels_mask,0x0003);
+  assert.deepEqual(out.entities[1].channels.diffuse.rgb_bytes,[127,127,127]);
+  assert.deepEqual(out.entities[1].channels.specular.rgb_bytes,[255,255,255]);
+  assert.equal(out.entities[2].action,'close');
 });
 
 test('A20: unknown opcode stops synchronized parsing instead of scanning or guessing',()=>{
-  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x28,0x01,0x61,0x3a,0x01,0x02,0x03]));
+  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x28,0x01,0x61,0x55,0x01,0x02,0x03]));
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x3a);
+  assert.equal(out.unsupported_opcode,0x55);
   assert.equal(out.next_offset,3);
   assert.equal(out.entities.length,1);
 });
