@@ -749,6 +749,8 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       let workspaceLength = 0;
       let edgeBreaker = null;
       let vertices = Object.freeze([]);
+      let pointCount = 0;
+      let faceList = null;
       const hasCompressedPoints = (suboptions & 0x01) !== 0;
       const hasConnectivityCompression = (suboptions & 0x40) !== 0;
 
@@ -781,7 +783,7 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         const opsLength = readI32LE(bytes, workspaceStart + 4);
         const mtableLength = readI32LE(bytes, workspaceStart + 8);
         const packedPointsLength = readI32LE(bytes, workspaceStart + 12);
-        const pointCount = readI32LE(bytes, workspaceStart + 16);
+        pointCount = readI32LE(bytes, workspaceStart + 16);
         const normalsLength = readI32LE(bytes, workspaceStart + 20);
 
         if (
@@ -866,18 +868,98 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
           }
         }
       } else {
-        return Object.freeze({
-          entities: Object.freeze(entities),
-          next_offset: shellOffset,
-          complete_prefix: false,
-          unsupported_opcode: opcode,
-          unsupported_variant: "uncompressed TKE_Shell connectivity is not decoded yet"
-        });
+        pointCount = readI32LE(bytes, cursor);
+        cursor += 4;
+        if (pointCount < 0 || pointCount > 10_000_000) {
+          throw new RangeError(`invalid TKE_Shell point count ${pointCount}`);
+        }
+        const pointBytes = pointCount * 12;
+        if (cursor + pointBytes > bytes.length) {
+          throw new RangeError("truncated TKE_Shell uncompressed point array");
+        }
+        const decodedVertices = new Array(pointCount);
+        for (let i = 0; i < pointCount; i += 1) {
+          const base = cursor + i * 12;
+          const point = Object.freeze([
+            readF32LE(bytes, base),
+            readF32LE(bytes, base + 4),
+            readF32LE(bytes, base + 8)
+          ]);
+          if (!point.every(Number.isFinite)) {
+            throw new RangeError(`non-finite TKE_Shell vertex at offset ${base}`);
+          }
+          decodedVertices[i] = point;
+        }
+        vertices = Object.freeze(decodedVertices);
+        cursor += pointBytes;
+
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Shell face compression scheme");
+        const faceCompressionScheme = bytes[cursor++];
+        if (faceCompressionScheme !== 0x01) {
+          return Object.freeze({
+            entities: Object.freeze(entities),
+            next_offset: shellOffset,
+            complete_prefix: false,
+            unsupported_opcode: opcode,
+            unsupported_variant:
+              `TKE_Shell face compression scheme ${faceCompressionScheme} is not decoded yet`
+          });
+        }
+        const faceWorkspaceLength = readI32LE(bytes, cursor);
+        cursor += 4;
+        if (faceWorkspaceLength < 1 || cursor + faceWorkspaceLength > bytes.length) {
+          throw new RangeError("invalid or truncated TKE_Shell face workspace");
+        }
+        const faceWorkspaceEnd = cursor + faceWorkspaceLength;
+        const bitsPerSample = bytes[cursor++];
+        if (![8, 16, 32].includes(bitsPerSample)) {
+          throw new RangeError(`unsupported TKE_Shell face bits_per_sample ${bitsPerSample}`);
+        }
+        const bytesPerSample = bitsPerSample / 8;
+        if ((faceWorkspaceLength - 1) % bytesPerSample !== 0) {
+          throw new RangeError("misaligned TKE_Shell trivial face workspace");
+        }
+        const signedFaces = (suboptions2 & 0x0004) !== 0;
+        const decodedFaceList = [];
+        while (cursor < faceWorkspaceEnd) {
+          let value;
+          if (bytesPerSample === 1) {
+            value = signedFaces
+              ? new DataView(bytes.buffer, bytes.byteOffset + cursor, 1).getInt8(0)
+              : bytes[cursor];
+          } else if (bytesPerSample === 2) {
+            value = signedFaces
+              ? new DataView(bytes.buffer, bytes.byteOffset + cursor, 2).getInt16(0, true)
+              : readU16LE(bytes, cursor);
+          } else {
+            value = signedFaces
+              ? readI32LE(bytes, cursor)
+              : readU32LE(bytes, cursor);
+          }
+          decodedFaceList.push(value);
+          cursor += bytesPerSample;
+        }
+
+        let faceCursor = 0;
+        while (faceCursor < decodedFaceList.length) {
+          const countValue = decodedFaceList[faceCursor];
+          if (countValue === 0) throw new RangeError("zero-length face in TKE_Shell face list");
+          const vertexCount = Math.abs(countValue);
+          const end = faceCursor + 1 + vertexCount;
+          if (end > decodedFaceList.length) throw new RangeError("truncated TKE_Shell face list");
+          for (let i = faceCursor + 1; i < end; i += 1) {
+            const index = decodedFaceList[i];
+            if (!Number.isInteger(index) || index < 0 || index >= pointCount) {
+              throw new RangeError(`TKE_Shell face index ${index} outside point array`);
+            }
+          }
+          faceCursor = end;
+        }
+        faceList = Object.freeze(decodedFaceList);
       }
 
       const optionals = [];
       if ((suboptions & 0x08) !== 0) {
-        const pointCount = edgeBreaker?.point_count ?? 0;
         let terminated = false;
         while (cursor < bytes.length) {
           const optionalOffset = cursor;
@@ -931,9 +1013,17 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         lod,
         compression_scheme: compressionScheme,
         connectivity: Object.freeze({
-          status: hasConnectivityCompression ? "compressed_unresolved" : "unresolved",
-          codec: hasConnectivityCompression ? "edgebreaker" : null,
-          faces: null
+          status: hasConnectivityCompression
+            ? "compressed_unresolved"
+            : faceList
+              ? "decoded"
+              : "unresolved",
+          codec: hasConnectivityCompression
+            ? "edgebreaker"
+            : faceList
+              ? "trivial_face_list"
+              : null,
+          faces: faceList
         }),
         edge_breaker: edgeBreaker,
         vertices,
