@@ -305,3 +305,45 @@ test('A20: native HSF line is preserved as non-canonical curve evidence',()=>{
   assert.deepEqual(out.entities[0].end,[4,5,6]);
   assert.equal(out.entities[0].canonical_ready,false);
 });
+
+
+test('A20: strict rendering-options subset decodes attribute/color locks only',()=>{
+  const bytes=Uint8Array.from([
+    0x52,
+    ...le32(0x00100000),
+    ...le32(0x00100000),
+    ...le32(0x04000004),
+    ...le32(0x04000004),
+    ...le32(0x00000001),
+    ...le32(0x00000001),
+    0xff,0x01,
+    0xff,0x01,
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,29);
+  const ro=out.entities[0];
+  assert.equal(ro.kind,'rendering_options');
+  assert.equal(ro.mask,0x00100000);
+  assert.equal(ro.value,0x00100000);
+  assert.equal(ro.lock_mask,0x04000004);
+  assert.equal(ro.lock_value,0x04000004);
+  assert.equal(ro.color_lock_mask,1);
+  assert.equal(ro.color_lock_value,1);
+  assert.equal(ro.face_color_lock_mask,0x01ff);
+  assert.equal(ro.face_color_lock_value,0x01ff);
+});
+
+test('A20: unsupported rendering-options bits block at opcode start',()=>{
+  const bytes=Uint8Array.from([
+    0x52,
+    ...le32(0x00001000),
+    ...le32(0x00001000)
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.unsupported_opcode,0x52);
+  assert.equal(out.next_offset,0);
+  assert.match(out.unsupported_variant,/unsupported options/i);
+});
