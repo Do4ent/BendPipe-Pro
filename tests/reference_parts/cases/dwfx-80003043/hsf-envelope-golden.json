@@ -234,13 +234,19 @@
         "kind": "user_options",
         "source_offset": 204,
         "value": "node"
+      },
+      {
+        "kind": "heuristics",
+        "source_offset": 211,
+        "mask": 2,
+        "value": 65533
       }
     ],
-    "next_offset": 211,
-    "unsupported_opcode_hex": "0x48",
-    "unsupported_opcode_name": "TKE_Heuristics",
+    "next_offset": 216,
+    "unsupported_opcode_hex": "0xE0",
+    "unsupported_opcode_name": "TKE_HW3D_Image",
     "complete": false
   },
   "production_ready": false,
-  "note": "Golden facts extracted from the original 80003043(A) DWFx. Prefix decoding is evidence only; parsing stops at the first unsupported opcode and must not resynchronize by scanning. Current synchronized frontier is TKE_Heuristics at decompressed offset 211."
+  "note": "Golden facts extracted from the original 80003043(A) DWFx. Prefix decoding is evidence only; parsing stops at the first unsupported opcode and must not resynchronize by scanning. Current synchronized frontier is TKE_HW3D_Image at decompressed offset 216."
 }
