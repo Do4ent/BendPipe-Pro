@@ -58,10 +58,18 @@ test('A20: tag, distant light and pause advance synchronously with exact offsets
   assert.equal(out.limit_reached,true);
   assert.deepEqual(out.entities.map((e)=>e.kind),['tag','light','pause']);
   assert.equal(out.entities[0].source_offset,0);
+  assert.equal(out.entities[0].tag_index,0);
   assert.equal(out.entities[1].source_offset,1);
   assert.deepEqual(out.entities[1].direction,[1,2,3]);
   assert.equal(out.entities[2].source_offset,14);
   assert.equal(out.next_offset,15);
+});
+
+
+test('A20: HSF tag indices are zero-based and strictly sequential',()=>{
+  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x71,0x71,0x71]),{maxOpcodes:3});
+  assert.deepEqual(out.entities.map((e)=>e.tag_index),[0,1,2]);
+  assert.deepEqual(out.entities.map((e)=>e.source_offset),[0,1,2]);
 });
 
 test('A20: geometry-attributes scope contains normal attribute opcodes and terminates explicitly',()=>{
