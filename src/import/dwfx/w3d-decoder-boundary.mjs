@@ -23,6 +23,7 @@ const ALLOWED_KINDS = new Set([
   "heuristics",
   "hw3d_image",
   "texture",
+  "visibility",
   "polyline",
   "triangle_mesh",
   "curve_candidate",
