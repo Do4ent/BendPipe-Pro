@@ -52,11 +52,11 @@ test('A20: tag, distant light and pause advance synchronously with exact offsets
     0x71,
     0x64,...f32(1),...f32(2),...f32(3),
     0x01,
-    0x3a
+    0x53
   ]);
   const out=decodeHsfOpcodePrefix(bytes);
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x3a);
+  assert.equal(out.unsupported_opcode,0x53);
   assert.deepEqual(out.entities.map((e)=>e.kind),['tag','light','pause']);
   assert.equal(out.entities[0].source_offset,0);
   assert.equal(out.entities[1].source_offset,1);
@@ -74,11 +74,11 @@ test('A20: geometry-attributes scope contains normal attribute opcodes and termi
     0x00,127,127,127,
     0x00,255,255,255,
     0x00,
-    0x55
+    0x53
   ]);
   const out=decodeHsfOpcodePrefix(bytes);
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x55);
+  assert.equal(out.unsupported_opcode,0x53);
   assert.equal(out.next_offset,14);
   assert.deepEqual(out.entities.map((e)=>e.kind),['geometry_scope','color','geometry_scope']);
   assert.equal(out.entities[0].action,'open');
@@ -91,20 +91,20 @@ test('A20: geometry-attributes scope contains normal attribute opcodes and termi
 
 test('A20: user options decode short length and preserve exact string',()=>{
   const out=decodeHsfOpcodePrefix(Uint8Array.from([
-    0x55,0x04,0x00,...Buffer.from('node'),0x48
+    0x55,0x04,0x00,...Buffer.from('node'),0x53
   ]));
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x48);
+  assert.equal(out.unsupported_opcode,0x53);
   assert.equal(out.next_offset,7);
   assert.deepEqual(out.entities[0],{kind:'user_options',source_offset:0,value:'node'});
 });
 
 test('A20: simple heuristics mask/value decode without consuming optional payloads',()=>{
   const out=decodeHsfOpcodePrefix(Uint8Array.from([
-    0x48,0x02,0x00,0xfd,0xff,0xe0
+    0x48,0x02,0x00,0xfd,0xff,0x53
   ]));
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0xe0);
+  assert.equal(out.unsupported_opcode,0x53);
   assert.equal(out.next_offset,5);
   assert.deepEqual(out.entities[0],{kind:'heuristics',source_offset:0,mask:0x0002,value:0xfffd});
 });
@@ -125,11 +125,11 @@ test('A20: Autodesk HW3D image descriptor keeps only resource metadata',()=>{
   const bytes=Uint8Array.from([
     0xe0,name.length,...Buffer.from(name),
     ...le32(256),...le32(128),32,
-    0x74
+    0x53
   ]);
   const out=decodeHsfOpcodePrefix(bytes);
   assert.equal(out.complete_prefix,false);
-  assert.equal(out.unsupported_opcode,0x74);
+  assert.equal(out.unsupported_opcode,0x53);
   assert.equal(out.entities[0].kind,'hw3d_image');
   assert.equal(out.entities[0].name,name);
   assert.equal(out.entities[0].width,256);
