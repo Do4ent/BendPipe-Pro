@@ -204,12 +204,16 @@ test("A07: bend-plane edit goes through candidate validation before commit", () 
 
 test("A08: modern editing entry points enforce readonly", () => {
   const edit = functionSlice("editCell", "minStraight");
-  const plane = functionSlice("collisionKeyForTube", "lengthHint");
+  const plane = functionSlice("commitBendPlaneChange", "lengthHint");
   const editor = functionSlice("refreshEditPanel", "checkRow");
   const readOnlyUi = functionSlice("poApplyReadOnlyUi", "poCreateEditableCopy");
+  const commandStart = html.indexOf("function tbModelCommand(");
+  const commandEnd = html.indexOf("\nwindow.TubeBenderHistory=", commandStart);
+  const command = html.slice(commandStart, commandEnd);
 
-  assert.match(edit, /poReadOnly\(\)/);
-  assert.match(plane, /poReadOnly\(\)/);
+  assert.match(edit, /tbModelCommand\(/);
+  assert.match(plane, /tbModelCommand\(/);
+  assert.match(command, /poReadOnly\(\)/);
   assert.match(editor, /data-origin-axis[^]*poReadOnly\(\)/);
   assert.match(readOnlyUi, /#tbEditSummary input/);
   assert.match(readOnlyUi, /#tbEditSummary select/);
