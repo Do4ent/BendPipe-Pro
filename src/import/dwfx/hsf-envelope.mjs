@@ -548,6 +548,30 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
       if (![...start, ...middle, ...end].every(Number.isFinite)) {
         throw new RangeError(`non-finite TKE_Circular_Arc coordinate at offset ${offset}`);
       }
+
+      let cursor = offset + 37;
+      let flags = 0;
+      let center = null;
+      const version = Number.parseFloat(String(hsfVersion ?? ""));
+      if (!Number.isFinite(version)) {
+        return Object.freeze({
+          entities: Object.freeze(entities),
+          next_offset: offset,
+          complete_prefix: false,
+          unsupported_opcode: opcode,
+          unsupported_variant: "TKE_Circular_Arc requires HSF version to resolve post-12.15 flags"
+        });
+      }
+      if (version >= 12.15) {
+        if (cursor >= bytes.length) throw new RangeError("truncated TKE_Circular_Arc flags");
+        flags = bytes[cursor++];
+        if ((flags & 0x01) !== 0) {
+          if (cursor + 12 > bytes.length) throw new RangeError("truncated TKE_Circular_Arc center");
+          center = readPoint(cursor);
+          cursor += 12;
+        }
+      }
+
       entities.push(Object.freeze({
         kind: "curve_candidate",
         source_offset: offset,
@@ -555,11 +579,13 @@ export function decodeHsfOpcodePrefix(input, { maxOpcodes = 256, hsfVersion = nu
         start,
         middle,
         end,
+        flags,
+        center,
         source_semantics: "native_hsf_circular_arc",
         canonical_ready: false,
         production_ready: false
       }));
-      offset += 37;
+      offset = cursor;
       count += 1;
       continue;
     }
