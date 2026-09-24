@@ -12,7 +12,7 @@ function fixture(unsupported = true){
     0x29,
     0x42,0x00,...f32(-1),...f32(-2),...f32(-3),...f32(4),...f32(5),...f32(6)
   ];
-  if (unsupported) stream.push(0x71,1,2,3,0x7a);
+  if (unsupported) stream.push(0x22,0x7a);
   else stream.push(0x7a);
   const compressed=deflateSync(Uint8Array.from(stream));
   return Uint8Array.from([
@@ -31,7 +31,7 @@ test("A20: partial decoder preserves exact scene evidence and stops on unsupport
   assert.equal(out.entities[0].payload.name,"abc");
   assert.equal(out.entities[2].kind,"bounds");
   assert.equal(out.entities[2].payload.source_offset_space,"decompressed_hsf");
-  assert.match(out.diagnostics.join(" "),/unsupported opcode 0x71/i);
+  assert.match(out.diagnostics.join(" "),/unsupported opcode 0x22/i);
   assert.match(out.diagnostics.join(" "),/No resynchronization scan was attempted/i);
 });
 
