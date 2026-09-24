@@ -91,13 +91,35 @@
       {
         "kind": "pause",
         "source_offset": 136
+      },
+      {
+        "kind": "color",
+        "source_offset": 137,
+        "geometry_mask": 640,
+        "channels_mask": 3,
+        "channels": {
+          "diffuse": {
+            "rgb_bytes": [
+              127,
+              127,
+              127
+            ]
+          },
+          "specular": {
+            "rgb_bytes": [
+              255,
+              255,
+              255
+            ]
+          }
+        }
       }
     ],
-    "next_offset": 137,
-    "unsupported_opcode_hex": "0x22",
-    "unsupported_opcode_name": "TKE_Color",
+    "next_offset": 149,
+    "unsupported_opcode_hex": "0x3a",
+    "unsupported_opcode_name": "TKE_Geometry_Attributes",
     "complete": false
   },
   "production_ready": false,
-  "note": "Golden facts extracted from the original 80003043(A) DWFx. Prefix decoding is evidence only; parsing stops at the first unsupported opcode and must not resynchronize by scanning. Current synchronized frontier is TKE_Color at decompressed offset 137."
+  "note": "Golden facts extracted from the original 80003043(A) DWFx. Prefix decoding is evidence only; parsing stops at the first unsupported opcode and must not resynchronize by scanning. Current synchronized frontier is TKE_Geometry_Attributes at decompressed offset 149."
 }
