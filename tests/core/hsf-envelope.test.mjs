@@ -164,3 +164,77 @@ test('A20: unknown opcode stops synchronized parsing instead of scanning or gues
   assert.equal(out.next_offset,3);
   assert.equal(out.entities.length,1);
 });
+
+
+function shellFixture({ optionalOpcode = 0x1c } = {}) {
+  const workspace = Uint8Array.from([
+    0x02,0x00,0x00,0x00,
+    ...le32(0),...le32(0),...le32(0),...le32(2),...le32(0)
+  ]);
+  const bytes = [
+    0x53,
+    0x58,
+    0x00,
+    0x05,
+    ...le32(workspace.length),
+    ...workspace,
+    ...f32(1),...f32(2),...f32(3),
+    ...f32(4),...f32(5),...f32(6),
+    optionalOpcode
+  ];
+  if (optionalOpcode === 0x1c) {
+    bytes.push(
+      0x02,
+      ...f32(0),...f32(0),
+      ...f32(1),...f32(1),
+      0x00,
+      0x7a
+    );
+  } else {
+    bytes.push(0x11,0x22,0x33,0x7a);
+  }
+  return Uint8Array.from(bytes);
+}
+
+test('A20: TKE_Shell exposes exact post-EdgeBreaker vertices but not invented faces',()=>{
+  const out=decodeHsfOpcodePrefix(shellFixture(),{hsfVersion:'14.50'});
+  assert.equal(out.complete_prefix,true);
+  assert.equal(out.entities.length,1);
+  const shell=out.entities[0];
+  assert.equal(shell.kind,'triangle_mesh');
+  assert.equal(shell.encoding,'TKE_Shell');
+  assert.equal(shell.suboptions,0x58);
+  assert.equal(shell.compression_scheme,0x05);
+  assert.equal(shell.edge_breaker.scheme,2);
+  assert.equal(shell.edge_breaker.point_count,2);
+  assert.deepEqual(shell.vertices,[[1,2,3],[4,5,6]]);
+  assert.equal(shell.connectivity.status,'compressed_unresolved');
+  assert.equal(shell.connectivity.codec,'edgebreaker');
+  assert.equal(shell.connectivity.faces,null);
+  assert.deepEqual(shell.optionals,[{
+    opcode:0x1c,
+    kind:'all_parameters',
+    source_offset:56,
+    width:2,
+    value_count:2,
+    scalar_count:4
+  }]);
+});
+
+test('A20: TKE_Shell refuses to infer post-workspace point layout without HSF version',()=>{
+  const out=decodeHsfOpcodePrefix(shellFixture());
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.unsupported_opcode,0x53);
+  assert.equal(out.next_offset,0);
+  assert.match(out.unsupported_variant,/requires HSF version/i);
+  assert.equal(out.entities.length,0);
+});
+
+test('A20: unknown TKE_Shell optional stops at the exact nested opcode without resynchronizing',()=>{
+  const out=decodeHsfOpcodePrefix(shellFixture({optionalOpcode:0x7f}),{hsfVersion:'14.50'});
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.unsupported_opcode,0x53);
+  assert.equal(out.next_offset,56);
+  assert.match(out.unsupported_variant,/optional opcode 0x7f/i);
+  assert.equal(out.entities.length,0);
+});
