@@ -52,6 +52,12 @@
         "geometryRecognition": {
           "status": "metadata_only",
           "bendGeometryTrusted": false
+        },
+        "sourceObjectLink": {
+          "referenceNodeId": "TD4C6rYJ0Ui8vPcd0hGi6w",
+          "contentElementRef": "C++tg4ZCQ0+2QU4Qi13JRg",
+          "entityRef": "Cu+tg4ZCQ0+2QU4Qi13JRg",
+          "source": "DWFx model/content XML"
         }
       },
       {
@@ -91,6 +97,12 @@
         "geometryRecognition": {
           "status": "metadata_only",
           "bendGeometryTrusted": false
+        },
+        "sourceObjectLink": {
+          "referenceNodeId": "gT4C6rYJ0Ui8vPcd0hGi6w",
+          "contentElementRef": "e++tg4ZCQ0+2QU4Qi13JRg",
+          "entityRef": "eu+tg4ZCQ0+2QU4Qi13JRg",
+          "source": "DWFx model/content XML"
         }
       },
       {
@@ -130,6 +142,12 @@
         "geometryRecognition": {
           "status": "metadata_only",
           "bendGeometryTrusted": false
+        },
+        "sourceObjectLink": {
+          "referenceNodeId": "hj4C6rYJ0Ui8vPcd0hGi6w",
+          "contentElementRef": "hu+tg4ZCQ0+2QU4Qi13JRg",
+          "entityRef": "he+tg4ZCQ0+2QU4Qi13JRg",
+          "source": "DWFx model/content XML"
         }
       },
       {
@@ -139,7 +157,7 @@
         "rows": [
           {
             "type": "LINE",
-            "L": 1701.0,
+            "L": 1701,
             "elementId": "recognized-placeholder-line"
           }
         ],
@@ -165,10 +183,16 @@
         "material": "Copper EN 12735-1",
         "outerDiameterMm": 19.05,
         "wallThicknessMm": 1.7,
-        "developedLengthMm": 1701.0,
+        "developedLengthMm": 1701,
         "geometryRecognition": {
           "status": "metadata_only",
           "bendGeometryTrusted": false
+        },
+        "sourceObjectLink": {
+          "referenceNodeId": "hz4C6rYJ0Ui8vPcd0hGi6w",
+          "contentElementRef": "ie+tg4ZCQ0+2QU4Qi13JRg",
+          "entityRef": "iO+tg4ZCQ0+2QU4Qi13JRg",
+          "source": "DWFx model/content XML"
         }
       },
       {
@@ -208,6 +232,12 @@
         "geometryRecognition": {
           "status": "metadata_only",
           "bendGeometryTrusted": false
+        },
+        "sourceObjectLink": {
+          "referenceNodeId": "xT4C6rYJ0Ui8vPcd0hGi6w",
+          "contentElementRef": "FPCtg4ZCQ0+2QU4Qi13JRg",
+          "entityRef": "E_Ctg4ZCQ0+2QU4Qi13JRg",
+          "source": "DWFx model/content XML"
         }
       },
       {
@@ -217,7 +247,7 @@
         "rows": [
           {
             "type": "LINE",
-            "L": 1248.0,
+            "L": 1248,
             "elementId": "recognized-placeholder-line"
           }
         ],
@@ -243,10 +273,16 @@
         "material": "Copper EN 12735-1",
         "outerDiameterMm": 9.53,
         "wallThicknessMm": 0.76,
-        "developedLengthMm": 1248.0,
+        "developedLengthMm": 1248,
         "geometryRecognition": {
           "status": "metadata_only",
           "bendGeometryTrusted": false
+        },
+        "sourceObjectLink": {
+          "referenceNodeId": "xj4C6rYJ0Ui8vPcd0hGi6w",
+          "contentElementRef": "F_Ctg4ZCQ0+2QU4Qi13JRg",
+          "entityRef": "FvCtg4ZCQ0+2QU4Qi13JRg",
+          "source": "DWFx model/content XML"
         }
       }
     ]
