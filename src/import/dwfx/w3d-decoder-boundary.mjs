@@ -18,6 +18,7 @@ const ALLOWED_KINDS = new Set([
   "light",
   "pause",
   "color",
+  "geometry_scope",
   "polyline",
   "triangle_mesh",
   "curve_candidate",
