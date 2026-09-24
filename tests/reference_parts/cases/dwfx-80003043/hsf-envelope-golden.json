@@ -113,13 +113,129 @@
             ]
           }
         }
+      },
+      {
+        "kind": "geometry_scope",
+        "action": "open",
+        "source_offset": 149
+      },
+      {
+        "kind": "color",
+        "source_offset": 150,
+        "geometry_mask": 384,
+        "channels_mask": 1,
+        "channels": {
+          "diffuse": {
+            "rgb_bytes": [
+              51,
+              51,
+              51
+            ]
+          }
+        }
+      },
+      {
+        "kind": "geometry_scope",
+        "action": "close",
+        "source_offset": 158
+      },
+      {
+        "kind": "segment",
+        "action": "close",
+        "source_offset": 159
+      },
+      {
+        "kind": "segment",
+        "action": "open",
+        "source_offset": 160,
+        "name": ""
+      },
+      {
+        "kind": "tag",
+        "source_offset": 162
+      },
+      {
+        "kind": "light",
+        "light_type": "distant",
+        "source_offset": 163,
+        "direction": [
+          -0.48208698630332947,
+          -0.6427879929542542,
+          0.5953279733657837
+        ]
+      },
+      {
+        "kind": "pause",
+        "source_offset": 176
+      },
+      {
+        "kind": "color",
+        "source_offset": 177,
+        "geometry_mask": 640,
+        "channels_mask": 3,
+        "channels": {
+          "diffuse": {
+            "rgb_bytes": [
+              90,
+              91,
+              102
+            ]
+          },
+          "specular": {
+            "rgb_bytes": [
+              180,
+              183,
+              205
+            ]
+          }
+        }
+      },
+      {
+        "kind": "geometry_scope",
+        "action": "open",
+        "source_offset": 189
+      },
+      {
+        "kind": "color",
+        "source_offset": 190,
+        "geometry_mask": 384,
+        "channels_mask": 1,
+        "channels": {
+          "diffuse": {
+            "rgb_bytes": [
+              36,
+              36,
+              41
+            ]
+          }
+        }
+      },
+      {
+        "kind": "geometry_scope",
+        "action": "close",
+        "source_offset": 198
+      },
+      {
+        "kind": "segment",
+        "action": "close",
+        "source_offset": 199
+      },
+      {
+        "kind": "segment",
+        "action": "open",
+        "source_offset": 200,
+        "name": "3"
+      },
+      {
+        "kind": "tag",
+        "source_offset": 203
       }
     ],
-    "next_offset": 149,
-    "unsupported_opcode_hex": "0x3a",
-    "unsupported_opcode_name": "TKE_Geometry_Attributes",
+    "next_offset": 204,
+    "unsupported_opcode_hex": "0x55",
+    "unsupported_opcode_name": "TKE_User_Options",
     "complete": false
   },
   "production_ready": false,
-  "note": "Golden facts extracted from the original 80003043(A) DWFx. Prefix decoding is evidence only; parsing stops at the first unsupported opcode and must not resynchronize by scanning. Current synchronized frontier is TKE_Geometry_Attributes at decompressed offset 149."
+  "note": "Golden facts extracted from the original 80003043(A) DWFx. Prefix decoding is evidence only; parsing stops at the first unsupported opcode and must not resynchronize by scanning. Current synchronized frontier is TKE_User_Options at decompressed offset 204."
 }
