@@ -103,6 +103,35 @@ test("A20: exact DWFx XML object linkage is preserved for geometry correlation",
   );
 });
 
+
+test("A20: six tube records preserve exact variation-to-library W3D cross-references", () => {
+  const result = normalizeDwfxMetadataRecognition(input);
+  const byPart = new Map(result.tubes.map((tube) => [tube.part_number, tube]));
+
+  assert.deepEqual(
+    [...byPart].map(([part,tube]) => [
+      part,
+      tube.source_evidence.w3d_cross_reference.geometricVariationSegment,
+      tube.source_evidence.w3d_cross_reference.librarySegment,
+      tube.source_evidence.w3d_cross_reference.variationSourceOffset,
+      tube.source_evidence.w3d_cross_reference.librarySourceOffset
+    ]),
+    [
+      ["10160780","121137","?Include Library/34001",20744227,10390333],
+      ["10157546","121191","?Include Library/46910",20748672,12793026],
+      ["10157555","121197","?Include Library/47012",20749175,12876042],
+      ["10157683","121199","?Include Library/47033",20749318,12883275],
+      ["10157549","121271","?Include Library/69646",20755052,15611644],
+      ["10157552","121273","?Include Library/69667",20755195,15622313]
+    ]
+  );
+  for (const tube of result.tubes) {
+    assert.equal(tube.source_evidence.w3d_cross_reference.status,"exact");
+    assert.equal(tube.source_evidence.w3d_cross_reference.offsetSpace,"decompressed_hsf");
+    assert.equal(tube.source_evidence.w3d_cross_reference.productionReady,false);
+  }
+});
+
 test("A19: DWFx metadata normalizer refuses non-DWFx input", () => {
   assert.throws(
     () => normalizeDwfxMetadataRecognition({ source: { format: "STEP" } }),
