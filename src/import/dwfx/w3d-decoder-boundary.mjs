@@ -21,6 +21,7 @@ const ALLOWED_KINDS = new Set([
   "geometry_scope",
   "user_options",
   "heuristics",
+  "hw3d_image",
   "polyline",
   "triangle_mesh",
   "curve_candidate",
