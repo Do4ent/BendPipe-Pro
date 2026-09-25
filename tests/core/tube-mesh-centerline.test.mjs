@@ -192,8 +192,6 @@ test("A20: ring plane mismatch can block tangent evidence independently",()=>{
     max_ring_plane_error_mm:0.01
   });
   assert.equal(result.status,"unresolved");
-  assert.match(
-    result.diagnostics.pair_failures[0].blockers.join(" "),
-    /ring plane error/i
-  );
+  assert.match(result.blocker,/ring plane error/i);
+  assert.ok(result.diagnostics.max_ring_plane_error_mm>0.01);
 });
