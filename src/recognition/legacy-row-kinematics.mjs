@@ -54,8 +54,7 @@ export function effectiveLegacyBendAxis(tangent,plane="XY",rotationDeg=0){
   const raw=legacyPlaneNormal(plane);
   if(!raw) throw new RangeError("unsupported legacy bend plane "+String(plane));
   let base=sub(raw,mul(t,dot(raw,t)));
-  if(len(base)<1e-10){
-    const helper=Math.abs(t[2])<0.88?[0,0,1]:[0,1,0];
+  // When the legacy plane normal is effectively parallel to the incoming\n  // tangent, its projected direction is numerically undefined. Replay can\n  // accumulate sub-nanoradian noise, so use the stable fallback before that\n  // noise is normalized into an arbitrary bend axis.\n  if(len(base)<1e-8){\n    const helper=Math.abs(t[2])<0.88?[0,0,1]:[0,1,0];
     base=cross(helper,t);
   }
   base=unit(base,"projected legacy bend axis");
