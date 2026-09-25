@@ -164,13 +164,17 @@ const newPoLoadFile = `async function poLoadFile(file){
         return;
       }
       const meta={name:file.name,size:file.size||0,modified:file.lastModified||Date.now(),source:'device'};
-      const pkg=poNormalizePackage(result.package,meta);
-      pkg.rawDwfxImport={
+      const dwfxImport={
         status:result.status,
         stage:result.stage,
         source_file:result.source_file,
         production_ready:false
       };
+      const recentPackage={...result.package,dwfxImport};
+      const pkg=poNormalizePackage(recentPackage,meta);
+      pkg.rawData=recentPackage;
+      pkg.rawText=JSON.stringify(recentPackage);
+      pkg.rawDwfxImport=dwfxImport;
       PO.current=pkg;
       PO.currentRecord=null;
       poResetSelection(pkg);
