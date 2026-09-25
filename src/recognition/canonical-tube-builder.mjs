@@ -1,7 +1,3 @@
-function freezeArray(value){
-  return Object.freeze([...value]);
-}
-
 function point3(value,label){
   if(!Array.isArray(value)||value.length!==3){
     throw new TypeError(label+" must be a 3D point");
@@ -50,8 +46,8 @@ function bendRotationMap(neutral){
   const map=new Map();
   if(!neutral||!Array.isArray(neutral.bends)) return map;
   for(const bend of neutral.bends){
-    if(Number.isInteger(bend.primitive_index)){
-      map.set(bend.primitive_index,bend.rotation_from_previous_bend_deg??null);
+    if(Number.isInteger(bend.source_primitive_index)){
+      map.set(bend.source_primitive_index,bend.rotation_from_previous_bend_deg??null);
     }
   }
   return map;
