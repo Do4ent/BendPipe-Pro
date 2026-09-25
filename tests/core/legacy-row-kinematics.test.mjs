@@ -99,3 +99,24 @@ test("A20: 180-degree transition requires canonical plane normal",()=>{
 test("A20: effective XZ base uses minus Y exactly as live axisForPlane",()=>{
   near(effectiveLegacyBendAxis([1,0,0],"XZ",0),[0,-1,0]);
 });
+
+
+test("A20: sub-nanoradian replay drift does not destabilize near-parallel legacy plane fallback",()=>{
+  const incoming=[1,3.30798141e-17,1.56062561e-10];
+  const target=[0,0.3705006363028893,-0.9288322122424234];
+  const settings=solveLegacyBendSettings({
+    incoming:[1,0,0],
+    target,
+    signedAngleHintDeg:90,
+    targetPlaneNormal:[0,0.9288322122424234,0.3705006363028893]
+  });
+
+  assert.equal(settings.status,"exact");
+  assert.equal(settings.plane,"YZ");
+
+  const rebuilt=replayLegacyDirection(incoming,settings);
+  assert.ok(
+    angleBetweenVectorsDeg(rebuilt,target)<1e-5,
+    "near-parallel fallback must remain stable after prior replay noise"
+  );
+});
