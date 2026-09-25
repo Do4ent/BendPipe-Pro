@@ -126,6 +126,12 @@ test("A20: generated poLoadFile requests explicit bbox then opens recognized DWF
   );
   assert.equal(context.PO.current.rawDwfxImport.status,"dwfx_project_candidate");
   assert.equal(context.PO.current.rawDwfxImport.production_ready,false);
+  assert.equal(typeof context.PO.current.rawText,"string");
+  const stored=JSON.parse(context.PO.current.rawText);
+  assert.equal(stored.type,"TubeBenderProject");
+  assert.equal(stored.dwfxImport.status,"dwfx_project_candidate");
+  assert.equal(stored.dwfxImport.production_ready,false);
+  assert.equal("bytes" in stored,false);
   assert.equal(calls.render,1);
 });
 
@@ -238,4 +244,45 @@ test("A20: hard DWFx blocker is displayed as inspection error without poNormaliz
     ["Exact Include Library linkage failed"]
   );
   assert.equal(context.PO.current.rawDwfxImport.stage,"hsf_linkage");
+});
+
+
+test("A20: DWFx recent-project payload is compact JSON and can be reparsed without original binary file",async()=>{
+  const bridge={
+    async importSelectedDwfxFile(file){
+      return {
+        status:"dwfx_project_candidate",
+        stage:"complete",
+        source_file:file.name,
+        production_ready:false,
+        project_import:{project_package:{bbox_status:"exact_explicit"}},
+        package:{
+          type:"TubeBenderProject",
+          schemaVersion:"2.0",
+          project:{
+            id:"p",
+            name:"Imported",
+            bbox:{x:100,y:100,z:100},
+            tubes:[{id:"t1",rows:[{type:"LINE",L:10}]}]
+          }
+        }
+      };
+    }
+  };
+  const {context}=contextFor({bridge});
+  const poLoadFile=compilePoLoadFile(context);
+
+  await poLoadFile({
+    name:"source.dwfx",
+    size:8_520_087,
+    lastModified:123,
+    async text(){throw new Error("binary source must not be serialized through file.text()");}
+  });
+
+  const storedText=context.PO.current.rawText;
+  assert.ok(storedText.length<10000);
+  const reparsed=JSON.parse(storedText);
+  assert.equal(reparsed.type,"TubeBenderProject");
+  assert.equal(reparsed.dwfxImport.source_file,"source.dwfx");
+  assert.deepEqual(reparsed.project.bbox,{x:100,y:100,z:100});
 });
