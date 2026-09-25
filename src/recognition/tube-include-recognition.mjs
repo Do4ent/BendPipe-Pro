@@ -39,6 +39,7 @@ export function recognizeTubeIncludeLibraryGeometry({
   outer_diameter_mm,
   wall_thickness_mm,
   developed_length_mm,
+  scale_mm_per_source_unit=null,
   decodeSegment=decodeUniqueHsfNamedSegment,
   centerlineOptions={},
   segmentationOptions={},
@@ -47,6 +48,26 @@ export function recognizeTubeIncludeLibraryGeometry({
 }){
   if(typeof decodeSegment!=="function"){
     throw new TypeError("decodeSegment must be a function");
+  }
+  const explicitScale=scale_mm_per_source_unit==null
+    ? null
+    : Number(scale_mm_per_source_unit);
+  if(
+    explicitScale!==null &&
+    (!Number.isFinite(explicitScale)||explicitScale<=0)
+  ){
+    throw new RangeError("scale_mm_per_source_unit must be positive when provided");
+  }
+  if(
+    explicitScale!==null &&
+    centerlineOptions.scale_mm_per_source_unit!=null &&
+    Math.abs(
+      Number(centerlineOptions.scale_mm_per_source_unit)-explicitScale
+    )>1e-12
+  ){
+    throw new RangeError(
+      "conflicting scale_mm_per_source_unit values were provided"
+    );
   }
   const name=String(includeLibraryName??"");
   if(!name.startsWith("?Include Library/")){
@@ -88,7 +109,10 @@ export function recognizeTubeIncludeLibraryGeometry({
         faces:mesh.connectivity.faces,
         outer_diameter_mm,
         wall_thickness_mm,
-        ...centerlineOptions
+        ...centerlineOptions,
+        ...(explicitScale===null
+          ? {}
+          : {scale_mm_per_source_unit:explicitScale})
       });
       if(centerline.status==="centerline_candidate"){
         accepted.push(Object.freeze({mesh,centerline}));
@@ -215,6 +239,11 @@ export function recognizeTubeIncludeLibraryGeometry({
     canonical_ready:false,
     truth_category:"derived",
     include_library:name,
+    source_scale_mm_per_source_unit:explicitScale,
+    source_scale_status:
+      explicitScale===null
+        ?"derived_fallback"
+        :"explicit_source",
     decoded_segment_status:decoded.status,
     decoded_mesh_count:meshes.length,
     mesh_candidate_count:1,
