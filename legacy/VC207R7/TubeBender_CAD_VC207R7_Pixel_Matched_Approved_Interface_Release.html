@@ -7377,9 +7377,10 @@ function syncActiveTubeFromState(){
   const t = activeTube();
   if (!t) return;
   t.name = t.name || 'Pipe';
+  const importBlocked=t.importValidation?.productionBlocked===true;
   const resolved=toolingIndexById(state.toolingId);
   if(resolved>=0)state.diameterIndex=resolved;
-  if(!state.toolingId){
+  if(!state.toolingId&&!importBlocked){
     const tool=pipeDb[state.diameterIndex];
     if(tool?.id)state.toolingId=tool.id;
   }
@@ -7387,15 +7388,21 @@ function syncActiveTubeFromState(){
   t.toolingUnresolved=toolingIndexById(t.toolingId)<0;
   t.diameterIndex = state.diameterIndex;
   state.toolingUnresolved=t.toolingUnresolved;
-  state.rows=normalizeTubeRowStart(state.rows,state.diameterIndex);
+  if(importBlocked){
+    state.rows=Array.isArray(state.rows)?state.rows:[];
+  }else{
+    state.rows=normalizeTubeRowStart(state.rows,state.diameterIndex);
+  }
   t.rows = clone(state.rows);
   t.dimensions = clone(state.dimensions || {});
   t.baseDimensions = clone(state.baseDimensions || {});
   t.origin = clone(state.origin || { x:0, y:0, z:0 });
   t.startDir = clone(state.startDir || { az:0, el:0 });
-  t.startAxis = state.startAxis || 'X';
-  t.startPlane = state.startPlane || 'XY';
-  t.startAngle = Number(state.startAngle) || 0;
+  t.startAxis = importBlocked ? (state.startAxis??t.startAxis??null) : (state.startAxis || 'X');
+  t.startPlane = importBlocked ? (state.startPlane??t.startPlane??null) : (state.startPlane || 'XY');
+  t.startAngle = Number.isFinite(Number(state.startAngle))
+    ? Number(state.startAngle)
+    : (importBlocked ? (t.startAngle??null) : 0);
   t.firstSegmentDraft = String(state.firstSegmentDraft ?? '');
   t.updatedAt = new Date().toISOString();
   syncProjectToLegacy();
@@ -7404,8 +7411,9 @@ function loadActiveTubeToState(){
   const t = activeTube();
   if (!t) return;
   ensureToolingIds(pipeDb);
+  const importBlocked=t.importValidation?.productionBlocked===true;
   let resolved=toolingIndexById(t.toolingId);
-  if(resolved<0&&!t.toolingId){
+  if(resolved<0&&!t.toolingId&&!importBlocked){
     resolved=validToolDiameterIndex(t.diameterIndex);
     t.toolingId=pipeDb[resolved]?.id||null;
   }
@@ -7416,16 +7424,22 @@ function loadActiveTubeToState(){
     t.toolingUnresolved=false;
   }
   state.diameterIndex=resolved;
-  state.toolingId=t.toolingId||pipeDb[resolved]?.id||null;
+  state.toolingId=t.toolingId||(importBlocked?null:(pipeDb[resolved]?.id||null));
   state.toolingUnresolved=t.toolingUnresolved;
-  state.rows = normalizeTubeRowStart(Array.isArray(t.rows) ? clone(t.rows) : defaultRows(),state.diameterIndex);
+  if(importBlocked){
+    state.rows=Array.isArray(t.rows)?clone(t.rows):[];
+  }else{
+    state.rows=normalizeTubeRowStart(Array.isArray(t.rows)?clone(t.rows):defaultRows(),state.diameterIndex);
+  }
   state.dimensions = (t.dimensions && typeof t.dimensions === 'object') ? clone(t.dimensions) : {};
   state.baseDimensions = (t.baseDimensions && typeof t.baseDimensions === 'object') ? clone(t.baseDimensions) : {};
   state.origin = (t.origin && typeof t.origin === 'object') ? clone(t.origin) : { x:0, y:0, z:0 };
   state.startDir = (t.startDir && typeof t.startDir === 'object') ? clone(t.startDir) : { az:0, el:0 };
-  state.startAxis = t.startAxis || 'X';
-  state.startPlane = t.startPlane || 'XY';
-  state.startAngle = Number(t.startAngle) || 0;
+  state.startAxis = importBlocked ? (t.startAxis??null) : (t.startAxis || 'X');
+  state.startPlane = importBlocked ? (t.startPlane??null) : (t.startPlane || 'XY');
+  state.startAngle = Number.isFinite(Number(t.startAngle))
+    ? Number(t.startAngle)
+    : (importBlocked ? null : 0);
   state.firstSegmentDraft = String(t.firstSegmentDraft ?? '');
   t.visible = true;
   selectedAssemblyId = null;
