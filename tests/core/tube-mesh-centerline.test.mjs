@@ -105,7 +105,7 @@ test("A20: an explicit unit scale is validated rather than silently replaced",()
   assert.match(result.blocker,/outer radius mismatch/i);
 });
 
-test("A20: topology with more than two side grids is rejected as ambiguous",()=>{
+test("A20: extra ring-grid surface is ignored only when metadata selects one unique inner/outer pair",()=>{
   const mesh=straightHollowTube();
   addSideSurface(mesh.vertices,mesh.faces,{
     radius:0.3,
@@ -117,6 +117,53 @@ test("A20: topology with more than two side grids is rejected as ambiguous",()=>
     outer_diameter_mm:10,
     wall_thickness_mm:1
   });
+  assert.equal(result.status,"centerline_candidate");
+  assert.equal(result.side_surfaces.length,2);
+  assert.ok(Math.abs(result.observed_outer_radius_mm-5)<1e-9);
+  assert.ok(Math.abs(result.observed_inner_radius_mm-4)<1e-9);
+});
+
+test("A20: duplicate metadata-compatible side pairs remain unresolved as ambiguous",()=>{
+  const mesh=straightHollowTube();
+  addSideSurface(mesh.vertices,mesh.faces,{
+    radius:0.4,
+    circumference:6,
+    centers:[[0,0,0],[1,0,0],[2,0,0],[3,0,0]]
+  });
+  const result=deriveTubeMeshCenterline({
+    ...mesh,
+    outer_diameter_mm:10,
+    wall_thickness_mm:1
+  });
   assert.equal(result.status,"unresolved");
-  assert.match(result.blocker,/exactly two ring-grid side surfaces/i);
+  assert.match(result.blocker,/multiple inner\/outer side-surface pairs/i);
+});
+
+test("A20: annular end-cap grids cannot masquerade as tube side surfaces",()=>{
+  const mesh=straightHollowTube();
+  const start=mesh.vertices.length;
+  const circumference=8;
+  for(const radius of [0.4,0.5]){
+    for(let i=0;i<circumference;i+=1){
+      const a=2*Math.PI*i/circumference;
+      mesh.vertices.push([0,radius*Math.cos(a),radius*Math.sin(a)]);
+    }
+  }
+  for(let i=0;i<circumference;i+=1){
+    const next=(i+1)%circumference;
+    const a=start+i;
+    const b=start+next;
+    const c=start+circumference+i;
+    const d=start+circumference+next;
+    mesh.faces.push([a,b,d],[a,d,c]);
+  }
+
+  const result=deriveTubeMeshCenterline({
+    ...mesh,
+    outer_diameter_mm:10,
+    wall_thickness_mm:1
+  });
+  assert.equal(result.status,"centerline_candidate");
+  assert.equal(result.side_surfaces.length,2);
+  assert.ok(result.max_ring_radius_stddev_mm<0.01);
 });
