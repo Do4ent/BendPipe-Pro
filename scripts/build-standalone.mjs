@@ -122,8 +122,27 @@ const newPoLoadFile = `async function poLoadFile(file){
       if(!bridge||typeof bridge.importSelectedDwfxFile!=='function'){
         throw new Error('DWFx importer module is not ready');
       }
-      const result=await bridge.importSelectedDwfxFile(file);
+      let result=await bridge.importSelectedDwfxFile(file);
       if(token!==PO.analysisToken)return;
+      if(result?.status==='requirements_pending'&&result?.requirement?.kind==='bbox'){
+        const explicitBBox={};
+        let bboxCancelled=false;
+        for(const axis of ['x','y','z']){
+          const rawValue=window.prompt('Введите размер корпуса '+axis.toUpperCase()+' (мм):','');
+          if(rawValue===null){bboxCancelled=true;break;}
+          const value=Number(String(rawValue).trim().replace(',','.'));
+          if(!Number.isFinite(value)||value<=0){
+            ptToast('Размер корпуса должен быть положительным числом');
+            bboxCancelled=true;
+            break;
+          }
+          explicitBBox[axis]=value;
+        }
+        if(!bboxCancelled){
+          result=await bridge.importSelectedDwfxFile(file,{bbox:explicitBBox});
+          if(token!==PO.analysisToken)return;
+        }
+      }
       if(result?.status!=='dwfx_project_candidate'||!result.package){
         const reason=result?.blocker||'DWFx import is blocked.';
         PO.current={
