@@ -63,11 +63,38 @@ export async function importSelectedDwfxFile(
     });
   }
 
-  return prepareImport({
+  const result=await prepareImport({
     bytes,
     dwfx_file:name,
     project_id,
     project_name:project_name??name.replace(/\.dwfx$/i,""),
     bbox
   });
+
+  const bboxStatus=
+    result?.project_import?.project_package?.bbox_status ??
+    (result?.package?.project?.bbox ? "exact_explicit" : null);
+
+  if(
+    result?.status==="dwfx_project_candidate" &&
+    bboxStatus==="unresolved"
+  ){
+    return Object.freeze({
+      status:"requirements_pending",
+      stage:"project_bbox",
+      editable_ready:false,
+      production_ready:false,
+      requirement:Object.freeze({
+        kind:"bbox",
+        unit:"mm",
+        axes:Object.freeze(["x","y","z"]),
+        reason:"Project corpus dimensions are required explicitly before opening DWFx geometry."
+      }),
+      preliminary_result:result,
+      package:null,
+      blocker:"DWFx geometry is recognized, but project bbox dimensions must be entered explicitly before the project can be opened."
+    });
+  }
+
+  return result;
 }
