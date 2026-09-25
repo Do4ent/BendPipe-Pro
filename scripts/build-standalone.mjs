@@ -96,7 +96,7 @@ const dwfxEntry = bundledEntrySource(dwfxEntryPath).replace(
   "<\\/script"
 );
 const bundledDwfx =
-  `<script type="module" data-tubebender-bundled="dwfx-import">\n${dwfxEntry}\nwindow.TubeBenderDwfxImport=Object.freeze({importSelectedDwfxFile});\n</script>`;
+  `<script type="module" data-tubebender-bundled="dwfx-import">\n${dwfxEntry}\nwindow.TubeBenderDwfxImport=Object.freeze({importSelectedDwfxFile});\nconst tbDwfxInput=document.getElementById("poFileInput");if(tbDwfxInput)tbDwfxInput.setAttribute("accept",".json,.dwfx,application/json,application/octet-stream");\n</script>`;
 
 if (!output.includes("</body>")) {
   throw new Error("Standalone source HTML is missing </body>");
@@ -188,6 +188,19 @@ const newPoLoadFile = `async function poLoadFile(file){
 }`;
 
 output = output.replace(oldPoLoadFile, newPoLoadFile);
+
+output = output.replaceAll(
+  "[...(e.dataTransfer?.files||[])].find(x=>/\\.json$/i.test(x.name)||x.type.includes('json'))",
+  "[...(e.dataTransfer?.files||[])].find(x=>/\\.(?:json|dwfx)$/i.test(x.name)||x.type.includes('json'))"
+);
+output = output.replaceAll(
+  "Нужен JSON-файл проекта",
+  "Нужен JSON- или DWFx-файл проекта"
+);
+output = output.replaceAll(
+  "перетащите JSON-файл проекта",
+  "перетащите JSON/DWFx-файл проекта"
+);
 
 output = output.replace(
   "offlineCoreReady:true,\n  offlineReady:false",
