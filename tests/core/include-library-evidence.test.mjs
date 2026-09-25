@@ -9,11 +9,6 @@ import {
 function open(name){ return [0x28,name.length,...Buffer.from(name)]; }
 function close(){ return [0x29]; }
 function include(name){ return [0x3c,name.length,...Buffer.from(name)]; }
-function line(a,b){
-  const f=(v)=>{const x=Buffer.allocUnsafe(4);x.writeFloatLE(v);return [...x];};
-  return [0x47,...f(...[])];
-}
-
 test("A20: exact Include Library segment is decoded and summarized",()=>{
   const lib="?Include Library/34001";
   const bytes=Uint8Array.from([
