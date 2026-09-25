@@ -215,96 +215,131 @@ export function deriveTubeMeshCenterline({
     .map((component)=>sideSurfaceCandidate(component,points))
     .filter(Boolean);
 
-  if(sideCandidates.length!==2){
-    return Object.freeze({
-      status:"unresolved",
-      blocker:`expected exactly two ring-grid side surfaces, found ${sideCandidates.length}`,
-      production_ready:false,
-      canonical_ready:false
-    });
-  }
-  if(sideCandidates[0].axial_count!==sideCandidates[1].axial_count){
-    return Object.freeze({
-      status:"unresolved",
-      blocker:"inner and outer side surfaces have different axial ring counts",
-      production_ready:false,
-      canonical_ready:false
-    });
-  }
-
-  const aligned=alignCenterlines(sideCandidates[0].centers,sideCandidates[1].centers);
-  if(aligned.status!=="aligned"){
-    return Object.freeze({
-      status:"unresolved",
-      blocker:"inner and outer centerline samples cannot be aligned",
-      production_ready:false,
-      canonical_ready:false
-    });
-  }
-
   const outerDiameter=positive(outer_diameter_mm,"outer_diameter_mm");
   const wall=positive(wall_thickness_mm,"wall_thickness_mm");
   if(wall*2>=outerDiameter) {
     throw new RangeError("wall_thickness_mm is incompatible with outer_diameter_mm");
   }
 
-  const sorted=[...sideCandidates].sort(
-    (a,b)=>a.radius_source_units-b.radius_source_units
-  );
-  const inner=sorted[0];
-  const outer=sorted[1];
-
-  const scale=scale_mm_per_source_unit==null
-    ? outerDiameter/(2*outer.radius_source_units)
+  const explicitScale=scale_mm_per_source_unit==null
+    ? null
     : positive(scale_mm_per_source_unit,"scale_mm_per_source_unit");
-  const scaleMethod=scale_mm_per_source_unit==null
-    ? "derived_from_outer_diameter"
-    : "explicit";
 
-  const observedOuterRadiusMm=outer.radius_source_units*scale;
-  const observedInnerRadiusMm=inner.radius_source_units*scale;
-  const expectedOuterRadiusMm=outerDiameter/2;
-  const expectedInnerRadiusMm=expectedOuterRadiusMm-wall;
-  const outerError=Math.abs(observedOuterRadiusMm-expectedOuterRadiusMm);
-  const innerError=Math.abs(observedInnerRadiusMm-expectedInnerRadiusMm);
-  const centerMismatchMm=aligned.max_error*scale;
-  const maxRadiusStddevMm=Math.max(
-    inner.radius_stddev_source_units,
-    outer.radius_stddev_source_units
-  )*scale;
+  const pairEvaluations=[];
+  for(let i=0;i<sideCandidates.length;i+=1){
+    for(let j=i+1;j<sideCandidates.length;j+=1){
+      const left=sideCandidates[i];
+      const right=sideCandidates[j];
+      const pairBlockers=[];
 
-  const blockers=[];
-  if(outerError>radius_tolerance_mm) {
-    blockers.push(`outer radius mismatch ${outerError} mm exceeds tolerance`);
-  }
-  if(innerError>radius_tolerance_mm) {
-    blockers.push(`inner radius mismatch ${innerError} mm exceeds tolerance`);
-  }
-  if(centerMismatchMm>center_match_tolerance_mm) {
-    blockers.push(`side-surface center mismatch ${centerMismatchMm} mm exceeds tolerance`);
-  }
-  if(maxRadiusStddevMm>max_ring_radius_stddev_mm) {
-    blockers.push(`ring radius scatter ${maxRadiusStddevMm} mm exceeds tolerance`);
+      if(left.axial_count!==right.axial_count){
+        pairBlockers.push("axial ring counts differ");
+      }
+
+      const aligned=left.axial_count===right.axial_count
+        ? alignCenterlines(left.centers,right.centers)
+        : {status:"mismatch",centers:null,max_error:Infinity,reversed:false};
+
+      const sorted=[left,right].sort(
+        (a,b)=>a.radius_source_units-b.radius_source_units
+      );
+      const inner=sorted[0];
+      const outer=sorted[1];
+
+      const scale=explicitScale??(
+        outer.radius_source_units>0
+          ? outerDiameter/(2*outer.radius_source_units)
+          : NaN
+      );
+      const scaleMethod=explicitScale==null
+        ? "derived_from_outer_diameter"
+        : "explicit";
+
+      const observedOuterRadiusMm=outer.radius_source_units*scale;
+      const observedInnerRadiusMm=inner.radius_source_units*scale;
+      const expectedOuterRadiusMm=outerDiameter/2;
+      const expectedInnerRadiusMm=expectedOuterRadiusMm-wall;
+      const outerError=Math.abs(observedOuterRadiusMm-expectedOuterRadiusMm);
+      const innerError=Math.abs(observedInnerRadiusMm-expectedInnerRadiusMm);
+      const centerMismatchMm=aligned.max_error*scale;
+      const maxRadiusStddevMm=Math.max(
+        inner.radius_stddev_source_units,
+        outer.radius_stddev_source_units
+      )*scale;
+
+      if(aligned.status!=="aligned"){
+        pairBlockers.push("centerline samples cannot be aligned");
+      }
+      if(!Number.isFinite(scale) || scale<=0){
+        pairBlockers.push("unit scale cannot be resolved");
+      }
+      if(outerError>radius_tolerance_mm) {
+        pairBlockers.push(`outer radius mismatch ${outerError} mm exceeds tolerance`);
+      }
+      if(innerError>radius_tolerance_mm) {
+        pairBlockers.push(`inner radius mismatch ${innerError} mm exceeds tolerance`);
+      }
+      if(centerMismatchMm>center_match_tolerance_mm) {
+        pairBlockers.push(`side-surface center mismatch ${centerMismatchMm} mm exceeds tolerance`);
+      }
+      if(maxRadiusStddevMm>max_ring_radius_stddev_mm) {
+        pairBlockers.push(`ring radius scatter ${maxRadiusStddevMm} mm exceeds tolerance`);
+      }
+
+      pairEvaluations.push(Object.freeze({
+        candidate_indices:Object.freeze([i,j]),
+        accepted:pairBlockers.length===0,
+        blockers:Object.freeze(pairBlockers),
+        aligned,
+        inner,
+        outer,
+        scale,
+        scaleMethod,
+        observedOuterRadiusMm,
+        observedInnerRadiusMm,
+        expectedOuterRadiusMm,
+        expectedInnerRadiusMm,
+        centerMismatchMm,
+        maxRadiusStddevMm
+      }));
+    }
   }
 
-  if(blockers.length){
+  const acceptedPairs=pairEvaluations.filter((pair)=>pair.accepted);
+  if(acceptedPairs.length!==1){
     return Object.freeze({
       status:"unresolved",
-      blocker:blockers.join("; "),
+      blocker:acceptedPairs.length===0
+        ? `no unique inner/outer side-surface pair matches tube metadata among ${sideCandidates.length} ring-grid candidates`
+        : `multiple inner/outer side-surface pairs match tube metadata (${acceptedPairs.length})`,
       diagnostics:Object.freeze({
-        scale_mm_per_source_unit:scale,
-        scale_method:scaleMethod,
-        observed_outer_radius_mm:observedOuterRadiusMm,
-        observed_inner_radius_mm:observedInnerRadiusMm,
-        expected_outer_radius_mm:expectedOuterRadiusMm,
-        expected_inner_radius_mm:expectedInnerRadiusMm,
-        center_mismatch_mm:centerMismatchMm,
-        max_ring_radius_stddev_mm:maxRadiusStddevMm
+        ring_grid_candidate_count:sideCandidates.length,
+        evaluated_pair_count:pairEvaluations.length,
+        accepted_pair_count:acceptedPairs.length,
+        pair_failures:Object.freeze(pairEvaluations
+          .filter((pair)=>!pair.accepted)
+          .map((pair)=>Object.freeze({
+            candidate_indices:pair.candidate_indices,
+            blockers:pair.blockers
+          })))
       }),
       production_ready:false,
       canonical_ready:false
     });
   }
+
+  const selected=acceptedPairs[0];
+  const {
+    aligned,
+    inner,
+    outer,
+    scale,
+    scaleMethod,
+    observedOuterRadiusMm,
+    observedInnerRadiusMm,
+    centerMismatchMm,
+    maxRadiusStddevMm
+  }=selected;
 
   const centerlineMm=Object.freeze(
     aligned.centers.map((point)=>Object.freeze(point.map((value)=>value*scale)))
@@ -317,7 +352,7 @@ export function deriveTubeMeshCenterline({
     source_truth_category:"derived",
     scale_mm_per_source_unit:scale,
     scale_method:scaleMethod,
-    side_surfaces:Object.freeze(sideCandidates.map((surface)=>Object.freeze({
+    side_surfaces:Object.freeze([inner,outer].map((surface)=>Object.freeze({
       vertex_count:surface.vertex_count,
       face_count:surface.face_count,
       circumference_count:surface.circumference_count,
