@@ -259,6 +259,28 @@ test("A10: project-open normalization never invents LINE 100 or drops unsupporte
   assert.match(normalize, /первая или ближайшая оснастка не подставляется/);
 });
 
+test("A20: blocked import load does not silently assign tooling or synthesize rows", () => {
+  const load = functionSlice("loadActiveTubeToState", "validToolDiameterIndex");
+
+  assert.match(load, /const importBlocked=t\.importValidation\?\.productionBlocked===true/);
+  assert.match(load, /resolved<0&&!t\.toolingId&&!importBlocked/);
+  assert.match(load, /state\.toolingId=t\.toolingId\|\|\(importBlocked\?null:/);
+  assert.match(load, /if\(importBlocked\)\{[\s\S]*state\.rows=Array\.isArray\(t\.rows\)\?clone\(t\.rows\):\[\]/);
+  assert.match(load, /state\.startAxis = importBlocked \? \(t\.startAxis\?\?null\)/);
+  assert.match(load, /state\.startPlane = importBlocked \? \(t\.startPlane\?\?null\)/);
+  assert.doesNotMatch(load, /if\(resolved<0&&!t\.toolingId\)\{/);
+});
+
+test("A20: blocked import sync preserves unresolved tooling and rows without normalization", () => {
+  const sync = functionSlice("syncActiveTubeFromState", "loadActiveTubeToState");
+
+  assert.match(sync, /const importBlocked=t\.importValidation\?\.productionBlocked===true/);
+  assert.match(sync, /if\(!state\.toolingId&&!importBlocked\)/);
+  assert.match(sync, /if\(importBlocked\)\{[\s\S]*state\.rows=Array\.isArray\(state\.rows\)\?state\.rows:\[\]/);
+  assert.match(sync, /t\.startAxis = importBlocked \? \(state\.startAxis\?\?t\.startAxis\?\?null\)/);
+  assert.match(sync, /t\.startPlane = importBlocked \? \(state\.startPlane\?\?t\.startPlane\?\?null\)/);
+});
+
 test("A20: project-open XZ plane normal matches live VC207R7 minus-Y convention", () => {
   const preview = functionSlice("poAxisVector", "poRotate");
   const live = functionSlice("axisForPlane", "rotateAround");
