@@ -1,0 +1,50 @@
+{
+  "source_file": "ITEM[80003043(A)]-DOC[80003043(A)]-Components WTB, CoolMaster, NO-014.5.dwfx",
+  "hsf_version": "14.50",
+  "note": "Exact named-segment observations from the decompressed HSF stream. Graphics node and geometric variation are recorded independently; no automatic geometry-anchor selection is made.",
+  "parts": [
+    {
+      "part_number": "10160780",
+      "graphics_node": 121136,
+      "graphics_node_segment": {"status": "unresolved", "offset": null},
+      "geometric_variation": 121137,
+      "geometric_variation_segment": {"status": "exact", "offset": 20744227}
+    },
+    {
+      "part_number": "10157546",
+      "graphics_node": 121190,
+      "graphics_node_segment": {"status": "exact", "offset": 20748581},
+      "geometric_variation": 121191,
+      "geometric_variation_segment": {"status": "exact", "offset": 20748672}
+    },
+    {
+      "part_number": "10157555",
+      "graphics_node": 121196,
+      "graphics_node_segment": {"status": "exact", "offset": 20749085},
+      "geometric_variation": 121197,
+      "geometric_variation_segment": {"status": "exact", "offset": 20749175}
+    },
+    {
+      "part_number": "10157683",
+      "graphics_node": 121198,
+      "graphics_node_segment": {"status": "unresolved", "offset": null},
+      "geometric_variation": 121199,
+      "geometric_variation_segment": {"status": "exact", "offset": 20749318}
+    },
+    {
+      "part_number": "10157549",
+      "graphics_node": 121270,
+      "graphics_node_segment": {"status": "exact", "offset": 20754962},
+      "geometric_variation": 121271,
+      "geometric_variation_segment": {"status": "exact", "offset": 20755052}
+    },
+    {
+      "part_number": "10157552",
+      "graphics_node": 121272,
+      "graphics_node_segment": {"status": "unresolved", "offset": null},
+      "geometric_variation": 121273,
+      "geometric_variation_segment": {"status": "exact", "offset": 20755195}
+    }
+  ],
+  "production_ready": false
+}
