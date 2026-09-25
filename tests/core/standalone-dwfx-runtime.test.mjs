@@ -158,7 +158,7 @@ test("A20: cancelling explicit bbox keeps DWFx blocked and never normalizes a pr
 
   assert.equal(calls.normalize.length,0);
   assert.equal(context.PO.current.status,"error");
-  assert.deepEqual(context.PO.current.errors,["bbox required"]);
+  assert.deepEqual(Array.from(context.PO.current.errors),["bbox required"]);
   assert.equal(context.PO.current.rawDwfxImport.status,"requirements_pending");
   assert.equal(calls.render,1);
 });
@@ -240,7 +240,7 @@ test("A20: hard DWFx blocker is displayed as inspection error without poNormaliz
   assert.equal(calls.normalize.length,0);
   assert.equal(context.PO.current.status,"error");
   assert.deepEqual(
-    context.PO.current.errors,
+    Array.from(context.PO.current.errors),
     ["Exact Include Library linkage failed"]
   );
   assert.equal(context.PO.current.rawDwfxImport.stage,"hsf_linkage");
