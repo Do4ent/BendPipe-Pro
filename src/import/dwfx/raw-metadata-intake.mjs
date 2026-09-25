@@ -87,7 +87,7 @@ function firstProperty(entity,name,category=null){
 }
 
 function parseTubeDescription(description){
-  const text=String(description??"");
+  const text=decodeXml(String(description??""));
   const fraction=/([0-9]+)\s*\/\s*([0-9]+)\s*"\s*x\s*([0-9]+(?:[.,][0-9]+)?)\s*mm/i.exec(text);
   if(fraction){
     const numerator=Number(fraction[1]);
