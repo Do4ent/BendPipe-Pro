@@ -1,0 +1,69 @@
+{
+  "source_file": "ITEM[80003043(A)]-DOC[80003043(A)]-Components WTB, CoolMaster, NO-014.5.dwfx",
+  "truth_category": "derived",
+  "machine_compensation_applied": false,
+  "production_ready": false,
+  "rotation_convention": "signed angle from previous oriented bend-plane normal to current oriented bend-plane normal about the intervening straight travel direction; degrees in (-180, 180]",
+  "parts": {
+    "10160780": {
+      "developed_length_mm": 776.3,
+      "tail_length_mm": 589.196526,
+      "bends": [
+        {"bend_number":1,"straight_before_mm":22.700098,"clr_mm":14.999896,"bend_angle_deg":89.999998,"rotation_from_previous_bend_deg":null},
+        {"bend_number":2,"straight_before_mm":136.850349,"clr_mm":14.999868,"bend_angle_deg":15.071229,"rotation_from_previous_bend_deg":-90.000059}
+      ]
+    },
+    "10157546": {
+      "developed_length_mm": 1214.6,
+      "tail_length_mm": 139.786048,
+      "bends": [
+        {"bend_number":1,"straight_before_mm":51.437054,"clr_mm":19.999893,"bend_angle_deg":110.000053,"rotation_from_previous_bend_deg":null},
+        {"bend_number":2,"straight_before_mm":82.807649,"clr_mm":19.999975,"bend_angle_deg":51.419508,"rotation_from_previous_bend_deg":0.0},
+        {"bend_number":3,"straight_before_mm":70.370557,"clr_mm":19.999903,"bend_angle_deg":90.000029,"rotation_from_previous_bend_deg":90.000019},
+        {"bend_number":4,"straight_before_mm":120.000187,"clr_mm":19.999895,"bend_angle_deg":90.000009,"rotation_from_previous_bend_deg":0.0},
+        {"bend_number":5,"straight_before_mm":87.816045,"clr_mm":19.999879,"bend_angle_deg":90.000161,"rotation_from_previous_bend_deg":0.0},
+        {"bend_number":6,"straight_before_mm":480.342238,"clr_mm":19.999913,"bend_angle_deg":89.999857,"rotation_from_previous_bend_deg":-90.000019}
+      ]
+    },
+    "10157555": {
+      "developed_length_mm": 773.6,
+      "tail_length_mm": 38.856955,
+      "bends": [
+        {"bend_number":1,"straight_before_mm":42.548932,"clr_mm":19.999881,"bend_angle_deg":51.773976,"rotation_from_previous_bend_deg":null},
+        {"bend_number":2,"straight_before_mm":190.013483,"clr_mm":19.999911,"bend_angle_deg":38.22599,"rotation_from_previous_bend_deg":0.0},
+        {"bend_number":3,"straight_before_mm":439.380126,"clr_mm":19.999885,"bend_angle_deg":90.000075,"rotation_from_previous_bend_deg":90.000014}
+      ]
+    },
+    "10157683": {
+      "developed_length_mm": 1701.0,
+      "tail_length_mm": 65.000115,
+      "bends": [
+        {"bend_number":1,"straight_before_mm":124.999926,"clr_mm":54.99991,"bend_angle_deg":89.999982,"rotation_from_previous_bend_deg":null},
+        {"bend_number":2,"straight_before_mm":175.726092,"clr_mm":54.999883,"bend_angle_deg":90.00007,"rotation_from_previous_bend_deg":-90.0},
+        {"bend_number":3,"straight_before_mm":440.000178,"clr_mm":54.999902,"bend_angle_deg":89.999999,"rotation_from_previous_bend_deg":31.135819},
+        {"bend_number":4,"straight_before_mm":40.000201,"clr_mm":54.999895,"bend_angle_deg":90.000001,"rotation_from_previous_bend_deg":0.000006},
+        {"bend_number":5,"straight_before_mm":314.948716,"clr_mm":54.999888,"bend_angle_deg":90.000006,"rotation_from_previous_bend_deg":-54.983584},
+        {"bend_number":6,"straight_before_mm":22.000199,"clr_mm":54.999899,"bend_angle_deg":89.999991,"rotation_from_previous_bend_deg":-0.000003}
+      ]
+    },
+    "10157549": {
+      "developed_length_mm": 512.3,
+      "tail_length_mm": 24.999774,
+      "bends": [
+        {"bend_number":1,"straight_before_mm":34.999813,"clr_mm":14.999895,"bend_angle_deg":90.000045,"rotation_from_previous_bend_deg":null},
+        {"bend_number":2,"straight_before_mm":66.89608,"clr_mm":14.99991,"bend_angle_deg":89.999975,"rotation_from_previous_bend_deg":-179.999997},
+        {"bend_number":3,"straight_before_mm":314.700119,"clr_mm":14.9999,"bend_angle_deg":90.000027,"rotation_from_previous_bend_deg":111.746481}
+      ]
+    },
+    "10157552": {
+      "developed_length_mm": 1248.0,
+      "tail_length_mm": 26.999746,
+      "bends": [
+        {"bend_number":1,"straight_before_mm":27.999731,"clr_mm":14.99989,"bend_angle_deg":90.000177,"rotation_from_previous_bend_deg":null},
+        {"bend_number":2,"straight_before_mm":717.044553,"clr_mm":14.999894,"bend_angle_deg":38.924897,"rotation_from_previous_bend_deg":0.0},
+        {"bend_number":3,"straight_before_mm":99.535324,"clr_mm":14.999905,"bend_angle_deg":89.999962,"rotation_from_previous_bend_deg":-89.999941},
+        {"bend_number":4,"straight_before_mm":295.500261,"clr_mm":14.999902,"bend_angle_deg":89.999934,"rotation_from_previous_bend_deg":38.924808}
+      ]
+    }
+  }
+}
