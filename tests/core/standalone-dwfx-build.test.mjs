@@ -75,3 +75,15 @@ test("A20: standalone never falls through to old workspace bbox when DWFx bbox i
   assert.doesNotMatch(block,/bbox:state\.bbox/);
   assert.doesNotMatch(block,/state\.bbox/);
 });
+
+
+test("A20: standalone project-open picker and drag-drop both accept DWFx",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/\.json,\.dwfx,application\/json,application\/octet-stream/);
+  assert.match(html,/\.\(\?:json\|dwfx\)\$/);
+  assert.match(html,/Нужен JSON- или DWFx-файл проекта/);
+  assert.match(html,/перетащите JSON\/DWFx-файл проекта/);
+});
