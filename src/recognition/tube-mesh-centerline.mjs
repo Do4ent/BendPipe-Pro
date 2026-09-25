@@ -13,6 +13,29 @@ function distance(a, b) {
   return Math.hypot(a[0]-b[0], a[1]-b[1], a[2]-b[2]);
 }
 
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+const mul=(a,s)=>[a[0]*s,a[1]*s,a[2]*s];
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const cross=(a,b)=>[
+  a[1]*b[2]-a[2]*b[1],
+  a[2]*b[0]-a[0]*b[2],
+  a[0]*b[1]-a[1]*b[0]
+];
+const vectorLength=(a)=>Math.hypot(a[0],a[1],a[2]);
+function unit(a){
+  const length=vectorLength(a);
+  return length>0 ? mul(a,1/length) : null;
+}
+function clamp(value,min,max){
+  return Math.max(min,Math.min(max,value));
+}
+function angleDeg(a,b){
+  const left=unit(a),right=unit(b);
+  if(!left||!right) return Infinity;
+  return Math.acos(clamp(dot(left,right),-1,1))*180/Math.PI;
+}
+
 function meanPoint(points) {
   const sum=[0,0,0];
   for(const p of points){
@@ -110,6 +133,28 @@ function consecutive(indices) {
   return true;
 }
 
+function ringNormal(ring,center) {
+  let normal=[0,0,0];
+  for(let i=0;i<ring.length;i+=1){
+    const current=sub(ring[i],center);
+    const next=sub(ring[(i+1)%ring.length],center);
+    normal=add(normal,cross(current,next));
+  }
+  return unit(normal);
+}
+
+function orientRingNormals(centers,normals) {
+  return normals.map((normal,index)=>{
+    if(!normal) return null;
+    const reference=index===0
+      ? sub(centers[1],centers[0])
+      : index===centers.length-1
+        ? sub(centers.at(-1),centers.at(-2))
+        : sub(centers[index+1],centers[index-1]);
+    return dot(normal,reference)<0 ? mul(normal,-1) : normal;
+  });
+}
+
 function sideSurfaceCandidate(component, points) {
   const boundary=component.boundary_edge_count;
   if (boundary < 6 || boundary % 2 !== 0) return null;
@@ -123,6 +168,8 @@ function sideSurfaceCandidate(component, points) {
   const rings=[];
   const centers=[];
   const ringRadii=[];
+  const rawNormals=[];
+  const ringPlaneErrors=[];
   for(let ringIndex=0;ringIndex<axialCount;ringIndex+=1){
     const ids=component.vertices.slice(
       ringIndex*circumferenceCount,
@@ -131,10 +178,19 @@ function sideSurfaceCandidate(component, points) {
     const ring=ids.map((id)=>points[id]);
     const center=meanPoint(ring);
     const radii=ring.map((point)=>distance(point,center));
+    const normal=ringNormal(ring,center);
+    if(!normal) return null;
+    const planeError=Math.max(
+      ...ring.map((point)=>Math.abs(dot(sub(point,center),normal)))
+    );
     rings.push(ids);
     centers.push(center);
     ringRadii.push(radii);
+    rawNormals.push(normal);
+    ringPlaneErrors.push(planeError);
   }
+  const ringNormals=orientRingNormals(centers,rawNormals);
+  if(ringNormals.some((normal)=>!normal)) return null;
   const allRadii=ringRadii.flat();
   const radiusMean=mean(allRadii);
   const radiusStddev=stddev(allRadii,radiusMean);
@@ -148,8 +204,10 @@ function sideSurfaceCandidate(component, points) {
     vertex_index_start:component.vertices[0],
     vertex_index_end:component.vertices.at(-1),
     centers,
+    ring_normals:ringNormals,
     radius_source_units:radiusMean,
-    radius_stddev_source_units:radiusStddev
+    radius_stddev_source_units:radiusStddev,
+    max_ring_plane_error_source_units:Math.max(...ringPlaneErrors)
   };
 }
 
@@ -207,7 +265,9 @@ export function deriveTubeMeshCenterline({
   scale_mm_per_source_unit = null,
   center_match_tolerance_mm = 0.02,
   radius_tolerance_mm = 0.02,
-  max_ring_radius_stddev_mm = 0.01
+  max_ring_radius_stddev_mm = 0.01,
+  max_ring_plane_error_mm = 0.01,
+  surface_tangent_tolerance_deg = 0.1
 }) {
   const {points,triangles}=normalizeMesh(vertices,faces);
   const components=meshComponents(points.length,triangles);
@@ -266,6 +326,22 @@ export function deriveTubeMeshCenterline({
         inner.radius_stddev_source_units,
         outer.radius_stddev_source_units
       )*scale;
+      const maxRingPlaneErrorMm=Math.max(
+        inner.max_ring_plane_error_source_units,
+        outer.max_ring_plane_error_source_units
+      )*scale;
+
+      const outerNormals=outer.ring_normals;
+      const innerNormals=aligned.reversed
+        ? [...inner.ring_normals].reverse().map((normal)=>mul(normal,-1))
+        : inner.ring_normals;
+      const tangentMismatchDeg=aligned.status==="aligned"
+        ? Math.max(
+            ...outerNormals.map(
+              (normal,index)=>angleDeg(normal,innerNormals[index])
+            )
+          )
+        : Infinity;
 
       if(aligned.status!=="aligned"){
         pairBlockers.push("centerline samples cannot be aligned");
@@ -285,6 +361,12 @@ export function deriveTubeMeshCenterline({
       if(maxRadiusStddevMm>max_ring_radius_stddev_mm) {
         pairBlockers.push(`ring radius scatter ${maxRadiusStddevMm} mm exceeds tolerance`);
       }
+      if(maxRingPlaneErrorMm>max_ring_plane_error_mm) {
+        pairBlockers.push(`ring plane error ${maxRingPlaneErrorMm} mm exceeds tolerance`);
+      }
+      if(tangentMismatchDeg>surface_tangent_tolerance_deg) {
+        pairBlockers.push(`inner/outer tangent mismatch ${tangentMismatchDeg} deg exceeds tolerance`);
+      }
 
       pairEvaluations.push(Object.freeze({
         candidate_indices:Object.freeze([i,j]),
@@ -300,7 +382,11 @@ export function deriveTubeMeshCenterline({
         expectedOuterRadiusMm,
         expectedInnerRadiusMm,
         centerMismatchMm,
-        maxRadiusStddevMm
+        maxRadiusStddevMm,
+        maxRingPlaneErrorMm,
+        tangentMismatchDeg,
+        outerNormals,
+        innerNormals
       }));
     }
   }
@@ -321,6 +407,8 @@ export function deriveTubeMeshCenterline({
           expected_inner_radius_mm:pair.expectedInnerRadiusMm,
           center_mismatch_mm:pair.centerMismatchMm,
           max_ring_radius_stddev_mm:pair.maxRadiusStddevMm,
+          max_ring_plane_error_mm:pair.maxRingPlaneErrorMm,
+          max_surface_tangent_mismatch_deg:pair.tangentMismatchDeg,
           ring_grid_candidate_count:sideCandidates.length,
           evaluated_pair_count:1,
           accepted_pair_count:0
@@ -361,11 +449,24 @@ export function deriveTubeMeshCenterline({
     observedOuterRadiusMm,
     observedInnerRadiusMm,
     centerMismatchMm,
-    maxRadiusStddevMm
+    maxRadiusStddevMm,
+    maxRingPlaneErrorMm,
+    tangentMismatchDeg,
+    outerNormals,
+    innerNormals
   }=selected;
 
   const centerlineMm=Object.freeze(
     aligned.centers.map((point)=>Object.freeze(point.map((value)=>value*scale)))
+  );
+  const centerlineTangents=Object.freeze(
+    outerNormals.map((normal,index)=>{
+      const combined=unit(add(normal,innerNormals[index]));
+      if(!combined) {
+        throw new RangeError(`tube centerline tangent ${index} is degenerate`);
+      }
+      return Object.freeze(combined);
+    })
   );
 
   return Object.freeze({
@@ -383,13 +484,17 @@ export function deriveTubeMeshCenterline({
       vertex_index_start:surface.vertex_index_start,
       vertex_index_end:surface.vertex_index_end,
       radius_source_units:surface.radius_source_units,
-      radius_stddev_source_units:surface.radius_stddev_source_units
+      radius_stddev_source_units:surface.radius_stddev_source_units,
+      max_ring_plane_error_source_units:surface.max_ring_plane_error_source_units
     }))),
     observed_outer_radius_mm:observedOuterRadiusMm,
     observed_inner_radius_mm:observedInnerRadiusMm,
     center_mismatch_mm:centerMismatchMm,
     max_ring_radius_stddev_mm:maxRadiusStddevMm,
+    max_ring_plane_error_mm:maxRingPlaneErrorMm,
+    max_surface_tangent_mismatch_deg:tangentMismatchDeg,
     centerline_points_mm:centerlineMm,
+    centerline_tangents:centerlineTangents,
     centerline_sample_count:centerlineMm.length,
     chordal_polyline_length_mm:polylineLength(centerlineMm)
   });
