@@ -307,6 +307,29 @@ export function deriveTubeMeshCenterline({
 
   const acceptedPairs=pairEvaluations.filter((pair)=>pair.accepted);
   if(acceptedPairs.length!==1){
+    if(acceptedPairs.length===0 && pairEvaluations.length===1){
+      const pair=pairEvaluations[0];
+      return Object.freeze({
+        status:"unresolved",
+        blocker:pair.blockers.join("; "),
+        diagnostics:Object.freeze({
+          scale_mm_per_source_unit:pair.scale,
+          scale_method:pair.scaleMethod,
+          observed_outer_radius_mm:pair.observedOuterRadiusMm,
+          observed_inner_radius_mm:pair.observedInnerRadiusMm,
+          expected_outer_radius_mm:pair.expectedOuterRadiusMm,
+          expected_inner_radius_mm:pair.expectedInnerRadiusMm,
+          center_mismatch_mm:pair.centerMismatchMm,
+          max_ring_radius_stddev_mm:pair.maxRadiusStddevMm,
+          ring_grid_candidate_count:sideCandidates.length,
+          evaluated_pair_count:1,
+          accepted_pair_count:0
+        }),
+        production_ready:false,
+        canonical_ready:false
+      });
+    }
+
     return Object.freeze({
       status:"unresolved",
       blocker:acceptedPairs.length===0
