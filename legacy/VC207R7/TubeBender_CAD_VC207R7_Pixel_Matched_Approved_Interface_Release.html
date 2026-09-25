@@ -13573,7 +13573,7 @@ function poAxisVector(axis){
 }
 function poPlaneNormal(plane){
   if(plane==='XY')return new THREE.Vector3(0,0,1);
-  if(plane==='XZ')return new THREE.Vector3(0,1,0);
+  if(plane==='XZ')return new THREE.Vector3(0,-1,0);
   if(plane==='YZ')return new THREE.Vector3(1,0,0);
   return null;
 }
