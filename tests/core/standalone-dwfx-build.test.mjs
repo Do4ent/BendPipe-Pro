@@ -22,6 +22,10 @@ test("A20: standalone build embeds guarded DWFx importer and preserves JSON path
   assert.match(html,/data-tubebender-bundled="dwfx-import"/);
   assert.match(html,/window\.TubeBenderDwfxImport=Object\.freeze\(\{importSelectedDwfxFile\}\)/);
   assert.match(html,/if\(\/\\\.dwfx\$\/i\.test\(String\(file\.name\|\|''\)\)\)/);
+  assert.match(html,/result\?\.status==='requirements_pending'/);
+  assert.match(html,/requirement\?\.kind==='bbox'/);
+  assert.match(html,/Введите размер корпуса/);
+  assert.match(html,/explicitBBox/);
   assert.match(html,/result\?\.status!=='dwfx_project_candidate'/);
   assert.match(html,/const raw=await file\.text\(\)/);
   assert.match(html,/await poLoadRawText\(raw,/);
@@ -53,4 +57,21 @@ test("A20: standalone DWFx branch keeps production blocker metadata in project-o
   assert.match(html,/rawDwfxImport/);
   assert.match(html,/production_ready:false/);
   assert.match(html,/DWFx · импорт заблокирован/);
+});
+
+
+test("A20: standalone never falls through to old workspace bbox when DWFx bbox is unresolved",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  const dwfxStart=html.indexOf("if(/\\.dwfx$/i.test(String(file.name||'')))");
+  assert.ok(dwfxStart>=0);
+  const jsonStart=html.indexOf("const raw=await file.text()",dwfxStart);
+  const block=html.slice(dwfxStart,jsonStart);
+  assert.match(block,/requirements_pending/);
+  assert.match(block,/window\.prompt/);
+  assert.match(block,/bbox:explicitBBox/);
+  assert.doesNotMatch(block,/bbox:state\.bbox/);
+  assert.doesNotMatch(block,/state\.bbox/);
 });
