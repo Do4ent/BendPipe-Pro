@@ -13715,7 +13715,10 @@ function poNormalizeTube(raw,index,pkg,warnings,errors,conversions){
     sourceRows:sourceRows===null?null:clone(sourceRows),
     unsupportedRows:[]
   };
-  t.importValidation={productionBlocked:false,issues:[]};
+  const priorImportValidation=t.importValidation&&typeof t.importValidation==='object'
+    ? clone(t.importValidation)
+    : {};
+  t.importValidation={...priorImportValidation,productionBlocked:false,issues:[]};
   const block=(message)=>{
     t.importValidation.productionBlocked=true;
     t.importValidation.issues.push(message);
