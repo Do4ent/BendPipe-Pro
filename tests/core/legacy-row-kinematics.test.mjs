@@ -43,7 +43,7 @@ test("A20: arbitrary spatial transition is reproduced by plane plus rotation",()
   const settings=solveLegacyBendSettings({
     incoming,
     target,
-    signedAngleHintDeg:-90,
+    signedAngleHintDeg:90,
     targetPlaneNormal:axis
   });
   assert.equal(settings.status,"exact");
