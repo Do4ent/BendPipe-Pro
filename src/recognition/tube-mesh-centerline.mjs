@@ -296,15 +296,14 @@ export function deriveTubeMeshCenterline({
         pairBlockers.push("axial ring counts differ");
       }
 
-      const aligned=left.axial_count===right.axial_count
-        ? alignCenterlines(left.centers,right.centers)
-        : {status:"mismatch",centers:null,max_error:Infinity,reversed:false};
-
       const sorted=[left,right].sort(
         (a,b)=>a.radius_source_units-b.radius_source_units
       );
       const inner=sorted[0];
       const outer=sorted[1];
+      const aligned=left.axial_count===right.axial_count
+        ? alignCenterlines(outer.centers,inner.centers)
+        : {status:"mismatch",centers:null,max_error:Infinity,reversed:false};
 
       const scale=explicitScale??(
         outer.radius_source_units>0
