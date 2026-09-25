@@ -57,11 +57,17 @@ test("A20: hollow shell grids derive one shared centerline and explicit unit sca
   assert.ok(Math.abs(result.scale_mm_per_source_unit-10)<1e-9);
   assert.equal(result.scale_method,"derived_from_outer_diameter");
   assert.equal(result.centerline_sample_count,4);
+  assert.equal(result.centerline_tangents.length,4);
   result.centerline_points_mm.forEach((point,index)=>{
     assert.ok(Math.abs(point[0]-index*10)<1e-9);
     assert.ok(Math.abs(point[1])<1e-9);
     assert.ok(Math.abs(point[2])<1e-9);
+    assert.ok(Math.abs(result.centerline_tangents[index][0]-1)<1e-9);
+    assert.ok(Math.abs(result.centerline_tangents[index][1])<1e-9);
+    assert.ok(Math.abs(result.centerline_tangents[index][2])<1e-9);
   });
+  assert.ok(result.max_surface_tangent_mismatch_deg<1e-9);
+  assert.ok(result.max_ring_plane_error_mm<1e-9);
   assert.ok(Math.abs(result.observed_outer_radius_mm-5)<1e-9);
   assert.ok(Math.abs(result.observed_inner_radius_mm-4)<1e-9);
   assert.ok(Math.abs(result.chordal_polyline_length_mm-30)<1e-9);
@@ -79,7 +85,9 @@ test("A20: inner and outer centerline ring order may be reversed but must geomet
     assert.ok(Math.abs(point[0]-index*10)<1e-9);
     assert.ok(Math.abs(point[1])<1e-9);
     assert.ok(Math.abs(point[2])<1e-9);
+    assert.ok(Math.abs(result.centerline_tangents[index][0]-1)<1e-9);
   });
+  assert.ok(result.max_surface_tangent_mismatch_deg<1e-9);
 });
 
 test("A20: wall/radius mismatch remains unresolved instead of forcing a centerline",()=>{
@@ -166,4 +174,26 @@ test("A20: annular end-cap grids cannot masquerade as tube side surfaces",()=>{
   assert.equal(result.status,"centerline_candidate");
   assert.equal(result.side_surfaces.length,2);
   assert.ok(result.max_ring_radius_stddev_mm<0.01);
+});
+
+
+test("A20: ring plane mismatch can block tangent evidence independently",()=>{
+  const mesh=straightHollowTube();
+  // Warp one outer-ring point out of its plane while keeping topology valid.
+  mesh.vertices[0]=[
+    mesh.vertices[0][0]+0.02,
+    mesh.vertices[0][1],
+    mesh.vertices[0][2]
+  ];
+  const result=deriveTubeMeshCenterline({
+    ...mesh,
+    outer_diameter_mm:10,
+    wall_thickness_mm:1,
+    max_ring_plane_error_mm:0.01
+  });
+  assert.equal(result.status,"unresolved");
+  assert.match(
+    result.diagnostics.pair_failures[0].blockers.join(" "),
+    /ring plane error/i
+  );
 });
