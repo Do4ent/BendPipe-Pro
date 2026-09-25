@@ -155,7 +155,7 @@ const newPoLoadFile = `async function poLoadFile(file){
       PO.current=pkg;
       PO.currentRecord=null;
       poResetSelection(pkg);
-      poSetBusy(false,\`${file.name} · DWFx анализ завершён\`);
+      poSetBusy(false,String(file.name||'Файл')+' · DWFx анализ завершён');
       poRenderPackage();
       return;
     }
