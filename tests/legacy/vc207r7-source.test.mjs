@@ -259,6 +259,14 @@ test("A10: project-open normalization never invents LINE 100 or drops unsupporte
   assert.match(normalize, /первая или ближайшая оснастка не подставляется/);
 });
 
+test("A20: project-open normalization preserves canonical import-validation evidence", () => {
+  const normalize = functionSlice("poNormalizeTube", "poNormalizePackage");
+
+  assert.match(normalize, /const priorImportValidation=t\.importValidation&&typeof t\.importValidation==='object'/);
+  assert.match(normalize, /t\.importValidation=\{\.\.\.priorImportValidation,productionBlocked:false,issues:\[\]\}/);
+  assert.match(normalize, /t\.importEvidence=\{[\s\S]*\.\.\.\(t\.importEvidence/);
+});
+
 test("A20: blocked import load does not silently assign tooling or synthesize rows", () => {
   const load = functionSlice("loadActiveTubeToState", "validToolDiameterIndex");
 
