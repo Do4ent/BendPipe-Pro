@@ -259,6 +259,15 @@ test("A10: project-open normalization never invents LINE 100 or drops unsupporte
   assert.match(normalize, /первая или ближайшая оснастка не подставляется/);
 });
 
+test("A20: project-open XZ plane normal matches live VC207R7 minus-Y convention", () => {
+  const preview = functionSlice("poAxisVector", "poRotate");
+  const live = functionSlice("axisForPlane", "rotateAround");
+
+  assert.match(preview, /if\(plane==='XZ'\)return new THREE\.Vector3\(0,-1,0\)/);
+  assert.doesNotMatch(preview, /if\(plane==='XZ'\)return new THREE\.Vector3\(0,1,0\)/);
+  assert.match(live, /if \(plane === 'XZ'\) return coordinateAxisVector\('y'\)\.multiplyScalar\(-1\)/);
+});
+
 test("A10: project-open helpers do not silently substitute axis, plane, or tooling", () => {
   const axis = functionSlice("poAxisVector", "poPlaneNormal");
   const plane = functionSlice("poPlaneNormal", "poRotate");
