@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";
+import { execFileSync } from "node:child_process";\nimport vm from "node:vm";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const output=path.join(root,"dist","TubeBender_CAD_VC207R7_M1_Standalone.html");
@@ -91,4 +91,38 @@ test("A20: standalone project-open picker and drag-drop both accept DWFx",()=>{
   assert.match(html,/\.\(\?:json\|dwfx\)\$/);
   assert.match(html,/Нужен JSON- или DWFx-файл проекта/);
   assert.match(html,/перетащите JSON\/DWFx-файл проекта/);
+});
+
+
+test("A22: standalone DWFx runtime is injected only at the final body close and classic scripts remain syntactically complete",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  const marker=html.indexOf('data-tubebender-bundled="dwfx-import"');
+  const firstBodyClose=html.indexOf("</body>");
+  const finalBodyClose=html.lastIndexOf("</body>");
+
+  assert.ok(firstBodyClose>=0);
+  assert.ok(finalBodyClose>firstBodyClose);
+  assert.ok(marker>firstBodyClose);
+  assert.ok(marker<finalBodyClose);
+
+  const scripts=[];
+  const pattern=/<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/gi;
+  for(const match of html.matchAll(pattern)){
+    scripts.push({
+      attrs:match[1]??"",
+      code:match[2]??""
+    });
+  }
+  assert.ok(scripts.length>=5);
+
+  scripts.forEach((script,index)=>{
+    if(/\\btype\\s*=\\s*["']module["']/i.test(script.attrs)) return;
+    assert.doesNotThrow(
+      ()=>new vm.Script(script.code,{filename:"standalone-inline-"+index+".js"}),
+      "classic inline script "+index+" must remain syntactically complete"
+    );
+  });
 });
