@@ -110,3 +110,55 @@ test("A20: malformed graphics-node numbers fail loudly",()=>{
     /non-negative integer/
   );
 });
+
+
+test("A20: Object Part Number links 10102473 even when the Object label starts with route instance 10104935",()=>{
+  const sourceContent=\`<dwf:Content xmlns:dwf="urn:dwf">
+    <dwf:Entity id="empty-entity"/>
+    <dwf:Object id="obj-10102473" label="10104935/A - Tube, Copper, 3/8&quot; x 0,76mm:1" entityRef="empty-entity">
+      <dwf:Property name="Part Number" value="10102473" category="Design Tracking Properties"/>
+      <dwf:Property name="Description" value="Tube, Copper 3_8inch x 0,76" category="Design Tracking Properties"/>
+    </dwf:Object>
+  </dwf:Content>\`;
+  const sourcePresentation=
+    '<Presentation><ReferenceNode id="ref-10102473" contentElementRefs="obj-10102473"/></Presentation>';
+  const sourceDefinition=
+    '<Instances><Instance id="inst-10102473" renderableRef="obj-10102473" node="501" geometricVariation="502"/></Instances>';
+
+  const index=buildDwfxGraphicsLinkIndex({
+    contentXml:sourceContent,
+    presentationXml:sourcePresentation,
+    contentDefinitionXml:sourceDefinition
+  });
+  const [resolved]=resolvePartGraphicsLinks(index,["10102473"]);
+
+  assert.equal(index.links[0].object_label,'10104935/A - Tube, Copper, 3/8" x 0,76mm:1');
+  assert.equal(index.links[0].part_number,"10102473");
+  assert.equal(resolved.status,"exact");
+  assert.equal(resolved.matching_method,"object_property");
+  assert.equal(resolved.graphics_node,501);
+  assert.equal(resolved.geometric_variation,502);
+
+  const [routeNumber]=resolvePartGraphicsLinks(index,["10104935"]);
+  assert.equal(routeNumber.status,"unresolved");
+  assert.equal(routeNumber.match_count,0);
+});
+
+test("A20: label fallback remains available only when Object has no explicit Part Number property",()=>{
+  const sourceContent=
+    '<Content><Object id="obj-fallback" label="10160780/B - Bended tube" entityRef="ent"/></Content>';
+  const sourcePresentation=
+    '<Presentation><ReferenceNode id="ref-fallback" contentElementRefs="obj-fallback"/></Presentation>';
+  const sourceDefinition=
+    '<Instances><Instance id="inst-fallback" renderableRef="obj-fallback" node="601" geometricVariation="602"/></Instances>';
+  const index=buildDwfxGraphicsLinkIndex({
+    contentXml:sourceContent,
+    presentationXml:sourcePresentation,
+    contentDefinitionXml:sourceDefinition
+  });
+  const [resolved]=resolvePartGraphicsLinks(index,["10160780"]);
+
+  assert.equal(resolved.status,"exact");
+  assert.equal(resolved.matching_method,"object_label_fallback");
+  assert.equal(resolved.graphics_node,601);
+});
