@@ -257,7 +257,9 @@
             ? '⌁'
             : status==="unresolved"||status==="partial"
               ? '⚠'
-              : '◆';
+              : status==="metadata_only"
+                ? '◇'
+                : '◆';
         const pad=Math.min(220,16+depth*18);
         const cls=
           selected?.sceneId===String(scene.id)&&
@@ -273,7 +275,11 @@
           '<button class="tb-tree-icon" '+(hasChildren?'data-ref-toggle="'+escape(node.id)+'"':'disabled')+'>'+
           icon+'</button>'+
           '<span class="tb-tree-label">'+escape(node.label??node.id)+
-          (editable?' <small>· редактируемая труба</small>':'')+
+          (editable
+            ? ' <small>· редактируемая труба</small>'
+            : status==="metadata_only"
+              ? ' <small>· без геометрии</small>'
+              : ' <small>· только чтение</small>')+
           '</span>'+
           '<button class="tb-tree-eye" data-ref-eye="'+escape(node.id)+'" title="Видимость">'+
           (isHidden?'○':'◉')+
