@@ -206,6 +206,93 @@ const newInspectionEmpty =
   "function poRenderInspectionEmpty(){if(PO.current)return;qs('poSummaryGrid').innerHTML='';qs('poInspection').innerHTML=poInspectionHeader(null)+'<div class=\"po-inspection-body'+(poInspectionCollapsed?' collapsed':'')+'\"><div class=\"po-check\"><span>○</span><span>Файл ещё не выбран.</span></div></div>';poBindInspectionToggle();qs('poOpenBtn').disabled=true;qs('poPreviewPlaceholder')?.classList.remove('hidden');}";
 output = output.replace(oldInspectionEmpty,newInspectionEmpty);
 
+const boundsOverlayCssAnchor =
+  ".bounds-warning-actions button:hover{background:#3a4963!important;border-color:#9bb8dc!important}";
+if (!output.includes(boundsOverlayCssAnchor)) {
+  throw new Error("3D bounds-warning CSS anchor was not found");
+}
+output = output.replace(
+  boundsOverlayCssAnchor,
+  boundsOverlayCssAnchor +
+  ".bounds-warning-collapse{width:26px!important;height:26px!important;min-width:26px!important;padding:0!important;border:1px solid rgba(255,255,255,.28)!important;border-radius:6px!important;background:#2a3448!important;color:#fff!important;cursor:pointer!important;font:950 15px/1 \\"Segoe UI\\",Arial,sans-serif!important;flex:0 0 auto}.bounds-warning-collapse:hover{background:#3a4963!important;border-color:#9bb8dc!important}.bounds-warning-summary{display:none;font:900 11px/1.2 \\"Segoe UI\\",Arial,sans-serif;white-space:nowrap}.bounds-warning.collapsed{width:auto!important;max-width:calc(100% - 24px)!important;min-width:0!important;padding:5px 7px!important;gap:7px!important}.bounds-warning.collapsed .bounds-warning-text,.bounds-warning.collapsed .bounds-warning-actions{display:none!important}.bounds-warning.collapsed .bounds-warning-summary{display:inline!important}.bounds-warning.collapsed .bounds-warning-main{gap:5px!important}.bounds-warning.collapsed .bounds-warning-icon{font-size:15px!important}"
+);
+
+const oldBoundsOverlayHtml = \`<div aria-live="polite" class="bounds-warning hidden" id="boundsWarning" role="alert">
+<div class="bounds-warning-main"><span class="bounds-warning-icon">⚠</span><span class="bounds-warning-text" id="boundsWarningText"></span></div>
+<div class="bounds-warning-actions">
+<button id="boundsFocusBtn" type="button">К первому нарушению</button>
+<button id="boundsEditBtn" type="button">Исправить вручную</button>
+</div>
+</div>\`;
+if (!output.includes(oldBoundsOverlayHtml)) {
+  throw new Error("3D bounds-warning HTML block was not found");
+}
+const newBoundsOverlayHtml = \`<div aria-live="polite" class="bounds-warning hidden" id="boundsWarning" role="alert">
+<div class="bounds-warning-main"><span class="bounds-warning-icon">⚠</span><span class="bounds-warning-summary" id="boundsWarningSummary"></span><span class="bounds-warning-text" id="boundsWarningText"></span></div>
+<div class="bounds-warning-actions">
+<button id="boundsFocusBtn" type="button">К первому нарушению</button>
+<button id="boundsEditBtn" type="button">Исправить вручную</button>
+</div>
+<button class="bounds-warning-collapse" id="boundsCollapseBtn" type="button" title="Свернуть окно ошибок" aria-expanded="true">−</button>
+</div>\`;
+output = output.replace(oldBoundsOverlayHtml,newBoundsOverlayHtml);
+
+const boundsRenderAnchor = "function renderBoundsWarning(){";
+if (!output.includes(boundsRenderAnchor)) {
+  throw new Error("renderBoundsWarning anchor was not found");
+}
+const boundsOverlayHelpers = \`
+const BOUNDS_WARNING_COLLAPSE_KEY='tubebender.boundsWarningCollapsed';
+let boundsWarningCollapsed=(()=>{
+  try{return localStorage.getItem(BOUNDS_WARNING_COLLAPSE_KEY)==='1';}
+  catch{return false;}
+})();
+function setBoundsWarningCollapsed(value){
+  boundsWarningCollapsed=!!value;
+  try{localStorage.setItem(BOUNDS_WARNING_COLLAPSE_KEY,boundsWarningCollapsed?'1':'0');}catch{}
+  const box=qs('boundsWarning');
+  const button=qs('boundsCollapseBtn');
+  box?.classList.toggle('collapsed',boundsWarningCollapsed);
+  if(button){
+    button.textContent=boundsWarningCollapsed?'▸':'−';
+    button.title=boundsWarningCollapsed?'Развернуть окно ошибок':'Свернуть окно ошибок';
+    button.setAttribute('aria-expanded',String(!boundsWarningCollapsed));
+  }
+}
+function updateBoundsWarningCollapseUi(){
+  const box=qs('boundsWarning');
+  const button=qs('boundsCollapseBtn');
+  box?.classList.toggle('collapsed',boundsWarningCollapsed);
+  if(button){
+    button.textContent=boundsWarningCollapsed?'▸':'−';
+    button.title=boundsWarningCollapsed?'Развернуть окно ошибок':'Свернуть окно ошибок';
+    button.setAttribute('aria-expanded',String(!boundsWarningCollapsed));
+  }
+}
+\`;
+output = output.replace(
+  boundsRenderAnchor,
+  boundsOverlayHelpers + "\\n" + boundsRenderAnchor
+);
+
+const oldBoundsTextLine =
+  "  text.textContent=messages.join(' ');\\n  box.classList.remove('hidden');\\n  box.dataset.hasCollision=collisions.valid?'false':'true';";
+if (!output.includes(oldBoundsTextLine)) {
+  throw new Error("renderBoundsWarning message block was not found");
+}
+const newBoundsTextLine =
+  "  text.textContent=messages.join(' ');\\n  const summary=qs('boundsWarningSummary');\\n  const issueCount=(technological?1:0)+(Number(a.violationCount)||0)+(Number(collisions.count)||0);\\n  if(summary)summary.textContent='Нарушений: '+issueCount;\\n  box.classList.remove('hidden');\\n  box.dataset.hasCollision=collisions.valid?'false':'true';\\n  updateBoundsWarningCollapseUi();";
+output = output.replace(oldBoundsTextLine,newBoundsTextLine);
+
+const oldBoundsBind =
+  "function bind(){\\n  qs('boundsFocusBtn')?.addEventListener('click',()=>focusBoundsViolation(false));\\n  qs('boundsEditBtn')?.addEventListener('click',()=>focusBoundsViolation(true));";
+if (!output.includes(oldBoundsBind)) {
+  throw new Error("bounds-warning bind block was not found");
+}
+const newBoundsBind =
+  "function bind(){\\n  qs('boundsFocusBtn')?.addEventListener('click',()=>focusBoundsViolation(false));\\n  qs('boundsEditBtn')?.addEventListener('click',()=>focusBoundsViolation(true));\\n  qs('boundsCollapseBtn')?.addEventListener('click',()=>setBoundsWarningCollapsed(!boundsWarningCollapsed));";
+output = output.replace(oldBoundsBind,newBoundsBind);
+
 const referenceDisposeAnchor =
   "  root.traverse?.(obj=>{\n    if (obj.geometry?.dispose) geometries.add(obj.geometry);";
 if (!output.includes(referenceDisposeAnchor)) {
