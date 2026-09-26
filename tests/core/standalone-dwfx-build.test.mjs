@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";\nimport vm from "node:vm";
+import { execFileSync } from "node:child_process";
+import vm from "node:vm";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const output=path.join(root,"dist","TubeBender_CAD_VC207R7_M1_Standalone.html");
