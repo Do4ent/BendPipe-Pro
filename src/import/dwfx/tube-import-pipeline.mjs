@@ -144,6 +144,15 @@ export function prepareDwfxTubeImport({
     });
   }
 
+  const compactRecognitionSummary=Object.freeze({
+    ...(recognition_summary&&typeof recognition_summary==="object"
+      ? recognition_summary
+      : {}),
+    dimension_source:geometry.dimension_source??null,
+    dimension_reconciliation:geometry.dimension_reconciliation??null,
+    metadata_reconciliation:geometry.metadata_reconciliation??null
+  });
+
   const legacy=buildLegacyTubeCandidateFromCanonical({
     source_file,
     part_number,
@@ -154,7 +163,7 @@ export function prepareDwfxTubeImport({
       wall_thickness_mm:wall,
       developed_length_mm:developed
     }),
-    recognition_summary
+    recognition_summary:compactRecognitionSummary
   });
 
   if(legacy.status!=="legacy_tube_candidate"){
