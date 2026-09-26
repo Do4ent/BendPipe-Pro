@@ -169,3 +169,19 @@ test("A27: standalone exposes Ctrl Shift grouped reference selection",()=>{
   assert.match(html,/ctrlKey:event\.ctrlKey/);
   assert.match(html,/shiftKey:event\.shiftKey/);
 });
+
+
+test("A28: standalone nests imported DWFx geometry under one project-tree branch",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/Импортированная геометрия/);
+  assert.match(html,/data-ref-root-row="1"/);
+  assert.match(html,/data-ref-root-toggle="1"/);
+  assert.match(html,/data-ref-root-select="1"/);
+  assert.match(html,/data-ref-scene-toggle/);
+  assert.match(html,/referenceGeometryTreeCollapsed/);
+  assert.match(html,/treeCollapsed/);
+});
