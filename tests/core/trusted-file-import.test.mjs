@@ -159,7 +159,7 @@ test("A20: missing source filename fails before any import work",async()=>{
 });
 
 
-test("A25: reference scene metadata persists display runtime inside project package input",async()=>{
+test("A25: reference scene keeps heavy display runtime outside project JSON",async()=>{
   let captured=null;
   const runtime=Object.freeze({
     scene_id:"dwfx-reference:sample.dwfx",
@@ -223,8 +223,6 @@ test("A25: reference scene metadata persists display runtime inside project pack
 
   assert.equal(result.status,"dwfx_project_candidate");
   assert.equal(captured.reference_scene.readonly,true);
-  assert.equal(captured.reference_scene.display_runtime.scene_id,runtime.scene_id);
-  assert.equal(captured.reference_scene.display_runtime.assets.length,1);
-  assert.equal(captured.reference_scene.display_runtime.assets[0].kind,"mesh");
+  assert.equal(captured.reference_scene.display_runtime,undefined);
   assert.equal(result.reference_scene_runtime,runtime);
 });
