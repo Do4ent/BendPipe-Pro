@@ -83,10 +83,59 @@ export async function intakeRawDwfxEvidence(
   }
 
   const partNumbers=metadata.tubes.map((tube)=>tube.part_number);
-  const graphicsLinks=resolvePartGraphicsLinks(
+  const initialGraphicsLinks=resolvePartGraphicsLinks(
     linkage.link_index,
     partNumbers
   );
+
+  let activeMetadata=metadata;
+  let graphicsLinks=initialGraphicsLinks;
+  let uninstantiatedMetadataTubes=Object.freeze([]);
+
+  if(metadata.source?.recognition==="dwfx_copper_tube_content_properties"){
+    const uninstantiatedParts=new Set(
+      initialGraphicsLinks
+        .filter((item)=>item.status==="unresolved"&&item.match_count===0)
+        .map((item)=>String(item.part_number))
+    );
+    if(uninstantiatedParts.size){
+      uninstantiatedMetadataTubes=Object.freeze(
+        metadata.tubes.filter((tube)=>uninstantiatedParts.has(String(tube.part_number)))
+      );
+      activeMetadata=Object.freeze({
+        ...metadata,
+        tubes:Object.freeze(
+          metadata.tubes.filter((tube)=>!uninstantiatedParts.has(String(tube.part_number)))
+        ),
+        issues:Object.freeze([
+          ...(metadata.issues??[]),
+          ...[...uninstantiatedParts].map(
+            (part)=>"copper-tube metadata has no instantiated DWF Object and is retained as inactive evidence: "+part
+          )
+        ])
+      });
+      graphicsLinks=Object.freeze(
+        initialGraphicsLinks.filter(
+          (item)=>!uninstantiatedParts.has(String(item.part_number))
+        )
+      );
+    }
+  }
+
+  if(activeMetadata.tubes.length===0){
+    return Object.freeze({
+      status:"blocked",
+      stage:"graphics_linkage",
+      production_ready:false,
+      model,
+      linkage,
+      metadata:activeMetadata,
+      metadata_uninstantiated:uninstantiatedMetadataTubes,
+      graphics_links:graphicsLinks,
+      blocker:"No instantiated copper-tube graphics objects were found."
+    });
+  }
+
   const unresolved=graphicsLinks.filter((item)=>item.status!=="exact");
   if(unresolved.length){
     return Object.freeze({
@@ -95,7 +144,8 @@ export async function intakeRawDwfxEvidence(
       production_ready:false,
       model,
       linkage,
-      metadata,
+      metadata:activeMetadata,
+      metadata_uninstantiated:uninstantiatedMetadataTubes,
       graphics_links:graphicsLinks,
       blocker:
         "Exact graphics linkage is unresolved for: "+
@@ -110,9 +160,10 @@ export async function intakeRawDwfxEvidence(
     source_file:sourceFile,
     model,
     linkage,
-    metadata,
+    metadata:activeMetadata,
+    metadata_uninstantiated:uninstantiatedMetadataTubes,
     graphics_links:graphicsLinks,
-    tube_count:metadata.tubes.length,
+    tube_count:activeMetadata.tubes.length,
     blocker:
       "Raw DWFx descriptor, W3D resource, tube metadata and graphics-node linkage are exact; HSF Include Library linkage and geometry decode remain downstream stages."
   });
