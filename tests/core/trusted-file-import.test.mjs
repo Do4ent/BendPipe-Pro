@@ -157,3 +157,74 @@ test("A20: missing source filename fails before any import work",async()=>{
   );
   assert.equal(called,false);
 });
+
+
+test("A25: reference scene metadata persists display runtime inside project package input",async()=>{
+  let captured=null;
+  const runtime=Object.freeze({
+    scene_id:"dwfx-reference:sample.dwfx",
+    source_file:"sample.dwfx",
+    readonly:true,
+    scale_mm_per_source_unit:10,
+    assets:Object.freeze([
+      Object.freeze({id:"?Include Library/1",status:"exact",kind:"mesh",meshes:Object.freeze([])})
+    ])
+  });
+  const metadata=Object.freeze({
+    id:"dwfx-reference:sample.dwfx",
+    runtime_scene_id:"dwfx-reference:sample.dwfx",
+    source_file:"sample.dwfx",
+    readonly:true,
+    tree:Object.freeze([]),
+    asset_manifest:Object.freeze([])
+  });
+
+  const result=await prepareTrustedDwfxFileImport(args({
+    intakeRaw:async()=>({
+      status:"exact",
+      stage:"raw_evidence",
+      model:{
+        descriptor:{status:"exact",w3d:{scale_mm_per_source_unit:10,polygon_handedness:"left"}},
+        w3d:{bytes:new Uint8Array([1,2,3])}
+      },
+      linkage:{
+        resources:{content:{xml:"<Content/>"}},
+        link_index:{links:[]}
+      },
+      metadata:{
+        source:{format:"DWFx",file:"sample.dwfx"},
+        tubes:[{part_number:"10157546"}]
+      },
+      graphics_links:[{
+        part_number:"10157546",
+        status:"exact",
+        graphics_node:121190,
+        geometric_variation:121191
+      }]
+    }),
+    buildReferenceScene:()=>({
+      status:"exact_reference_scene",
+      metadata,
+      runtime,
+      diagnostics:[],
+      production_ready:false,
+      canonical_ready:false
+    }),
+    prepareProject:async(input)=>{
+      captured=input;
+      return {
+        status:"project_import_candidate",
+        editable_ready:true,
+        production_ready:false,
+        package:{type:"TubeBenderProject",schemaVersion:"2.0",project:{tubes:[]}}
+      };
+    }
+  }));
+
+  assert.equal(result.status,"dwfx_project_candidate");
+  assert.equal(captured.reference_scene.readonly,true);
+  assert.equal(captured.reference_scene.display_runtime.scene_id,runtime.scene_id);
+  assert.equal(captured.reference_scene.display_runtime.assets.length,1);
+  assert.equal(captured.reference_scene.display_runtime.assets[0].kind,"mesh");
+  assert.equal(result.reference_scene_runtime,runtime);
+});
