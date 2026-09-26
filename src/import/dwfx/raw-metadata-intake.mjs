@@ -50,21 +50,26 @@ function exact(value,source,unit=null,method="dwfx_content_property"){
   });
 }
 
-function parseEntityRecords(xml){
+function parsePropertyRecords(xml,localName){
   if(typeof xml!=="string") throw new TypeError("content XML must be a string");
+  const name=String(localName??"");
+  if(!/^(?:Entity|Object)$/.test(name)){
+    throw new RangeError("localName must be Entity or Object");
+  }
 
-  const entities=[];
+  const records=[];
   const stack=[];
-  const tokenPattern=/<(\/?)(?:[A-Za-z_][\w.-]*:)?(Entity|Property)\b([^>]*)>/gs;
+  const tokenPattern=/<(\/?)(?:[A-Za-z_][\w.-]*:)?(Entity|Object|Property)\b([^>]*)>/gs;
 
   const finish=(context)=>{
     const frozenProperties={};
-    for(const [name,list] of Object.entries(context.properties)){
-      frozenProperties[name]=Object.freeze([...list]);
+    for(const [propertyName,list] of Object.entries(context.properties)){
+      frozenProperties[propertyName]=Object.freeze([...list]);
     }
     return Object.freeze({
       id:context.id,
       label:context.label,
+      entity_ref:context.entity_ref,
       properties:Object.freeze(frozenProperties),
       source_index:context.source_index
     });
@@ -72,13 +77,13 @@ function parseEntityRecords(xml){
 
   for(const match of xml.matchAll(tokenPattern)){
     const closing=match[1]==="/";
-    const localName=match[2];
+    const tokenName=match[2];
     const fragment=match[3]??"";
 
-    if(localName==="Entity"){
+    if(tokenName===name){
       if(closing){
         const context=stack.pop();
-        if(context) entities.push(finish(context));
+        if(context) records.push(finish(context));
         continue;
       }
 
@@ -86,19 +91,24 @@ function parseEntityRecords(xml){
       const context={
         id:attrs.id??null,
         label:attrs.label??null,
+        entity_ref:attrs.entityRef??null,
         properties:{},
         source_index:match.index??0
       };
 
       if(/\/\s*$/.test(fragment)){
-        entities.push(finish(context));
+        records.push(finish(context));
       }else{
         stack.push(context);
       }
       continue;
     }
 
-    if(localName==="Property"&&!closing&&stack.length>0){
+    if(
+      tokenName==="Property" &&
+      !closing &&
+      stack.length>0
+    ){
       const p=parseAttributes(fragment);
       if(!p.name) continue;
       const current=stack.at(-1).properties[p.name]??[];
@@ -111,14 +121,23 @@ function parseEntityRecords(xml){
   }
 
   return Object.freeze(
-    entities
+    records
       .sort((a,b)=>a.source_index-b.source_index)
-      .map((entity)=>Object.freeze({
-        id:entity.id,
-        label:entity.label,
-        properties:entity.properties
+      .map((record)=>Object.freeze({
+        id:record.id,
+        label:record.label,
+        entity_ref:record.entity_ref,
+        properties:record.properties
       }))
   );
+}
+
+function parseEntityRecords(xml){
+  return parsePropertyRecords(xml,"Entity");
+}
+
+function parseObjectRecords(xml){
+  return parsePropertyRecords(xml,"Object");
 }
 
 function firstProperty(entity,name,category=null){
@@ -286,4 +305,4 @@ export function extractBentTubeMetadataFromContentXml(
   });
 }
 
-export { parseEntityRecords, parseTubeDescription };
+export { parseEntityRecords, parseObjectRecords, parseTubeDescription };
