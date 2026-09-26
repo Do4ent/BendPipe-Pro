@@ -357,10 +357,6 @@ function decodeTopologyCases(ops) {
 }
 
 function removeDummyVertices(topology, mtable, expectedPointCount) {
-  if (mtable.patches.length > 0) {
-    throw new RangeError("EdgeBreaker patch aliases are not decoded by the conservative connectivity path");
-  }
-
   const rawCount = topology.raw_point_count;
   const dummySet = new Set();
   for (const index of mtable.dummies) {
@@ -373,10 +369,46 @@ function removeDummyVertices(topology, mtable, expectedPointCount) {
     dummySet.add(index);
   }
 
+  // HOOPS EdgeBreaker patches are vertex aliases applied after pseudomanifold
+  // reconstruction: old vertex id -> new absolute vertex id. The old ids are
+  // removed from the final point array, just like dummy vertices. parseMTable()
+  // has already expanded the delta-encoded old ids to absolute ids.
+  const aliases = new Map();
+  for (const pair of mtable.patches) {
+    const [oldIndex, newIndex] = pair;
+    if (!Number.isInteger(oldIndex) || oldIndex < 0 || oldIndex >= rawCount) {
+      throw new RangeError(`EdgeBreaker patch old vertex ${oldIndex} is outside raw point array`);
+    }
+    if (!Number.isInteger(newIndex) || newIndex < 0 || newIndex >= rawCount) {
+      throw new RangeError(`EdgeBreaker patch new vertex ${newIndex} is outside raw point array`);
+    }
+    if (oldIndex === newIndex) {
+      throw new RangeError(`EdgeBreaker patch ${oldIndex} aliases itself`);
+    }
+    if (aliases.has(oldIndex)) {
+      throw new RangeError(`duplicate EdgeBreaker patch old vertex ${oldIndex}`);
+    }
+    aliases.set(oldIndex, newIndex);
+  }
+
+  const resolveAlias = (index) => {
+    let value = index;
+    const seen = new Set();
+    while (aliases.has(value)) {
+      if (seen.has(value)) {
+        throw new RangeError("EdgeBreaker patch alias cycle");
+      }
+      seen.add(value);
+      value = aliases.get(value);
+    }
+    return value;
+  };
+
+  const removedSet = new Set([...dummySet, ...aliases.keys()]);
   const remap = new Array(rawCount);
   let removed = 0;
   for (let i = 0; i < rawCount; i += 1) {
-    if (dummySet.has(i)) {
+    if (removedSet.has(i)) {
       remap[i] = -1;
       removed += 1;
     } else {
@@ -387,22 +419,38 @@ function removeDummyVertices(topology, mtable, expectedPointCount) {
   const pointCount = rawCount - removed;
   if (pointCount !== expectedPointCount) {
     throw new RangeError(
-      `EdgeBreaker point count mismatch after dummy removal: decoded ${pointCount}, header ${expectedPointCount}`
+      `EdgeBreaker point count mismatch after patch/dummy removal: decoded ${pointCount}, header ${expectedPointCount}`
     );
   }
 
   const faces = [];
   let droppedFaces = 0;
+  let patchedFaceReferences = 0;
   for (const tri of topology.raw_faces) {
-    if (tri.some((index) => remap[index] < 0)) {
+    const resolved = tri.map((index) => {
+      const next = resolveAlias(index);
+      if (next !== index) patchedFaceReferences += 1;
+      return next;
+    });
+
+    if (resolved.some((index) => dummySet.has(index))) {
       droppedFaces += 1;
       continue;
     }
-    const mapped = Object.freeze(tri.map((index) => remap[index]));
-    if (mapped.some((index) => index < 0 || index >= pointCount)) {
+
+    const mapped = resolved.map((index) => remap[index]);
+    if (
+      mapped.some(
+        (index) => !Number.isInteger(index) || index < 0 || index >= pointCount
+      )
+    ) {
       throw new RangeError("EdgeBreaker face remap escaped final point array");
     }
-    faces.push(mapped);
+    if (new Set(mapped).size < 3) {
+      droppedFaces += 1;
+      continue;
+    }
+    faces.push(Object.freeze(mapped));
   }
 
   return Object.freeze({
@@ -410,7 +458,9 @@ function removeDummyVertices(topology, mtable, expectedPointCount) {
     face_count: faces.length,
     faces: Object.freeze(faces),
     dummy_vertices: mtable.dummies,
-    dropped_dummy_faces: droppedFaces
+    patch_aliases: mtable.patches,
+    dropped_dummy_faces: droppedFaces,
+    patched_face_references: patchedFaceReferences
   });
 }
 
@@ -419,7 +469,7 @@ function removeDummyVertices(topology, mtable, expectedPointCount) {
  *
  * This intentionally does not decode compressed coordinates or normals. It only
  * reconstructs triangle connectivity from CASE_C/L/E/R/S and applies MTable
- * dummy-vertex removal. Merge opcodes and patch aliases remain explicit blockers.
+ * dummy-vertex removal plus the HSF-defined old->new patch alias table. Obsolete merge opcodes remain explicit blockers.
  */
 export function decodeEdgeBreakerConnectivity(input) {
   const bytes = asBytes(input);
@@ -498,6 +548,8 @@ export function decodeEdgeBreakerConnectivity(input) {
     faces: patched.faces,
     dummy_vertices: patched.dummy_vertices,
     dropped_dummy_faces: patched.dropped_dummy_faces,
+    patch_aliases: patched.patch_aliases,
+    patched_face_references: patched.patched_face_references,
     components: topology.components,
     production_ready: false
   });
