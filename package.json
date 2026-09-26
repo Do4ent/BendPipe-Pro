@@ -1,0 +1,13 @@
+{
+  "name": "bendpipe-pro",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "build:standalone": "node scripts/build-standalone.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

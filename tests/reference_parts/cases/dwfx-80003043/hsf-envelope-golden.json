@@ -1,0 +1,66 @@
+{
+  "source_file": "ITEM[80003043(A)]-DOC[80003043(A)]-Components WTB, CoolMaster, NO-014.5.dwfx",
+  "source_sha256": "c2c378a60d3cca9a86d9f129bb04c554950bfca9ceecfb1565333b13ab3efa2a",
+  "source_size_bytes": 8520087,
+  "w3d_package_path": "dwf/documents/D492C1C0-C853-479F-948D-2EF82213214F/sections/com.autodesk.dwf.eModel_B397CB9F-AFD9-49E2-B574-1E95FC7F3AEA/19D23681-07EF-4A95-8CB7-0AC1F404CFE5.w3d",
+  "w3d_sha256": "697dacf55b7a2811c10d9ed961002f622fe974eaef6e6933085736e17dda5e5b",
+  "w3d_size_bytes": 7546162,
+  "hsf_version": "14.50",
+  "w3d_marker": "W3D V01.00",
+  "file_info_flags": [
+    39430,
+    0
+  ],
+  "compression": {
+    "start_opcode_offset": 37,
+    "compressed_payload_offset": 38,
+    "decompressed_size_bytes": 20757548
+  },
+  "decompressed_hsf_sha256": "4d4ec8fcbb3de7b62fdff83aebe3f09d888c3557b2ccfb05dcc17f9083386407",
+  "production_ready": false,
+  "note": "Golden facts extracted from the original 80003043(A) DWFx. The HSF/W3D opcode stream now decodes synchronously from offset 0 through TKE_Stop_Compression without byte scanning or guessed lengths. Full binary decoding does not by itself promote scene geometry to canonical tube centerlines or production-ready manufacturing data.",
+  "full_stream_validation": {
+    "complete": true,
+    "stop_compression_offset": 20757547,
+    "opcode_records_before_stop": 617568,
+    "opcode_records_including_stop": 617569,
+    "retained_geometry_provenance_entities": 132833,
+    "representative_offsets": {
+      "first_shell": 718,
+      "first_rendering_options": 20132,
+      "first_nurbs_curve": 275217,
+      "modelling_matrix_near_tail": 20513239
+    },
+    "opcode_histogram": {
+      "TKE_Open_Segment": 121300,
+      "TKE_Close_Segment": 121300,
+      "TKE_Tag": 121299,
+      "TKE_Color_RGB": 119049,
+      "TKE_Line": 76679,
+      "TKE_Polyline": 28226,
+      "TKE_Circular_Arc": 20902,
+      "TKE_Polygon": 3850,
+      "TKE_User_Options": 1296,
+      "TKE_Color": 777,
+      "TKE_Shell": 771,
+      "TKE_Modelling_Matrix": 549,
+      "TKE_Include_Segment": 531,
+      "TKE_Texture": 371,
+      "TKE_Visibility": 195,
+      "TKE_Style_Segment": 175,
+      "TKE_Texture_Matrix": 112,
+      "TKE_Rendering_Options": 107,
+      "TKE_NURBS_Curve": 28,
+      "TKE_Heuristics": 15,
+      "TKE_Line_Weight": 14,
+      "TKE_HW3D_Image": 12,
+      "TKE_Distant_Light": 2,
+      "TKE_Pause": 2,
+      "TKE_Geometry_Attributes": 2,
+      "TKE_Termination": 2,
+      "TKE_Bounding_Info": 1,
+      "TKE_View": 1,
+      "TKE_Stop_Compression": 1
+    }
+  }
+}

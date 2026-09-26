@@ -1,0 +1,100 @@
+{
+  "source_file": "ITEM[80003043(A)]-DOC[80003043(A)]-Components WTB, CoolMaster, NO-014.5.dwfx",
+  "hsf_version": "14.50",
+  "truth_category": "derived",
+  "production_ready": false,
+  "note": "Primitive sequences derived from exact DWFx part linkage, decoded EdgeBreaker shell topology, metadata-validated inner/outer tube surfaces, ring-center centerlines and independent ring-plane tangents. Values remain derived evidence pending final transform/orientation and canonical topology release gates.",
+  "parts": {
+    "10160780": {
+      "developed_length_mm": 776.3,
+      "centerline_sample_count": 9,
+      "centerline_sha256": "66404dc7df2f482ff8f0cdd386aad58d6906a4e5e4d8ba0fd16ef2787a0ed3d0",
+      "primitives": [
+        {"type":"LINE","source_start_index":0,"source_end_index":1,"length_mm":22.7001},
+        {"type":"BEND","source_start_index":1,"source_end_index":5,"evidence_mode":"sampled_arc_with_ring_tangents","clr_mm":15.0,"signed_sweep_deg":90.0},
+        {"type":"LINE","source_start_index":5,"source_end_index":6,"length_mm":136.85},
+        {"type":"BEND","source_start_index":6,"source_end_index":7,"evidence_mode":"two_point_ring_tangents","clr_mm":15.0,"signed_sweep_deg":15.0712},
+        {"type":"LINE","source_start_index":7,"source_end_index":8,"length_mm":589.1965}
+      ]
+    },
+    "10157546": {
+      "developed_length_mm": 1214.6,
+      "centerline_sample_count": 42,
+      "primitives": [
+        {"type":"LINE","source_start_index":0,"source_end_index":1,"length_mm":51.437},
+        {"type":"BEND","source_start_index":1,"source_end_index":8,"clr_mm":20.0,"signed_sweep_deg":110.0001},
+        {"type":"LINE","source_start_index":8,"source_end_index":9,"length_mm":82.808},
+        {"type":"BEND","source_start_index":9,"source_end_index":12,"clr_mm":20.0,"signed_sweep_deg":51.4195},
+        {"type":"LINE","source_start_index":12,"source_end_index":13,"length_mm":70.371},
+        {"type":"BEND","source_start_index":13,"source_end_index":19,"clr_mm":20.0,"signed_sweep_deg":90.0},
+        {"type":"LINE","source_start_index":19,"source_end_index":20,"length_mm":120.0},
+        {"type":"BEND","source_start_index":20,"source_end_index":26,"clr_mm":20.0,"signed_sweep_deg":90.0},
+        {"type":"LINE","source_start_index":26,"source_end_index":27,"length_mm":87.816},
+        {"type":"BEND","source_start_index":27,"source_end_index":33,"clr_mm":20.0,"signed_sweep_deg":90.0002},
+        {"type":"LINE","source_start_index":33,"source_end_index":34,"length_mm":480.342},
+        {"type":"BEND","source_start_index":34,"source_end_index":40,"clr_mm":20.0,"signed_sweep_deg":89.9999},
+        {"type":"LINE","source_start_index":40,"source_end_index":41,"length_mm":139.786}
+      ]
+    },
+    "10157555": {
+      "developed_length_mm": 773.6,
+      "centerline_sample_count": 15,
+      "primitives": [
+        {"type":"LINE","source_start_index":0,"source_end_index":1,"length_mm":42.549},
+        {"type":"BEND","source_start_index":1,"source_end_index":4,"clr_mm":20.0,"signed_sweep_deg":51.774},
+        {"type":"LINE","source_start_index":4,"source_end_index":5,"length_mm":190.013},
+        {"type":"BEND","source_start_index":5,"source_end_index":7,"clr_mm":20.0,"signed_sweep_deg":38.226},
+        {"type":"LINE","source_start_index":7,"source_end_index":8,"length_mm":439.38},
+        {"type":"BEND","source_start_index":8,"source_end_index":13,"clr_mm":20.0,"signed_sweep_deg":90.0001},
+        {"type":"LINE","source_start_index":13,"source_end_index":14,"length_mm":38.857}
+      ]
+    },
+    "10157683": {
+      "developed_length_mm": 1701.0,
+      "centerline_sample_count": 56,
+      "primitives": [
+        {"type":"LINE","source_start_index":0,"source_end_index":1,"length_mm":125.0},
+        {"type":"BEND","source_start_index":1,"source_end_index":9,"clr_mm":55.0,"signed_sweep_deg":90.0},
+        {"type":"LINE","source_start_index":9,"source_end_index":10,"length_mm":175.726},
+        {"type":"BEND","source_start_index":10,"source_end_index":18,"clr_mm":55.0,"signed_sweep_deg":90.0001},
+        {"type":"LINE","source_start_index":18,"source_end_index":19,"length_mm":440.0},
+        {"type":"BEND","source_start_index":19,"source_end_index":27,"clr_mm":55.0,"signed_sweep_deg":90.0},
+        {"type":"LINE","source_start_index":27,"source_end_index":28,"length_mm":40.0},
+        {"type":"BEND","source_start_index":28,"source_end_index":36,"clr_mm":55.0,"signed_sweep_deg":90.0},
+        {"type":"LINE","source_start_index":36,"source_end_index":37,"length_mm":314.949},
+        {"type":"BEND","source_start_index":37,"source_end_index":45,"clr_mm":55.0,"signed_sweep_deg":90.0},
+        {"type":"LINE","source_start_index":45,"source_end_index":46,"length_mm":22.0},
+        {"type":"BEND","source_start_index":46,"source_end_index":54,"clr_mm":55.0,"signed_sweep_deg":90.0},
+        {"type":"LINE","source_start_index":54,"source_end_index":55,"length_mm":65.0}
+      ]
+    },
+    "10157549": {
+      "developed_length_mm": 512.3,
+      "centerline_sample_count": 23,
+      "primitives": [
+        {"type":"LINE","source_start_index":0,"source_end_index":1,"length_mm":35.0},
+        {"type":"BEND","source_start_index":1,"source_end_index":7,"clr_mm":15.0,"signed_sweep_deg":90.0},
+        {"type":"LINE","source_start_index":7,"source_end_index":8,"length_mm":66.896},
+        {"type":"BEND","source_start_index":8,"source_end_index":14,"clr_mm":15.0,"signed_sweep_deg":90.0},
+        {"type":"LINE","source_start_index":14,"source_end_index":15,"length_mm":314.7},
+        {"type":"BEND","source_start_index":15,"source_end_index":21,"clr_mm":15.0,"signed_sweep_deg":90.0},
+        {"type":"LINE","source_start_index":21,"source_end_index":22,"length_mm":25.0}
+      ]
+    },
+    "10157552": {
+      "developed_length_mm": 1248.0,
+      "centerline_sample_count": 20,
+      "primitives": [
+        {"type":"LINE","source_start_index":0,"source_end_index":1,"length_mm":28.0},
+        {"type":"BEND","source_start_index":1,"source_end_index":5,"clr_mm":15.0,"signed_sweep_deg":90.0002},
+        {"type":"LINE","source_start_index":5,"source_end_index":6,"length_mm":717.045},
+        {"type":"BEND","source_start_index":6,"source_end_index":8,"clr_mm":15.0,"signed_sweep_deg":38.9249},
+        {"type":"LINE","source_start_index":8,"source_end_index":9,"length_mm":99.535},
+        {"type":"BEND","source_start_index":9,"source_end_index":13,"clr_mm":15.0,"signed_sweep_deg":90.0},
+        {"type":"LINE","source_start_index":13,"source_end_index":14,"length_mm":295.5},
+        {"type":"BEND","source_start_index":14,"source_end_index":18,"clr_mm":15.0,"signed_sweep_deg":89.9999},
+        {"type":"LINE","source_start_index":18,"source_end_index":19,"length_mm":27.0}
+      ]
+    }
+  }
+}

@@ -1,0 +1,522 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { deflateSync } from 'node:zlib';
+import { decodeHsfEnvelope, decodeHsfOpcodePrefix } from '../../src/import/dwfx/hsf-envelope.mjs';
+
+function le32(v){ return [v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255]; }
+function f32(v){ const b=Buffer.allocUnsafe(4); b.writeFloatLE(v); return [...b]; }
+
+function fixture(){
+  const stream = Uint8Array.from([
+    0x28, 0x03, ...Buffer.from('abc'),
+    0x29,
+    0x42, 0x00, ...f32(-1),...f32(-2),...f32(-3),...f32(4),...f32(5),...f32(6),
+    0x7d, 0x00, ...f32(0),...f32(0),...f32(10), ...f32(0),...f32(0),...f32(0), ...f32(0),...f32(1),...f32(0), ...f32(20),...f32(10), 0x07, ...Buffer.from('default'),
+    0x4c, ...le32(2), ...f32(0),...f32(0),...f32(0), ...f32(10),...f32(0),...f32(0),
+    0x7a
+  ]);
+  const compressed = deflateSync(stream);
+  return Uint8Array.from([
+    ...Buffer.from(';; HSF V14.50 '), 0,
+    0x49, ...le32(0x9a06),
+    0x3b, ...Buffer.from('W3D V01.00\n'),
+    0x49, ...le32(0),
+    0x5a, ...compressed, 0x00
+  ]);
+}
+
+test('A20: decodes HSF/W3D envelope and zlib block without promoting geometry', async()=>{
+  const out=await decodeHsfEnvelope(fixture());
+  assert.equal(out.hsf_version,'14.50');
+  assert.equal(out.file_info.length,2);
+  assert.equal(out.file_info[0].flags,0x9a06);
+  assert.equal(out.comments[0].text,'W3D V01.00');
+  assert.equal(out.opcode_stream.at(-1),0x7a);
+});
+
+test('A20: decodes synchronized segment, bounds, view and polyline prefix', async()=>{
+  const env=await decodeHsfEnvelope(fixture());
+  const out=decodeHsfOpcodePrefix(env.opcode_stream);
+  assert.equal(out.complete_prefix,true);
+  assert.deepEqual(out.entities[0],{kind:'segment',action:'open',source_offset:0,name:'abc'});
+  assert.equal(out.entities[2].kind,'bounds');
+  assert.deepEqual(out.entities[2].min,[-1,-2,-3]);
+  assert.equal(out.entities[3].kind,'view');
+  assert.equal(out.entities[3].name,'default');
+  assert.equal(out.entities[4].kind,'polyline');
+  assert.deepEqual(out.entities[4].points,[[0,0,0],[10,0,0]]);
+});
+
+test('A20: tag, distant light and pause advance synchronously with exact offsets',()=>{
+  const bytes=Uint8Array.from([
+    0x71,
+    0x64,...f32(1),...f32(2),...f32(3),
+    0x01
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{maxOpcodes:3});
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.limit_reached,true);
+  assert.deepEqual(out.entities.map((e)=>e.kind),['tag','light','pause']);
+  assert.equal(out.entities[0].source_offset,0);
+  assert.equal(out.entities[0].tag_index,0);
+  assert.equal(out.entities[1].source_offset,1);
+  assert.deepEqual(out.entities[1].direction,[1,2,3]);
+  assert.equal(out.entities[2].source_offset,14);
+  assert.equal(out.next_offset,15);
+});
+
+
+test('A20: HSF tag indices are zero-based and strictly sequential',()=>{
+  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x71,0x71,0x71]),{maxOpcodes:3});
+  assert.deepEqual(out.entities.map((e)=>e.tag_index),[0,1,2]);
+  assert.deepEqual(out.entities.map((e)=>e.source_offset),[0,1,2]);
+});
+
+test('A20: geometry-attributes scope contains normal attribute opcodes and terminates explicitly',()=>{
+  const bytes=Uint8Array.from([
+    0x3a,
+    0x22,
+    0x80,0x02,
+    0x03,
+    0x00,127,127,127,
+    0x00,255,255,255,
+    0x00
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{maxOpcodes:3});
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.limit_reached,true);
+  assert.equal(out.next_offset,14);
+  assert.deepEqual(out.entities.map((e)=>e.kind),['geometry_scope','color','geometry_scope']);
+  assert.equal(out.entities[0].action,'open');
+  assert.equal(out.entities[1].geometry_mask,0x0280);
+  assert.equal(out.entities[1].channels_mask,0x0003);
+  assert.deepEqual(out.entities[1].channels.diffuse.rgb_bytes,[127,127,127]);
+  assert.deepEqual(out.entities[1].channels.specular.rgb_bytes,[255,255,255]);
+  assert.equal(out.entities[2].action,'close');
+});
+
+test('A20: user options decode short length and preserve exact string',()=>{
+  const out=decodeHsfOpcodePrefix(Uint8Array.from([
+    0x55,0x04,0x00,...Buffer.from('node')
+  ]),{maxOpcodes:1});
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.limit_reached,true);
+  assert.equal(out.next_offset,7);
+  assert.deepEqual(out.entities[0],{kind:'user_options',source_offset:0,value:'node'});
+});
+
+test('A20: simple heuristics mask/value decode without consuming optional payloads',()=>{
+  const out=decodeHsfOpcodePrefix(Uint8Array.from([
+    0x48,0x02,0x00,0xfd,0xff
+  ]),{maxOpcodes:1});
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.limit_reached,true);
+  assert.equal(out.next_offset,5);
+  assert.deepEqual(out.entities[0],{kind:'heuristics',source_offset:0,mask:0x0002,value:0xfffd});
+});
+
+test('A20: heuristics with conditional payload stays blocked until version-aware decoding',()=>{
+  const out=decodeHsfOpcodePrefix(Uint8Array.from([
+    0x48,0x40,0x00,0x40,0x00,0x01,0x00,0x00,0x00
+  ]));
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.unsupported_opcode,0x48);
+  assert.equal(out.next_offset,0);
+  assert.match(out.unsupported_variant,/version-aware/i);
+  assert.equal(out.entities.length,0);
+});
+
+test('A20: Autodesk HW3D image descriptor keeps only resource metadata',()=>{
+  const name='"ENVIRONMENT-X"';
+  const bytes=Uint8Array.from([
+    0xe0,name.length,...Buffer.from(name),
+    ...le32(256),...le32(128),32
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{maxOpcodes:1});
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.limit_reached,true);
+  assert.equal(out.entities[0].kind,'hw3d_image');
+  assert.equal(out.entities[0].name,name);
+  assert.equal(out.entities[0].width,256);
+  assert.equal(out.entities[0].height,128);
+  assert.equal(out.entities[0].bit_depth,32);
+});
+
+test('A20: texture parser follows length, flags and conditional fields exactly',()=>{
+  const name='"ENVIRONMENT-X"';
+  const bytes=Uint8Array.from([
+    0x74,
+    name.length,...Buffer.from(name),
+    name.length,...Buffer.from(name),
+    0x01,0x00,
+    0x06
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{maxOpcodes:1});
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.limit_reached,true);
+  assert.equal(out.entities[0].kind,'texture');
+  assert.equal(out.entities[0].name,name);
+  assert.equal(out.entities[0].image_name,name);
+  assert.equal(out.entities[0].flags,1);
+  assert.equal(out.entities[0].options.parameter_source,6);
+});
+
+test('A20: unknown opcode stops synchronized parsing instead of scanning or guessing',()=>{
+  const out=decodeHsfOpcodePrefix(Uint8Array.from([0x28,0x01,0x61,0xff,0x01,0x02,0x03]));
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,3);
+  assert.equal(out.entities.length,1);
+});
+
+
+function shellFixture({ optionalOpcode = 0x1c } = {}) {
+  const workspace = Uint8Array.from([
+    0x02,0x00,0x00,0x00,
+    ...le32(1),...le32(4),...le32(0),...le32(3),...le32(0),
+    0x02,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00
+  ]);
+  const bytes = [
+    0x53,
+    0x58,
+    0x00,
+    0x05,
+    ...le32(workspace.length),
+    ...workspace,
+    ...f32(1),...f32(2),...f32(3),
+    ...f32(4),...f32(5),...f32(6),
+    ...f32(7),...f32(8),...f32(9),
+    optionalOpcode
+  ];
+  if (optionalOpcode === 0x1c) {
+    bytes.push(
+      0x02,
+      ...f32(0),...f32(0),
+      ...f32(1),...f32(1),
+      ...f32(2),...f32(2),
+      0x00,
+      0x7a
+    );
+  } else {
+    bytes.push(0x11,0x22,0x33,0x7a);
+  }
+  return Uint8Array.from(bytes);
+}
+
+test('A20: TKE_Shell exposes exact post-EdgeBreaker vertices and decoded connectivity',()=>{
+  const out=decodeHsfOpcodePrefix(shellFixture(),{hsfVersion:'14.50'});
+  assert.equal(out.complete_prefix,true);
+  assert.equal(out.entities.length,1);
+  const shell=out.entities[0];
+  assert.equal(shell.kind,'triangle_mesh');
+  assert.equal(shell.encoding,'TKE_Shell');
+  assert.equal(shell.suboptions,0x58);
+  assert.equal(shell.compression_scheme,0x05);
+  assert.equal(shell.edge_breaker.scheme,2);
+  assert.equal(shell.edge_breaker.point_count,3);
+  assert.deepEqual(shell.vertices,[[1,2,3],[4,5,6],[7,8,9]]);
+  assert.equal(shell.connectivity.status,'decoded');
+  assert.equal(shell.connectivity.codec,'edgebreaker');
+  assert.equal(shell.connectivity.face_count,1);
+  assert.deepEqual(shell.connectivity.faces,[[0,1,2]]);
+  assert.deepEqual(shell.optionals,[{
+    opcode:0x1c,
+    kind:'all_parameters',
+    source_offset:76,
+    width:2,
+    value_count:3,
+    scalar_count:6
+  }]);
+});
+
+test('A20: TKE_Shell refuses to infer post-workspace point layout without HSF version',()=>{
+  const out=decodeHsfOpcodePrefix(shellFixture());
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.unsupported_opcode,0x53);
+  assert.equal(out.next_offset,0);
+  assert.match(out.unsupported_variant,/requires HSF version/i);
+  assert.equal(out.entities.length,0);
+});
+
+test('A20: unknown TKE_Shell optional stops at the exact nested opcode without resynchronizing',()=>{
+  const out=decodeHsfOpcodePrefix(shellFixture({optionalOpcode:0x7f}),{hsfVersion:'14.50'});
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.unsupported_opcode,0x53);
+  assert.equal(out.next_offset,76);
+  assert.match(out.unsupported_variant,/optional opcode 0x7f/i);
+  assert.equal(out.entities.length,0);
+});
+
+
+test('A20: style visibility RGB and native circular arc remain exact source evidence',()=>{
+  const bytes=Uint8Array.from([
+    0x7b,0x03,...Buffer.from('sty'),
+    0x56,0x01,0xfe,
+    0x7e,0x86,0x10,65,63,62,
+    0x63,
+    ...f32(1),...f32(0),...f32(0),
+    ...f32(0),...f32(1),...f32(0),
+    ...f32(-1),...f32(0),...f32(0),
+    0x00,
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,52);
+  assert.equal(out.unsupported_variant,undefined);
+  assert.deepEqual(out.entities.map((e)=>e.kind),[
+    'segment','visibility','color','curve_candidate'
+  ]);
+  assert.equal(out.entities[0].action,'style');
+  assert.equal(out.entities[0].name,'sty');
+  assert.equal(out.entities[1].mask,1);
+  assert.equal(out.entities[1].value,0xfe);
+  assert.equal(out.entities[2].geometry_mask,0x1086);
+  assert.deepEqual(out.entities[2].rgb_bytes,[65,63,62]);
+  assert.equal(out.entities[3].primitive,'circular_arc');
+  assert.deepEqual(out.entities[3].start,[1,0,0]);
+  assert.deepEqual(out.entities[3].middle,[0,1,0]);
+  assert.deepEqual(out.entities[3].end,[-1,0,0]);
+  assert.equal(out.entities[3].flags,0);
+  assert.equal(out.entities[3].center,null);
+  assert.equal(out.entities[3].canonical_ready,false);
+});
+
+test('A20: HSF 12.15+ circular arc can carry an explicit center point',()=>{
+  const bytes=Uint8Array.from([
+    0x63,
+    ...f32(1),...f32(0),...f32(0),
+    ...f32(0),...f32(1),...f32(0),
+    ...f32(-1),...f32(0),...f32(0),
+    0x01,
+    ...f32(0),...f32(0),...f32(0),
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,50);
+  assert.equal(out.entities[0].flags,1);
+  assert.deepEqual(out.entities[0].center,[0,0,0]);
+});
+
+
+test('A20: native HSF line is preserved as non-canonical curve evidence',()=>{
+  const bytes=Uint8Array.from([
+    0x6c,
+    ...f32(1),...f32(2),...f32(3),
+    ...f32(4),...f32(5),...f32(6),
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,25);
+  assert.equal(out.entities[0].kind,'curve_candidate');
+  assert.equal(out.entities[0].primitive,'line');
+  assert.deepEqual(out.entities[0].start,[1,2,3]);
+  assert.deepEqual(out.entities[0].end,[4,5,6]);
+  assert.equal(out.entities[0].canonical_ready,false);
+});
+
+
+test('A20: strict rendering-options subset decodes attribute/color locks only',()=>{
+  const bytes=Uint8Array.from([
+    0x52,
+    ...le32(0x00100000),
+    ...le32(0x00100000),
+    ...le32(0x04000004),
+    ...le32(0x04000004),
+    ...le32(0x00000001),
+    ...le32(0x00000001),
+    0xff,0x01,
+    0xff,0x01,
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,29);
+  const ro=out.entities[0];
+  assert.equal(ro.kind,'rendering_options');
+  assert.equal(ro.mask,0x00100000);
+  assert.equal(ro.value,0x00100000);
+  assert.equal(ro.lock_mask,0x04000004);
+  assert.equal(ro.lock_value,0x04000004);
+  assert.equal(ro.color_lock_mask,1);
+  assert.equal(ro.color_lock_value,1);
+  assert.equal(ro.face_color_lock_mask,0x01ff);
+  assert.equal(ro.face_color_lock_value,0x01ff);
+});
+
+test('A20: unsupported rendering-options bits block at opcode start',()=>{
+  const bytes=Uint8Array.from([
+    0x52,
+    ...le32(0x00001000),
+    ...le32(0x00001000)
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.complete_prefix,false);
+  assert.equal(out.unsupported_opcode,0x52);
+  assert.equal(out.next_offset,0);
+  assert.match(out.unsupported_variant,/unsupported options/i);
+});
+
+
+test('A20: non-EdgeBreaker shell decodes exact vertices and trivial face list',()=>{
+  const bytes=Uint8Array.from([
+    0x53,
+    0x12,
+    0x00,
+    ...le32(3),
+    ...f32(0),...f32(0),...f32(0),
+    ...f32(1),...f32(0),...f32(0),
+    ...f32(0),...f32(1),...f32(0),
+    0x01,
+    ...le32(5),
+    0x08,3,0,1,2,
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  const shell=out.entities[0];
+  assert.equal(shell.kind,'triangle_mesh');
+  assert.deepEqual(shell.vertices,[[0,0,0],[1,0,0],[0,1,0]]);
+  assert.equal(shell.connectivity.status,'decoded');
+  assert.equal(shell.connectivity.codec,'trivial_face_list');
+  assert.deepEqual(shell.connectivity.faces,[3,0,1,2]);
+});
+
+
+test('A20: compressed all-normal optional is length-delimited evidence, not invented vectors',()=>{
+  const workspace=Uint8Array.from([1,2,3,4,5,6]);
+  const bytes=Uint8Array.from([
+    0x53,0x1a,0x00,
+    ...le32(3),
+    ...f32(0),...f32(0),...f32(0),
+    ...f32(1),...f32(0),...f32(0),
+    ...f32(0),...f32(1),...f32(0),
+    0x01,...le32(5),0x08,3,0,1,2,
+    0x01,0x07,0x0c,...le32(workspace.length),...workspace,
+    0x00,
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  const opt=out.entities[0].optionals[0];
+  assert.equal(opt.kind,'all_normals_compressed');
+  assert.equal(opt.compression_scheme,7);
+  assert.equal(opt.bits_per_sample,12);
+  assert.equal(opt.workspace_length,6);
+  assert.equal(opt.normal_count,3);
+  assert.equal(opt.values_decoded,false);
+});
+
+test('A20: texture matrix stays separate from model geometry transforms',()=>{
+  const values=[1,0,0,0,1,0,0,0,1,2,3,4];
+  const bytes=Uint8Array.from([0x24,...values.flatMap(f32),0xff]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,49);
+  assert.equal(out.entities[0].kind,'texture_matrix');
+  assert.deepEqual(out.entities[0].elements,values);
+});
+
+
+test('A20: native HSF NURBS curve preserves control points and knot evidence',()=>{
+  const knots=[0,0,0,0,1,1,1,1];
+  const bytes=Uint8Array.from([
+    0x4e,
+    0x02,
+    0x03,
+    ...le32(4),
+    ...f32(0),...f32(0),...f32(0),
+    ...f32(1),...f32(0),...f32(0),
+    ...f32(2),...f32(0),...f32(0),
+    ...f32(3),...f32(0),...f32(0),
+    ...knots.flatMap(f32),
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  const curve=out.entities[0];
+  assert.equal(curve.kind,'curve_candidate');
+  assert.equal(curve.primitive,'nurbs_curve');
+  assert.equal(curve.degree,3);
+  assert.deepEqual(curve.control_points,[[0,0,0],[1,0,0],[2,0,0],[3,0,0]]);
+  assert.equal(curve.weights,null);
+  assert.deepEqual(curve.knots,knots);
+  assert.equal(curve.start_parameter,0);
+  assert.equal(curve.end_parameter,1);
+  assert.equal(curve.canonical_ready,false);
+});
+
+
+test('A20: Color_RGB consumes all documented extended geometry-mask bytes',()=>{
+  const bytes=Uint8Array.from([
+    0x7e,
+    0xff,0xff,0xff,0x01,
+    10,20,30,
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,8);
+  assert.equal(out.entities[0].kind,'color');
+  assert.equal(out.entities[0].geometry_mask,0x01ffffff);
+  assert.deepEqual(out.entities[0].geometry_bytes,[0xff,0xff,0xff,0x01]);
+  assert.deepEqual(out.entities[0].rgb_bytes,[10,20,30]);
+});
+
+test('A20: negative line weight consumes explicit units byte',()=>{
+  const bytes=Uint8Array.from([0x3d,...f32(-0.5),0x03,0xff]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,6);
+  assert.equal(out.entities[0].kind,'line_weight');
+  assert.equal(out.entities[0].weight,-0.5);
+  assert.equal(out.entities[0].units,3);
+});
+
+
+test('A20: native HSF polygon remains polygon evidence without invented triangulation',()=>{
+  const bytes=Uint8Array.from([
+    0x47,...le32(3),
+    ...f32(0),...f32(0),...f32(0),
+    ...f32(1),...f32(0),...f32(0),
+    ...f32(0),...f32(1),...f32(0),
+    0xff
+  ]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,41);
+  assert.equal(out.entities[0].kind,'polygon');
+  assert.deepEqual(out.entities[0].points,[[0,0,0],[1,0,0],[0,1,0]]);
+});
+
+
+test('A20: include-segment remains an explicit scene-graph reference',()=>{
+  const name='?Include Library/31';
+  const bytes=Uint8Array.from([0x3c,name.length,...Buffer.from(name),0xff]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.entities[0].kind,'segment');
+  assert.equal(out.entities[0].action,'include');
+  assert.equal(out.entities[0].name,name);
+});
+
+
+test('A20: modelling matrix expands 12 HSF floats to an exact 4x4 transform',()=>{
+  const compact=[1,0,0,0,1,0,0,0,1,10,20,30];
+  const bytes=Uint8Array.from([0x25,...compact.flatMap(f32),0xff]);
+  const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+  assert.equal(out.unsupported_opcode,0xff);
+  assert.equal(out.next_offset,49);
+  assert.equal(out.entities[0].kind,'transform');
+  assert.deepEqual(out.entities[0].matrix,[
+    1,0,0,0,
+    0,1,0,0,
+    0,0,1,0,
+    10,20,30,1
+  ]);
+  assert.equal(out.entities[0].source_semantics,'native_hsf_modelling_matrix');
+});
