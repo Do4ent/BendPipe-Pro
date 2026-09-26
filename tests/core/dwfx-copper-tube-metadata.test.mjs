@@ -88,12 +88,12 @@ test("DWFx copper recognizer extracts the five exact linked copper tube parts fr
   );
 
   const byPart=new Map(result.tubes.map((tube)=>[tube.part_number,tube]));
-  assert.equal(byPart.get("10102201").metadata.outer_diameter.value,19.05);
+  assert.ok(Math.abs(byPart.get("10102201").metadata.outer_diameter.value-19.05)<1e-12);
   assert.equal(byPart.get("10102201").metadata.wall_thickness.value,1.7);
   assert.equal(byPart.get("10102201").metadata.developed_length.value,145);
   assert.equal(byPart.get("10102202").metadata.outer_diameter.value,15.875);
   assert.equal(byPart.get("10102202").metadata.wall_thickness.value,0.9);
-  assert.equal(byPart.get("10102217").metadata.outer_diameter.value,9.525);
+  assert.ok(Math.abs(byPart.get("10102217").metadata.outer_diameter.value-9.525)<1e-12);
   assert.equal(byPart.get("10102473").metadata.developed_length.value,1250.4);
   assert.equal(byPart.get("10100407").metadata.developed_length.value,37);
 });
