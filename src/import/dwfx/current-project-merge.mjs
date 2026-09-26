@@ -1,3 +1,5 @@
+import { normalizeImportedTubeDiameterToCatalog } from "./table-diameter-normalization.mjs";
+
 function clone(value){
   return value==null ? value : JSON.parse(JSON.stringify(value));
 }
@@ -80,7 +82,9 @@ export function mergeDwfxTubesIntoCurrentProject({
   imported_projects,
   conflict="copy",
   make_id=null,
-  source_file=null
+  source_file=null,
+  diameter_catalog=null,
+  diameter_rounding_tolerance_mm=0.35
 }){
   if(!project||typeof project!=="object"){
     throw new TypeError("current project is required");
@@ -186,12 +190,19 @@ export function mergeDwfxTubesIntoCurrentProject({
         replaced.push(originalName);
       }
 
-      const materialized=editableImportedTube(sourceTube,{
+      let materialized=editableImportedTube(sourceTube,{
         usedIds,
         usedNames,
         makeId:make_id,
         sourceFile:source_file
       });
+      if(Array.isArray(diameter_catalog)&&diameter_catalog.length){
+        materialized=normalizeImportedTubeDiameterToCatalog(
+          materialized,
+          diameter_catalog,
+          {recommended_tolerance_mm:diameter_rounding_tolerance_mm}
+        ).tube;
+      }
 
       if(existingIndexes.length&&conflict==="copy"){
         usedNames.delete(nameKey(materialized.name));
