@@ -11,6 +11,7 @@ const sourcePath = path.join(
 );
 const threePath = path.join(root, "vendor", "three", "r160", "three.min.js");
 const dwfxEntryPath = path.join(root, "src", "import", "dwfx", "browser-file-import.mjs");
+const dwfxCurrentProjectUiPath = path.join(root, "src", "import", "dwfx", "current-project-ui.js");
 const distDir = path.join(root, "dist");
 const outputPath = path.join(distDir, "TubeBender_CAD_VC207R7_M1_Standalone.html");
 
@@ -96,12 +97,16 @@ const dwfxEntry = bundledEntrySource(dwfxEntryPath).replace(
   "<\\/script"
 );
 const bundledDwfx =
-  `<script type="module" data-tubebender-bundled="dwfx-import">\n${dwfxEntry}\nwindow.TubeBenderDwfxImport=Object.freeze({importSelectedDwfxFile});\nconst tbDwfxInput=document.getElementById("poFileInput");if(tbDwfxInput)tbDwfxInput.setAttribute("accept",".json,.dwfx,application/json,application/octet-stream");\n</script>`;
+  `<script type="module" data-tubebender-bundled="dwfx-import">\n${dwfxEntry}\nwindow.TubeBenderDwfxImport=Object.freeze({importSelectedDwfxFile,mergeDwfxTubesIntoCurrentProject});\nconst tbDwfxInput=document.getElementById("poFileInput");if(tbDwfxInput)tbDwfxInput.setAttribute("accept",".json,.dwfx,application/json,application/octet-stream");\n</script>`;
+
+const dwfxCurrentProjectUi = fs.readFileSync(dwfxCurrentProjectUiPath, "utf8").replace(/<\\/script/gi, "<\\\\/script");
+const bundledDwfxCurrentProjectUi =
+  `<script data-tubebender-bundled="dwfx-current-project-ui">\n${dwfxCurrentProjectUi}\n</script>`;
 
 if (!output.includes("</body>")) {
   throw new Error("Standalone source HTML is missing </body>");
 }
-output = output.replace("</body>", bundledDwfx + "\n</body>");
+output = output.replace("</body>", bundledDwfx + "\n" + bundledDwfxCurrentProjectUi + "\n</body>");
 
 const oldPoLoadFile =
   "async function poLoadFile(file){if(!file)return;PO.source='device';poUpdateSourceUi();const token=++PO.analysisToken;poSetBusy(true,\`Чтение \${file.name}…\`);try{const raw=await file.text();if(token!==PO.analysisToken)return;await poLoadRawText(raw,{name:file.name,size:file.size,modified:file.lastModified||Date.now(),source:'device'});}catch(e){poSetBusy(false,'Не удалось прочитать файл');ptToast('Не удалось прочитать файл');}}";
@@ -223,8 +228,8 @@ if (!output.includes('data-tubebender-bundled="three-r160"')) {
 if (!output.includes('data-tubebender-bundled="dwfx-import"')) {
   throw new Error("Standalone build is missing the bundled DWFx importer marker");
 }
-if (!output.includes("window.TubeBenderDwfxImport=Object.freeze({importSelectedDwfxFile})")) {
-  throw new Error("Standalone build does not expose the DWFx browser controller");
+if (!output.includes("window.TubeBenderDwfxImport=Object.freeze({importSelectedDwfxFile,mergeDwfxTubesIntoCurrentProject})")) {
+  throw new Error("Standalone build does not expose the DWFx browser controller and current-project merge helper");
 }
 if (!output.includes("result?.status!=='dwfx_project_candidate'")) {
   throw new Error("Standalone project-open path is missing the guarded DWFx branch");
@@ -241,6 +246,7 @@ process.stdout.write(
       bytes,
       offlineCoreReady: true,
       bundledDwfxImporter: true,
+      currentProjectDwfxImport: true,
       optionalExternalModules: ["tesseract"]
     },
     null,
