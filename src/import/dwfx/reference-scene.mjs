@@ -347,21 +347,76 @@ export function buildDwfxReferenceScene({
   let placedCount=0;
   let unresolvedCount=0;
 
+  const resolvingAssets=new Set();
   const assetFor=(name)=>{
     if(assetCache.has(name))return assetCache.get(name);
+    if(resolvingAssets.has(name)){
+      diagnostics.push(Object.freeze({
+        stage:"asset_include_cycle",
+        asset_id:String(name),
+        status:"blocked_cycle"
+      }));
+      return Object.freeze({
+        id:String(name),
+        status:"unresolved",
+        kind:"cycle",
+        meshes:Object.freeze([]),
+        line_segments:null,
+        nested_instances:Object.freeze([])
+      });
+    }
+
+    resolvingAssets.add(name);
     const decoded=decodeIndexedDisplaySegment(
       opcode_stream,
       segmentIndex,
       name,
       {hsfVersion:hsf_version,attachSegmentPath:true,maxOpcodes:1_000_000}
     );
-    const asset=buildDisplayAsset(decoded,name);
+    const direct=buildDisplayAsset(decoded,name);
+    const nestedInstances=[];
+
+    if(decoded?.status==="exact_display"){
+      for(const include of exactIncludeEntities(decoded)){
+        const child=assetFor(include.name);
+        nestedInstances.push(Object.freeze({
+          asset_id:include.name,
+          placement_matrix:Object.freeze(inheritedMatrix(decoded.entities,include)),
+          status:child.status
+        }));
+      }
+    }
+
+    const exactNested=nestedInstances.filter((item)=>item.status==="exact").length;
+    const hasDirectGeometry=direct.status==="exact";
+    const status=
+      hasDirectGeometry&&exactNested===nestedInstances.length
+        ?"exact"
+        : !hasDirectGeometry&&nestedInstances.length>0&&exactNested===nestedInstances.length
+          ?"exact"
+          : hasDirectGeometry||exactNested>0
+            ?"partial"
+            : direct.status;
+
+    const asset=Object.freeze({
+      ...direct,
+      status,
+      kind:
+        direct.status==="exact"
+          ? direct.kind
+          : nestedInstances.length
+            ? "group"
+            : direct.kind,
+      nested_instances:Object.freeze(nestedInstances)
+    });
+    resolvingAssets.delete(name);
     assetCache.set(name,asset);
     assetManifest.set(name,Object.freeze({
       id:name,
       status:asset.status,
       kind:asset.kind,
       mesh_count:asset.meshes.length,
+      nested_instance_count:nestedInstances.length,
       line_segment_count:
         asset.line_segments
           ? Math.floor(asset.line_segments.positions.length/6)
