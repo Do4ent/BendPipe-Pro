@@ -384,7 +384,10 @@ if (!output.includes("poImportCurrentBtn") || !output.includes("importSelectedDw
 }
 
 fs.mkdirSync(distDir, { recursive: true });
-fs.writeFileSync(outputPath, output, "utf8");
+const tempOutputPath =
+  outputPath + ".tmp-" + process.pid + "-" + Date.now().toString(36);
+fs.writeFileSync(tempOutputPath, output, "utf8");
+fs.renameSync(tempOutputPath, outputPath);
 
 const bytes = fs.statSync(outputPath).size;
 process.stdout.write(
