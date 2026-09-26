@@ -135,3 +135,22 @@ test("A25: standalone bundles readonly DWFx reference scene into 3D and project 
   assert.match(html,/hiddenNodeIds/);
   assert.match(html,/collapsedNodeIds/);
 });
+
+
+test("A26: standalone exposes grouped reference component actions",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/data-ref-scene-select/);
+  assert.match(html,/data-ref-select/);
+  assert.match(html,/data-ref-bulk-action="show"/);
+  assert.match(html,/data-ref-bulk-action="hide"/);
+  assert.match(html,/data-ref-bulk-action="transparent"/);
+  assert.match(html,/data-ref-bulk-action="delete"/);
+  assert.match(html,/transparentNodeIds/);
+  assert.match(html,/opacity:transparent \? \.24 : 1/);
+  assert.match(html,/modelCommand:tbModelCommand/);
+  assert.match(html,/Удалить импортированные компоненты/);
+});
