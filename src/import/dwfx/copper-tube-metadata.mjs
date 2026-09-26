@@ -32,7 +32,7 @@ function parseTubeDimensions(text){
   const source=String(text??"");
   if(!source.trim()) return null;
 
-  const imperial=/([0-9]+)\s*[\/_]\s*([0-9]+)\s*(?:"|inch)?\s*x\s*([0-9]+(?:[.,][0-9]+)?)\s*mm?/i.exec(source);
+  const imperial=/([0-9]+)\s*[\/_]\s*([0-9]+)\s*(?:"|inch)?\s*x\s*([0-9]+(?:[.,][0-9]+)?)\\s*(?:mm)?/i.exec(source);
   if(imperial){
     const numerator=Number(imperial[1]);
     const denominator=Number(imperial[2]);
