@@ -64,8 +64,12 @@ export async function resolveRawHsfPartLinkage({
     const graphicsNode=Number(link.graphics_node);
     const hasVariation=Number.isInteger(variation)&&variation>=0;
     const hasGraphicsNode=Number.isInteger(graphicsNode)&&graphicsNode>=0;
-    const anchorId=hasVariation?variation:(hasGraphicsNode?graphicsNode:null);
-    const anchorKind=hasVariation?"geometric_variation":"graphics_node";
+    const anchorId=hasVariation
+      ? variation
+      : (hasGraphicsNode?graphicsNode+1:null);
+    const anchorKind=hasVariation
+      ?"geometric_variation"
+      :"graphics_node_successor_no_variation";
 
     if(!partNumber||anchorId==null){
       blocked.push(Object.freeze({
