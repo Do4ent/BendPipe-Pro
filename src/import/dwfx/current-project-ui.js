@@ -102,7 +102,8 @@
           typeof pipeDb!=="undefined"&&Array.isArray(pipeDb)
             ? pipeDb
             : [],
-        diameter_rounding_tolerance_mm:0.35
+        diameter_rounding_tolerance_mm:0.35,
+        linear_rounding_increment_mm:1
       });
 
       if(merged.status!=="merged"||merged.imported_count<1){
