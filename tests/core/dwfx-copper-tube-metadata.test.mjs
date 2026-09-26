@@ -145,3 +145,18 @@ test("DWFx copper recognizer does not override an explicit mismatching Object Pa
   assert.equal(result.status,"blocked");
   assert.equal(result.tubes.length,0);
 });
+
+test("DWFx copper recognizer accepts real 10134724 Object-label fallback metadata",()=>{
+  const source='<dwf:Content xmlns:dwf="urn:dwf"><dwf:Object id="PyRYbsi_5UmTo_7y68W23g" label="10134724/A - Tube, Copper, 3/8&quot; x 0,76mm:1" entityRef="PiRYbsi_5UmTo_7y68W23g"><dwf:Property name="Description" value="Tube, Copper 3_8inch x 0,76" category="Design Tracking Properties"/><dwf:Property name="Material" value="Copper" category="Physical"/><dwf:Property name="Revision Number" value="A" category="Summary Information"/><dwf:Property name="Title" value="Tube, Copper, 3/8&quot; x 0,76mm" category="Summary Information"/><dwf:Property name="Description 1" value="Tube" category="User Defined Properties"/><dwf:Property name="Description 2" value="Copper" category="User Defined Properties"/><dwf:Property name="Length" value="487,7 mm" category="User Defined Properties"/><dwf:Property name="OD" value="9,5 mm" category="User Defined Properties"/><dwf:Property name="SN" value="1,0 mm" category="User Defined Properties"/></dwf:Object></dwf:Content>';
+  const result=extractCopperTubeMetadataFromContentXml(source,{source_file:"80004806.dwfx"});
+  assert.equal(result.status,"exact");
+  assert.equal(result.tubes.length,1);
+  const tube=result.tubes[0];
+  assert.equal(tube.part_number,"10134724");
+  assert.ok(Math.abs(tube.metadata.outer_diameter.value-9.525)<1e-12);
+  assert.equal(tube.metadata.wall_thickness.value,0.76);
+  assert.equal(tube.metadata.developed_length.value,487.7);
+  assert.equal(tube.revision,"A");
+  assert.equal(tube.source_evidence.part_number_method,"exact_object_label_prefix");
+  assert.equal(tube.source_evidence.source_record_kind,"object");
+});
