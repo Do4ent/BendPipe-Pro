@@ -3,6 +3,7 @@ import { hydrateDwfxAssemblyVariationSegments } from "./assembly-variation-hydra
 import { prepareDwfxAssemblyImport } from "./assembly-import-pipeline.mjs";
 import { buildLegacyProjectPackageFromAssembly } from "./legacy-project-package.mjs";
 import { spatiallyPlaceDwfxAssembly } from "./editable-spatial-placement.mjs";
+import { roundDwfxAssemblyLinearDimensions } from "./editable-linear-rounding.mjs";
 
 /**
  * Compose the trusted DWFx project import path:
@@ -26,6 +27,7 @@ export function prepareTrustedDwfxProjectImport({
   hydrateVariations=hydrateDwfxAssemblyVariationSegments,
   prepareAssembly=prepareDwfxAssemblyImport,
   placeAssembly=spatiallyPlaceDwfxAssembly,
+  roundAssembly=roundDwfxAssemblyLinearDimensions,
   buildProjectPackage=buildLegacyProjectPackageFromAssembly
 }){
   for(const [label,fn] of [
@@ -33,6 +35,7 @@ export function prepareTrustedDwfxProjectImport({
     ["hydrateVariations",hydrateVariations],
     ["prepareAssembly",prepareAssembly],
     ["placeAssembly",placeAssembly],
+    ["roundAssembly",roundAssembly],
     ["buildProjectPackage",buildProjectPackage]
   ]){
     if(typeof fn!=="function") throw new TypeError(label+" must be a function");
@@ -133,8 +136,35 @@ export function prepareTrustedDwfxProjectImport({
     placedAssembly=spatialPlacement.assembly;
   }
 
-  const projectPackage=buildProjectPackage({
+  const linearRounding=roundAssembly({
     assembly:placedAssembly,
+    increment_mm:1
+  });
+  if(
+    !linearRounding||
+    linearRounding.status!=="rounded_assembly"||
+    !linearRounding.assembly
+  ){
+    return Object.freeze({
+      status:"blocked",
+      stage:"linear_rounding",
+      editable_ready:false,
+      production_ready:false,
+      plan,
+      hydration,
+      assembly:placedAssembly,
+      spatial_placement:spatialPlacement,
+      linear_rounding:linearRounding??null,
+      project_package:null,
+      blocker:
+        linearRounding?.blocker??
+        "Editable DWFx linear dimensions could not be rounded to the requested 1 mm increment."
+    });
+  }
+  const editableAssembly=linearRounding.assembly;
+
+  const projectPackage=buildProjectPackage({
+    assembly:editableAssembly,
     project_id,
     project_name,
     bbox,
@@ -148,8 +178,9 @@ export function prepareTrustedDwfxProjectImport({
       production_ready:false,
       plan,
       hydration,
-      assembly:placedAssembly,
+      assembly:editableAssembly,
       spatial_placement:spatialPlacement,
+      linear_rounding:linearRounding,
       project_package:projectPackage??null,
       blocker:
         projectPackage?.blocker??
@@ -164,8 +195,9 @@ export function prepareTrustedDwfxProjectImport({
     production_ready:false,
     plan,
     hydration,
-    assembly:placedAssembly,
+    assembly:editableAssembly,
     spatial_placement:spatialPlacement,
+    linear_rounding:linearRounding,
     project_package:projectPackage,
     package:projectPackage.package,
     blocker:
