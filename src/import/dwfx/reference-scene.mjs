@@ -430,6 +430,8 @@ export function buildDwfxReferenceScene({
   let objectCount=0;
   let leafCount=0;
   let placedCount=0;
+  let drawableLeafCount=0;
+  let metadataOnlyCount=0;
   let unresolvedCount=0;
 
   const resolvingAssets=new Set();
@@ -582,10 +584,15 @@ export function buildDwfxReferenceScene({
             geometryInstances.length&&
             geometryInstances.every((item)=>item.status==="exact")
               ?"exact"
-              : geometryInstances.length
-                ?"partial"
-                :"empty";
+              : geometryInstances.length&&
+                geometryInstances.every((item)=>item.status==="empty")
+                ?"metadata_only"
+                : geometryInstances.length
+                  ?"partial"
+                  :"empty";
           if(geometryInstances.length)placedCount+=1;
+          if(geometryStatus==="exact")drawableLeafCount+=1;
+          if(geometryStatus==="metadata_only")metadataOnlyCount+=1;
         }else{
           diagnostics.push(Object.freeze({
             stage:"instance_anchor",
@@ -645,6 +652,8 @@ export function buildDwfxReferenceScene({
       object_count:objectCount,
       leaf_count:leafCount,
       placed_leaf_count:placedCount,
+      drawable_leaf_count:drawableLeafCount,
+      metadata_only_leaf_count:metadataOnlyCount,
       unresolved_leaf_count:unresolvedCount,
       asset_count:manifest.length,
       exact_asset_count:exactAssets.length,
