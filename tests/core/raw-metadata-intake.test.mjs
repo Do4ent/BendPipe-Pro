@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   extractBentTubeMetadataFromContentXml,
+  parseEntityRecords,
   parseTubeDescription
 } from "../../src/import/dwfx/raw-metadata-intake.mjs";
 
@@ -114,4 +115,25 @@ test("A20: metric source description is supported without imperial inference",()
   assert.equal(parsed.outer_diameter_mm,16);
   assert.equal(parsed.wall_thickness_mm,1);
   assert.equal(parsed.diameter_method,"explicit_metric_dimensions");
+});
+
+
+test("A20: self-closing Entity does not swallow the following entity and its properties",()=>{
+  const xml=\`<dwf:Content xmlns:dwf="urn:dwf">
+    <dwf:Entity id="empty"/>
+    <dwf:Entity id="tube">
+      <dwf:Property name="Part Number" value="10102473" category="Design Tracking Properties"/>
+      <dwf:Property name="Description" value="Bended tube, Copper EN 12735-1, 3/8&quot;x0,76mm" category="Design Tracking Properties"/>
+    </dwf:Entity>
+  </dwf:Content>\`;
+
+  const records=parseEntityRecords(xml);
+  assert.equal(records.length,2);
+  assert.equal(records[0].id,"empty");
+  assert.deepEqual(records[0].properties,{});
+  assert.equal(records[1].id,"tube");
+  assert.equal(
+    records[1].properties["Part Number"][0].value,
+    "10102473"
+  );
 });
