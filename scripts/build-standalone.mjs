@@ -262,7 +262,8 @@ process.stdout.write(
       bytes,
       offlineCoreReady: true,
       bundledDwfxImporter: true,
-      currentProjectDwfxImport: true,\n      injectedAtFinalBodyClose: true,
+      currentProjectDwfxImport: true,
+      injectedAtFinalBodyClose: true,
       optionalExternalModules: ["tesseract"]
     },
     null,
