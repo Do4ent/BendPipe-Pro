@@ -284,3 +284,21 @@ test("A33: standalone preserves exact imported spatial start vector",()=>{
   assert.match(html,/startVector:x\?\.startVector/);
   assert.match(html,/state\.startVector = \{x:dir\.x,y:dir\.y,z:dir\.z\}/);
 });
+
+
+test("A34: standalone protects imported tube diameter from 1/4 fallback",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/function importedDiameterIndexFromEvidence\(tube,db=pipeDb\)/);
+  assert.match(html,/diameterNormalization\?\.table_outer_diameter_mm/);
+  assert.match(html,/derived_outer_diameter_mm/);
+  assert.match(html,/preferredIndex!==null&&preferredIndex!==undefined&&preferredIndex!==''/);
+  assert.match(html,/const importedDwfx=String\(t\.importEvidence\?\.source\?\.format/);
+  assert.match(html,/productionBlocked:priorImportValidation\.productionBlocked===true/);
+  assert.match(html,/const importBlocked=active\.importValidation\?\.productionBlocked===true/);
+  assert.match(html,/active\.toolingId=null/);
+  assert.match(html,/state\.toolingId=null/);
+});
