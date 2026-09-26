@@ -22,7 +22,7 @@ function baseDeps(overrides={}){
       production_ready:false,
       tubes:[{id:"dwfx:A",partNumber:"A"}]
     }),
-    roundAssembly:({assembly})=>({
+    roundAssembly:(assembly)=>({
       status:"rounded_assembly",
       assembly,
       tube_count:assembly.tubes.length,
@@ -166,7 +166,7 @@ test("A36: trusted project import rounds editable linear dimensions before packa
 
   const result=prepareTrustedDwfxProjectImport(args({
     prepareAssembly:()=>sourceAssembly,
-    roundAssembly:({assembly,increment_mm})=>{
+    roundAssembly:(assembly,{increment_mm})=>{
       assert.equal(assembly,sourceAssembly);
       seenIncrement=increment_mm;
       return {
