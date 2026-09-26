@@ -275,6 +275,353 @@ output = output.replace(
   "}"
 );
 
+const importedDiameterResolverAnchor =
+\`function validToolDiameterIndex(preferredIndex){
+  if (!Array.isArray(pipeDb) || !pipeDb.length) return 0;
+  const i = Number(preferredIndex);
+  if (Number.isInteger(i) && pipeDb[i]) return i;
+  let by22 = pipeDb.findIndex(p => Math.abs(Number(p.mm) - 22) < 0.001);
+  if (by22 >= 0) return by22;
+  return 0;
+}\`;
+if (!output.includes(importedDiameterResolverAnchor)) {
+  throw new Error("validToolDiameterIndex implementation was not found");
+}
+output = output.replace(
+  importedDiameterResolverAnchor,
+\`function importedDiameterIndexFromEvidence(tube,db=pipeDb){
+  if(!Array.isArray(db)||!db.length)return -1;
+  const evidence=tube?.importEvidence||{};
+  const targets=[
+    evidence?.diameterNormalization?.table_outer_diameter_mm,
+    evidence?.recognitionSummary?.dimension_reconciliation?.derived_outer_diameter_mm,
+    evidence?.metadata?.outer_diameter_mm,
+    evidence?.metadata?.outer_diameter?.value
+  ];
+  for(const candidate of targets){
+    const target=Number(candidate);
+    if(!(Number.isFinite(target)&&target>0))continue;
+    let best=-1,bestError=Infinity;
+    db.forEach((p,index)=>{
+      const mm=Number(p?.mm);
+      if(!(Number.isFinite(mm)&&mm>0))return;
+      const error=Math.abs(mm-target);
+      if(error<bestError-1e-12){
+        best=index;
+        bestError=error;
+      }
+    });
+    if(best>=0)return best;
+  }
+  const raw=tube?.diameterIndex;
+  if(raw!==null&&raw!==undefined&&raw!==''){
+    const i=Number(raw);
+    if(Number.isInteger(i)&&i>=0&&db[i])return i;
+  }
+  return -1;
+}
+function validToolDiameterIndex(preferredIndex){
+  if (!Array.isArray(pipeDb) || !pipeDb.length) return 0;
+  if(preferredIndex!==null&&preferredIndex!==undefined&&preferredIndex!==''){
+    const i = Number(preferredIndex);
+    if (Number.isInteger(i) && pipeDb[i]) return i;
+  }
+  let by22 = pipeDb.findIndex(p => Math.abs(Number(p.mm) - 22) < 0.001);
+  if (by22 >= 0) return by22;
+  return 0;
+}\`
+);
+
+const importedRepairAnchor =
+\`  if(t.importValidation?.productionBlocked===true){
+    t.visible=t.visible!==false;
+    return t;
+  }\`;
+if (!output.includes(importedRepairAnchor)) {
+  throw new Error("repairTubeForCheck imported branch was not found");
+}
+output = output.replace(
+  importedRepairAnchor,
+\`  if(t.importValidation?.productionBlocked===true){
+    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);
+    if(importedIndex>=0)t.diameterIndex=importedIndex;
+    t.toolingId=null;
+    t.toolingUnresolved=true;
+    t.visible=t.visible!==false;
+    return t;
+  }\`
+);
+
+const importedLoadAnchor =
+\`  const importBlocked=t.importValidation?.productionBlocked===true;
+  let resolved=toolingIndexById(t.toolingId);
+  if(resolved<0&&!t.toolingId&&!importBlocked){
+    resolved=validToolDiameterIndex(t.diameterIndex);
+    t.toolingId=pipeDb[resolved]?.id||null;
+  }
+  if(resolved<0){
+    t.toolingUnresolved=true;
+    resolved=validToolDiameterIndex(t.diameterIndex);
+  }else{
+    t.toolingUnresolved=false;
+  }
+  state.diameterIndex=resolved;
+  state.toolingId=t.toolingId||(importBlocked?null:(pipeDb[resolved]?.id||null));
+  state.toolingUnresolved=t.toolingUnresolved;\`;
+if (!output.includes(importedLoadAnchor)) {
+  throw new Error("loadActiveTubeToState tooling block was not found");
+}
+output = output.replace(
+  importedLoadAnchor,
+\`  const importBlocked=t.importValidation?.productionBlocked===true;
+  if(importBlocked){
+    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);
+    const resolved=importedIndex>=0
+      ? importedIndex
+      : validToolDiameterIndex(t.diameterIndex);
+    t.diameterIndex=resolved;
+    t.toolingId=null;
+    t.toolingUnresolved=true;
+    state.diameterIndex=resolved;
+    state.toolingId=null;
+    state.toolingUnresolved=true;
+  }else{
+    let resolved=toolingIndexById(t.toolingId);
+    if(resolved<0&&!t.toolingId){
+      resolved=validToolDiameterIndex(t.diameterIndex);
+      t.toolingId=pipeDb[resolved]?.id||null;
+    }
+    if(resolved<0){
+      t.toolingUnresolved=true;
+      resolved=validToolDiameterIndex(t.diameterIndex);
+    }else{
+      t.toolingUnresolved=false;
+    }
+    state.diameterIndex=resolved;
+    state.toolingId=t.toolingId||(pipeDb[resolved]?.id||null);
+    state.toolingUnresolved=t.toolingUnresolved;
+  }\`
+);
+
+const importedSyncAnchor =
+\`  const importBlocked=t.importValidation?.productionBlocked===true;
+  const resolved=toolingIndexById(state.toolingId);
+  if(resolved>=0)state.diameterIndex=resolved;
+  if(!state.toolingId&&!importBlocked){
+    const tool=pipeDb[state.diameterIndex];
+    if(tool?.id)state.toolingId=tool.id;
+  }
+  t.toolingId=state.toolingId||null;
+  t.toolingUnresolved=toolingIndexById(t.toolingId)<0;
+  t.diameterIndex = state.diameterIndex;
+  state.toolingUnresolved=t.toolingUnresolved;\`;
+if (!output.includes(importedSyncAnchor)) {
+  throw new Error("syncActiveTubeFromState tooling block was not found");
+}
+output = output.replace(
+  importedSyncAnchor,
+\`  const importBlocked=t.importValidation?.productionBlocked===true;
+  const resolved=toolingIndexById(state.toolingId);
+  if(importBlocked){
+    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);
+    state.diameterIndex=importedIndex>=0
+      ? importedIndex
+      : validToolDiameterIndex(t.diameterIndex);
+    state.toolingId=null;
+    t.toolingId=null;
+    t.toolingUnresolved=true;
+    state.toolingUnresolved=true;
+  }else{
+    if(resolved>=0)state.diameterIndex=resolved;
+    if(!state.toolingId){
+      const tool=pipeDb[state.diameterIndex];
+      if(tool?.id)state.toolingId=tool.id;
+    }
+    t.toolingId=state.toolingId||null;
+    t.toolingUnresolved=toolingIndexById(t.toolingId)<0;
+    state.toolingUnresolved=t.toolingUnresolved;
+  }
+  t.diameterIndex = state.diameterIndex;\`
+);
+
+const importedRenderSelectAnchor =
+\`  const active = activeTube();
+  if(active){
+    if(!active.toolingId){
+      const legacy=pipeDb[validToolDiameterIndex(active.diameterIndex)];
+      if(legacy?.id)active.toolingId=legacy.id;
+    }
+    const idx=toolingIndexById(active.toolingId);
+    if(idx>=0){
+      active.diameterIndex=idx;
+      active.toolingUnresolved=false;
+      state.diameterIndex=idx;
+      state.toolingId=active.toolingId;
+      state.toolingUnresolved=false;
+    }else{
+      active.toolingUnresolved=true;
+      state.toolingId=active.toolingId||state.toolingId;
+      state.toolingUnresolved=true;
+    }
+  }else{\`;
+if (!output.includes(importedRenderSelectAnchor)) {
+  throw new Error("renderPipeSelect active block was not found");
+}
+output = output.replace(
+  importedRenderSelectAnchor,
+\`  const active = activeTube();
+  if(active){
+    const importBlocked=active.importValidation?.productionBlocked===true;
+    if(importBlocked){
+      const idx=importedDiameterIndexFromEvidence(active,pipeDb);
+      if(idx>=0){
+        active.diameterIndex=idx;
+        state.diameterIndex=idx;
+      }
+      active.toolingId=null;
+      active.toolingUnresolved=true;
+      state.toolingId=null;
+      state.toolingUnresolved=true;
+    }else{
+      if(!active.toolingId){
+        const legacy=pipeDb[validToolDiameterIndex(active.diameterIndex)];
+        if(legacy?.id)active.toolingId=legacy.id;
+      }
+      const idx=toolingIndexById(active.toolingId);
+      if(idx>=0){
+        active.diameterIndex=idx;
+        active.toolingUnresolved=false;
+        state.diameterIndex=idx;
+        state.toolingId=active.toolingId;
+        state.toolingUnresolved=false;
+      }else{
+        active.toolingUnresolved=true;
+        state.toolingId=active.toolingId||state.toolingId;
+        state.toolingUnresolved=true;
+      }
+    }
+  }else{\`
+);
+
+const stateToolingFallback =
+\`  if(!state.toolingId){
+    const legacy=pipeDb[Number(state.diameterIndex)];
+    if(legacy?.id)state.toolingId=legacy.id;
+  }\`;
+if (!output.includes(stateToolingFallback)) {
+  throw new Error("state tooling fallback was not found");
+}
+output = output.replaceAll(
+  stateToolingFallback,
+\`  const activeRecordForTooling=allTubeRecords().find(t=>t?.id===state.activeTubeId);
+  const activeImportBlocked=activeRecordForTooling?.importValidation?.productionBlocked===true;
+  if(!state.toolingId&&!activeImportBlocked){
+    const legacy=pipeDb[Number(state.diameterIndex)];
+    if(legacy?.id)state.toolingId=legacy.id;
+  }\`
+);
+
+const poValidationAnchor =
+\`  t.importValidation={...priorImportValidation,productionBlocked:false,issues:[]};\`;
+if (!output.includes(poValidationAnchor)) {
+  throw new Error("poNormalizeTube validation reset was not found");
+}
+output = output.replace(
+  poValidationAnchor,
+\`  const priorIssues=Array.isArray(priorImportValidation.issues)
+    ? [...priorImportValidation.issues]
+    : [];
+  t.importValidation={
+    ...priorImportValidation,
+    productionBlocked:priorImportValidation.productionBlocked===true,
+    issues:priorIssues
+  };\`
+);
+
+const poDiameterAnchor =
+\`  if(!Number.isInteger(Number(t.diameterIndex)))t.diameterIndex=null;
+  else t.diameterIndex=Number(t.diameterIndex);\`;
+if (!output.includes(poDiameterAnchor)) {
+  throw new Error("poNormalizeTube diameter normalization anchor was not found");
+}
+output = output.replace(
+  poDiameterAnchor,
+\`  if(
+    t.diameterIndex===null||
+    t.diameterIndex===undefined||
+    t.diameterIndex===''||
+    !Number.isInteger(Number(t.diameterIndex))
+  )t.diameterIndex=null;
+  else t.diameterIndex=Number(t.diameterIndex);
+  const importedDwfx=String(t.importEvidence?.source?.format??'').toLowerCase()==='dwfx';
+  if(importedDwfx){
+    const importedIndex=importedDiameterIndexFromEvidence(t,pkg?.pipeDb);
+    if(importedIndex>=0)t.diameterIndex=importedIndex;
+    t.toolingId=null;
+    t.toolingUnresolved=true;
+    t.importValidation.productionBlocked=true;
+  }\`
+);
+
+const poToolAnchor =
+\`  const tool=poToolFor(t,pkg);
+  if(!tool){
+    t.toolingUnresolved=true;
+    block('оснастка не разрешена точно; первая или ближайшая оснастка не подставляется.');
+  }else{
+    t.toolingUnresolved=false;
+    if(!t.toolingId&&tool.id)t.toolingId=tool.id;
+    const legacyTubeBenderVersion=/^VC\\d+/i.test(String(pkg?.version||''));\`;
+if (!output.includes(poToolAnchor)) {
+  throw new Error("poNormalizeTube tooling block was not found");
+}
+output = output.replace(
+  poToolAnchor,
+\`  const tool=poToolFor(t,pkg);
+  if(!tool){
+    t.toolingUnresolved=true;
+    block('оснастка не разрешена точно; первая или ближайшая оснастка не подставляется.');
+  }else{
+    if(importedDwfx){
+      t.toolingUnresolved=true;
+      t.toolingId=null;
+    }else{
+      t.toolingUnresolved=false;
+      if(!t.toolingId&&tool.id)t.toolingId=tool.id;
+    }
+    const legacyTubeBenderVersion=/^VC\\d+/i.test(String(pkg?.version||''));\`
+);
+
+const poStartDirectionAnchor =
+\`  let dir=poAxisVector(tube?.startAxis);
+  if(!dir)return unresolved('start axis is unsupported',{tool});
+  const startPlane=tube?.startPlane;
+  const startNormal=poPlaneNormal(startPlane);
+  if(!startNormal)return unresolved('start plane is unsupported',{tool});
+  dir.applyAxisAngle(startNormal,THREE.MathUtils.degToRad(Number(tube?.startAngle)||0)).normalize();\`;
+if (!output.includes(poStartDirectionAnchor)) {
+  throw new Error("poBuildTubePath start direction block was not found");
+}
+output = output.replace(
+  poStartDirectionAnchor,
+\`  let dir=null;
+  const sv=tube?.startVector;
+  if(
+    sv&&
+    [sv.x,sv.y,sv.z].every(Number.isFinite)&&
+    Math.hypot(Number(sv.x),Number(sv.y),Number(sv.z))>1e-12
+  ){
+    dir=new THREE.Vector3(Number(sv.x),Number(sv.y),Number(sv.z)).normalize();
+  }else{
+    dir=poAxisVector(tube?.startAxis);
+    if(!dir)return unresolved('start axis is unsupported',{tool});
+    const startPlane=tube?.startPlane;
+    const startNormal=poPlaneNormal(startPlane);
+    if(!startNormal)return unresolved('start plane is unsupported',{tool});
+    dir.applyAxisAngle(startNormal,THREE.MathUtils.degToRad(Number(tube?.startAngle)||0)).normalize();
+  }\`
+);
+
 const bodyProfileCompatAnchor =
   "const oldNormalize=window.normalizeProjectCoordinateState;";
 if (!output.includes(bodyProfileCompatAnchor)) {
