@@ -267,8 +267,12 @@ export function deriveTubeMeshCenterline({
   radius_tolerance_mm = 0.02,
   max_ring_radius_stddev_mm = 0.01,
   max_ring_plane_error_mm = 0.01,
-  surface_tangent_tolerance_deg = 0.1
+  surface_tangent_tolerance_deg = 0.1,
+  dimension_validation = "metadata"
 }) {
+  if(!["metadata","geometry"].includes(dimension_validation)){
+    throw new RangeError("dimension_validation must be metadata or geometry");
+  }
   const {points,triangles}=normalizeMesh(vertices,faces);
   const components=meshComponents(points.length,triangles);
   const sideCandidates=components
@@ -348,11 +352,13 @@ export function deriveTubeMeshCenterline({
       if(!Number.isFinite(scale) || scale<=0){
         pairBlockers.push("unit scale cannot be resolved");
       }
-      if(outerError>radius_tolerance_mm) {
-        pairBlockers.push(`outer radius mismatch ${outerError} mm exceeds tolerance`);
-      }
-      if(innerError>radius_tolerance_mm) {
-        pairBlockers.push(`inner radius mismatch ${innerError} mm exceeds tolerance`);
+      if(dimension_validation==="metadata"){
+        if(outerError>radius_tolerance_mm) {
+          pairBlockers.push(`outer radius mismatch ${outerError} mm exceeds tolerance`);
+        }
+        if(innerError>radius_tolerance_mm) {
+          pairBlockers.push(`inner radius mismatch ${innerError} mm exceeds tolerance`);
+        }
       }
       if(centerMismatchMm>center_match_tolerance_mm) {
         pairBlockers.push(`side-surface center mismatch ${centerMismatchMm} mm exceeds tolerance`);
@@ -384,6 +390,7 @@ export function deriveTubeMeshCenterline({
         maxRadiusStddevMm,
         maxRingPlaneErrorMm,
         tangentMismatchDeg,
+        dimension_validation,
         outerNormals,
         innerNormals
       }));
@@ -454,6 +461,8 @@ export function deriveTubeMeshCenterline({
     outerNormals,
     innerNormals
   }=selected;
+  const derivedOuterDiameterMm=observedOuterRadiusMm*2;
+  const derivedWallThicknessMm=observedOuterRadiusMm-observedInnerRadiusMm;
 
   const centerlineMm=Object.freeze(
     aligned.centers.map((point)=>Object.freeze(point.map((value)=>value*scale)))
@@ -488,6 +497,14 @@ export function deriveTubeMeshCenterline({
     }))),
     observed_outer_radius_mm:observedOuterRadiusMm,
     observed_inner_radius_mm:observedInnerRadiusMm,
+    derived_outer_diameter_mm:derivedOuterDiameterMm,
+    derived_wall_thickness_mm:derivedWallThicknessMm,
+    metadata_outer_diameter_mm:outerDiameter,
+    metadata_wall_thickness_mm:wall,
+    dimension_validation,
+    metadata_dimension_match:
+      Math.abs(derivedOuterDiameterMm-outerDiameter)<=radius_tolerance_mm*2 &&
+      Math.abs(derivedWallThicknessMm-wall)<=radius_tolerance_mm,
     center_mismatch_mm:centerMismatchMm,
     max_ring_radius_stddev_mm:maxRadiusStddevMm,
     max_ring_plane_error_mm:maxRingPlaneErrorMm,
