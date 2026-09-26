@@ -133,7 +133,7 @@ test("DWFx current-project merge rejects non-editable imported evidence",()=>{
 });
 
 
-test("A25: current-project merge carries readonly reference scene with source tree and display runtime",()=>{
+test("A25: current-project merge carries readonly reference scene source tree without heavy runtime payload",()=>{
   const referenceScene={
     id:"dwfx-reference:sample.dwfx",
     runtime_scene_id:"dwfx-reference:sample.dwfx",
@@ -160,18 +160,6 @@ test("A25: current-project merge carries readonly reference scene with source tr
         children:[]
       }]
     }],
-    display_runtime:{
-      scene_id:"dwfx-reference:sample.dwfx",
-      readonly:true,
-      scale_mm_per_source_unit:10,
-      assets:[{
-        id:"?Include Library/42",
-        status:"exact",
-        kind:"line_segments",
-        meshes:[],
-        line_segments:{positions:[0,0,0,1,0,0],color_rgb:[120,130,140]}
-      }]
-    }
   };
 
   const result=mergeDwfxTubesIntoCurrentProject({
@@ -197,9 +185,6 @@ test("A25: current-project merge carries readonly reference scene with source tr
   assert.equal(result.project.referenceScenes.length,1);
   assert.equal(result.project.referenceScenes[0].readonly,true);
   assert.equal(result.project.referenceScenes[0].tree[0].children[0].label,"Bracket");
-  assert.equal(
-    result.project.referenceScenes[0].display_runtime.assets[0].id,
-    "?Include Library/42"
-  );
+  assert.equal(result.project.referenceScenes[0].display_runtime,undefined);
   assert.equal(result.production_ready,false);
 });
