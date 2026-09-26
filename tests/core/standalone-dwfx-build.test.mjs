@@ -224,3 +224,21 @@ test("A30: 3D error overlay is collapsible and keeps a compact issue summary",()
   assert.match(html,/localStorage\.setItem\(BOUNDS_WARNING_COLLAPSE_KEY/);
   assert.match(html,/boundsCollapseBtn'\)\?\.addEventListener/);
 });
+
+
+test("A31: standalone rounds recognized DWFx OD to active pipe table without auto-tooling",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/normalizeImportedProjectDiameters:async/);
+  assert.match(html,/diameter_catalog:/);
+  assert.match(html,/diameter_rounding_tolerance_mm:0\.35/);
+  assert.match(html,/recommended_tolerance_mm:0\.35/);
+  assert.match(html,/diameter_normalized_count/);
+  assert.match(html,/diameter_large_deviation_count/);
+  assert.match(html,/const importBlocked=t\?\.importValidation\?\.productionBlocked===true/);
+  assert.match(html,/if\(!t\.toolingId&&!importBlocked\)/);
+  assert.match(html,/if\(!t\.toolingId&&importBlocked\)/);
+});
