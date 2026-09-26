@@ -131,3 +131,75 @@ test("DWFx current-project merge rejects non-editable imported evidence",()=>{
     /editable rows/
   );
 });
+
+
+test("A25: current-project merge carries readonly reference scene with source tree and display runtime",()=>{
+  const referenceScene={
+    id:"dwfx-reference:sample.dwfx",
+    runtime_scene_id:"dwfx-reference:sample.dwfx",
+    source_file:"sample.dwfx",
+    readonly:true,
+    visible:true,
+    tree:[{
+      id:"root",
+      label:"Assembly",
+      readonly:true,
+      role:"group",
+      geometry_instances:[],
+      children:[{
+        id:"part",
+        label:"Bracket",
+        readonly:true,
+        role:"reference_object",
+        geometry_status:"exact",
+        geometry_instances:[{
+          asset_id:"?Include Library/42",
+          status:"exact",
+          placement_matrix:[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]
+        }],
+        children:[]
+      }]
+    }],
+    display_runtime:{
+      scene_id:"dwfx-reference:sample.dwfx",
+      readonly:true,
+      scale_mm_per_source_unit:10,
+      assets:[{
+        id:"?Include Library/42",
+        status:"exact",
+        kind:"line_segments",
+        meshes:[],
+        line_segments:{positions:[0,0,0,1,0,0],color_rgb:[120,130,140]}
+      }]
+    }
+  };
+
+  const result=mergeDwfxTubesIntoCurrentProject({
+    project:{
+      id:"p",
+      name:"Current",
+      tubes:[{id:"existing",name:"Existing",rows:[{type:"LINE",L:10}]}],
+      referenceScenes:[]
+    },
+    imported_projects:[{
+      id:"imp",
+      tubes:[tube("10102202","tube-import")],
+      referenceScenes:[referenceScene]
+    }],
+    conflict:"copy",
+    make_id:()=> "unused",
+    source_file:"sample.dwfx"
+  });
+
+  assert.equal(result.status,"merged");
+  assert.equal(result.imported_count,1);
+  assert.equal(result.imported_reference_scene_count,1);
+  assert.equal(result.project.referenceScenes.length,1);
+  assert.equal(result.project.referenceScenes[0].readonly,true);
+  assert.equal(result.project.referenceScenes[0].tree[0].children[0].label,"Bracket");
+  assert.equal(
+    result.project.referenceScenes[0].display_runtime.assets[0].id,
+    "?Include Library/42"
+  );
+  assert.equal(result.production_ready,false);
+});
