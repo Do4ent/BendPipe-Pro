@@ -106,7 +106,17 @@ const bundledDwfxCurrentProjectUi =
 if (!output.includes("</body>")) {
   throw new Error("Standalone source HTML is missing </body>");
 }
-output = output.replace("</body>", bundledDwfx + "\n" + bundledDwfxCurrentProjectUi + "\n</body>");
+const finalBodyCloseIndex = output.lastIndexOf("</body>");
+if (finalBodyCloseIndex < 0) {
+  throw new Error("Standalone source HTML is missing the final </body>");
+}
+output =
+  output.slice(0, finalBodyCloseIndex) +
+  bundledDwfx +
+  "\n" +
+  bundledDwfxCurrentProjectUi +
+  "\n" +
+  output.slice(finalBodyCloseIndex);
 
 const oldPoLoadFile =
   "async function poLoadFile(file){if(!file)return;PO.source='device';poUpdateSourceUi();const token=++PO.analysisToken;poSetBusy(true,\`Чтение \${file.name}…\`);try{const raw=await file.text();if(token!==PO.analysisToken)return;await poLoadRawText(raw,{name:file.name,size:file.size,modified:file.lastModified||Date.now(),source:'device'});}catch(e){poSetBusy(false,'Не удалось прочитать файл');ptToast('Не удалось прочитать файл');}}";
@@ -252,7 +262,7 @@ process.stdout.write(
       bytes,
       offlineCoreReady: true,
       bundledDwfxImporter: true,
-      currentProjectDwfxImport: true,
+      currentProjectDwfxImport: true,\n      injectedAtFinalBodyClose: true,
       optionalExternalModules: ["tesseract"]
     },
     null,
