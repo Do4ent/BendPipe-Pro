@@ -61,6 +61,61 @@ export function canonicalToLegacyRows(
     plane_normal_tolerance_deg=0.05
   }={}
 ){
+  const sourcePrimitives=canonicalGeometry?.primitives;
+  if(
+    Array.isArray(sourcePrimitives) &&
+    sourcePrimitives.length===1 &&
+    sourcePrimitives[0]?.type==="LINE"
+  ){
+    const length=finite(
+      wrappedValue(sourcePrimitives[0].length,"LINE 0 length"),
+      "LINE 0 length"
+    );
+    return Object.freeze({
+      status:"legacy_rows_candidate",
+      editable_ready:true,
+      canonical_ready:true,
+      production_ready:false,
+      startAxis:"X",
+      startPlane:null,
+      startAngle:0,
+      origin:Object.freeze({x:0,y:0,z:0}),
+      coordinate_mapping:Object.freeze({
+        status:"straight_axis_only",
+        canonical_ready:true,
+        production_ready:false,
+        legacy_start_axis:"X",
+        legacy_first_bend_plane:null,
+        bend_plane_resolved:false,
+        rigid_rebase:true,
+        reflection_applied:false,
+        scale_applied:false,
+        reason:"Straight-only tube has no physical bend plane; editable LINE mapping uses only its intrinsic length and leaves bend plane unresolved."
+      }),
+      rows:Object.freeze([
+        Object.freeze({
+          type:"LINE",
+          L:length,
+          LFormula:String(length),
+          elementId:sourcePrimitives[0].element_id,
+          canonicalElementId:sourcePrimitives[0].element_id,
+          geometrySource:"canonical_dwfx"
+        })
+      ]),
+      toolingUnresolved:true,
+      toolingId:null,
+      import_validation:Object.freeze({
+        productionBlocked:true,
+        coordinateMappingResolved:true,
+        canonicalGeometryPreserved:true,
+        legacyAxisPlaneDefaultsApplied:false,
+        toolingResolved:false,
+        bendPlaneResolved:false
+      }),
+      blocker:"Straight-only geometry is editable without inventing a bend plane; production release remains downstream."
+    });
+  }
+
   const rebased=
     canonicalGeometry?.coordinate_frame?.id==="tube-local"
       ? Object.freeze({
