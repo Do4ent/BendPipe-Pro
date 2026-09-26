@@ -2,6 +2,7 @@ import { buildDwfxAssemblyImportPlan } from "./assembly-import-plan.mjs";
 import { hydrateDwfxAssemblyVariationSegments } from "./assembly-variation-hydration.mjs";
 import { prepareDwfxAssemblyImport } from "./assembly-import-pipeline.mjs";
 import { buildLegacyProjectPackageFromAssembly } from "./legacy-project-package.mjs";
+import { spatiallyPlaceDwfxAssembly } from "./editable-spatial-placement.mjs";
 
 /**
  * Compose the trusted DWFx project import path:
@@ -24,12 +25,14 @@ export function prepareTrustedDwfxProjectImport({
   buildPlan=buildDwfxAssemblyImportPlan,
   hydrateVariations=hydrateDwfxAssemblyVariationSegments,
   prepareAssembly=prepareDwfxAssemblyImport,
+  placeAssembly=spatiallyPlaceDwfxAssembly,
   buildProjectPackage=buildLegacyProjectPackageFromAssembly
 }){
   for(const [label,fn] of [
     ["buildPlan",buildPlan],
     ["hydrateVariations",hydrateVariations],
     ["prepareAssembly",prepareAssembly],
+    ["placeAssembly",placeAssembly],
     ["buildProjectPackage",buildProjectPackage]
   ]){
     if(typeof fn!=="function") throw new TypeError(label+" must be a function");
@@ -100,8 +103,38 @@ export function prepareTrustedDwfxProjectImport({
     });
   }
 
+  let placedAssembly=assembly;
+  let spatialPlacement=null;
+  if(reference_scene){
+    spatialPlacement=placeAssembly({
+      assembly,
+      reference_scene
+    });
+    if(
+      !spatialPlacement||
+      spatialPlacement.status!=="placed_assembly"||
+      !spatialPlacement.assembly
+    ){
+      return Object.freeze({
+        status:"blocked",
+        stage:"spatial_placement",
+        editable_ready:false,
+        production_ready:false,
+        plan,
+        hydration,
+        assembly,
+        spatial_placement:spatialPlacement??null,
+        project_package:null,
+        blocker:
+          spatialPlacement?.blocker??
+          "Exact DWFx spatial placement could not be preserved for editable tubes."
+      });
+    }
+    placedAssembly=spatialPlacement.assembly;
+  }
+
   const projectPackage=buildProjectPackage({
-    assembly,
+    assembly:placedAssembly,
     project_id,
     project_name,
     bbox,
@@ -115,7 +148,8 @@ export function prepareTrustedDwfxProjectImport({
       production_ready:false,
       plan,
       hydration,
-      assembly,
+      assembly:placedAssembly,
+      spatial_placement:spatialPlacement,
       project_package:projectPackage??null,
       blocker:
         projectPackage?.blocker??
@@ -130,7 +164,8 @@ export function prepareTrustedDwfxProjectImport({
     production_ready:false,
     plan,
     hydration,
-    assembly,
+    assembly:placedAssembly,
+    spatial_placement:spatialPlacement,
     project_package:projectPackage,
     package:projectPackage.package,
     blocker:
