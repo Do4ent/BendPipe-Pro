@@ -220,3 +220,34 @@ test("A31: current-project merge rounds imported OD to active table without sele
   assert.equal(imported.importEvidence.diameterNormalization.source_outer_diameter_mm,9.700000225);
   assert.equal(imported.importValidation.productionBlocked,true);
 });
+
+
+test("A35: merge restores exact imported origin from spatial evidence even if source origin is stale zero",()=>{
+  const source=tube("10102217","incoming");
+  source.origin={x:0,y:0,z:0};
+  source.startVector={x:-1,y:0,z:0};
+  source.importEvidence.spatialPlacement={
+    status:"exact",
+    origin_mm:[353.4770011901855,100.55765368504771,657.849999997579],
+    start_vector:[-1,0,0],
+    placement_source:"dwfx_reference_scene_exact_instance",
+    machine_compensation_applied:false
+  };
+
+  const result=mergeDwfxTubesIntoCurrentProject({
+    project:{id:"p",tubes:[]},
+    imported_projects:[{tubes:[source]}],
+    conflict:"copy",
+    make_id:()=> "unused"
+  });
+
+  const imported=result.project.tubes[0];
+  assert.deepEqual(imported.origin,{
+    x:353.4770011901855,
+    y:100.55765368504771,
+    z:657.849999997579
+  });
+  assert.equal(imported.importEvidence.spatialPlacement.editable_origin_seeded,true);
+  assert.equal(imported.importEvidence.spatialPlacement.user_origin_override,false);
+  assert.equal(imported.importValidation.productionBlocked,true);
+});
