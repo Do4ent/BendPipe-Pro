@@ -1,6 +1,7 @@
 import { intakeDwfxModelResources } from "./raw-model-intake.mjs";
 import { intakeDwfxLinkageXml } from "./raw-linkage-intake.mjs";
 import { extractBentTubeMetadataFromContentXml } from "./raw-metadata-intake.mjs";
+import { extractCopperTubeMetadataFromContentXml } from "./copper-tube-metadata.mjs";
 import { resolvePartGraphicsLinks } from "./content-linkage.mjs";
 
 /**
@@ -9,7 +10,7 @@ import { resolvePartGraphicsLinks } from "./content-linkage.mjs";
  * Resolves:
  * - exact descriptor + unique W3D resource;
  * - exact Content/ReferenceNode/Instance XML resources;
- * - exact bent-tube metadata from Content Entity properties;
+ * - exact bent-tube metadata, or strict copper-tube fallback metadata, from Content Entity properties;
  * - exact part_number -> graphics node / geometric variation linkage.
  *
  * It intentionally stops before HSF Include Library linkage and geometry decode.
@@ -55,10 +56,17 @@ export async function intakeRawDwfxEvidence(
     });
   }
 
-  const metadata=extractBentTubeMetadataFromContentXml(
+  const bentMetadata=extractBentTubeMetadataFromContentXml(
     linkage.resources.content.xml,
     {source_file:sourceFile}
   );
+  const metadata=
+    bentMetadata.status==="exact"&&bentMetadata.tubes.length>0
+      ? bentMetadata
+      : extractCopperTubeMetadataFromContentXml(
+          linkage.resources.content.xml,
+          {source_file:sourceFile}
+        );
   if(metadata.status!=="exact"||metadata.tubes.length===0){
     return Object.freeze({
       status:"blocked",
@@ -70,7 +78,7 @@ export async function intakeRawDwfxEvidence(
       graphics_links:null,
       blocker:
         metadata.issues?.join("; ")||
-        "No exact bent-tube metadata was extracted."
+        "No exact bent-tube or copper-tube metadata was extracted."
     });
   }
 
