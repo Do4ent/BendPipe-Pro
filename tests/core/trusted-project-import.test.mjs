@@ -22,6 +22,13 @@ function baseDeps(overrides={}){
       production_ready:false,
       tubes:[{id:"dwfx:A",partNumber:"A"}]
     }),
+    roundAssembly:({assembly})=>({
+      status:"rounded_assembly",
+      assembly,
+      tube_count:assembly.tubes.length,
+      changed_count:0,
+      production_ready:false
+    }),
     buildProjectPackage:()=>({
       status:"project_package_candidate",
       production_ready:false,
@@ -131,4 +138,80 @@ test("A20: successful orchestrator still never claims production readiness",()=>
   const result=prepareTrustedDwfxProjectImport(args());
   assert.equal(result.production_ready,false);
   assert.match(result.blocker,/production release remains blocked/i);
+});
+
+
+test("A36: trusted project import rounds editable linear dimensions before packaging",()=>{
+  let seenIncrement=null;
+  let packagedAssembly=null;
+  const sourceAssembly={
+    status:"assembly_candidate",
+    editable_ready:true,
+    production_ready:false,
+    tubes:[{
+      id:"dwfx:A",
+      partNumber:"A",
+      origin:{x:85.627,y:214.135,z:234.327},
+      rows:[{type:"LINE",L:286.46}]
+    }]
+  };
+  const roundedAssembly={
+    ...sourceAssembly,
+    tubes:[{
+      ...sourceAssembly.tubes[0],
+      origin:{x:86,y:214,z:234},
+      rows:[{type:"LINE",L:286}]
+    }]
+  };
+
+  const result=prepareTrustedDwfxProjectImport(args({
+    prepareAssembly:()=>sourceAssembly,
+    roundAssembly:({assembly,increment_mm})=>{
+      assert.equal(assembly,sourceAssembly);
+      seenIncrement=increment_mm;
+      return {
+        status:"rounded_assembly",
+        assembly:roundedAssembly,
+        tube_count:1,
+        changed_count:4,
+        production_ready:false
+      };
+    },
+    buildProjectPackage:({assembly})=>{
+      packagedAssembly=assembly;
+      return {
+        status:"project_package_candidate",
+        production_ready:false,
+        package:{
+          type:"TubeBenderProject",
+          schemaVersion:"2.0",
+          project:{id:"p",name:"P",tubes:assembly.tubes}
+        }
+      };
+    }
+  }));
+
+  assert.equal(result.status,"project_import_candidate");
+  assert.equal(seenIncrement,1);
+  assert.equal(packagedAssembly,roundedAssembly);
+  assert.equal(result.assembly.tubes[0].origin.x,86);
+  assert.equal(result.assembly.tubes[0].rows[0].L,286);
+  assert.equal(result.linear_rounding.changed_count,4);
+});
+
+test("A36: linear-rounding blocker stops project packaging",()=>{
+  let packageCalled=false;
+  const result=prepareTrustedDwfxProjectImport(args({
+    roundAssembly:()=>({
+      status:"blocked",
+      assembly:null,
+      blocker:"rounding failed"
+    }),
+    buildProjectPackage:()=>{packageCalled=true;return {};}
+  }));
+
+  assert.equal(result.status,"blocked");
+  assert.equal(result.stage,"linear_rounding");
+  assert.match(result.blocker,/rounding failed/);
+  assert.equal(packageCalled,false);
 });
