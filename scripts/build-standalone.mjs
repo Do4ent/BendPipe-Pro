@@ -12,6 +12,7 @@ const sourcePath = path.join(
 const threePath = path.join(root, "vendor", "three", "r160", "three.min.js");
 const dwfxEntryPath = path.join(root, "src", "import", "dwfx", "browser-file-import.mjs");
 const dwfxCurrentProjectUiPath = path.join(root, "src", "import", "dwfx", "current-project-ui.js");
+const dwfxReferenceSceneUiPath = path.join(root, "src", "import", "dwfx", "reference-scene-ui.js");
 const distDir = path.join(root, "dist");
 const outputPath = path.join(distDir, "TubeBender_CAD_VC207R7_M1_Standalone.html");
 
@@ -131,6 +132,49 @@ output = output.replace(
   bodyProfileCompat + "\n" + bodyProfileCompatAnchor
 );
 
+const referenceDisposeAnchor =
+  "  root.traverse?.(obj=>{\n    if (obj.geometry?.dispose) geometries.add(obj.geometry);";
+if (!output.includes(referenceDisposeAnchor)) {
+  throw new Error("disposeObject3D reference-geometry anchor was not found");
+}
+output = output.replace(
+  referenceDisposeAnchor,
+  "  root.traverse?.(obj=>{\n    if(obj.userData?.referenceShared===true)return;\n    if (obj.geometry?.dispose) geometries.add(obj.geometry);"
+);
+
+const referenceRenderAnchor =
+  "  addOtherVisibleProjectTubes(pipeGroup);";
+if (!output.includes(referenceRenderAnchor)) {
+  throw new Error("update3D reference-geometry anchor was not found");
+}
+output = output.replace(
+  referenceRenderAnchor,
+  referenceRenderAnchor +
+  `\n  try{\n    window.TubeBenderReferenceSceneUi?.render3D?.({\n      parent:pipeGroup,\n      project:activeProject(),\n      THREE:window.THREE,\n      geomScale:GEOM_SCALE\n    });\n  }catch(error){\n    console.warn("DWFx reference geometry render:",error);\n  }`
+);
+
+const referenceTreeHtmlAnchor =
+  "  host.innerHTML=items.join('');";
+if (!output.includes(referenceTreeHtmlAnchor)) {
+  throw new Error("Project Map reference-tree HTML anchor was not found");
+}
+output = output.replace(
+  referenceTreeHtmlAnchor,
+  `  try{\n    const referenceItems=window.TubeBenderReferenceSceneUi?.treeItems?.({\n      project:p,\n      query:q,\n      escape:esc\n    })??[];\n    items.push(...referenceItems);\n  }catch(error){\n    console.warn("DWFx reference tree:",error);\n  }\n` +
+  referenceTreeHtmlAnchor
+);
+
+const referenceTreeBindAnchor =
+  "  host.querySelector('#tbCurrentBodyStar')?.addEventListener('click',e=>{e.stopPropagation();makeCurrentBodyPreferred();});";
+if (!output.includes(referenceTreeBindAnchor)) {
+  throw new Error("Project Map reference-tree binding anchor was not found");
+}
+output = output.replace(
+  referenceTreeBindAnchor,
+  referenceTreeBindAnchor +
+  `\n  try{\n    window.TubeBenderReferenceSceneUi?.bindTree?.(host,p,{switchTube,save,renderAll,refreshProjectTree});\n  }catch(error){\n    console.warn("DWFx reference tree binding:",error);\n  }`
+);
+
 const dwfxEntryUrl = moduleDataUrl(dwfxEntryPath);
 const bundledDwfx =
   `<script type="application/octet-stream" id="tbDwfxLazyModuleUrl" data-tubebender-bundled="dwfx-import">\n${dwfxEntryUrl}\n</script>
@@ -160,6 +204,10 @@ const dwfxCurrentProjectUi = fs.readFileSync(dwfxCurrentProjectUiPath, "utf8").r
 const bundledDwfxCurrentProjectUi =
   `<script data-tubebender-bundled="dwfx-current-project-ui">\n${dwfxCurrentProjectUi}\n</script>`;
 
+const dwfxReferenceSceneUi = fs.readFileSync(dwfxReferenceSceneUiPath, "utf8").replace(/<\/script/gi, "<\\/script");
+const bundledDwfxReferenceSceneUi =
+  `<script data-tubebender-bundled="dwfx-reference-scene-ui">\n${dwfxReferenceSceneUi}\n</script>`;
+
 if (!output.includes("</body>")) {
   throw new Error("Standalone source HTML is missing </body>");
 }
@@ -170,6 +218,8 @@ if (finalBodyCloseIndex < 0) {
 output =
   output.slice(0, finalBodyCloseIndex) +
   bundledDwfx +
+  "\n" +
+  bundledDwfxReferenceSceneUi +
   "\n" +
   bundledDwfxCurrentProjectUi +
   "\n" +
@@ -196,6 +246,11 @@ const newPoLoadFile = `async function poLoadFile(file){
       }
       let result=await bridge.importSelectedDwfxFile(file);
       if(token!==PO.analysisToken)return;
+      if(result?.reference_scene_runtime){
+        window.TubeBenderReferenceSceneUi?.registerRuntime?.(
+          result.reference_scene_runtime
+        );
+      }
       if(result?.status==='requirements_pending'&&result?.requirement?.kind==='bbox'){
         const explicitBBox={};
         let bboxCancelled=false;
@@ -213,6 +268,11 @@ const newPoLoadFile = `async function poLoadFile(file){
         if(!bboxCancelled){
           result=await bridge.importSelectedDwfxFile(file,{bbox:explicitBBox});
           if(token!==PO.analysisToken)return;
+          if(result?.reference_scene_runtime){
+            window.TubeBenderReferenceSceneUi?.registerRuntime?.(
+              result.reference_scene_runtime
+            );
+          }
         }
       }
       if(result?.status!=='dwfx_project_candidate'||!result.package){
@@ -297,6 +357,12 @@ if (!output.includes('data-tubebender-bundled="dwfx-import"')) {
 }
 if (!output.includes('data-tubebender-bundled="dwfx-current-project-ui"')) {
   throw new Error("Standalone build is missing the current-project DWFx UI marker");
+}
+if (!output.includes('data-tubebender-bundled="dwfx-reference-scene-ui"')) {
+  throw new Error("Standalone build is missing the DWFx reference-scene UI marker");
+}
+if (!output.includes("TubeBenderReferenceSceneUi") || !output.includes("referenceShared")) {
+  throw new Error("Standalone build is missing read-only DWFx reference rendering hooks");
 }
 if (!output.includes('data-tubebender-bundled="dwfx-lazy-bootstrap"') || !output.includes("loadDwfxModule")) {
   throw new Error("Standalone build does not expose the lazy DWFx browser controller");
