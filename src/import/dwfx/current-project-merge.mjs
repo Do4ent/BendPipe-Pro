@@ -1,4 +1,5 @@
 import { normalizeImportedTubeDiameterToCatalog } from "./table-diameter-normalization.mjs";
+import { roundEditableTubeLinearDimensions } from "./editable-linear-rounding.mjs";
 
 function clone(value){
   return value==null ? value : JSON.parse(JSON.stringify(value));
@@ -106,7 +107,8 @@ export function mergeDwfxTubesIntoCurrentProject({
   make_id=null,
   source_file=null,
   diameter_catalog=null,
-  diameter_rounding_tolerance_mm=0.35
+  diameter_rounding_tolerance_mm=0.35,
+  linear_rounding_increment_mm=1
 }){
   if(!project||typeof project!=="object"){
     throw new TypeError("current project is required");
@@ -225,6 +227,10 @@ export function mergeDwfxTubesIntoCurrentProject({
           {recommended_tolerance_mm:diameter_rounding_tolerance_mm}
         ).tube;
       }
+      materialized=roundEditableTubeLinearDimensions(
+        materialized,
+        {increment_mm:linear_rounding_increment_mm}
+      ).tube;
 
       if(existingIndexes.length&&conflict==="copy"){
         usedNames.delete(nameKey(materialized.name));
