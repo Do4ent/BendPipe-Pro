@@ -204,3 +204,23 @@ test("A29: project-open inspection errors panel is collapsible and persistent",(
   assert.match(html,/Ошибок:/);
   assert.match(html,/Предупреждений:/);
 });
+
+
+test("A30: 3D error overlay is collapsible and keeps a compact issue summary",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/id="boundsCollapseBtn"/);
+  assert.match(html,/id="boundsWarningSummary"/);
+  assert.match(html,/bounds-warning\.collapsed/);
+  assert.match(html,/BOUNDS_WARNING_COLLAPSE_KEY/);
+  assert.match(html,/setBoundsWarningCollapsed/);
+  assert.match(html,/updateBoundsWarningCollapseUi/);
+  assert.match(html,/Нарушений: /);
+  assert.match(html,/Свернуть окно ошибок/);
+  assert.match(html,/Развернуть окно ошибок/);
+  assert.match(html,/localStorage\.setItem\(BOUNDS_WARNING_COLLAPSE_KEY/);
+  assert.match(html,/boundsCollapseBtn'\)\?\.addEventListener/);
+});
