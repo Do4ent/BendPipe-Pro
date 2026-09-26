@@ -136,10 +136,10 @@ export function prepareTrustedDwfxProjectImport({
     placedAssembly=spatialPlacement.assembly;
   }
 
-  const linearRounding=roundAssembly({
-    assembly:placedAssembly,
-    increment_mm:1
-  });
+  const linearRounding=roundAssembly(
+    placedAssembly,
+    {increment_mm:1}
+  );
   if(
     !linearRounding||
     linearRounding.status!=="rounded_assembly"||
