@@ -630,7 +630,11 @@ if (!output.includes(importedOriginRepairAnchor)) {
 const importedOriginHelpers = `
 function importedSpatialOriginFromEvidence(tube){
   const spatial=tube?.importEvidence?.spatialPlacement;
-  const raw=spatial?.origin_mm;
+  const normalized=tube?.importEvidence?.linearDimensionNormalization;
+  const raw=
+    spatial?.editable_origin_mm ??
+    normalized?.editable_origin_mm ??
+    spatial?.origin_mm;
   if(
     spatial?.status!=='exact'||
     !Array.isArray(raw)||
