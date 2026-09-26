@@ -304,6 +304,7 @@
         '<div class="tb-tree-node tb-ref-bulk-toolbar" data-ref-bulk-toolbar="1" '+
         'style="gap:6px;align-items:center;flex-wrap:wrap;padding:6px 8px">'+
         '<span class="tb-tree-label" style="min-width:86px">Выбрано: '+bulkCount+'</span>'+
+        '<small title="Групповой выбор: Ctrl+клик; диапазон: Shift+клик">Ctrl+клик · Shift+клик</small>'+
         '<button data-ref-bulk-action="show" '+(bulkCount?'':'disabled')+' title="Показать выбранные">Показать</button>'+
         '<button data-ref-bulk-action="hide" '+(bulkCount?'':'disabled')+' title="Скрыть выбранные">Скрыть</button>'+
         '<button data-ref-bulk-action="transparent" '+(bulkCount?'':'disabled')+' title="Переключить прозрачность">Прозрачность</button>'+
