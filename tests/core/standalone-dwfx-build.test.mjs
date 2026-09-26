@@ -117,3 +117,21 @@ test("A22: standalone DWFx runtime is injected only at the final document body c
   assert.match(html,/button\.textContent!==nextText/);
   assert.match(html,/records\.every\(\(record\)=>record\.target===button\|\|button\.contains\(record\.target\)\)/);
 });
+
+
+test("A25: standalone bundles readonly DWFx reference scene into 3D and project tree",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/data-tubebender-bundled="dwfx-reference-scene-ui"/);
+  assert.match(html,/TubeBenderReferenceSceneUi\?\.render3D/);
+  assert.match(html,/TubeBenderReferenceSceneUi\?\.treeItems/);
+  assert.match(html,/TubeBenderReferenceSceneUi\?\.bindTree/);
+  assert.match(html,/только чтение/);
+  assert.match(html,/referenceGeometry=true/);
+  assert.match(html,/editable_part_number/);
+  assert.match(html,/hiddenNodeIds/);
+  assert.match(html,/collapsedNodeIds/);
+});
