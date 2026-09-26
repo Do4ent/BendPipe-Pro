@@ -217,31 +217,31 @@ output = output.replace(
   ".bounds-warning-collapse{width:26px!important;height:26px!important;min-width:26px!important;padding:0!important;border:1px solid rgba(255,255,255,.28)!important;border-radius:6px!important;background:#2a3448!important;color:#fff!important;cursor:pointer!important;font:950 15px/1 Segoe UI,Arial,sans-serif!important;flex:0 0 auto}.bounds-warning-collapse:hover{background:#3a4963!important;border-color:#9bb8dc!important}.bounds-warning-summary{display:none;font:900 11px/1.2 Segoe UI,Arial,sans-serif;white-space:nowrap}.bounds-warning.collapsed{width:auto!important;max-width:calc(100% - 24px)!important;min-width:0!important;padding:5px 7px!important;gap:7px!important}.bounds-warning.collapsed .bounds-warning-text,.bounds-warning.collapsed .bounds-warning-actions{display:none!important}.bounds-warning.collapsed .bounds-warning-summary{display:inline!important}.bounds-warning.collapsed .bounds-warning-main{gap:5px!important}.bounds-warning.collapsed .bounds-warning-icon{font-size:15px!important}"
 );
 
-const oldBoundsOverlayHtml = \`<div aria-live="polite" class="bounds-warning hidden" id="boundsWarning" role="alert">
+const oldBoundsOverlayHtml = `<div aria-live="polite" class="bounds-warning hidden" id="boundsWarning" role="alert">
 <div class="bounds-warning-main"><span class="bounds-warning-icon">⚠</span><span class="bounds-warning-text" id="boundsWarningText"></span></div>
 <div class="bounds-warning-actions">
 <button id="boundsFocusBtn" type="button">К первому нарушению</button>
 <button id="boundsEditBtn" type="button">Исправить вручную</button>
 </div>
-</div>\`;
+</div>`;
 if (!output.includes(oldBoundsOverlayHtml)) {
   throw new Error("3D bounds-warning HTML block was not found");
 }
-const newBoundsOverlayHtml = \`<div aria-live="polite" class="bounds-warning hidden" id="boundsWarning" role="alert">
+const newBoundsOverlayHtml = `<div aria-live="polite" class="bounds-warning hidden" id="boundsWarning" role="alert">
 <div class="bounds-warning-main"><span class="bounds-warning-icon">⚠</span><span class="bounds-warning-summary" id="boundsWarningSummary"></span><span class="bounds-warning-text" id="boundsWarningText"></span></div>
 <div class="bounds-warning-actions">
 <button id="boundsFocusBtn" type="button">К первому нарушению</button>
 <button id="boundsEditBtn" type="button">Исправить вручную</button>
 </div>
 <button class="bounds-warning-collapse" id="boundsCollapseBtn" type="button" title="Свернуть окно ошибок" aria-expanded="true">−</button>
-</div>\`;
+</div>`;
 output = output.replace(oldBoundsOverlayHtml,newBoundsOverlayHtml);
 
 const boundsRenderAnchor = "function renderBoundsWarning(){";
 if (!output.includes(boundsRenderAnchor)) {
   throw new Error("renderBoundsWarning anchor was not found");
 }
-const boundsOverlayHelpers = \`
+const boundsOverlayHelpers = `
 const BOUNDS_WARNING_COLLAPSE_KEY='tubebender.boundsWarningCollapsed';
 let boundsWarningCollapsed=(()=>{
   try{return localStorage.getItem(BOUNDS_WARNING_COLLAPSE_KEY)==='1';}
@@ -269,28 +269,37 @@ function updateBoundsWarningCollapseUi(){
     button.setAttribute('aria-expanded',String(!boundsWarningCollapsed));
   }
 }
-\`;
+`;
 output = output.replace(
   boundsRenderAnchor,
-  boundsOverlayHelpers + "\\n" + boundsRenderAnchor
+  boundsOverlayHelpers + "\n" + boundsRenderAnchor
 );
 
-const oldBoundsTextLine =
-  "  text.textContent=messages.join(' ');\\n  box.classList.remove('hidden');\\n  box.dataset.hasCollision=collisions.valid?'false':'true';";
+const oldBoundsTextLine = `  text.textContent=messages.join(' ');
+  box.classList.remove('hidden');
+  box.dataset.hasCollision=collisions.valid?'false':'true';`;
 if (!output.includes(oldBoundsTextLine)) {
   throw new Error("renderBoundsWarning message block was not found");
 }
-const newBoundsTextLine =
-  "  text.textContent=messages.join(' ');\\n  const summary=qs('boundsWarningSummary');\\n  const issueCount=(technological?1:0)+(Number(a.violationCount)||0)+(Number(collisions.count)||0);\\n  if(summary)summary.textContent='Нарушений: '+issueCount;\\n  box.classList.remove('hidden');\\n  box.dataset.hasCollision=collisions.valid?'false':'true';\\n  updateBoundsWarningCollapseUi();";
+const newBoundsTextLine = `  text.textContent=messages.join(' ');
+  const summary=qs('boundsWarningSummary');
+  const issueCount=(technological?1:0)+(Number(a.violationCount)||0)+(Number(collisions.count)||0);
+  if(summary)summary.textContent='Нарушений: '+issueCount;
+  box.classList.remove('hidden');
+  box.dataset.hasCollision=collisions.valid?'false':'true';
+  updateBoundsWarningCollapseUi();`;
 output = output.replace(oldBoundsTextLine,newBoundsTextLine);
 
-const oldBoundsBind =
-  "function bind(){\\n  qs('boundsFocusBtn')?.addEventListener('click',()=>focusBoundsViolation(false));\\n  qs('boundsEditBtn')?.addEventListener('click',()=>focusBoundsViolation(true));";
+const oldBoundsBind = `function bind(){
+  qs('boundsFocusBtn')?.addEventListener('click',()=>focusBoundsViolation(false));
+  qs('boundsEditBtn')?.addEventListener('click',()=>focusBoundsViolation(true));`;
 if (!output.includes(oldBoundsBind)) {
   throw new Error("bounds-warning bind block was not found");
 }
-const newBoundsBind =
-  "function bind(){\\n  qs('boundsFocusBtn')?.addEventListener('click',()=>focusBoundsViolation(false));\\n  qs('boundsEditBtn')?.addEventListener('click',()=>focusBoundsViolation(true));\\n  qs('boundsCollapseBtn')?.addEventListener('click',()=>setBoundsWarningCollapsed(!boundsWarningCollapsed));";
+const newBoundsBind = `function bind(){
+  qs('boundsFocusBtn')?.addEventListener('click',()=>focusBoundsViolation(false));
+  qs('boundsEditBtn')?.addEventListener('click',()=>focusBoundsViolation(true));
+  qs('boundsCollapseBtn')?.addEventListener('click',()=>setBoundsWarningCollapsed(!boundsWarningCollapsed));`;
 output = output.replace(oldBoundsBind,newBoundsBind);
 
 const referenceDisposeAnchor =
