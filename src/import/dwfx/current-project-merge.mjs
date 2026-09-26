@@ -46,6 +46,28 @@ function editableImportedTube(source,{usedIds,usedNames,makeId,sourceFile}){
   tube.name=name;
   usedNames.add(nameKey(name));
 
+  const spatialOrigin=tube?.importEvidence?.spatialPlacement?.origin_mm;
+  if(
+    tube?.importEvidence?.spatialPlacement?.status==="exact" &&
+    Array.isArray(spatialOrigin) &&
+    spatialOrigin.length===3 &&
+    spatialOrigin.every((value)=>Number.isFinite(Number(value)))
+  ){
+    tube.origin={
+      x:Number(spatialOrigin[0]),
+      y:Number(spatialOrigin[1]),
+      z:Number(spatialOrigin[2])
+    };
+    tube.importEvidence={
+      ...(tube.importEvidence??{}),
+      spatialPlacement:{
+        ...(tube.importEvidence?.spatialPlacement??{}),
+        editable_origin_seeded:true,
+        user_origin_override:false
+      }
+    };
+  }
+
   tube.toolingId=null;
   tube.toolingUnresolved=true;
   tube.diameterIndex=null;
