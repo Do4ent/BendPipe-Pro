@@ -297,24 +297,49 @@
   function treeItems({project,query="",escape=escHtml}){
     const rows=[];
     const q=String(query??"").trim().toLowerCase();
+    const scenes=(project?.referenceScenes??[]).filter(Boolean);
+    if(!scenes.length)return rows;
+
     pruneBulkSelection(project);
     const bulkCount=bulkSelected.size;
-    if((project?.referenceScenes??[]).length){
-      rows.push(
-        '<div class="tb-tree-node tb-ref-bulk-toolbar" data-ref-bulk-toolbar="1" '+
-        'style="gap:6px;align-items:center;flex-wrap:wrap;padding:6px 8px">'+
-        '<span class="tb-tree-label" style="min-width:86px">Выбрано: '+bulkCount+'</span>'+
-        '<small title="Групповой выбор: Ctrl+клик; диапазон: Shift+клик">Ctrl+клик · Shift+клик</small>'+
-        '<button data-ref-bulk-action="show" '+(bulkCount?'':'disabled')+' title="Показать выбранные">Показать</button>'+
-        '<button data-ref-bulk-action="hide" '+(bulkCount?'':'disabled')+' title="Скрыть выбранные">Скрыть</button>'+
-        '<button data-ref-bulk-action="transparent" '+(bulkCount?'':'disabled')+' title="Переключить прозрачность">Прозрачность</button>'+
-        '<button data-ref-bulk-action="delete" '+(bulkCount?'':'disabled')+' title="Удалить выбранную reference-геометрию">Удалить</button>'+
-        '<button data-ref-bulk-action="clear" '+(bulkCount?'':'disabled')+' title="Снять выбор">Снять выбор</button>'+
-        '</div>'
-      );
-    }
-    for(const scene of project?.referenceScenes??[]){
-      if(!scene)continue;
+    const rootCollapsed=q?false:project?.referenceGeometryTreeCollapsed===true;
+    const allSelectable=scenes.flatMap((scene)=>collectSelectableNodes(scene.tree??[]));
+    const allSelectedCount=scenes.reduce((sum,scene)=>
+      sum+collectSelectableNodes(scene.tree??[]).filter((node)=>
+        bulkSelected.has(selectionKey(scene.id,node.id))
+      ).length
+    ,0);
+    const rootChecked=allSelectable.length>0&&allSelectedCount===allSelectable.length;
+    const rootIndeterminate=allSelectedCount>0&&!rootChecked;
+
+    rows.push(
+      '<div class="tb-tree-node level1 tb-ref-root" data-ref-root-row="1">'+
+      '<input type="checkbox" data-ref-root-select="1" '+
+      (rootChecked?'checked ':'')+
+      'data-ref-indeterminate="'+(rootIndeterminate?'1':'0')+'" title="Выбрать всю импортированную readonly-геометрию">'+
+      '<button class="tb-tree-icon" data-ref-root-toggle="1" title="Свернуть/развернуть импортированную геометрию">'+
+      (rootCollapsed?'▸':'▾')+
+      '</button>'+
+      '<span class="tb-tree-label">🌐 Импортированная геометрия <small>· файлов: '+scenes.length+'</small></span>'+
+      '</div>'
+    );
+
+    if(rootCollapsed)return rows;
+
+    rows.push(
+      '<div class="tb-tree-node tb-ref-bulk-toolbar" data-ref-bulk-toolbar="1" '+
+      'style="gap:6px;align-items:center;flex-wrap:wrap;padding:6px 8px 6px 34px">'+
+      '<span class="tb-tree-label" style="min-width:86px">Выбрано: '+bulkCount+'</span>'+
+      '<small title="Групповой выбор: Ctrl+клик; диапазон: Shift+клик">Ctrl+клик · Shift+клик</small>'+
+      '<button data-ref-bulk-action="show" '+(bulkCount?'':'disabled')+' title="Показать выбранные">Показать</button>'+
+      '<button data-ref-bulk-action="hide" '+(bulkCount?'':'disabled')+' title="Скрыть выбранные">Скрыть</button>'+
+      '<button data-ref-bulk-action="transparent" '+(bulkCount?'':'disabled')+' title="Переключить прозрачность">Прозрачность</button>'+
+      '<button data-ref-bulk-action="delete" '+(bulkCount?'':'disabled')+' title="Удалить выбранную reference-геометрию">Удалить</button>'+
+      '<button data-ref-bulk-action="clear" '+(bulkCount?'':'disabled')+' title="Снять выбор">Снять выбор</button>'+
+      '</div>'
+    );
+
+    for(const scene of scenes){
       const collapsedScenes=new Set(
         Array.isArray(scene.collapsedNodeIds)
           ? scene.collapsedNodeIds.map(String)
@@ -329,26 +354,33 @@
       const sceneChecked=sceneSelectable.length>0&&sceneSelectedCount===sceneSelectable.length;
       const sceneIndeterminate=sceneSelectedCount>0&&!sceneChecked;
       const sceneLabel=String(scene.name??scene.source_file??"DWFx");
-      if(q&&!sceneLabel.toLowerCase().includes(q)&&!(scene.tree??[]).some((node)=>matchNode(node,q))){
-        continue;
-      }
+      const sceneMatches=
+        !q||
+        sceneLabel.toLowerCase().includes(q)||
+        (scene.tree??[]).some((node)=>matchNode(node,q));
+      if(!sceneMatches)continue;
 
+      const sceneCollapsed=q?false:scene.treeCollapsed===true;
       rows.push(
-        '<div class="tb-tree-node level1 tb-ref-scene" data-ref-scene-row="'+escape(scene.id)+'">'+
+        '<div class="tb-tree-node tb-ref-scene" style="padding-left:34px" data-ref-scene-row="'+escape(scene.id)+'">'+
         '<input type="checkbox" data-ref-scene-select="'+escape(scene.id)+'" '+
         (sceneChecked?'checked ':'')+
-        'data-ref-indeterminate="'+(sceneIndeterminate?'1':'0')+'" title="Выбрать все readonly-компоненты сцены">'+
-        '<span class="tb-tree-icon">▾</span>'+
+        'data-ref-indeterminate="'+(sceneIndeterminate?'1':'0')+'" title="Выбрать все readonly-компоненты файла">'+
+        '<button class="tb-tree-icon" data-ref-scene-toggle="'+escape(scene.id)+'" title="Свернуть/развернуть файл">'+
+        (sceneCollapsed?'▸':'▾')+
+        '</button>'+
         '<span class="tb-tree-label">📦 '+escape(sceneLabel)+' <small>· DWFx · только чтение</small></span>'+
         '<button class="tb-tree-eye" data-ref-scene-eye="'+escape(scene.id)+'" title="Видимость импортированной геометрии">'+
         (scene.visible===false?'○':'◉')+
         '</button></div>'
       );
 
+      if(sceneCollapsed)continue;
+
       const append=(node,depth)=>{
         if(q&&!matchNode(node,q))return;
         const hasChildren=(node.children??[]).length>0;
-        const collapsed=collapsedScenes.has(String(node.id));
+        const collapsed=q?false:collapsedScenes.has(String(node.id));
         const isHidden=hidden.has(String(node.id));
         const isTransparent=transparent.has(String(node.id));
         const status=String(node.geometry_status??"");
@@ -364,7 +396,7 @@
               : status==="metadata_only"
                 ? '◇'
                 : '◆';
-        const pad=Math.min(220,16+depth*18);
+        const pad=Math.min(240,52+depth*18);
         const cls=
           selected?.sceneId===String(scene.id)&&
           selected?.nodeId===String(node.id)
@@ -396,7 +428,7 @@
           for(const child of node.children??[])append(child,depth+1);
         }
       };
-      for(const root of scene.tree??[])append(root,2);
+      for(const root of scene.tree??[])append(root,0);
     }
     return rows;
   }
@@ -631,6 +663,37 @@
 
   function bindTree(host,project,{switchTube,save,renderAll,refreshProjectTree,modelCommand}={}){
     if(!host||!project)return;
+
+    host.querySelector("[data-ref-root-toggle]")?.addEventListener("click",(event)=>{
+      event.stopPropagation();
+      project.referenceGeometryTreeCollapsed=project.referenceGeometryTreeCollapsed!==true;
+      save?.();
+      refreshProjectTree?.();
+    });
+
+    const rootSelect=host.querySelector("[data-ref-root-select]");
+    if(rootSelect){
+      rootSelect.indeterminate=rootSelect.dataset.refIndeterminate==="1";
+      rootSelect.addEventListener("change",(event)=>{
+        event.stopPropagation();
+        for(const scene of project.referenceScenes??[])toggleSceneSelection(scene,rootSelect.checked);
+        const firstScene=(project.referenceScenes??[])[0]??null;
+        const firstNode=firstScene?collectSelectableNodes(firstScene.tree??[])[0]??null:null;
+        rangeAnchorKey=firstScene&&firstNode?selectionKey(firstScene.id,firstNode.id):null;
+        refreshProjectTree?.();
+      });
+    }
+
+    host.querySelectorAll("[data-ref-scene-toggle]").forEach((button)=>{
+      button.addEventListener("click",(event)=>{
+        event.stopPropagation();
+        const scene=findScene(project,button.dataset.refSceneToggle);
+        if(!scene)return;
+        scene.treeCollapsed=scene.treeCollapsed!==true;
+        save?.();
+        refreshProjectTree?.();
+      });
+    });
 
     host.querySelectorAll("[data-ref-scene-select]").forEach((input)=>{
       input.indeterminate=input.dataset.refIndeterminate==="1";
