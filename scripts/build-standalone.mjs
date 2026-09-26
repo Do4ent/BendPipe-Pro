@@ -131,12 +131,30 @@ output = output.replace(
   bodyProfileCompat + "\n" + bodyProfileCompatAnchor
 );
 
-const dwfxEntry = bundledEntrySource(dwfxEntryPath).replace(
-  /<\/script/gi,
-  "<\\/script"
-);
+const dwfxEntryUrl = moduleDataUrl(dwfxEntryPath);
 const bundledDwfx =
-  `<script type="module" data-tubebender-bundled="dwfx-import">\n${dwfxEntry}\nwindow.TubeBenderDwfxImport=Object.freeze({importSelectedDwfxFile,mergeDwfxTubesIntoCurrentProject});\nconst tbDwfxInput=document.getElementById("poFileInput");if(tbDwfxInput)tbDwfxInput.setAttribute("accept",".json,.dwfx,application/json,application/octet-stream");\n</script>`;
+  `<script type="application/octet-stream" id="tbDwfxLazyModuleUrl" data-tubebender-bundled="dwfx-import">\n${dwfxEntryUrl}\n</script>
+<script data-tubebender-bundled="dwfx-lazy-bootstrap">
+(()=>{let modulePromise=null;
+const loadDwfxModule=()=>{
+  if(!modulePromise){
+    const holder=document.getElementById("tbDwfxLazyModuleUrl");
+    const url=String(holder?.textContent??"").trim();
+    if(!url.startsWith("data:text/javascript;base64,")){
+      return Promise.reject(new Error("Bundled DWFx module payload is missing"));
+    }
+    modulePromise=import(url);
+  }
+  return modulePromise;
+};
+window.TubeBenderDwfxImport=Object.freeze({
+  importSelectedDwfxFile:async(...args)=>(await loadDwfxModule()).importSelectedDwfxFile(...args),
+  mergeDwfxTubesIntoCurrentProject:async(...args)=>(await loadDwfxModule()).mergeDwfxTubesIntoCurrentProject(...args),
+  preload:loadDwfxModule
+});
+const tbDwfxInput=document.getElementById("poFileInput");
+if(tbDwfxInput)tbDwfxInput.setAttribute("accept",".json,.dwfx,application/json,application/octet-stream");
+})();\n</script>`;
 
 const dwfxCurrentProjectUi = fs.readFileSync(dwfxCurrentProjectUiPath, "utf8").replace(/<\/script/gi, "<\\/script");
 const bundledDwfxCurrentProjectUi =
@@ -302,7 +320,7 @@ process.stdout.write(
       offlineCoreReady: true,
       bundledDwfxImporter: true,
       currentProjectDwfxImport: true,
-      injectedAtFinalBodyClose: true,
+      injectedAtFinalBodyClose: true,\n      lazyDwfxRuntime: true,
       optionalExternalModules: ["tesseract"]
     },
     null,
