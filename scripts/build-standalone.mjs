@@ -622,6 +622,111 @@ output = output.replace(
   }`
 );
 
+const importedOriginRepairAnchor =
+  "function validToolDiameterIndex(preferredIndex){";
+if (!output.includes(importedOriginRepairAnchor)) {
+  throw new Error("validToolDiameterIndex anchor for imported origin repair was not found");
+}
+const importedOriginHelpers = `
+function importedSpatialOriginFromEvidence(tube){
+  const spatial=tube?.importEvidence?.spatialPlacement;
+  const raw=spatial?.origin_mm;
+  if(
+    spatial?.status!=='exact'||
+    !Array.isArray(raw)||
+    raw.length!==3
+  )return null;
+  const values=raw.map(Number);
+  return values.every(Number.isFinite)
+    ? {x:values[0],y:values[1],z:values[2]}
+    : null;
+}
+function restoreImportedSpatialOrigin(tube,{force=false}={}){
+  if(!tube||typeof tube!=='object')return false;
+  const spatial=tube?.importEvidence?.spatialPlacement;
+  if(spatial?.user_origin_override===true&&!force)return false;
+  const origin=importedSpatialOriginFromEvidence(tube);
+  if(!origin)return false;
+  tube.origin=clone(origin);
+  tube.importEvidence={
+    ...(tube.importEvidence||{}),
+    spatialPlacement:{
+      ...(spatial||{}),
+      editable_origin_seeded:true,
+      user_origin_override:spatial?.user_origin_override===true
+    }
+  };
+  return true;
+}
+function markImportedOriginOverride(tube=activeTube()){
+  const spatial=tube?.importEvidence?.spatialPlacement;
+  if(!tube||spatial?.status!=='exact')return false;
+  tube.importEvidence={
+    ...(tube.importEvidence||{}),
+    spatialPlacement:{
+      ...(spatial||{}),
+      editable_origin_seeded:true,
+      user_origin_override:true
+    }
+  };
+  return true;
+}
+`;
+output = output.replace(
+  importedOriginRepairAnchor,
+  importedOriginHelpers + "\n" + importedOriginRepairAnchor
+);
+
+const importedRepairBranch =
+  "  if(t.importValidation?.productionBlocked===true){\n    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);";
+if (!output.includes(importedRepairBranch)) {
+  throw new Error("repairTubeForCheck imported branch missing");
+}
+output = output.replace(
+  importedRepairBranch,
+  "  if(t.importValidation?.productionBlocked===true){\n    restoreImportedSpatialOrigin(t);\n    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);"
+);
+
+const loadImportBranch =
+  "  if(importBlocked){\n    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);";
+if (!output.includes(loadImportBranch)) {
+  throw new Error("loadActiveTubeToState imported branch missing");
+}
+output = output.replace(
+  loadImportBranch,
+  "  if(importBlocked){\n    restoreImportedSpatialOrigin(t);\n    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);"
+);
+
+const syncImportBranch =
+  "  if(importBlocked){\n    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);\n    state.diameterIndex=importedIndex>=0";
+if (!output.includes(syncImportBranch)) {
+  throw new Error("syncActiveTubeFromState imported branch missing");
+}
+output = output.replace(
+  syncImportBranch,
+  "  if(importBlocked){\n    if(t?.importEvidence?.spatialPlacement?.user_origin_override!==true){\n      restoreImportedSpatialOrigin(t);\n      if(t.origin&&typeof t.origin==='object')state.origin=clone(t.origin);\n    }\n    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);\n    state.diameterIndex=importedIndex>=0"
+);
+
+const poImportedDwfxBlock =
+  "  if(importedDwfx){\n    const importedIndex=importedDiameterIndexFromEvidence(t,pkg?.pipeDb);";
+if (!output.includes(poImportedDwfxBlock)) {
+  throw new Error("poNormalizeTube imported DWFx branch missing");
+}
+output = output.replace(
+  poImportedDwfxBlock,
+  "  if(importedDwfx){\n    restoreImportedSpatialOrigin(t);\n    const importedIndex=importedDiameterIndexFromEvidence(t,pkg?.pipeDb);"
+);
+
+const originEditorHandler =
+  "state.origin[a]=v;if(!validatePipeBounds(inp,rowsForStartPointValidation(),state.diameterIndex,before)){state.origin[a]=old;renderAll();return;}syncActiveTubeFromState();save();renderAll();";
+if (!output.includes(originEditorHandler)) {
+  throw new Error("Project Map origin editor handler missing");
+}
+output = output.replace(
+  originEditorHandler,
+  "state.origin[a]=v;if(!validatePipeBounds(inp,rowsForStartPointValidation(),state.diameterIndex,before)){state.origin[a]=old;renderAll();return;}markImportedOriginOverride(activeTube());syncActiveTubeFromState();save();renderAll();"
+);
+
 const bodyProfileCompatAnchor =
   "const oldNormalize=window.normalizeProjectCoordinateState;";
 if (!output.includes(bodyProfileCompatAnchor)) {
