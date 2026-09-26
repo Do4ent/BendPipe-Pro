@@ -89,7 +89,7 @@
       const current=activeProject();
       if(!current)throw new Error("Активный проект не найден");
 
-      const merged=bridge.mergeDwfxTubesIntoCurrentProject({
+      const merged=await bridge.mergeDwfxTubesIntoCurrentProject({
         project:current,
         imported_projects:chosen,
         conflict:document.getElementById("poConflict")?.value||"copy",
