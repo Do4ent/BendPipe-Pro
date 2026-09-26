@@ -1,6 +1,7 @@
 import { prepareTrustedDwfxFileImport } from "./trusted-file-import.mjs";
 import { mergeDwfxTubesIntoCurrentProject } from "./current-project-merge.mjs";
-export { mergeDwfxTubesIntoCurrentProject };
+import { normalizeImportedProjectDiameters } from "./table-diameter-normalization.mjs";
+export { mergeDwfxTubesIntoCurrentProject, normalizeImportedProjectDiameters };
 
 function fileNameOf(file){
   return String(file?.name??"");
