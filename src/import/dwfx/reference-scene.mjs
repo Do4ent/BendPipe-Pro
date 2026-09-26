@@ -202,7 +202,7 @@ function vUnit(a){
   const length=vLen(a);
   return length>1e-12?vScale(a,1/length):null;
 }
-function circularArcPolyline(entity){
+export function circularArcPolyline(entity){
   const start=v3(entity?.start);
   const middle=v3(entity?.middle);
   const end=v3(entity?.end);
