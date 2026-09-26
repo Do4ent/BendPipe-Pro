@@ -93,6 +93,26 @@ let output = source.replace(
   () => bundledThree
 );
 
+const importedToolingGuardSort =
+  "  for(const t of allTubeRecords()){\n    if(!t.toolingId){\n      const legacy=pipeDb[Number(t.diameterIndex)];\n      if(legacy?.id)t.toolingId=legacy.id;\n    }\n  }";
+if (!output.includes(importedToolingGuardSort)) {
+  throw new Error("sortPipes tooling assignment loop was not found");
+}
+output = output.replace(
+  importedToolingGuardSort,
+  "  for(const t of allTubeRecords()){\n    const importBlocked=t?.importValidation?.productionBlocked===true;\n    if(!t.toolingId&&!importBlocked){\n      const legacy=pipeDb[Number(t.diameterIndex)];\n      if(legacy?.id)t.toolingId=legacy.id;\n    }\n  }"
+);
+
+const importedToolingGuardResync =
+  "  for(const t of allTubeRecords()){\n    if(!t.toolingId){\n      const legacy=pipeDb[Number(t.diameterIndex)];\n      if(legacy?.id)t.toolingId=legacy.id;\n    }\n    const idx=toolingIndexById(t.toolingId);\n    if(idx>=0){\n      t.diameterIndex=idx;\n      t.toolingUnresolved=false;\n    }else if(t.toolingId){\n      t.toolingUnresolved=true;\n    }\n  }";
+if (!output.includes(importedToolingGuardResync)) {
+  throw new Error("resyncToolingReferences loop was not found");
+}
+output = output.replace(
+  importedToolingGuardResync,
+  "  for(const t of allTubeRecords()){\n    const importBlocked=t?.importValidation?.productionBlocked===true;\n    if(!t.toolingId&&!importBlocked){\n      const legacy=pipeDb[Number(t.diameterIndex)];\n      if(legacy?.id)t.toolingId=legacy.id;\n    }\n    if(!t.toolingId&&importBlocked){\n      t.toolingUnresolved=true;\n      continue;\n    }\n    const idx=toolingIndexById(t.toolingId);\n    if(idx>=0){\n      t.diameterIndex=idx;\n      t.toolingUnresolved=false;\n    }else if(t.toolingId){\n      t.toolingUnresolved=true;\n    }\n  }"
+);
+
 const bodyProfileCompatAnchor =
   "const oldNormalize=window.normalizeProjectCoordinateState;";
 if (!output.includes(bodyProfileCompatAnchor)) {
@@ -370,6 +390,7 @@ const loadDwfxModule=()=>{
 window.TubeBenderDwfxImport=Object.freeze({
   importSelectedDwfxFile:async(...args)=>(await loadDwfxModule()).importSelectedDwfxFile(...args),
   mergeDwfxTubesIntoCurrentProject:async(...args)=>(await loadDwfxModule()).mergeDwfxTubesIntoCurrentProject(...args),
+  normalizeImportedProjectDiameters:async(...args)=>(await loadDwfxModule()).normalizeImportedProjectDiameters(...args),
   preload:loadDwfxModule
 });
 const tbDwfxInput=document.getElementById("poFileInput");
@@ -478,7 +499,21 @@ const newPoLoadFile = `async function poLoadFile(file){
         source_file:result.source_file,
         production_ready:false
       };
-      const recentPackage={...result.package,dwfxImport};
+      let normalizedPackage=result.package;
+      if(
+        result.package?.project &&
+        typeof bridge.normalizeImportedProjectDiameters==='function'
+      ){
+        const normalized=await bridge.normalizeImportedProjectDiameters(
+          result.package.project,
+          Array.isArray(pipeDb)?pipeDb:[],
+          {recommended_tolerance_mm:0.35}
+        );
+        normalizedPackage={...result.package,project:normalized.project};
+        dwfxImport.diameter_normalized_count=normalized.normalized_count;
+        dwfxImport.diameter_large_deviation_count=normalized.large_deviation_count;
+      }
+      const recentPackage={...normalizedPackage,dwfxImport};
       const pkg=poNormalizePackage(recentPackage,meta);
       pkg.rawData=recentPackage;
       pkg.rawText=JSON.stringify(recentPackage);
