@@ -1,6 +1,7 @@
 import { intakeRawDwfxEvidence } from "./raw-dwfx-evidence.mjs";
 import { resolveRawHsfPartLinkage } from "./raw-hsf-linkage.mjs";
 import { prepareTrustedDwfxProjectImport } from "./trusted-project-import.mjs";
+import { buildDwfxReferenceScene } from "./reference-scene.mjs";
 
 /**
  * Primary trusted import entry point for one raw DWFx file.
@@ -17,12 +18,14 @@ export async function prepareTrustedDwfxFileImport({
   inflateRaw=null,
   intakeRaw=intakeRawDwfxEvidence,
   resolveHsfLinkage=resolveRawHsfPartLinkage,
-  prepareProject=prepareTrustedDwfxProjectImport
+  prepareProject=prepareTrustedDwfxProjectImport,
+  buildReferenceScene=buildDwfxReferenceScene
 }){
   for(const [label,fn] of [
     ["intakeRaw",intakeRaw],
     ["resolveHsfLinkage",resolveHsfLinkage],
-    ["prepareProject",prepareProject]
+    ["prepareProject",prepareProject],
+    ["buildReferenceScene",buildReferenceScene]
   ]){
     if(typeof fn!=="function") throw new TypeError(label+" must be a function");
   }
@@ -67,6 +70,33 @@ export async function prepareTrustedDwfxFileImport({
     });
   }
 
+  let referenceScene=null;
+  try{
+    referenceScene=buildReferenceScene({
+      content_xml:raw.linkage.resources.content.xml,
+      link_index:raw.linkage.link_index,
+      opcode_stream:hsfLinkage.opcode_stream,
+      hsf_version:hsfLinkage.hsf_version,
+      descriptor:raw.model.descriptor,
+      source_file:sourceFile,
+      recognized_graphics_links:raw.graphics_links
+    });
+  }catch(error){
+    referenceScene=Object.freeze({
+      status:"reference_scene_error",
+      metadata:null,
+      runtime:null,
+      diagnostics:Object.freeze([
+        Object.freeze({
+          stage:"reference_scene",
+          error:error?.message??String(error)
+        })
+      ]),
+      production_ready:false,
+      canonical_ready:false
+    });
+  }
+
   const includeLinkage=Object.freeze({
     source_file:sourceFile,
     hsf_version:hsfLinkage.hsf_version,
@@ -89,7 +119,8 @@ export async function prepareTrustedDwfxFileImport({
     hsf_version:hsfLinkage.hsf_version,
     project_id,
     project_name:project_name??sourceFile.replace(/\.dwfx$/i,""),
-    bbox
+    bbox,
+    reference_scene:referenceScene?.metadata??null
   });
 
   if(
@@ -121,6 +152,8 @@ export async function prepareTrustedDwfxFileImport({
     raw,
     hsf_linkage:hsfLinkage,
     project_import:projectImport,
+    reference_scene:referenceScene,
+    reference_scene_runtime:referenceScene?.runtime??null,
     package:projectImport.package,
     blocker:
       "DWFx file produced an editable TubeBenderProject candidate. Manufacturing remains blocked until existing tooling/style/machine and production-release gates pass."
