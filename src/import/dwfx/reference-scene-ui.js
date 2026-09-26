@@ -3,6 +3,7 @@
   const templates=new Map();
   let selected=null;
   const bulkSelected=new Set();
+  let rangeAnchorKey=null;
 
   const escHtml=(value)=>String(value??"").replace(/[&<>"']/g,(ch)=>({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
@@ -546,7 +547,71 @@
 
   function clearSelection(){
     bulkSelected.clear();
+    rangeAnchorKey=null;
     return 0;
+  }
+
+  function sceneNodeFromKey(project,key){
+    const text=String(key??"");
+    const split=text.indexOf("|");
+    if(split<0)return null;
+    const sceneId=text.slice(0,split);
+    const nodeId=text.slice(split+1);
+    const scene=findScene(project,sceneId);
+    const node=findNode(scene?.tree,nodeId);
+    return scene&&node?{scene,node}:null;
+  }
+
+  function visibleSelectionKeys(host){
+    return [...host.querySelectorAll("[data-ref-node]")]
+      .filter((row)=>!row.dataset.refEditablePart)
+      .map((row)=>selectionKey(row.dataset.refScene,row.dataset.refNode));
+  }
+
+  function applyModifierSelection(
+    project,
+    orderedKeys,
+    targetKey,
+    {ctrlKey=false,metaKey=false,shiftKey=false}={}
+  ){
+    const additive=!!(ctrlKey||metaKey);
+    const target=sceneNodeFromKey(project,targetKey);
+    if(!target||!selectableNode(target.node))return selectedCount(project);
+
+    if(shiftKey){
+      const keys=Array.isArray(orderedKeys)?orderedKeys.map(String):[];
+      const targetIndex=keys.indexOf(String(targetKey));
+      let anchorIndex=keys.indexOf(String(rangeAnchorKey??""));
+      if(targetIndex<0)return selectedCount(project);
+      if(anchorIndex<0){
+        anchorIndex=targetIndex;
+        rangeAnchorKey=String(targetKey);
+      }
+      if(!additive)bulkSelected.clear();
+      const from=Math.min(anchorIndex,targetIndex);
+      const to=Math.max(anchorIndex,targetIndex);
+      for(let index=from;index<=to;index+=1){
+        const entry=sceneNodeFromKey(project,keys[index]);
+        if(entry&&selectableNode(entry.node)){
+          toggleNodeSelection(entry.scene,entry.node,true);
+        }
+      }
+      return selectedCount(project);
+    }
+
+    if(additive){
+      const key=selectionKey(target.scene.id,target.node.id);
+      toggleNodeSelection(
+        target.scene,
+        target.node,
+        !bulkSelected.has(key)
+      );
+      rangeAnchorKey=key;
+      return selectedCount(project);
+    }
+
+    rangeAnchorKey=selectionKey(target.scene.id,target.node.id);
+    return selectedCount(project);
   }
 
   function applyBulkAction(project,action){
@@ -573,6 +638,8 @@
         const scene=findScene(project,input.dataset.refSceneSelect);
         if(!scene)return;
         toggleSceneSelection(scene,input.checked);
+        const first=collectSelectableNodes(scene.tree??[])[0]??null;
+        rangeAnchorKey=first?selectionKey(scene.id,first.id):null;
         refreshProjectTree?.();
       });
     });
@@ -585,6 +652,7 @@
         const node=findNode(scene?.tree,input.dataset.refSelect);
         if(!scene||!node)return;
         toggleNodeSelection(scene,node,input.checked);
+        rangeAnchorKey=selectionKey(scene.id,node.id);
         refreshProjectTree?.();
       });
     });
@@ -659,6 +727,24 @@
         const node=findNode(scene?.tree,row.dataset.refNode);
         if(!scene||!node)return;
 
+        const key=selectionKey(scene.id,node.id);
+        if(!node.editable_part_number&&(event.ctrlKey||event.metaKey||event.shiftKey)){
+          event.preventDefault();
+          applyModifierSelection(
+            project,
+            visibleSelectionKeys(host),
+            key,
+            {
+              ctrlKey:event.ctrlKey,
+              metaKey:event.metaKey,
+              shiftKey:event.shiftKey
+            }
+          );
+          selected={sceneId:String(scene.id),nodeId:String(node.id)};
+          refreshProjectTree?.();
+          return;
+        }
+
         const part=String(node.editable_part_number??"");
         if(part&&typeof switchTube==="function"){
           const tube=(project.tubes??[]).find((item)=>
@@ -676,6 +762,7 @@
         }
 
         selected={sceneId:String(scene.id),nodeId:String(node.id)};
+        if(!node.editable_part_number)rangeAnchorKey=key;
         refreshProjectTree?.();
       });
     });
@@ -705,6 +792,7 @@
     selectNode,
     clearSelection,
     applyBulkAction,
+    applyModifierSelection,
     selectedCount,
     restorePersistedRuntimes,
     runtimeSummary
