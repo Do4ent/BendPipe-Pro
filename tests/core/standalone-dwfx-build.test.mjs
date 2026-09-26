@@ -154,3 +154,18 @@ test("A26: standalone exposes grouped reference component actions",()=>{
   assert.match(html,/modelCommand:tbModelCommand/);
   assert.match(html,/Удалить импортированные компоненты/);
 });
+
+
+test("A27: standalone exposes Ctrl Shift grouped reference selection",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/Ctrl\+клик · Shift\+клик/);
+  assert.match(html,/event\.ctrlKey\|\|event\.metaKey\|\|event\.shiftKey/);
+  assert.match(html,/applyModifierSelection/);
+  assert.match(html,/visibleSelectionKeys/);
+  assert.match(html,/ctrlKey:event\.ctrlKey/);
+  assert.match(html,/shiftKey:event\.shiftKey/);
+});
