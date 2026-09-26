@@ -119,13 +119,13 @@ test("A20: metric source description is supported without imperial inference",()
 
 
 test("A20: self-closing Entity does not swallow the following entity and its properties",()=>{
-  const xml=\`<dwf:Content xmlns:dwf="urn:dwf">
+  const xml=`<dwf:Content xmlns:dwf="urn:dwf">
     <dwf:Entity id="empty"/>
     <dwf:Entity id="tube">
       <dwf:Property name="Part Number" value="10102473" category="Design Tracking Properties"/>
       <dwf:Property name="Description" value="Bended tube, Copper EN 12735-1, 3/8&quot;x0,76mm" category="Design Tracking Properties"/>
     </dwf:Entity>
-  </dwf:Content>\`;
+  </dwf:Content>`;
 
   const records=parseEntityRecords(xml);
   assert.equal(records.length,2);
