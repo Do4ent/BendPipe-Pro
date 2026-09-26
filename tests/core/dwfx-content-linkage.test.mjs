@@ -162,3 +162,19 @@ test("A20: label fallback remains available only when Object has no explicit Par
   assert.equal(resolved.matching_method,"object_label_fallback");
   assert.equal(resolved.graphics_node,601);
 });
+
+test("A20: real 10134724 label fallback resolves exact graphics anchors",()=>{
+  const sourceContent='<Content><Object id="PyRYbsi_5UmTo_7y68W23g" label="10134724/A - Tube, Copper, 3/8&quot; x 0,76mm:1" entityRef="PiRYbsi_5UmTo_7y68W23g"><Property name="Description" value="Tube, Copper 3_8inch x 0,76" category="Design Tracking Properties"/></Object></Content>';
+  const sourcePresentation='<Presentation><ReferenceNode id="eJZMvqYtMUie0F_3wYgEvQ" contentElementRefs="PyRYbsi_5UmTo_7y68W23g" label="10134724/A - Tube, Copper, 3/8&quot; x 0,76mm:1"/></Presentation>';
+  const sourceDefinition='<Instances><Instance id="QCRYbsi_5UmTo_7y68W23g" renderableRef="PyRYbsi_5UmTo_7y68W23g" node="119959" geometricVariation="119960"/></Instances>';
+  const index=buildDwfxGraphicsLinkIndex({
+    contentXml:sourceContent,
+    presentationXml:sourcePresentation,
+    contentDefinitionXml:sourceDefinition
+  });
+  const [resolved]=resolvePartGraphicsLinks(index,["10134724"]);
+  assert.equal(resolved.status,"exact");
+  assert.equal(resolved.matching_method,"object_label_fallback");
+  assert.equal(resolved.graphics_node,119959);
+  assert.equal(resolved.geometric_variation,119960);
+});
