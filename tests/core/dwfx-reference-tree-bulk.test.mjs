@@ -136,3 +136,75 @@ test("A26: selecting an all-readonly scene and deleting it removes only that ref
   assert.equal(project.referenceScenes.length,0);
   assert.equal(api.selectedCount(project),0);
 });
+
+
+function flatProject(){
+  return {
+    id:"flat",
+    tubes:[{id:"tube",partNumber:"EDIT"}],
+    referenceScenes:[{
+      id:"scene-flat",
+      tree:[
+        {id:"a",label:"A",readonly:true,geometry_status:"exact",geometry_instances:[],children:[]},
+        {id:"b",label:"B",readonly:true,geometry_status:"exact",geometry_instances:[],children:[]},
+        {id:"edit",label:"Editable",readonly:true,editable_part_number:"EDIT",geometry_status:"exact",geometry_instances:[],children:[]},
+        {id:"c",label:"C",readonly:true,geometry_status:"exact",geometry_instances:[],children:[]},
+        {id:"d",label:"D",readonly:true,geometry_status:"exact",geometry_instances:[],children:[]}
+      ]
+    }]
+  };
+}
+
+test("A27: Ctrl-click toggles independent readonly components without clearing previous selection",()=>{
+  const api=loadUi();
+  const project=flatProject();
+  const order=["a","b","c","d"].map((id)=>"scene-flat|"+id);
+
+  assert.equal(api.applyModifierSelection(project,order,"scene-flat|a",{ctrlKey:true}),1);
+  assert.equal(api.applyModifierSelection(project,order,"scene-flat|c",{ctrlKey:true}),2);
+  assert.equal(api.applyModifierSelection(project,order,"scene-flat|a",{ctrlKey:true}),1);
+
+  const html=api.treeItems({project}).join("\n");
+  assert.doesNotMatch(html,/data-ref-select="a" checked/);
+  assert.match(html,/data-ref-select="c" checked/);
+  assert.doesNotMatch(html,/data-ref-select="edit"/);
+});
+
+test("A27: Shift-click selects a continuous visible readonly range from the anchor",()=>{
+  const api=loadUi();
+  const project=flatProject();
+  const order=["a","b","c","d"].map((id)=>"scene-flat|"+id);
+
+  assert.equal(api.applyModifierSelection(project,order,"scene-flat|a",{}),0);
+  assert.equal(api.applyModifierSelection(project,order,"scene-flat|c",{shiftKey:true}),3);
+
+  const html=api.treeItems({project}).join("\n");
+  assert.match(html,/data-ref-select="a" checked/);
+  assert.match(html,/data-ref-select="b" checked/);
+  assert.match(html,/data-ref-select="c" checked/);
+  assert.doesNotMatch(html,/data-ref-select="d" checked/);
+});
+
+test("A27: Ctrl+Shift-click adds a visible range to the existing grouped selection",()=>{
+  const api=loadUi();
+  const project=flatProject();
+  const order=["a","b","c","d"].map((id)=>"scene-flat|"+id);
+
+  assert.equal(api.applyModifierSelection(project,order,"scene-flat|d",{ctrlKey:true}),1);
+  assert.equal(api.applyModifierSelection(project,order,"scene-flat|a",{}),1);
+  assert.equal(
+    api.applyModifierSelection(
+      project,
+      order,
+      "scene-flat|b",
+      {ctrlKey:true,shiftKey:true}
+    ),
+    3
+  );
+
+  const html=api.treeItems({project}).join("\n");
+  assert.match(html,/data-ref-select="a" checked/);
+  assert.match(html,/data-ref-select="b" checked/);
+  assert.match(html,/data-ref-select="d" checked/);
+  assert.doesNotMatch(html,/data-ref-select="c" checked/);
+});
