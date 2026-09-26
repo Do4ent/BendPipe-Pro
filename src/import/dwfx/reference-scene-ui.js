@@ -101,6 +101,21 @@
       }
     }
 
+    for(const instance of asset.nested_instances??[]){
+      if(instance?.status!=="exact")continue;
+      const child=runtime.assetsById.get(String(instance.asset_id));
+      if(!child||child.status!=="exact")continue;
+      const childTemplate=buildAssetTemplate(runtime,child,THREE);
+      const placed=childTemplate.clone(true);
+      placed.userData.referenceShared=true;
+      placed.userData.referenceGeometry=true;
+      if(Array.isArray(instance.placement_matrix)&&instance.placement_matrix.length===16){
+        placed.matrix.fromArray(instance.placement_matrix);
+        placed.matrixAutoUpdate=false;
+      }
+      group.add(placed);
+    }
+
     templates.set(key,group);
     return group;
   }
