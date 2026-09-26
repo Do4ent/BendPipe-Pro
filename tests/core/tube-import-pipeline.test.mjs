@@ -149,3 +149,42 @@ test("A20: descriptor/geometry scale mismatch stops at canonicalization gate",()
   assert.equal(result.legacy,null);
   assert.ok(result.canonicalization.promotion.blockers.some((x)=>/scale/i.test(x)));
 });
+
+
+test("A31: compact recognition summary preserves geometry-derived OD for later table rounding",()=>{
+  const geometry=geometryCandidate();
+  geometry.dimension_source="geometry_derived";
+  geometry.dimension_reconciliation={
+    metadata_outer_diameter_mm:15.875,
+    derived_outer_diameter_mm:14.834999261,
+    metadata_wall_thickness_mm:0.9,
+    derived_wall_thickness_mm:0.817499629,
+    metadata_dimension_match:false
+  };
+  geometry.metadata_reconciliation={
+    dimensions_match:false,
+    developed_length_match:true,
+    advisory_for_editing:true,
+    blocks_production:true
+  };
+
+  const result=prepareDwfxTubeImport({
+    ...baseArgs(),
+    outer_diameter_mm:15.875,
+    wall_thickness_mm:0.9,
+    recognizeGeometry:()=>geometry,
+    reviewTransforms:()=>rigid()
+  });
+
+  assert.equal(result.status,"legacy_tube_candidate");
+  assert.equal(
+    result.tube.importEvidence.recognitionSummary.dimension_reconciliation.derived_outer_diameter_mm,
+    14.834999261
+  );
+  assert.equal(
+    result.tube.importEvidence.recognitionSummary.dimension_source,
+    "geometry_derived"
+  );
+  assert.equal(result.tube.toolingId,null);
+  assert.equal(result.tube.importValidation.productionBlocked,true);
+});
