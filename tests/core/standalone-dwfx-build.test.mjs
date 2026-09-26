@@ -185,3 +185,22 @@ test("A28: standalone nests imported DWFx geometry under one project-tree branch
   assert.match(html,/referenceGeometryTreeCollapsed/);
   assert.match(html,/treeCollapsed/);
 });
+
+
+test("A29: project-open inspection errors panel is collapsible and persistent",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/PO_INSPECTION_COLLAPSE_KEY/);
+  assert.match(html,/poInspectionCollapsed/);
+  assert.match(html,/poInspectionToggle/);
+  assert.match(html,/po-inspection-body/);
+  assert.match(html,/po-inspection-body\.collapsed/);
+  assert.match(html,/Свернуть панель ошибок/);
+  assert.match(html,/Развернуть панель ошибок/);
+  assert.match(html,/localStorage\.setItem\(PO_INSPECTION_COLLAPSE_KEY/);
+  assert.match(html,/Ошибок:/);
+  assert.match(html,/Предупреждений:/);
+});
