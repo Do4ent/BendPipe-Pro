@@ -99,7 +99,7 @@ const dwfxEntry = bundledEntrySource(dwfxEntryPath).replace(
 const bundledDwfx =
   `<script type="module" data-tubebender-bundled="dwfx-import">\n${dwfxEntry}\nwindow.TubeBenderDwfxImport=Object.freeze({importSelectedDwfxFile,mergeDwfxTubesIntoCurrentProject});\nconst tbDwfxInput=document.getElementById("poFileInput");if(tbDwfxInput)tbDwfxInput.setAttribute("accept",".json,.dwfx,application/json,application/octet-stream");\n</script>`;
 
-const dwfxCurrentProjectUi = fs.readFileSync(dwfxCurrentProjectUiPath, "utf8").replace(/<\\/script/gi, "<\\\\/script");
+const dwfxCurrentProjectUi = fs.readFileSync(dwfxCurrentProjectUiPath, "utf8").replace(/<\/script/gi, "<\\/script");
 const bundledDwfxCurrentProjectUi =
   `<script data-tubebender-bundled="dwfx-current-project-ui">\n${dwfxCurrentProjectUi}\n</script>`;
 
@@ -228,11 +228,17 @@ if (!output.includes('data-tubebender-bundled="three-r160"')) {
 if (!output.includes('data-tubebender-bundled="dwfx-import"')) {
   throw new Error("Standalone build is missing the bundled DWFx importer marker");
 }
+if (!output.includes('data-tubebender-bundled="dwfx-current-project-ui"')) {
+  throw new Error("Standalone build is missing the current-project DWFx UI marker");
+}
 if (!output.includes("window.TubeBenderDwfxImport=Object.freeze({importSelectedDwfxFile,mergeDwfxTubesIntoCurrentProject})")) {
   throw new Error("Standalone build does not expose the DWFx browser controller and current-project merge helper");
 }
 if (!output.includes("result?.status!=='dwfx_project_candidate'")) {
   throw new Error("Standalone project-open path is missing the guarded DWFx branch");
+}
+if (!output.includes("poImportCurrentBtn") || !output.includes("importSelectedDwfxTubesIntoCurrentProject")) {
+  throw new Error("Standalone build is missing the current-project DWFx import control");
 }
 
 fs.mkdirSync(distDir, { recursive: true });
