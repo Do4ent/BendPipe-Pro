@@ -38,7 +38,8 @@ export function buildLegacyProjectPackageFromAssembly({
   bbox=null,
   bbox_anchor=null,
   coordinate_offset=null,
-  axis_signs=null
+  axis_signs=null,
+  reference_scene=null
 }){
   if(!assembly||typeof assembly!=="object"){
     throw new TypeError("assembly import result is required");
@@ -63,6 +64,7 @@ export function buildLegacyProjectPackageFromAssembly({
     ...(bbox_anchor?{bboxAnchor:cloneFrozen(bbox_anchor)}:{}),
     ...(coordinate_offset?{coordinateOffset:cloneFrozen(coordinate_offset)}:{}),
     ...(axis_signs?{axisSigns:cloneFrozen(axis_signs)}:{}),
+    referenceScenes:Object.freeze(reference_scene?[cloneFrozen(reference_scene)]:[]),
     tubes:Object.freeze(assembly.tubes.map(cloneFrozen))
   });
 
