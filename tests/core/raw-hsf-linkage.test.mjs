@@ -122,7 +122,7 @@ test("A20: unresolved graphics linkage blocks HSF resolution before W3D decode",
 
 test("DWFx: absent geometricVariation falls back only to the exact graphics-node segment",async()=>{
   const stream=[
-    ...open("119735"),
+    ...open("119736"),
       ...open(""),...include("?Include Library/50001"),...close(),
     ...close()
   ];
@@ -139,7 +139,7 @@ test("DWFx: absent geometricVariation falls back only to the exact graphics-node
 
   assert.equal(result.status,"exact");
   assert.equal(result.parts[0].geometric_variation,null);
-  assert.equal(result.parts[0].geometry_anchor_kind,"graphics_node");
-  assert.equal(result.parts[0].variation_segment,"119735");
+  assert.equal(result.parts[0].geometry_anchor_kind,"graphics_node_successor_no_variation");
+  assert.equal(result.parts[0].variation_segment,"119736");
   assert.equal(result.parts[0].variation_include,"?Include Library/50001");
 });
