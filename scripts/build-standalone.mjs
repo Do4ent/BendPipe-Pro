@@ -687,25 +687,28 @@ output = output.replace(
   "  if(t.importValidation?.productionBlocked===true){\n    restoreImportedSpatialOrigin(t);\n    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);"
 );
 
-const loadImportBranch =
+const importedOriginBranchNeedle =
   "  if(importBlocked){\n    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);";
-if (!output.includes(loadImportBranch)) {
-  throw new Error("loadActiveTubeToState imported branch missing");
-}
-output = output.replace(
-  loadImportBranch,
-  "  if(importBlocked){\n    restoreImportedSpatialOrigin(t);\n    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);"
-);
 
-const syncImportBranch =
-  "  if(importBlocked){\n    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);\n    state.diameterIndex=importedIndex>=0";
-if (!output.includes(syncImportBranch)) {
+const syncFunctionStart=output.indexOf("function syncActiveTubeFromState(){");
+const syncBranchStart=output.indexOf(importedOriginBranchNeedle,syncFunctionStart);
+if(syncFunctionStart<0||syncBranchStart<0){
   throw new Error("syncActiveTubeFromState imported branch missing");
 }
-output = output.replace(
-  syncImportBranch,
-  "  if(importBlocked){\n    if(t?.importEvidence?.spatialPlacement?.user_origin_override!==true){\n      restoreImportedSpatialOrigin(t);\n      if(t.origin&&typeof t.origin==='object')state.origin=clone(t.origin);\n    }\n    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);\n    state.diameterIndex=importedIndex>=0"
-);
+output =
+  output.slice(0,syncBranchStart)+
+  "  if(importBlocked){\n    if(t?.importEvidence?.spatialPlacement?.user_origin_override!==true){\n      restoreImportedSpatialOrigin(t);\n      if(t.origin&&typeof t.origin==='object')state.origin=clone(t.origin);\n    }\n    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);"+
+  output.slice(syncBranchStart+importedOriginBranchNeedle.length);
+
+const loadFunctionStart=output.indexOf("function loadActiveTubeToState(){");
+const loadBranchStart=output.indexOf(importedOriginBranchNeedle,loadFunctionStart);
+if(loadFunctionStart<0||loadBranchStart<0){
+  throw new Error("loadActiveTubeToState imported branch missing");
+}
+output =
+  output.slice(0,loadBranchStart)+
+  "  if(importBlocked){\n    restoreImportedSpatialOrigin(t);\n    const importedIndex=importedDiameterIndexFromEvidence(t,pipeDb);"+
+  output.slice(loadBranchStart+importedOriginBranchNeedle.length);
 
 const poImportedDwfxBlock =
   "  if(importedDwfx){\n    const importedIndex=importedDiameterIndexFromEvidence(t,pkg?.pipeDb);";
