@@ -47,11 +47,14 @@
       Array.isArray(pkg?.projects) &&
       pkg.projects.length>0;
 
-    button.hidden=!ready;
-    button.disabled=!ready||count<1||readOnly;
-    button.textContent=ready
+    const nextHidden=!ready;
+    const nextDisabled=!ready||count<1||readOnly;
+    const nextText=ready
       ? "Импортировать в текущий проект ("+count+")"
       : "Импортировать геометрию в текущий проект";
+    if(button.hidden!==nextHidden)button.hidden=nextHidden;
+    if(button.disabled!==nextDisabled)button.disabled=nextDisabled;
+    if(button.textContent!==nextText)button.textContent=nextText;
   }
 
   async function importSelectedDwfxTubesIntoCurrentProject(){
@@ -168,8 +171,20 @@
     dialog.addEventListener("change",()=>queueMicrotask(updateCurrentImportButton),true);
     dialog.addEventListener("click",()=>queueMicrotask(updateCurrentImportButton),true);
 
-    const observer=new MutationObserver(()=>updateCurrentImportButton());
-    observer.observe(dialog,{subtree:true,childList:true,attributes:true});
+    let updateQueued=false;
+    const scheduleUpdate=()=>{
+      if(updateQueued)return;
+      updateQueued=true;
+      queueMicrotask(()=>{
+        updateQueued=false;
+        updateCurrentImportButton();
+      });
+    };
+    const observer=new MutationObserver((records)=>{
+      if(records.every((record)=>record.target===button||button.contains(record.target)))return;
+      scheduleUpdate();
+    });
+    observer.observe(dialog,{subtree:true,childList:true});
 
     updateCurrentImportButton();
   }
