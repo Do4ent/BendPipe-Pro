@@ -52,29 +52,73 @@ function exact(value,source,unit=null,method="dwfx_content_property"){
 
 function parseEntityRecords(xml){
   if(typeof xml!=="string") throw new TypeError("content XML must be a string");
+
   const entities=[];
-  const pattern=/<(?:[A-Za-z_][\w.-]*:)?Entity\b([^>]*)>([\s\S]*?)<\/(?:[A-Za-z_][\w.-]*:)?Entity>/g;
-  for(const match of xml.matchAll(pattern)){
-    const attrs=parseAttributes(match[1]);
-    const properties={};
-    const propPattern=/<(?:[A-Za-z_][\w.-]*:)?Property\b([^>]*)\/?\s*>/g;
-    for(const propMatch of match[2].matchAll(propPattern)){
-      const p=parseAttributes(propMatch[1]);
+  const stack=[];
+  const tokenPattern=/<(\/?)(?:[A-Za-z_][\w.-]*:)?(Entity|Property)\b([^>]*)>/gs;
+
+  const finish=(context)=>{
+    const frozenProperties={};
+    for(const [name,list] of Object.entries(context.properties)){
+      frozenProperties[name]=Object.freeze([...list]);
+    }
+    return Object.freeze({
+      id:context.id,
+      label:context.label,
+      properties:Object.freeze(frozenProperties),
+      source_index:context.source_index
+    });
+  };
+
+  for(const match of xml.matchAll(tokenPattern)){
+    const closing=match[1]==="/";
+    const localName=match[2];
+    const fragment=match[3]??"";
+
+    if(localName==="Entity"){
+      if(closing){
+        const context=stack.pop();
+        if(context) entities.push(finish(context));
+        continue;
+      }
+
+      const attrs=parseAttributes(fragment);
+      const context={
+        id:attrs.id??null,
+        label:attrs.label??null,
+        properties:{},
+        source_index:match.index??0
+      };
+
+      if(/\/\s*$/.test(fragment)){
+        entities.push(finish(context));
+      }else{
+        stack.push(context);
+      }
+      continue;
+    }
+
+    if(localName==="Property"&&!closing&&stack.length>0){
+      const p=parseAttributes(fragment);
       if(!p.name) continue;
-      const current=properties[p.name]??[];
+      const current=stack.at(-1).properties[p.name]??[];
       current.push(Object.freeze({
         value:p.value??null,
         category:p.category??null
       }));
-      properties[p.name]=current;
+      stack.at(-1).properties[p.name]=current;
     }
-    entities.push(Object.freeze({
-      id:attrs.id??null,
-      label:attrs.label??null,
-      properties:Object.freeze(properties)
-    }));
   }
-  return Object.freeze(entities);
+
+  return Object.freeze(
+    entities
+      .sort((a,b)=>a.source_index-b.source_index)
+      .map((entity)=>Object.freeze({
+        id:entity.id,
+        label:entity.label,
+        properties:entity.properties
+      }))
+  );
 }
 
 function firstProperty(entity,name,category=null){
