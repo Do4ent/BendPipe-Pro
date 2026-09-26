@@ -145,7 +145,8 @@ export function buildDwfxAssemblyImportPlan({
         developed_length_mm:developed,
         revision:tube.revision??null,
         quantity_in_assembly:tube.quantity_in_assembly??null,
-        material:tube.material??null
+        material:tube.material??null,
+        recognition_kind:tube.source_evidence?.recognition_kind??null
       })
     }));
   }
