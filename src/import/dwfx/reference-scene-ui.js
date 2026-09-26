@@ -186,7 +186,11 @@
     if(!parent||!project||!THREE)return 0;
     let count=0;
     for(const sceneMeta of project.referenceScenes??[]){
-      const runtime=runtimes.get(runtimeKey(sceneMeta));
+      let runtime=runtimes.get(runtimeKey(sceneMeta));
+      if(!runtime&&sceneMeta?.display_runtime){
+        registerRuntime(sceneMeta.display_runtime);
+        runtime=runtimes.get(runtimeKey(sceneMeta));
+      }
       if(!runtime)continue;
       renderSceneTree({parent,sceneMeta,runtime,project,THREE,geomScale});
       count+=1;
@@ -359,6 +363,14 @@
     });
   }
 
+  function restorePersistedRuntimes(project){
+    let count=0;
+    for(const scene of project?.referenceScenes??[]){
+      if(scene?.display_runtime&&registerRuntime(scene.display_runtime))count+=1;
+    }
+    return count;
+  }
+
   function runtimeSummary(){
     return [...runtimes.values()].map((runtime)=>({
       scene_id:runtime.scene_id,
@@ -371,6 +383,7 @@
     render3D,
     treeItems,
     bindTree,
+    restorePersistedRuntimes,
     runtimeSummary
   });
 })();
