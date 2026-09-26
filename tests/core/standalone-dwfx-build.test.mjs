@@ -16,7 +16,8 @@ test("A20: standalone build embeds guarded DWFx importer and preserves JSON path
   );
   const report=JSON.parse(stdout);
   assert.equal(report.bundledDwfxImporter,true);
-  assert.equal(report.offlineCoreReady,true);\n  assert.equal(report.lazyDwfxRuntime,true);
+  assert.equal(report.offlineCoreReady,true);
+  assert.equal(report.lazyDwfxRuntime,true);
 
   const html=fs.readFileSync(output,"utf8");
   assert.match(html,/data-tubebender-bundled="dwfx-import"/);
@@ -25,7 +26,10 @@ test("A20: standalone build embeds guarded DWFx importer and preserves JSON path
   assert.match(html,/Импортировать в текущий проект/);
   assert.match(html,/importSelectedDwfxTubesIntoCurrentProject/);
   assert.match(html,/tbHistoryBegin\("Импортировать DWFx геометрию"\)/);
-  assert.match(html,/data-tubebender-bundled="dwfx-lazy-bootstrap"/);\n  assert.match(html,/loadDwfxModule/);\n  assert.match(html,/mergeDwfxTubesIntoCurrentProject:async/);\n  assert.doesNotMatch(html,/<script type="module" data-tubebender-bundled="dwfx-import"/);
+  assert.match(html,/data-tubebender-bundled="dwfx-lazy-bootstrap"/);
+  assert.match(html,/loadDwfxModule/);
+  assert.match(html,/mergeDwfxTubesIntoCurrentProject:async/);
+  assert.doesNotMatch(html,/<script type="module" data-tubebender-bundled="dwfx-import"/);
   assert.match(html,/if\(\/\\\.dwfx\$\/i\.test\(String\(file\.name\|\|''\)\)\)/);
   assert.match(html,/result\?\.status==='requirements_pending'/);
   assert.match(html,/requirement\?\.kind==='bbox'/);
