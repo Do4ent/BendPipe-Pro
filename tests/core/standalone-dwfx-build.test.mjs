@@ -267,3 +267,20 @@ test("A32: main 3D viewer preserves user zoom and normalizes mouse-wheel delta m
   assert.match(html,/this\.camera\.near=Math\.max\(0\.001,nextDistance\/10000\)/);
   assert.match(html,/this\.camera\.far=Math\.max\(5000,nextDistance\*10000\)/);
 });
+
+
+test("A33: standalone preserves exact imported spatial start vector",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/startVector: null/);
+  assert.match(html,/const sv=state\.startVector/);
+  assert.match(html,/const sv=tube\?\.startVector/);
+  assert.match(html,/t\.startVector = state\.startVector \? clone\(state\.startVector\) : null/);
+  assert.match(html,/state\.startVector = \(t\.startVector && typeof t\.startVector === 'object'\)/);
+  assert.match(html,/snap\.startVector=state\.startVector\?clone\(state\.startVector\):null/);
+  assert.match(html,/startVector:x\?\.startVector/);
+  assert.match(html,/state\.startVector = \{x:dir\.x,y:dir\.y,z:dir\.z\}/);
+});
