@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { parseDwfxObjectTree } from "../../src/import/dwfx/reference-scene.mjs";
+import { parseDwfxObjectTree, circularArcPolyline } from "../../src/import/dwfx/reference-scene.mjs";
 import {
   buildDisplayHsfSegmentIndex,
   decodeIndexedDisplaySegment
@@ -60,4 +60,21 @@ test("display-only HSF index refuses ambiguous duplicate named segments",()=>{
   assert.equal(decoded.status,"ambiguous");
   assert.equal(decoded.validated_count,2);
   assert.equal(decoded.production_ready,false);
+});
+
+
+test("DWFx display-only circular arc sampler preserves source endpoints and arc side",()=>{
+  const points=circularArcPolyline({
+    start:[1,0,0],
+    middle:[Math.SQRT1_2,Math.SQRT1_2,0],
+    end:[0,1,0]
+  });
+
+  assert.ok(points.length>8);
+  assert.deepEqual(points[0],[1,0,0]);
+  assert.ok(Math.abs(points.at(-1)[0])<1e-9);
+  assert.ok(Math.abs(points.at(-1)[1]-1)<1e-9);
+  const middleSample=points[Math.floor(points.length/2)];
+  assert.ok(middleSample[0]>0);
+  assert.ok(middleSample[1]>0);
 });
