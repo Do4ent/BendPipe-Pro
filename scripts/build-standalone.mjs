@@ -132,6 +132,80 @@ output = output.replace(
   bodyProfileCompat + "\n" + bodyProfileCompatAnchor
 );
 
+const inspectionCssAnchor =
+  ".po-report-details{font-size:10px;color:#8fa1b7;margin-left:24px;margin-top:2px}";
+if (!output.includes(inspectionCssAnchor)) {
+  throw new Error("Project-open inspection CSS anchor was not found");
+}
+output = output.replace(
+  inspectionCssAnchor,
+  inspectionCssAnchor +
+  ".po-inspection-head{display:flex;align-items:center;gap:7px;margin:4px 2px 7px}.po-inspection-head .po-inspection-title{margin:0;flex:1}.po-inspection-toggle{width:24px;height:22px;border:1px solid #3a4a62;border-radius:5px;background:#1b293d;color:#cbd7e8;cursor:pointer;font-size:12px;font-weight:900;line-height:18px}.po-inspection-toggle:hover{background:#263a56;border-color:#5f7ea6}.po-inspection-summary{font-size:9px;color:#8fa1b7;white-space:nowrap}.po-inspection-body.collapsed{display:none}"
+);
+
+const inspectionFunctionAnchor = "function poRenderInspection(){";
+if (!output.includes(inspectionFunctionAnchor)) {
+  throw new Error("poRenderInspection anchor was not found");
+}
+const inspectionHelpers = `
+const PO_INSPECTION_COLLAPSE_KEY='tubebender.poInspectionCollapsed';
+let poInspectionCollapsed=(()=>{
+  try{return localStorage.getItem(PO_INSPECTION_COLLAPSE_KEY)==='1';}
+  catch{return false;}
+})();
+function poSetInspectionCollapsed(value){
+  poInspectionCollapsed=!!value;
+  try{localStorage.setItem(PO_INSPECTION_COLLAPSE_KEY,poInspectionCollapsed?'1':'0');}catch{}
+}
+function poInspectionHeader(pkg=null){
+  const errorCount=Number(pkg?.errors?.length)||0;
+  const warnCount=Number(pkg?.warnings?.length)||0;
+  const issueText=errorCount
+    ? 'Ошибок: '+errorCount
+    : warnCount
+      ? 'Предупреждений: '+warnCount
+      : 'Ошибок: 0';
+  return '<div class="po-inspection-head">'+
+    '<div class="po-inspection-title">Проверка файла</div>'+
+    '<span class="po-inspection-summary">'+poEsc(issueText)+'</span>'+
+    '<button type="button" class="po-inspection-toggle" id="poInspectionToggle" '+
+    'title="'+(poInspectionCollapsed?'Развернуть панель ошибок':'Свернуть панель ошибок')+'" '+
+    'aria-expanded="'+(!poInspectionCollapsed)+'">'+
+    (poInspectionCollapsed?'▸':'▾')+
+    '</button></div>';
+}
+function poBindInspectionToggle(){
+  const button=qs('poInspectionToggle');
+  if(!button)return;
+  button.onclick=()=>{
+    poSetInspectionCollapsed(!poInspectionCollapsed);
+    poRenderInspection();
+  };
+}
+`;
+output = output.replace(
+  inspectionFunctionAnchor,
+  inspectionHelpers + "\n" + inspectionFunctionAnchor
+);
+
+const oldInspectionBody =
+  "box.innerHTML='<div class=\"po-inspection-title\">Проверка файла</div>'+checks.map(c=>`<div class=\"po-check ${c.level}\"><span>${c.level==='ok'?'✓':c.level==='warn'?'⚠':'×'}</span><span>${poEsc(c.text)}</span></div>`).join('')+(pkg.errors.length?`<div class=\"po-report-details\">${pkg.errors.map(poEsc).join('<br>')}</div>`:'')+(pkg.warnings.length?`<div class=\"po-report-details\">${pkg.warnings.slice(0,12).map(poEsc).join('<br>')}${pkg.warnings.length>12?'<br>…':''}</div>`:'')+(pkg.conversions.length?`<div class=\"po-report-details\"><b>Преобразования:</b><br>${[...new Set(pkg.conversions)].map(poEsc).join('<br>')}</div>`:'');}";
+if (!output.includes(oldInspectionBody)) {
+  throw new Error("poRenderInspection body was not found");
+}
+const newInspectionBody =
+  "box.innerHTML=poInspectionHeader(pkg)+'<div class=\"po-inspection-body'+(poInspectionCollapsed?' collapsed':'')+'\">'+checks.map(c=>`<div class=\"po-check ${c.level}\"><span>${c.level==='ok'?'✓':c.level==='warn'?'⚠':'×'}</span><span>${poEsc(c.text)}</span></div>`).join('')+(pkg.errors.length?`<div class=\"po-report-details\">${pkg.errors.map(poEsc).join('<br>')}</div>`:'')+(pkg.warnings.length?`<div class=\"po-report-details\">${pkg.warnings.slice(0,12).map(poEsc).join('<br>')}${pkg.warnings.length>12?'<br>…':''}</div>`:'')+(pkg.conversions.length?`<div class=\"po-report-details\"><b>Преобразования:</b><br>${[...new Set(pkg.conversions)].map(poEsc).join('<br>')}</div>`:'')+'</div>';poBindInspectionToggle();}";
+output = output.replace(oldInspectionBody,newInspectionBody);
+
+const oldInspectionEmpty =
+  "function poRenderInspectionEmpty(){if(PO.current)return;qs('poSummaryGrid').innerHTML='';qs('poInspection').innerHTML='<div class=\"po-inspection-title\">Проверка файла</div><div class=\"po-check\"><span>○</span><span>Файл ещё не выбран.</span></div>';qs('poOpenBtn').disabled=true;qs('poPreviewPlaceholder')?.classList.remove('hidden');}";
+if (!output.includes(oldInspectionEmpty)) {
+  throw new Error("poRenderInspectionEmpty implementation was not found");
+}
+const newInspectionEmpty =
+  "function poRenderInspectionEmpty(){if(PO.current)return;qs('poSummaryGrid').innerHTML='';qs('poInspection').innerHTML=poInspectionHeader(null)+'<div class=\"po-inspection-body'+(poInspectionCollapsed?' collapsed':'')+'\"><div class=\"po-check\"><span>○</span><span>Файл ещё не выбран.</span></div></div>';poBindInspectionToggle();qs('poOpenBtn').disabled=true;qs('poPreviewPlaceholder')?.classList.remove('hidden');}";
+output = output.replace(oldInspectionEmpty,newInspectionEmpty);
+
 const referenceDisposeAnchor =
   "  root.traverse?.(obj=>{\n    if (obj.geometry?.dispose) geometries.add(obj.geometry);";
 if (!output.includes(referenceDisposeAnchor)) {
