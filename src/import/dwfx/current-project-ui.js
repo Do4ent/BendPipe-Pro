@@ -145,7 +145,10 @@
       const skipped=merged.skipped_count
         ?" · пропущено "+merged.skipped_count
         :"";
-      ptToast("Импортировано труб: "+merged.imported_count+skipped);
+      const reference=merged.imported_reference_scene_count
+        ?" · reference-сцен: "+merged.imported_reference_scene_count
+        :"";
+      ptToast("Импортировано труб: "+merged.imported_count+reference+skipped);
       return true;
     }catch(error){
       if(historyToken){
