@@ -47,6 +47,16 @@ const xml=`<dwf:Content xmlns:dwf="urn:dwf">
     <dwf:Property name="Description 2" value="Copper" category="User Defined Properties"/>
     <dwf:Property name="Length" value="37,000 mm" category="User Defined Properties"/>
   </dwf:Entity>
+  <dwf:Object id="obj-10141451" label="10141451/ - Tube, Copper, on length 3/4&quot; x 1,7mm:1" entityRef="empty-10141451">
+    <dwf:Property name="Description" value="Copper tube 3_4inch x 1,7" category="Design Tracking Properties"/>
+    <dwf:Property name="Material" value="Copper" category="Physical"/>
+    <dwf:Property name="Title" value="Tube, Copper, on length 3/4&quot; x 1,7mm" category="Summary Information"/>
+    <dwf:Property name="Description 1" value="Tube" category="User Defined Properties"/>
+    <dwf:Property name="Description 2" value="Copper" category="User Defined Properties"/>
+    <dwf:Property name="Length" value="1018,6 mm" category="User Defined Properties"/>
+    <dwf:Property name="OD" value="19,1 mm" category="User Defined Properties"/>
+    <dwf:Property name="SN" value="1,0 mm" category="User Defined Properties"/>
+  </dwf:Object>
   <dwf:Entity id="fitting">
     <dwf:Property name="Part Number" value="10000613" category="Design Tracking Properties"/>
     <dwf:Property name="Description" value="Elbow 90°, female x female" category="Design Tracking Properties"/>
@@ -84,7 +94,7 @@ test("DWFx copper recognizer extracts the five exact linked copper tube parts fr
   assert.equal(result.production_ready,false);
   assert.deepEqual(
     result.tubes.map((tube)=>tube.part_number),
-    ["10102201","10102202","10102217","10102473","10100407"]
+    ["10102201","10102202","10102217","10102473","10100407","10141451"]
   );
 
   const byPart=new Map(result.tubes.map((tube)=>[tube.part_number,tube]));
@@ -96,6 +106,17 @@ test("DWFx copper recognizer extracts the five exact linked copper tube parts fr
   assert.ok(Math.abs(byPart.get("10102217").metadata.outer_diameter.value-9.525)<1e-12);
   assert.equal(byPart.get("10102473").metadata.developed_length.value,1250.4);
   assert.equal(byPart.get("10100407").metadata.developed_length.value,37);
+  assert.ok(Math.abs(byPart.get("10141451").metadata.outer_diameter.value-19.05)<1e-12);
+  assert.equal(byPart.get("10141451").metadata.wall_thickness.value,1.7);
+  assert.equal(byPart.get("10141451").metadata.developed_length.value,1018.6);
+  assert.equal(
+    byPart.get("10141451").source_evidence.part_number_method,
+    "exact_object_label_prefix"
+  );
+  assert.equal(
+    byPart.get("10141451").source_evidence.source_record_kind,
+    "object"
+  );
 });
 
 test("DWFx copper recognizer excludes copper fittings and misleading non-copper copies",()=>{
@@ -116,4 +137,11 @@ test("DWFx copper metadata remains editable-evidence only and cannot claim produ
     assert.equal(tube.metadata.outer_diameter.truth_category,"source");
     assert.equal(tube.metadata.outer_diameter.confidence,1);
   }
+});
+
+test("DWFx copper recognizer does not override an explicit mismatching Object Part Number with its label",()=>{
+  const source='<dwf:Content xmlns:dwf="urn:dwf"><dwf:Object id="route-copy" label="10141451/ - Tube, Copper, on length 3/4&quot; x 1,7mm:1"><dwf:Property name="Part Number" value="10102473" category="Design Tracking Properties"/><dwf:Property name="Description" value="Copper tube 3_4inch x 1,7" category="Design Tracking Properties"/><dwf:Property name="Material" value="Copper" category="Physical"/><dwf:Property name="Title" value="Tube, Copper, on length 3/4&quot; x 1,7mm" category="Summary Information"/><dwf:Property name="Description 1" value="Tube" category="User Defined Properties"/><dwf:Property name="Description 2" value="Copper" category="User Defined Properties"/><dwf:Property name="Length" value="1018,6 mm" category="User Defined Properties"/></dwf:Object></dwf:Content>';
+  const result=extractCopperTubeMetadataFromContentXml(source);
+  assert.equal(result.status,"blocked");
+  assert.equal(result.tubes.length,0);
 });
