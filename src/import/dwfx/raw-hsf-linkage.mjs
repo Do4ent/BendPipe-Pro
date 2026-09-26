@@ -56,19 +56,29 @@ export async function resolveRawHsfPartLinkage({
   const blocked=[];
   for(const link of graphics_links){
     const partNumber=String(link.part_number??"");
-    const variation=Number(link.geometric_variation);
-    if(!partNumber||!Number.isInteger(variation)||variation<0){
+    const variationRaw=link.geometric_variation;
+    const variation=
+      variationRaw==null||variationRaw===""
+        ? null
+        : Number(variationRaw);
+    const graphicsNode=Number(link.graphics_node);
+    const hasVariation=Number.isInteger(variation)&&variation>=0;
+    const hasGraphicsNode=Number.isInteger(graphicsNode)&&graphicsNode>=0;
+    const anchorId=hasVariation?variation:(hasGraphicsNode?graphicsNode:null);
+    const anchorKind=hasVariation?"geometric_variation":"graphics_node";
+
+    if(!partNumber||anchorId==null){
       blocked.push(Object.freeze({
         part_number:partNumber,
-        stage:"variation_segment",
-        blocker:"Exact non-negative geometricVariation ID is required."
+        stage:"geometry_anchor",
+        blocker:"Exact geometricVariation or graphics-node HSF anchor is required."
       }));
       continue;
     }
 
     const decoded=decodeSegment(
       envelope.opcode_stream,
-      String(variation),
+      String(anchorId),
       {
         hsfVersion:envelope.hsf_version,
         attachSegmentPath:true,
@@ -79,10 +89,10 @@ export async function resolveRawHsfPartLinkage({
     if(!decoded||decoded.status!=="exact"||decoded.root_segment_complete!==true){
       blocked.push(Object.freeze({
         part_number:partNumber,
-        stage:"variation_segment",
+        stage:"geometry_anchor",
         blocker:
           decoded?.unsupported_variant??
-          "Exact geometricVariation segment did not decode to its root close."
+          "Exact HSF geometry anchor did not decode to its root close."
       }));
       continue;
     }
@@ -94,17 +104,18 @@ export async function resolveRawHsfPartLinkage({
         stage:"include_library",
         blocker:
           include.status==="ambiguous"
-            ?"Geometric variation contains multiple Include Library references."
-            :"Geometric variation contains no exact Include Library reference."
+            ?"HSF geometry anchor contains multiple Include Library references."
+            :"HSF geometry anchor contains no exact Include Library reference."
       }));
       continue;
     }
 
     parts.push(Object.freeze({
       part_number:partNumber,
-      graphics_node:Number(link.graphics_node),
-      geometric_variation:variation,
-      variation_segment:String(variation),
+      graphics_node:graphicsNode,
+      geometric_variation:hasVariation?variation:null,
+      geometry_anchor_kind:anchorKind,
+      variation_segment:String(anchorId),
       variation_segment_offset:decoded.offset,
       variation_include:include.name,
       variation_include_offset:include.source_offset,
@@ -127,7 +138,7 @@ export async function resolveRawHsfPartLinkage({
     parts:Object.freeze(parts),
     blocked_parts:Object.freeze(blocked),
     blocker:blocked.length===0
-      ?"Every exact geometricVariation segment resolved to one exact Include Library reference."
+      ?"Every exact DWFx geometry anchor resolved to one exact Include Library reference."
       :"One or more parts remain blocked; no guessed Include Library linkage was created."
   });
 }
