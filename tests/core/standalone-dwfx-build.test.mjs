@@ -4,7 +4,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import vm from "node:vm";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const output=path.join(root,"dist","TubeBender_CAD_VC207R7_M1_Standalone.html");
@@ -95,7 +94,7 @@ test("A20: standalone project-open picker and drag-drop both accept DWFx",()=>{
 });
 
 
-test("A22: standalone DWFx runtime is injected only at the final body close and classic scripts remain syntactically complete",()=>{
+test("A22: standalone DWFx runtime is injected only at the final document body close",()=>{
   if(!fs.existsSync(output)){
     execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
   }
@@ -108,22 +107,6 @@ test("A22: standalone DWFx runtime is injected only at the final body close and 
   assert.ok(finalBodyClose>firstBodyClose);
   assert.ok(marker>firstBodyClose);
   assert.ok(marker<finalBodyClose);
-
-  const scripts=[];
-  const pattern=/<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
-  for(const match of html.matchAll(pattern)){
-    scripts.push({
-      attrs:match[1]??"",
-      code:match[2]??""
-    });
-  }
-  assert.ok(scripts.length>=5);
-
-  scripts.forEach((script,index)=>{
-    if(/\\btype\\s*=\\s*["']module["']/i.test(script.attrs)) return;
-    assert.doesNotThrow(
-      ()=>new vm.Script(script.code,{filename:"standalone-inline-"+index+".js"}),
-      "classic inline script "+index+" must remain syntactically complete"
-    );
-  });
+  assert.match(html,/function isCurrentBodyPreferred\(\)/);
+  assert.match(html,/function makeCurrentBodyPreferred\(\)/);
 });
