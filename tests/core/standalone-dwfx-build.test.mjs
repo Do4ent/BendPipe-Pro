@@ -302,3 +302,15 @@ test("A34: standalone protects imported tube diameter from 1/4 fallback",()=>{
   assert.match(html,/active\.toolingId=null/);
   assert.match(html,/state\.toolingId=null/);
 });
+
+
+test("A36: standalone keeps rounded editable origin instead of restoring exact source origin",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/spatial\?\.editable_origin_mm/);
+  assert.match(html,/normalized\?\.editable_origin_mm/);
+  assert.match(html,/linear_rounding_increment_mm:1/);
+});
