@@ -57,7 +57,10 @@ export function evaluateCanonicalPromotion({
     "passed",
     "developed-length consistency"
   );
-  if(lengthIssue) blockers.push(lengthIssue);
+  const editableMetadataConflict=
+    geometry.editable_metadata_conflict===true &&
+    geometry.metadata_reconciliation?.advisory_for_editing===true;
+  if(lengthIssue&&!editableMetadataConflict) blockers.push(lengthIssue);
 
   const neutralIssue=requiredStatus(
     geometry.neutral_bend_sequence,
@@ -140,9 +143,14 @@ export function evaluateCanonicalPromotion({
       Number.isInteger(transform_provenance.transform_count)
         ? transform_provenance.transform_count
         : null,
+    metadata_conflict_advisory:editableMetadataConflict,
     blockers:Object.freeze(blockers),
     reason:promoted
-      ?"Exact DWF source scale, validated intrinsic tube geometry, developed length and proper-rigid placement provenance permit canonical nominal geometry promotion. Production release remains a separate gate."
+      ?(
+        editableMetadataConflict
+          ?"Exact W3D geometry and proper-rigid placement permit editable canonical promotion while conflicting Content Center metadata remains an explicit production blocker."
+          :"Exact DWF source scale, validated intrinsic tube geometry, developed length and proper-rigid placement provenance permit canonical nominal geometry promotion. Production release remains a separate gate."
+      )
       :"Canonical promotion is blocked until every required source/provenance check passes."
   });
 }
