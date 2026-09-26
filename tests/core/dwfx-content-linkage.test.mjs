@@ -195,3 +195,20 @@ test("A20: real 10141455 label fallback resolves exact graphics anchors",()=>{
   assert.equal(resolved.graphics_node,120041);
   assert.equal(resolved.geometric_variation,120042);
 });
+
+
+test("A20: real 10139798 label fallback resolves exact graphics anchors",()=>{
+  const sourceContent='<Content><Object id="PCRYbsi_5UmTo_7y68W23g" label="10139798/- - Tube, Copper, on length 3/4&quot; x 1,7mm:1" entityRef="OyRYbsi_5UmTo_7y68W23g"><Property name="Description" value="Copper tube 3_4inch x 1,7" category="Design Tracking Properties"/></Object></Content>';
+  const sourcePresentation='<Presentation><ReferenceNode id="d5ZMvqYtMUie0F_3wYgEvQ" contentElementRefs="PCRYbsi_5UmTo_7y68W23g" label="10139798/- - Tube, Copper, on length 3/4&quot; x 1,7mm:1"/></Presentation>';
+  const sourceDefinition='<Instances><Instance id="PSRYbsi_5UmTo_7y68W23g" renderableRef="PCRYbsi_5UmTo_7y68W23g" node="119957" geometricVariation="119958"/></Instances>';
+  const index=buildDwfxGraphicsLinkIndex({
+    contentXml:sourceContent,
+    presentationXml:sourcePresentation,
+    contentDefinitionXml:sourceDefinition
+  });
+  const [resolved]=resolvePartGraphicsLinks(index,["10139798"]);
+  assert.equal(resolved.status,"exact");
+  assert.equal(resolved.matching_method,"object_label_fallback");
+  assert.equal(resolved.graphics_node,119957);
+  assert.equal(resolved.geometric_variation,119958);
+});
