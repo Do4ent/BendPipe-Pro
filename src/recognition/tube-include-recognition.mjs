@@ -218,7 +218,8 @@ export function recognizeTubeIncludeLibraryGeometry({
     developed_length_mm,
     {tolerance_mm:developedLengthToleranceMm}
   );
-  if(lengthConsistency.status!=="passed"){
+  const metadataLengthConflict=lengthConsistency.status!=="passed";
+  if(metadataLengthConflict&&allow_geometry_derived_dimensions!==true){
     return Object.freeze({
       status:"unresolved",
       production_ready:false,
@@ -290,6 +291,23 @@ export function recognizeTubeIncludeLibraryGeometry({
     segmentation,
     topology,
     length_consistency:lengthConsistency,
+    editable_metadata_conflict:
+      allow_geometry_derived_dimensions===true &&
+      (
+        selected.centerline.metadata_dimension_match!==true ||
+        metadataLengthConflict
+      ),
+    metadata_reconciliation:Object.freeze({
+      dimensions_match:selected.centerline.metadata_dimension_match===true,
+      developed_length_match:!metadataLengthConflict,
+      metadata_developed_length_mm:Number(developed_length_mm),
+      reconstructed_developed_length_mm:
+        Number(lengthConsistency.reconstructed_developed_length_mm),
+      advisory_for_editing:allow_geometry_derived_dimensions===true,
+      blocks_production:
+        selected.centerline.metadata_dimension_match!==true ||
+        metadataLengthConflict
+    }),
     neutral_bend_sequence:neutralSequence,
     machine_compensation_applied:false,
     blocker:"Geometry is validated derived evidence but still requires final provenance/transform review before canonical promotion."
