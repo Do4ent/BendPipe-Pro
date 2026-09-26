@@ -78,7 +78,9 @@ export function prepareDwfxTubeImport({
     outer_diameter_mm:od,
     wall_thickness_mm:wall,
     developed_length_mm:developed,
-    scale_mm_per_source_unit:scale
+    scale_mm_per_source_unit:scale,
+    allow_geometry_derived_dimensions:
+      metadata?.recognition_kind==="copper_tube_fallback"
   });
 
   if(!geometry||geometry.status!=="geometry_candidate"){
