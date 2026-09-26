@@ -82,7 +82,7 @@ test("A26: grouped hide/show and transparency operate on selected readonly branc
   );
 
   api.applyBulkAction(project,"show");
-  assert.deepEqual(project.referenceScenes[0].hiddenNodeIds,[]);
+  assert.deepEqual(Array.from(project.referenceScenes[0].hiddenNodeIds),[]);
 
   api.applyBulkAction(project,"transparent");
   assert.deepEqual(
@@ -92,7 +92,7 @@ test("A26: grouped hide/show and transparency operate on selected readonly branc
   assert.match(api.treeItems({project}).join("\n"),/прозрачно/);
 
   api.applyBulkAction(project,"transparent");
-  assert.deepEqual(project.referenceScenes[0].transparentNodeIds,[]);
+  assert.deepEqual(Array.from(project.referenceScenes[0].transparentNodeIds),[]);
 });
 
 test("A26: grouped delete removes readonly geometry but preserves editable tube source branch",()=>{
@@ -105,7 +105,7 @@ test("A26: grouped delete removes readonly geometry but preserves editable tube 
   assert.equal(project.referenceScenes.length,1);
   const rootNode=project.referenceScenes[0].tree[0];
   assert.equal(rootNode.id,"root");
-  assert.deepEqual(rootNode.geometry_instances,[]);
+  assert.deepEqual(Array.from(rootNode.geometry_instances),[]);
   assert.equal(rootNode.children.length,1);
   assert.equal(rootNode.children[0].id,"tube-node");
   assert.equal(rootNode.children[0].editable_part_number,"TUBE-1");
