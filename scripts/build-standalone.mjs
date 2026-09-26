@@ -172,7 +172,13 @@ if (!output.includes(referenceTreeBindAnchor)) {
 output = output.replace(
   referenceTreeBindAnchor,
   referenceTreeBindAnchor +
-  `\n  try{\n    window.TubeBenderReferenceSceneUi?.bindTree?.(host,p,{switchTube,save,renderAll,refreshProjectTree});\n  }catch(error){\n    console.warn("DWFx reference tree binding:",error);\n  }`
+  `\n  try{\n    window.TubeBenderReferenceSceneUi?.bindTree?.(host,p,{
+      switchTube,
+      save,
+      renderAll,
+      refreshProjectTree,
+      modelCommand:tbModelCommand
+    });\n  }catch(error){\n    console.warn("DWFx reference tree binding:",error);\n  }`
 );
 
 const dwfxEntryUrl = moduleDataUrl(dwfxEntryPath);
