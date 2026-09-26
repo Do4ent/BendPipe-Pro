@@ -120,7 +120,13 @@ export async function prepareTrustedDwfxFileImport({
     project_id,
     project_name:project_name??sourceFile.replace(/\.dwfx$/i,""),
     bbox,
-    reference_scene:referenceScene?.metadata??null
+    reference_scene:
+      referenceScene?.metadata
+        ? Object.freeze({
+            ...referenceScene.metadata,
+            display_runtime:referenceScene.runtime??null
+          })
+        : null
   });
 
   if(
