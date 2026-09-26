@@ -53,15 +53,80 @@ function freezeRecords(records) {
   return Object.freeze(records.map((record) => Object.freeze(record)));
 }
 
+function exactObjectPartNumber(properties) {
+  const matches = properties.filter(
+    (property) =>
+      property.name === "Part Number" &&
+      property.category === "Design Tracking Properties"
+  );
+  if (matches.length !== 1) return null;
+  const value = String(matches[0].value ?? "").trim();
+  return value || null;
+}
+
 export function parseDwfxContentObjects(xml) {
-  const records = openingElements(xml, "Object")
-    .filter((attrs) => attrs.id)
-    .map((attrs) => ({
-      id: attrs.id,
-      label: attrs.label ?? null,
-      entity_ref: attrs.entityRef ?? null
-    }));
-  return freezeRecords(records);
+  if (typeof xml !== "string") throw new TypeError("Object XML must be a string");
+
+  const records = [];
+  const stack = [];
+  const tokenPattern =
+    /<(\\/?)(?:[A-Za-z_][\\w.-]*:)?(Object|Property)\\b([^>]*)>/gs;
+
+  for (const match of xml.matchAll(tokenPattern)) {
+    const closing = match[1] === "/";
+    const localName = match[2];
+    const fragment = match[3] ?? "";
+
+    if (localName === "Object") {
+      if (closing) {
+        const context = stack.pop();
+        if (context) records.push(context);
+        continue;
+      }
+
+      const attrs = parseAttributes(fragment);
+      const context = {
+        id: attrs.id ?? null,
+        label: attrs.label ?? null,
+        entity_ref: attrs.entityRef ?? null,
+        properties: [],
+        source_index: match.index ?? 0
+      };
+
+      if (/\\/\\s*$/.test(fragment)) {
+        records.push(context);
+      } else {
+        stack.push(context);
+      }
+      continue;
+    }
+
+    if (
+      localName === "Property" &&
+      !closing &&
+      stack.length > 0
+    ) {
+      const attrs = parseAttributes(fragment);
+      if (!attrs.name) continue;
+      stack.at(-1).properties.push({
+        name: attrs.name,
+        value: attrs.value ?? null,
+        category: attrs.category ?? null
+      });
+    }
+  }
+
+  return freezeRecords(
+    records
+      .filter((record) => record.id)
+      .sort((a, b) => a.source_index - b.source_index)
+      .map((record) => ({
+        id: record.id,
+        label: record.label,
+        entity_ref: record.entity_ref,
+        part_number: exactObjectPartNumber(record.properties)
+      }))
+  );
 }
 
 export function parseDwfxReferenceNodes(xml) {
@@ -150,6 +215,8 @@ export function buildDwfxGraphicsLinkIndex({
       object_id: object.id,
       object_label: object.label,
       entity_ref: object.entity_ref,
+      part_number: object.part_number ?? null,
+      part_number_source: object.part_number ? "object_property" : null,
       reference_node_id: reference.value?.id ?? null,
       instance_id: instance.value?.id ?? null,
       graphics_node: instance.value?.node ?? null,
@@ -191,15 +258,32 @@ export function resolvePartGraphicsLinks(index, partNumbers) {
 
   return Object.freeze(partNumbers.map((partNumber) => {
     const part = String(partNumber);
-    const matches = index.links.filter((link) =>
-      partLabelMatches(link.object_label, part)
+
+    const propertyMatches = index.links.filter(
+      (link) => String(link.part_number ?? "") === part
     );
+    const labelFallbackMatches = propertyMatches.length === 0
+      ? index.links.filter(
+          (link) =>
+            !link.part_number &&
+            partLabelMatches(link.object_label, part)
+        )
+      : [];
+    const matches = propertyMatches.length
+      ? propertyMatches
+      : labelFallbackMatches;
+    const matchingMethod = propertyMatches.length
+      ? "object_property"
+      : labelFallbackMatches.length
+        ? "object_label_fallback"
+        : null;
 
     if (matches.length !== 1) {
       return Object.freeze({
         part_number: part,
         status: matches.length === 0 ? "unresolved" : "ambiguous",
         match_count: matches.length,
+        matching_method: matchingMethod,
         graphics_node: null,
         geometric_variation: null,
         link: null,
@@ -212,6 +296,7 @@ export function resolvePartGraphicsLinks(index, partNumbers) {
       part_number: part,
       status: link.status,
       match_count: 1,
+      matching_method: matchingMethod,
       graphics_node: link.graphics_node,
       geometric_variation: link.geometric_variation,
       link,
