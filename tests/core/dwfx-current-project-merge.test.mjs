@@ -188,3 +188,35 @@ test("A25: current-project merge carries readonly reference scene source tree wi
   assert.equal(result.project.referenceScenes[0].display_runtime,undefined);
   assert.equal(result.production_ready,false);
 });
+
+
+test("A31: current-project merge rounds imported OD to active table without selecting tooling",()=>{
+  const source=tube("10102217","incoming");
+  source.importEvidence.recognitionSummary={
+    dimension_source:"geometry_derived",
+    dimension_reconciliation:{
+      derived_outer_diameter_mm:9.700000225
+    }
+  };
+  source.importEvidence.metadata={outer_diameter_mm:9.525};
+
+  const result=mergeDwfxTubesIntoCurrentProject({
+    project:{id:"p",tubes:[]},
+    imported_projects:[{tubes:[source]}],
+    conflict:"copy",
+    make_id:()=> "unused",
+    diameter_catalog:[
+      {id:"6",mm:6.35,Rb:15},
+      {id:"9",mm:9.53,Rb:25},
+      {id:"12",mm:12.7,Rb:40}
+    ]
+  });
+
+  const imported=result.project.tubes[0];
+  assert.equal(imported.diameterIndex,1);
+  assert.equal(imported.toolingId,null);
+  assert.equal(imported.toolingUnresolved,true);
+  assert.equal(imported.importEvidence.diameterNormalization.table_outer_diameter_mm,9.53);
+  assert.equal(imported.importEvidence.diameterNormalization.source_outer_diameter_mm,9.700000225);
+  assert.equal(imported.importValidation.productionBlocked,true);
+});
