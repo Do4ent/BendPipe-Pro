@@ -92,6 +92,45 @@ let output = source.replace(
   () => bundledThree
 );
 
+const bodyProfileCompatAnchor =
+  "const oldNormalize=window.normalizeProjectCoordinateState;";
+if (!output.includes(bodyProfileCompatAnchor)) {
+  throw new Error("Project Map body-profile compatibility anchor was not found");
+}
+const bodyProfileCompat = `
+function isCurrentBodyPreferred(){
+  ensureBodyProfiles();
+  const preferred=state.bodyProfiles.find(
+    (profile)=>profile.id===state.preferredBodyProfileId
+  );
+  return !!preferred&&bodyKey(preferred)===bodyKey(currentBody());
+}
+function makeCurrentBodyPreferred(){
+  ensureBodyProfiles();
+  const body=currentBody();
+  const key=bodyKey(body);
+  let profile=state.bodyProfiles.find((item)=>bodyKey(item)===key);
+  if(!profile){
+    profile=normalizeProfile({
+      id:"body-current-"+Date.now().toString(36),
+      name:"Корпус "+fmt0(body.length)+" × "+fmt0(body.depth)+" × "+fmt0(body.height),
+      ...body
+    });
+    state.bodyProfiles.push(profile);
+  }
+  state.preferredBodyProfileId=profile.id;
+  try{save();}catch{}
+  try{refreshProjectTree();}catch{}
+  try{populateProfiles();}catch{}
+  try{ptToast("Текущий корпус сохранён как предпочтительный");}catch{}
+  return profile;
+}
+`;
+output = output.replace(
+  bodyProfileCompatAnchor,
+  bodyProfileCompat + "\n" + bodyProfileCompatAnchor
+);
+
 const dwfxEntry = bundledEntrySource(dwfxEntryPath).replace(
   /<\/script/gi,
   "<\\/script"
