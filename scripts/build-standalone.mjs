@@ -113,6 +113,46 @@ output = output.replace(
   "  for(const t of allTubeRecords()){\n    const importBlocked=t?.importValidation?.productionBlocked===true;\n    if(!t.toolingId&&!importBlocked){\n      const legacy=pipeDb[Number(t.diameterIndex)];\n      if(legacy?.id)t.toolingId=legacy.id;\n    }\n    if(!t.toolingId&&importBlocked){\n      t.toolingUnresolved=true;\n      continue;\n    }\n    const idx=toolingIndexById(t.toolingId);\n    if(idx>=0){\n      t.diameterIndex=idx;\n      t.toolingUnresolved=false;\n    }else if(t.toolingId){\n      t.toolingUnresolved=true;\n    }\n  }"
 );
 
+const viewerZoomWheelAnchor =
+  "  wheel(e){\n    if (!this.enabled) return;\n    e.preventDefault();\n    const normalized = Math.max(-120, Math.min(120, Number(e.deltaY || 0)));\n    const factor = Math.exp(normalized * 0.0017);\n    this.zoomByFactor(factor);\n    this._suppressSelectionUntil = performance.now() + 180;\n  }";
+if (!output.includes(viewerZoomWheelAnchor)) {
+  throw new Error("SimpleOrbitControls wheel implementation was not found");
+}
+output = output.replace(
+  viewerZoomWheelAnchor,
+  "  wheelDeltaPixels(e){\n    const raw=Number(e?.deltaY||0);\n    if(!Number.isFinite(raw)||raw===0)return 0;\n    const mode=Number(e?.deltaMode||0);\n    if(mode===1)return raw*33;\n    if(mode===2)return raw*Math.max(180,this.domElement?.clientHeight||window.innerHeight||800);\n    return raw;\n  }\n\n  wheel(e){\n    if (!this.enabled) return;\n    e.preventDefault();\n    const pixels=this.wheelDeltaPixels(e);\n    if(!pixels)return;\n    const normalized=Math.max(-240,Math.min(240,pixels));\n    const speed=Math.max(0.1,Number(this.zoomSpeed)||1);\n    const factor=Math.exp(normalized*0.0017*speed);\n    this.zoomByFactor(factor);\n    this._suppressSelectionUntil = performance.now() + 180;\n  }"
+);
+
+const viewerZoomPerspectiveAnchor =
+  "    const nextDistance = Math.max(this.minDistance, Math.min(this.maxDistance, distance * factor));\n    offset.setLength(nextDistance);\n    this.camera.position.copy(this.target).add(offset);\n    this.camera.lookAt(this.target);\n    this.camera.updateMatrixWorld(true);\n    markViewerDirty();";
+if (!output.includes(viewerZoomPerspectiveAnchor)) {
+  throw new Error("SimpleOrbitControls perspective zoom implementation was not found");
+}
+output = output.replace(
+  viewerZoomPerspectiveAnchor,
+  "    const nextDistance = Math.max(this.minDistance, Math.min(this.maxDistance, distance * factor));\n    if(Math.abs(nextDistance-distance)<=1e-12)return;\n    offset.setLength(nextDistance);\n    this.camera.position.copy(this.target).add(offset);\n    this.camera.near=Math.max(0.001,nextDistance/10000);\n    this.camera.far=Math.max(5000,nextDistance*10000);\n    this.camera.updateProjectionMatrix();\n    this.camera.lookAt(this.target);\n    this.camera.updateMatrixWorld(true);\n    markViewerDirty();"
+);
+
+const viewerZoomOrthoAnchor =
+  "      this.camera.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.camera.zoom / factor));\n      this.camera.updateProjectionMatrix();\n      markViewerDirty();";
+if (!output.includes(viewerZoomOrthoAnchor)) {
+  throw new Error("SimpleOrbitControls orthographic zoom implementation was not found");
+}
+output = output.replace(
+  viewerZoomOrthoAnchor,
+  "      const previousZoom=Math.max(this.minZoom,Math.min(this.maxZoom,Number(this.camera.zoom)||1));\n      const nextZoom=Math.max(this.minZoom, Math.min(this.maxZoom, previousZoom / factor));\n      if(Math.abs(nextZoom-previousZoom)<=1e-12)return;\n      this.camera.zoom=nextZoom;\n      this.camera.updateProjectionMatrix();\n      markViewerDirty();"
+);
+
+const resizeFitAnchor =
+  "  camera.updateProjectionMatrix();\n  renderer.setSize(w, h, false);\n  fitPipeToViewerKeepOrbit();\n}\nfunction animate(){";
+if (!output.includes(resizeFitAnchor)) {
+  throw new Error("viewer resize auto-fit implementation was not found");
+}
+output = output.replace(
+  resizeFitAnchor,
+  "  camera.updateProjectionMatrix();\n  renderer.setSize(w, h, false);\n  // Preserve user camera zoom/orbit on viewport or browser-scale changes.\n  // Initial/view-orientation fitting is invoked explicitly by its callers.\n  markViewerDirty();\n}\nfunction animate(){"
+);
+
 const bodyProfileCompatAnchor =
   "const oldNormalize=window.normalizeProjectCoordinateState;";
 if (!output.includes(bodyProfileCompatAnchor)) {
