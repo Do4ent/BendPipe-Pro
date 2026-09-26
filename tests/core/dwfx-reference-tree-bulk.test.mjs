@@ -208,3 +208,99 @@ test("A27: Ctrl+Shift-click adds a visible range to the existing grouped selecti
   assert.match(html,/data-ref-select="d" checked/);
   assert.doesNotMatch(html,/data-ref-select="c" checked/);
 });
+
+
+function nestedTreeProject(){
+  return {
+    id:"nested",
+    tubes:[],
+    referenceScenes:[{
+      id:"scene-nested",
+      name:"assembly.dwfx",
+      source_file:"assembly.dwfx",
+      tree:[{
+        id:"assembly",
+        label:"Main Assembly",
+        readonly:true,
+        geometry_status:"group",
+        geometry_instances:[],
+        children:[{
+          id:"sub",
+          label:"Subassembly A",
+          readonly:true,
+          geometry_status:"group",
+          geometry_instances:[],
+          children:[{
+            id:"component",
+            label:"Bracket 42",
+            readonly:true,
+            geometry_status:"exact",
+            geometry_instances:[{asset_id:"42",status:"exact"}],
+            children:[]
+          }]
+        }]
+      }]
+    }]
+  };
+}
+
+test("A28: imported geometry is rendered as a nested project-tree branch",()=>{
+  const api=loadUi();
+  const project=nestedTreeProject();
+  const html=api.treeItems({project}).join("\n");
+
+  const root=html.indexOf("Импортированная геометрия");
+  const file=html.indexOf("assembly.dwfx");
+  const assembly=html.indexOf("Main Assembly");
+  const sub=html.indexOf("Subassembly A");
+  const component=html.indexOf("Bracket 42");
+
+  assert.ok(root>=0);
+  assert.ok(file>root);
+  assert.ok(assembly>file);
+  assert.ok(sub>assembly);
+  assert.ok(component>sub);
+  assert.match(html,/data-ref-root-toggle="1"/);
+  assert.match(html,/data-ref-scene-toggle="scene-nested"/);
+  assert.match(html,/data-ref-toggle="assembly"/);
+  assert.match(html,/data-ref-toggle="sub"/);
+});
+
+test("A28: imported-geometry root and DWFx file can be collapsed independently",()=>{
+  const api=loadUi();
+  const project=nestedTreeProject();
+
+  project.referenceGeometryTreeCollapsed=true;
+  let html=api.treeItems({project}).join("\n");
+  assert.match(html,/Импортированная геометрия/);
+  assert.doesNotMatch(html,/assembly\.dwfx/);
+  assert.doesNotMatch(html,/Main Assembly/);
+
+  project.referenceGeometryTreeCollapsed=false;
+  project.referenceScenes[0].treeCollapsed=true;
+  html=api.treeItems({project}).join("\n");
+  assert.match(html,/assembly\.dwfx/);
+  assert.doesNotMatch(html,/Main Assembly/);
+
+  project.referenceScenes[0].treeCollapsed=false;
+  project.referenceScenes[0].collapsedNodeIds=["assembly"];
+  html=api.treeItems({project}).join("\n");
+  assert.match(html,/Main Assembly/);
+  assert.doesNotMatch(html,/Subassembly A/);
+  assert.doesNotMatch(html,/Bracket 42/);
+});
+
+test("A28: tree search expands collapsed reference levels for matching imported component",()=>{
+  const api=loadUi();
+  const project=nestedTreeProject();
+  project.referenceGeometryTreeCollapsed=true;
+  project.referenceScenes[0].treeCollapsed=true;
+  project.referenceScenes[0].collapsedNodeIds=["assembly","sub"];
+
+  const html=api.treeItems({project,query:"bracket 42"}).join("\n");
+  assert.match(html,/Импортированная геометрия/);
+  assert.match(html,/assembly\.dwfx/);
+  assert.match(html,/Main Assembly/);
+  assert.match(html,/Subassembly A/);
+  assert.match(html,/Bracket 42/);
+});
