@@ -70,7 +70,7 @@ export function parseDwfxContentObjects(xml) {
   const records = [];
   const stack = [];
   const tokenPattern =
-    /<(\\/?)(?:[A-Za-z_][\\w.-]*:)?(Object|Property)\\b([^>]*)>/gs;
+    /<(\/?)(?:[A-Za-z_][\w.-]*:)?(Object|Property)\b([^>]*)>/gs;
 
   for (const match of xml.matchAll(tokenPattern)) {
     const closing = match[1] === "/";
@@ -93,7 +93,7 @@ export function parseDwfxContentObjects(xml) {
         source_index: match.index ?? 0
       };
 
-      if (/\\/\\s*$/.test(fragment)) {
+      if (/\/\s*$/.test(fragment)) {
         records.push(context);
       } else {
         stack.push(context);
