@@ -20,7 +20,12 @@ test("A20: standalone build embeds guarded DWFx importer and preserves JSON path
 
   const html=fs.readFileSync(output,"utf8");
   assert.match(html,/data-tubebender-bundled="dwfx-import"/);
-  assert.match(html,/window\.TubeBenderDwfxImport=Object\.freeze\(\{importSelectedDwfxFile\}\)/);
+  assert.match(html,/data-tubebender-bundled="dwfx-current-project-ui"/);
+  assert.match(html,/poImportCurrentBtn/);
+  assert.match(html,/Импортировать в текущий проект/);
+  assert.match(html,/importSelectedDwfxTubesIntoCurrentProject/);
+  assert.match(html,/tbHistoryBegin\("Импортировать DWFx геометрию"\)/);
+  assert.match(html,/window\.TubeBenderDwfxImport=Object\.freeze\(\{importSelectedDwfxFile,mergeDwfxTubesIntoCurrentProject\}\)/);
   assert.match(html,/if\(\/\\\.dwfx\$\/i\.test\(String\(file\.name\|\|''\)\)\)/);
   assert.match(html,/result\?\.status==='requirements_pending'/);
   assert.match(html,/requirement\?\.kind==='bbox'/);
