@@ -242,3 +242,28 @@ test("A31: standalone rounds recognized DWFx OD to active pipe table without aut
   assert.match(html,/if\(!t\.toolingId&&!importBlocked\)/);
   assert.match(html,/if\(!t\.toolingId&&importBlocked\)/);
 });
+
+
+test("A32: main 3D viewer preserves user zoom and normalizes mouse-wheel delta modes",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/wheelDeltaPixels\(e\)/);
+  assert.match(html,/if\(mode===1\)return raw\*33/);
+  assert.match(html,/if\(mode===2\)return raw\*Math\.max\(180,this\.domElement\?\.clientHeight/);
+  assert.match(html,/const speed=Math\.max\(0\.1,Number\(this\.zoomSpeed\)\|\|1\)/);
+  assert.match(html,/const factor=Math\.exp\(normalized\*0\.0017\*speed\)/);
+
+  const resizeStart=html.indexOf("function resize(){");
+  const animateStart=html.indexOf("function animate(){",resizeStart);
+  assert.ok(resizeStart>=0&&animateStart>resizeStart);
+  const resizeBlock=html.slice(resizeStart,animateStart);
+  assert.match(resizeBlock,/renderer\.setSize\(w, h, false\)/);
+  assert.match(resizeBlock,/markViewerDirty\(\)/);
+  assert.doesNotMatch(resizeBlock,/fitPipeToViewerKeepOrbit\(\)/);
+
+  assert.match(html,/this\.camera\.near=Math\.max\(0\.001,nextDistance\/10000\)/);
+  assert.match(html,/this\.camera\.far=Math\.max\(5000,nextDistance\*10000\)/);
+});
