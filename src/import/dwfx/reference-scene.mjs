@@ -181,6 +181,82 @@ function appendSegment(out,a,b,matrix){
   out.push(...p0,...p1);
 }
 
+function v3(value){
+  if(!Array.isArray(value)||value.length<3)return null;
+  const out=value.slice(0,3).map(Number);
+  return out.every(Number.isFinite)?out:null;
+}
+function vAdd(a,b){return [a[0]+b[0],a[1]+b[1],a[2]+b[2]];}
+function vSub(a,b){return [a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
+function vScale(a,s){return [a[0]*s,a[1]*s,a[2]*s];}
+function vDot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+function vCross(a,b){
+  return [
+    a[1]*b[2]-a[2]*b[1],
+    a[2]*b[0]-a[0]*b[2],
+    a[0]*b[1]-a[1]*b[0]
+  ];
+}
+function vLen(a){return Math.hypot(a[0],a[1],a[2]);}
+function vUnit(a){
+  const length=vLen(a);
+  return length>1e-12?vScale(a,1/length):null;
+}
+function circularArcPolyline(entity){
+  const start=v3(entity?.start);
+  const middle=v3(entity?.middle);
+  const end=v3(entity?.end);
+  if(!start||!middle||!end)return null;
+
+  const ab=vSub(middle,start);
+  const ac=vSub(end,start);
+  const normal=vCross(ab,ac);
+  const normal2=vDot(normal,normal);
+  if(normal2<=1e-18)return Object.freeze([start,middle,end]);
+
+  let center=v3(entity?.center);
+  if(!center){
+    const term1=vScale(vCross(ac,normal),vDot(ab,ab));
+    const term2=vScale(vCross(normal,ab),vDot(ac,ac));
+    center=vAdd(start,vScale(vAdd(term1,term2),1/(2*normal2)));
+  }
+
+  const u=vUnit(vSub(start,center));
+  const n=vUnit(normal);
+  if(!u||!n)return Object.freeze([start,middle,end]);
+  const v=vUnit(vCross(n,u));
+  if(!v)return Object.freeze([start,middle,end]);
+
+  const angleOf=(point)=>{
+    const rel=vSub(point,center);
+    return Math.atan2(vDot(rel,v),vDot(rel,u));
+  };
+  const normalize=(angle)=>{
+    let out=angle%(Math.PI*2);
+    if(out<0)out+=Math.PI*2;
+    return out;
+  };
+
+  const midAngle=normalize(angleOf(middle));
+  const endAngle=normalize(angleOf(end));
+  const sweep=midAngle<=endAngle
+    ? endAngle
+    : endAngle-Math.PI*2;
+  const radius=vLen(vSub(start,center));
+  if(!Number.isFinite(radius)||radius<=1e-12){
+    return Object.freeze([start,middle,end]);
+  }
+
+  const count=Math.max(8,Math.min(128,Math.ceil(Math.abs(sweep)/(Math.PI/36))));
+  const points=[];
+  for(let i=0;i<=count;i+=1){
+    const angle=sweep*(i/count);
+    const radial=vAdd(vScale(u,Math.cos(angle)*radius),vScale(v,Math.sin(angle)*radius));
+    points.push(Object.freeze(vAdd(center,radial)));
+  }
+  return Object.freeze(points);
+}
+
 function buildLineAsset(entities){
   const positions=[];
   for(const entity of entities){
@@ -200,6 +276,15 @@ function buildLineAsset(entities){
     }
     if(entity?.kind==="curve_candidate"&&entity.primitive==="line"){
       appendSegment(positions,entity.start,entity.end,matrix);
+      continue;
+    }
+    if(entity?.kind==="curve_candidate"&&entity.primitive==="circular_arc"){
+      const arc=circularArcPolyline(entity);
+      if(arc){
+        for(let i=1;i<arc.length;i+=1){
+          appendSegment(positions,arc[i-1],arc[i],matrix);
+        }
+      }
       continue;
     }
 
