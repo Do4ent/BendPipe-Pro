@@ -57,7 +57,7 @@ test("A20: missing variation segment remains blocked instead of nearest-ID match
   assert.equal(result.status,"partial");
   assert.equal(result.linked_count,0);
   assert.equal(result.blocked_count,1);
-  assert.equal(result.blocked_parts[0].stage,"variation_segment");
+  assert.equal(result.blocked_parts[0].stage,"geometry_anchor");
 });
 
 test("A20: variation with no Include Library remains explicit",async()=>{
@@ -117,4 +117,29 @@ test("A20: unresolved graphics linkage blocks HSF resolution before W3D decode",
   assert.equal(result.status,"blocked");
   assert.equal(result.blocked_parts[0].stage,"graphics_linkage");
   assert.equal(decoded,false);
+});
+
+
+test("DWFx: absent geometricVariation falls back only to the exact graphics-node segment",async()=>{
+  const stream=[
+    ...open("119735"),
+      ...open(""),...include("?Include Library/50001"),...close(),
+    ...close()
+  ];
+  const result=await resolveRawHsfPartLinkage({
+    w3d_bytes:makeW3d(stream),
+    source_file:"80004806.dwfx",
+    graphics_links:[{
+      part_number:"10102202",
+      status:"exact",
+      graphics_node:119735,
+      geometric_variation:null
+    }]
+  });
+
+  assert.equal(result.status,"exact");
+  assert.equal(result.parts[0].geometric_variation,null);
+  assert.equal(result.parts[0].geometry_anchor_kind,"graphics_node");
+  assert.equal(result.parts[0].variation_segment,"119735");
+  assert.equal(result.parts[0].variation_include,"?Include Library/50001");
 });
