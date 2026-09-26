@@ -113,4 +113,7 @@ test("A22: standalone DWFx runtime is injected only at the final document body c
   assert.ok(marker<finalBodyClose);
   assert.match(html,/function isCurrentBodyPreferred\(\)/);
   assert.match(html,/function makeCurrentBodyPreferred\(\)/);
+  assert.doesNotMatch(html,/observer\.observe\(dialog,\{subtree:true,childList:true,attributes:true\}\)/);
+  assert.match(html,/button\.textContent!==nextText/);
+  assert.match(html,/records\.every\(\(record\)=>record\.target===button\|\|button\.contains\(record\.target\)\)/);
 });
