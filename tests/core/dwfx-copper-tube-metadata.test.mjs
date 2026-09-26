@@ -176,3 +176,12 @@ test("DWFx copper recognizer accepts real 10141455 Object-label fallback metadat
   assert.equal(tube.source_evidence.part_number_method,"exact_object_label_prefix");
   assert.equal(tube.source_evidence.source_record_kind,"object");
 });
+
+
+test("DWFx copper recognizer excludes real 10000611 reducer even though material is Copper",()=>{
+  const source='<dwf:Content xmlns:dwf="urn:dwf"><dwf:Entity id="Yh9Ybsi_5UmTo_7y68W23g" label="10000611.ipt"><dwf:Property name="Description" value="Reducer, male x female" category="Design Tracking Properties"/><dwf:Property name="Part Number" value="10000611" category="Design Tracking Properties"/><dwf:Property name="Material" value="Copper" category="Physical"/><dwf:Property name="Title" value="Reducer, Copper, male x female 7/8&quot; x 3/4&quot;" category="Summary Information"/><dwf:Property name="Description 1" value="Reducer" category="User Defined Properties"/><dwf:Property name="Description 2" value="Copper" category="User Defined Properties"/><dwf:Property name="ND1" value="22,225 mm" category="User Defined Properties"/><dwf:Property name="ND2" value="19,050 mm" category="User Defined Properties"/><dwf:Property name="Type" value="male x female 7/8&quot; x 3/4&quot;" category="User Defined Properties"/></dwf:Entity><dwf:Object id="ciJYbsi_5UmTo_7y68W23g" label="10000611, Reducer, Copper, male x female 7/8&quot; x 3/4&quot;:1" entityRef="Yh9Ybsi_5UmTo_7y68W23g"/><dwf:Object id="MyRYbsi_5UmTo_7y68W23g" label="10000611, Reducer, Copper, male x female 7/8&quot; x 3/4&quot;:1" entityRef="Yh9Ybsi_5UmTo_7y68W23g"/></dwf:Content>';
+  const result=extractCopperTubeMetadataFromContentXml(source,{source_file:"80004806.dwfx"});
+  assert.equal(result.status,"blocked");
+  assert.equal(result.tubes.length,0);
+  assert.match(result.issues[0],/No exact copper tube metadata/i);
+});
