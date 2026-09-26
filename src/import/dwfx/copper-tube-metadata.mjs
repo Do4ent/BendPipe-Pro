@@ -1,4 +1,4 @@
-import { parseEntityRecords } from "./raw-metadata-intake.mjs";
+import { parseEntityRecords, parseObjectRecords } from "./raw-metadata-intake.mjs";
 
 function firstProperty(entity,name,category=null){
   const list=entity.properties?.[name]??[];
@@ -92,11 +92,82 @@ function dimensionEvidence(entity){
   return null;
 }
 
+
+function partNumberFromObjectLabel(label){
+  const match=/^(\d+)(?=[\s/:-])/.exec(String(label??"").trim());
+  return match?match[1]:null;
+}
+
+function candidateFromRecord(record,part,{
+  source_file,
+  source_kind,
+  part_number_method
+}){
+  if(!isCopperTubeEntity(record)) return null;
+
+  const dimensionsEvidence=dimensionEvidence(record);
+  if(!dimensionsEvidence) return null;
+
+  const lengthValue=firstProperty(record,"Length","User Defined Properties");
+  if(lengthValue==null) return null;
+  const developed=decimal(lengthValue,"Length");
+  if(!(developed>0)) return null;
+
+  const sourceRef=
+    "dwfx:"+String(source_file)+"#"+source_kind+":"+String(record.id??part);
+  const material=firstProperty(record,"Material","Physical")??null;
+  const revision=firstProperty(record,"Revision Number","Summary Information")??null;
+  const d=dimensionsEvidence.dimensions;
+
+  return Object.freeze({
+    id:String(record.id??part),
+    entity_ref:record.entity_ref??(source_kind==="entity"?record.id??null:null),
+    part_number:part,
+    revision,
+    quantity_in_assembly:null,
+    material,
+    metadata:Object.freeze({
+      outer_diameter:exact(
+        d.outer_diameter_mm,
+        sourceRef,
+        "mm",
+        d.diameter_method
+      ),
+      wall_thickness:exact(
+        d.wall_thickness_mm,
+        sourceRef,
+        "mm",
+        "explicit_copper_tube_designation"
+      ),
+      developed_length:exact(
+        developed,
+        sourceRef,
+        "mm",
+        "dwfx_content_length_property"
+      )
+    }),
+    source_evidence:Object.freeze({
+      entity_label:record.label,
+      recognition_kind:"copper_tube_fallback",
+      source_record_kind:source_kind,
+      part_number_method,
+      dimension_property:dimensionsEvidence.name,
+      dimension_text:dimensionsEvidence.value,
+      dimension_notation:d.source_notation,
+      description:firstProperty(record,"Description","Design Tracking Properties"),
+      title:firstProperty(record,"Title","Summary Information"),
+      displayed_od_property:firstProperty(record,"OD","User Defined Properties"),
+      displayed_wall_property:firstProperty(record,"SN","User Defined Properties")
+    })
+  });
+}
+
 /**
  * Strict fallback metadata recognizer for assemblies that describe editable
  * copper pipes as ordinary Tube/Copper Content Center parts instead of
- * "Bended tube". It deliberately excludes fittings and entities without an
- * exact numeric Part Number because downstream W3D linkage is part-number based.
+ * "Bended tube". It excludes fittings and prefers an exact numeric Part Number.
+ * When Autodesk omits that property on an instantiated copper-tube Object, an
+ * exact numeric Object-label prefix is accepted as source identity evidence.
  */
 export function extractCopperTubeMetadataFromContentXml(
   xml,
@@ -107,61 +178,33 @@ export function extractCopperTubeMetadataFromContentXml(
   for(const entity of parseEntityRecords(xml)){
     const partNumber=firstProperty(entity,"Part Number","Design Tracking Properties");
     if(!partNumber||!/^\d+$/.test(String(partNumber).trim())) continue;
-    if(!isCopperTubeEntity(entity)) continue;
-
-    const dimensionsEvidence=dimensionEvidence(entity);
-    if(!dimensionsEvidence) continue;
-
-    const lengthValue=firstProperty(entity,"Length","User Defined Properties");
-    if(lengthValue==null) continue;
-    const developed=decimal(lengthValue,"Length");
-    if(!(developed>0)) continue;
-
     const part=String(partNumber).trim();
-    const sourceRef="dwfx:"+String(source_file)+"#entity:"+String(entity.id??part);
-    const material=firstProperty(entity,"Material","Physical")??null;
-    const revision=firstProperty(entity,"Revision Number","Summary Information")??null;
-    const d=dimensionsEvidence.dimensions;
+    const candidate=candidateFromRecord(entity,part,{
+      source_file,
+      source_kind:"entity",
+      part_number_method:"explicit_property"
+    });
+    if(candidate) candidates.push(candidate);
+  }
 
-    candidates.push(Object.freeze({
-      id:String(entity.id??part),
-      entity_ref:entity.id??null,
-      part_number:part,
-      revision,
-      quantity_in_assembly:null,
-      material,
-      metadata:Object.freeze({
-        outer_diameter:exact(
-          d.outer_diameter_mm,
-          sourceRef,
-          "mm",
-          d.diameter_method
-        ),
-        wall_thickness:exact(
-          d.wall_thickness_mm,
-          sourceRef,
-          "mm",
-          "explicit_copper_tube_designation"
-        ),
-        developed_length:exact(
-          developed,
-          sourceRef,
-          "mm",
-          "dwfx_content_length_property"
-        )
-      }),
-      source_evidence:Object.freeze({
-        entity_label:entity.label,
-        recognition_kind:"copper_tube_fallback",
-        dimension_property:dimensionsEvidence.name,
-        dimension_text:dimensionsEvidence.value,
-        dimension_notation:d.source_notation,
-        description:firstProperty(entity,"Description","Design Tracking Properties"),
-        title:firstProperty(entity,"Title","Summary Information"),
-        displayed_od_property:firstProperty(entity,"OD","User Defined Properties"),
-        displayed_wall_property:firstProperty(entity,"SN","User Defined Properties")
-      })
-    }));
+  const entityParts=new Set(candidates.map((candidate)=>candidate.part_number));
+  for(const object of parseObjectRecords(xml)){
+    const explicitPart=firstProperty(
+      object,
+      "Part Number",
+      "Design Tracking Properties"
+    );
+    if(explicitPart) continue;
+
+    const part=partNumberFromObjectLabel(object.label);
+    if(!part||entityParts.has(part)) continue;
+
+    const candidate=candidateFromRecord(object,part,{
+      source_file,
+      source_kind:"object",
+      part_number_method:"exact_object_label_prefix"
+    });
+    if(candidate) candidates.push(candidate);
   }
 
   const byPart=new Map();
@@ -198,7 +241,7 @@ export function extractCopperTubeMetadataFromContentXml(
       metadata_only:true,
       production_ready:false,
       bend_sequence:"not_extracted",
-      note:"Copper tube metadata extracted from exact Content Entity properties; W3D geometry remains authoritative for editable LINE/BEND reconstruction."
+      note:"Copper tube metadata extracted from exact Content Entity properties, with strict instantiated Object-label fallback when Autodesk omits Part Number; W3D geometry remains authoritative for editable LINE/BEND reconstruction."
     }),
     tubes:Object.freeze(candidates),
     issues:Object.freeze(
