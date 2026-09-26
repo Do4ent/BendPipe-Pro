@@ -44,7 +44,8 @@ export function recognizeTubeIncludeLibraryGeometry({
   centerlineOptions={},
   segmentationOptions={},
   topologyOptions={},
-  developedLengthToleranceMm=0.1
+  developedLengthToleranceMm=0.1,
+  allow_geometry_derived_dimensions=false
 }){
   if(typeof decodeSegment!=="function"){
     throw new TypeError("decodeSegment must be a function");
@@ -104,7 +105,7 @@ export function recognizeTubeIncludeLibraryGeometry({
 
   for(const mesh of meshes){
     try{
-      const centerline=deriveTubeMeshCenterline({
+      const strictCenterline=deriveTubeMeshCenterline({
         vertices:mesh.vertices,
         faces:mesh.connectivity.faces,
         outer_diameter_mm,
@@ -114,15 +115,40 @@ export function recognizeTubeIncludeLibraryGeometry({
           ? {}
           : {scale_mm_per_source_unit:explicitScale})
       });
+      let centerline=strictCenterline;
+      if(
+        strictCenterline.status!=="centerline_candidate" &&
+        allow_geometry_derived_dimensions===true
+      ){
+        centerline=deriveTubeMeshCenterline({
+          vertices:mesh.vertices,
+          faces:mesh.connectivity.faces,
+          outer_diameter_mm,
+          wall_thickness_mm,
+          ...centerlineOptions,
+          dimension_validation:"geometry",
+          ...(explicitScale===null
+            ? {}
+            : {scale_mm_per_source_unit:explicitScale})
+        });
+      }
       if(centerline.status==="centerline_candidate"){
-        accepted.push(Object.freeze({mesh,centerline}));
+        accepted.push(Object.freeze({
+          mesh,
+          centerline,
+          dimension_source:
+            centerline.metadata_dimension_match===true
+              ?"metadata_confirmed"
+              :"geometry_derived"
+        }));
       }else{
         failures.push(Object.freeze({
           source_offset:
             mesh.absolute_source_offset ??
             mesh.source_offset ??
             null,
-          reason:centerline.blocker??"mesh did not produce a tube centerline"
+          reason:centerline.blocker??"mesh did not produce a tube centerline",
+          diagnostics:centerline.diagnostics??null
         }));
       }
     }catch(error){
@@ -252,6 +278,15 @@ export function recognizeTubeIncludeLibraryGeometry({
       selected.mesh.source_offset ??
       null,
     centerline:selected.centerline,
+    dimension_source:selected.dimension_source,
+    dimension_reconciliation:Object.freeze({
+      metadata_outer_diameter_mm:Number(outer_diameter_mm),
+      metadata_wall_thickness_mm:Number(wall_thickness_mm),
+      derived_outer_diameter_mm:selected.centerline.derived_outer_diameter_mm,
+      derived_wall_thickness_mm:selected.centerline.derived_wall_thickness_mm,
+      metadata_dimension_match:selected.centerline.metadata_dimension_match===true,
+      geometry_derived_dimensions_allowed:allow_geometry_derived_dimensions===true
+    }),
     segmentation,
     topology,
     length_consistency:lengthConsistency,
