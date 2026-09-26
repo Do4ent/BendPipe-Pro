@@ -496,12 +496,24 @@ export function buildDwfxReferenceScene({
     });
     resolvingAssets.delete(name);
     assetCache.set(name,asset);
+    const entityKinds=Object.freeze(
+      [...new Set((decoded?.entities??[]).map((entity)=>
+        entity?.kind==="curve_candidate"
+          ? "curve_candidate:"+String(entity.primitive??"unknown")
+          : String(entity?.kind??"unknown")
+      ))]
+    );
+    const unresolvedMeshCount=(decoded?.entities??[]).filter((entity)=>
+      entity?.kind==="triangle_mesh"&&entity.connectivity?.status!=="decoded"
+    ).length;
     assetManifest.set(name,Object.freeze({
       id:name,
       status:asset.status,
       kind:asset.kind,
       mesh_count:asset.meshes.length,
+      unresolved_mesh_count:unresolvedMeshCount,
       nested_instance_count:nestedInstances.length,
+      entity_kinds:entityKinds,
       line_segment_count:
         asset.line_segments
           ? Math.floor(asset.line_segments.positions.length/6)
