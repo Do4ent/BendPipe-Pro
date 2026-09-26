@@ -94,6 +94,9 @@ export function mergeDwfxTubesIntoCurrentProject({
 
   const target=clone(project);
   target.tubes=Array.isArray(target.tubes)?target.tubes:[];
+  target.referenceScenes=Array.isArray(target.referenceScenes)
+    ? target.referenceScenes
+    : [];
 
   const usedIds=new Set(
     target.tubes
@@ -107,8 +110,58 @@ export function mergeDwfxTubesIntoCurrentProject({
   const imported=[];
   const skipped=[];
   const replaced=[];
+  const importedReferenceScenes=[];
+  const skippedReferenceScenes=[];
+  const replacedReferenceScenes=[];
+  const usedReferenceSceneIds=new Set(
+    target.referenceScenes
+      .map((scene)=>String(scene?.id??"").trim())
+      .filter(Boolean)
+  );
+
+  const uniqueSceneId=(preferred)=>{
+    const base=String(preferred??"dwfx-reference").trim()||"dwfx-reference";
+    if(!usedReferenceSceneIds.has(base))return base;
+    let index=2;
+    while(usedReferenceSceneIds.has(base+"#"+index))index+=1;
+    return base+"#"+index;
+  };
 
   for(const importedProject of imported_projects){
+    for(const sourceScene of importedProject?.referenceScenes??[]){
+      if(!sourceScene||typeof sourceScene!=="object")continue;
+      const scene=clone(sourceScene);
+      scene.readonly=true;
+      scene.production_ready=false;
+      scene.canonical_ready=false;
+      scene.runtime_scene_id=String(
+        scene.runtime_scene_id??scene.id??""
+      );
+      const sourceKey=String(scene.source_file??scene.name??scene.id??"");
+      const existingIndexes=[];
+      target.referenceScenes.forEach((item,index)=>{
+        const itemKey=String(item?.source_file??item?.name??item?.id??"");
+        if(itemKey===sourceKey)existingIndexes.push(index);
+      });
+
+      if(existingIndexes.length&&conflict==="skip"){
+        skippedReferenceScenes.push(sourceKey);
+        continue;
+      }
+      if(existingIndexes.length&&conflict==="replace"){
+        for(let i=existingIndexes.length-1;i>=0;i-=1){
+          const [removed]=target.referenceScenes.splice(existingIndexes[i],1);
+          if(removed?.id)usedReferenceSceneIds.delete(String(removed.id));
+        }
+        replacedReferenceScenes.push(sourceKey);
+      }
+
+      scene.id=uniqueSceneId(scene.id||"dwfx-reference");
+      usedReferenceSceneIds.add(scene.id);
+      target.referenceScenes.push(scene);
+      importedReferenceScenes.push(scene);
+    }
+
     for(const sourceTube of importedProject?.tubes??[]){
       const originalName=
         String(sourceTube?.name??sourceTube?.partNumber??"Imported tube").trim()||
@@ -152,19 +205,27 @@ export function mergeDwfxTubesIntoCurrentProject({
   }
 
   return Object.freeze({
-    status:imported.length?"merged":"no_change",
+    status:(imported.length||importedReferenceScenes.length)?"merged":"no_change",
     project:target,
     imported_count:imported.length,
+    imported_reference_scene_count:importedReferenceScenes.length,
+    skipped_reference_scene_count:skippedReferenceScenes.length,
+    replaced_reference_scene_count:replacedReferenceScenes.length,
     skipped_count:skipped.length,
     replaced_count:replaced.length,
     imported_tube_ids:Object.freeze(imported.map((tube)=>tube.id)),
     imported_tube_names:Object.freeze(imported.map((tube)=>tube.name)),
     skipped_names:Object.freeze(skipped),
     replaced_names:Object.freeze(replaced),
+    imported_reference_scene_ids:Object.freeze(
+      importedReferenceScenes.map((scene)=>scene.id)
+    ),
+    skipped_reference_scenes:Object.freeze(skippedReferenceScenes),
+    replaced_reference_scenes:Object.freeze(replacedReferenceScenes),
     production_ready:false,
     blocker:
-      imported.length
-        ?"Recognized DWFx geometry was merged as editable tubes; tooling and production release remain unresolved."
-        :"No selected DWFx tubes were added to the current project."
+      imported.length||importedReferenceScenes.length
+        ?"Recognized DWFx tubes and read-only source reference geometry were merged; tooling and production release remain unresolved."
+        :"No selected DWFx tubes or reference geometry were added to the current project."
   });
 }
