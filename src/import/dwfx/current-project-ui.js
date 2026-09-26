@@ -97,7 +97,12 @@
         imported_projects:chosen,
         conflict:document.getElementById("poConflict")?.value||"copy",
         make_id:uid,
-        source_file:pkg.rawDwfxImport.source_file||pkg.meta?.name||""
+        source_file:pkg.rawDwfxImport.source_file||pkg.meta?.name||"",
+        diameter_catalog:
+          typeof pipeDb!=="undefined"&&Array.isArray(pipeDb)
+            ? pipeDb
+            : [],
+        diameter_rounding_tolerance_mm:0.35
       });
 
       if(merged.status!=="merged"||merged.imported_count<1){
