@@ -1,5 +1,6 @@
 import { prepareTrustedDwfxFileImport } from "./trusted-file-import.mjs";
-export { mergeDwfxTubesIntoCurrentProject } from "./current-project-merge.mjs";
+import { mergeDwfxTubesIntoCurrentProject } from "./current-project-merge.mjs";
+export { mergeDwfxTubesIntoCurrentProject };
 
 function fileNameOf(file){
   return String(file?.name??"");
