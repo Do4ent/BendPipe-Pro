@@ -153,6 +153,128 @@ output = output.replace(
   "  camera.updateProjectionMatrix();\n  renderer.setSize(w, h, false);\n  // Preserve user camera zoom/orbit on viewport or browser-scale changes.\n  // Initial/view-orientation fitting is invoked explicitly by its callers.\n  markViewerDirty();\n}\nfunction animate(){"
 );
 
+const exactStartVectorStateAnchor =
+  "  startDir: { az: 0, el: 0 },\n  startAxis: 'X',";
+if (!output.includes(exactStartVectorStateAnchor)) {
+  throw new Error("viewer state startDir/startAxis anchor was not found");
+}
+output = output.replace(
+  exactStartVectorStateAnchor,
+  "  startDir: { az: 0, el: 0 },\n  startVector: null,\n  startAxis: 'X',"
+);
+
+const exactStartVectorEnsureAnchor =
+  "  if (!state.startDir || typeof state.startDir !== 'object') state.startDir = {};";
+if (!output.includes(exactStartVectorEnsureAnchor)) {
+  throw new Error("ensureBoxAndOriginState startDir anchor was not found");
+}
+output = output.replace(
+  exactStartVectorEnsureAnchor,
+  exactStartVectorEnsureAnchor +
+  "\n  if (state.startVector && typeof state.startVector === 'object') {\n" +
+  "    const sxv=Number(state.startVector.x),syv=Number(state.startVector.y),szv=Number(state.startVector.z);\n" +
+  "    const sl=Math.hypot(sxv,syv,szv);\n" +
+  "    state.startVector=sl>1e-12&&[sxv,syv,szv].every(Number.isFinite)\n" +
+  "      ? {x:sxv/sl,y:syv/sl,z:szv/sl}\n" +
+  "      : null;\n" +
+  "  } else state.startVector=null;"
+);
+
+const exactStartVectorActiveAnchor =
+`function startDirectionVector(){
+  const d = startAxisAngleState();`;
+if (!output.includes(exactStartVectorActiveAnchor)) {
+  throw new Error("startDirectionVector anchor was not found");
+}
+output = output.replace(
+  exactStartVectorActiveAnchor,
+`function startDirectionVector(){
+  const sv=state.startVector;
+  if(sv&&[sv.x,sv.y,sv.z].every(Number.isFinite)){
+    const exact=new THREE.Vector3(Number(sv.x),Number(sv.y),Number(sv.z));
+    if(exact.lengthSq()>1e-12)return exact.normalize();
+  }
+  const d = startAxisAngleState();`
+);
+
+const exactStartVectorTubeAnchor =
+`function tubeStartDirectionVector(tube){
+  const axis=['X','-X','Y','-Y','Z','-Z'].includes(tube?.startAxis)?tube.startAxis:'X';`;
+if (!output.includes(exactStartVectorTubeAnchor)) {
+  throw new Error("tubeStartDirectionVector anchor was not found");
+}
+output = output.replace(
+  exactStartVectorTubeAnchor,
+`function tubeStartDirectionVector(tube){
+  const sv=tube?.startVector;
+  if(sv&&[sv.x,sv.y,sv.z].every(Number.isFinite)){
+    const exact=new THREE.Vector3(Number(sv.x),Number(sv.y),Number(sv.z));
+    if(exact.lengthSq()>1e-12)return exact.normalize();
+  }
+  const axis=['X','-X','Y','-Y','Z','-Z'].includes(tube?.startAxis)?tube.startAxis:'X';`
+);
+
+const exactStartVectorSyncAnchor =
+  "  t.startDir = clone(state.startDir || { az:0, el:0 });\n  t.startAxis = importBlocked";
+if (!output.includes(exactStartVectorSyncAnchor)) {
+  throw new Error("syncActiveTubeFromState startDir anchor was not found");
+}
+output = output.replace(
+  exactStartVectorSyncAnchor,
+  "  t.startDir = clone(state.startDir || { az:0, el:0 });\n" +
+  "  t.startVector = state.startVector ? clone(state.startVector) : null;\n" +
+  "  t.startAxis = importBlocked"
+);
+
+const exactStartVectorLoadAnchor =
+  "  state.startDir = (t.startDir && typeof t.startDir === 'object') ? clone(t.startDir) : { az:0, el:0 };\n  state.startAxis = importBlocked";
+if (!output.includes(exactStartVectorLoadAnchor)) {
+  throw new Error("loadActiveTubeToState startDir anchor was not found");
+}
+output = output.replace(
+  exactStartVectorLoadAnchor,
+  "  state.startDir = (t.startDir && typeof t.startDir === 'object') ? clone(t.startDir) : { az:0, el:0 };\n" +
+  "  state.startVector = (t.startVector && typeof t.startVector === 'object') ? clone(t.startVector) : null;\n" +
+  "  state.startAxis = importBlocked"
+);
+
+const exactStartVectorCollisionAnchor =
+  "    snap.origin=clone(state.origin||{x:0,y:0,z:0});\n    snap.startAxis=state.startAxis||'X';";
+if (!output.includes(exactStartVectorCollisionAnchor)) {
+  throw new Error("collisionTubeSnapshot origin anchor was not found");
+}
+output = output.replace(
+  exactStartVectorCollisionAnchor,
+  "    snap.origin=clone(state.origin||{x:0,y:0,z:0});\n" +
+  "    snap.startVector=state.startVector?clone(state.startVector):null;\n" +
+  "    snap.startAxis=state.startAxis||'X';"
+);
+
+const exactStartVectorSignatureAnchor =
+  "      origin:x?.origin,startAxis:x?.startAxis,startPlane:x?.startPlane,\n      startAngle:x?.startAngle,";
+if (!output.includes(exactStartVectorSignatureAnchor)) {
+  throw new Error("projectCollisionSignature start pose anchor was not found");
+}
+output = output.replace(
+  exactStartVectorSignatureAnchor,
+  "      origin:x?.origin,startVector:x?.startVector,startAxis:x?.startAxis,startPlane:x?.startPlane,\n" +
+  "      startAngle:x?.startAngle,"
+);
+
+const exactStartVectorSetAnchor =
+  "  state.startPlane = bestPlane;\n  state.startAxis = best?.token || 'X';\n  state.startAngle = normalizeSignedDeg(best?.angle || 0);\n}";
+if (!output.includes(exactStartVectorSetAnchor)) {
+  throw new Error("setStartDirectionFromWorldVector result anchor was not found");
+}
+output = output.replace(
+  exactStartVectorSetAnchor,
+  "  state.startPlane = bestPlane;\n" +
+  "  state.startAxis = best?.token || 'X';\n" +
+  "  state.startAngle = normalizeSignedDeg(best?.angle || 0);\n" +
+  "  state.startVector = {x:dir.x,y:dir.y,z:dir.z};\n" +
+  "}"
+);
+
 const bodyProfileCompatAnchor =
   "const oldNormalize=window.normalizeProjectCoordinateState;";
 if (!output.includes(bodyProfileCompatAnchor)) {
