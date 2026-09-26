@@ -185,3 +185,19 @@ test("DWFx copper recognizer excludes real 10000611 reducer even though material
   assert.equal(result.tubes.length,0);
   assert.match(result.issues[0],/No exact copper tube metadata/i);
 });
+
+
+test("DWFx copper recognizer accepts real 10139798 straight tube Object-label fallback metadata",()=>{
+  const source='<dwf:Content xmlns:dwf="urn:dwf"><dwf:Object id="PCRYbsi_5UmTo_7y68W23g" label="10139798/- - Tube, Copper, on length 3/4&quot; x 1,7mm:1" entityRef="OyRYbsi_5UmTo_7y68W23g"><dwf:Property name="Description" value="Copper tube 3_4inch x 1,7" category="Design Tracking Properties"/><dwf:Property name="Material" value="Copper" category="Physical"/><dwf:Property name="Revision Number" value="-" category="Summary Information"/><dwf:Property name="Title" value="Tube, Copper, on length 3/4&quot; x 1,7mm" category="Summary Information"/><dwf:Property name="Art.code manufacturer" value="DIN 1754, 3/4&quot; x 1,7mm" category="User Defined Properties"/><dwf:Property name="Description 1" value="Tube" category="User Defined Properties"/><dwf:Property name="Description 2" value="Copper" category="User Defined Properties"/><dwf:Property name="ID" value="16,9 mm" category="User Defined Properties"/><dwf:Property name="Length" value="120,0 mm" category="User Defined Properties"/><dwf:Property name="OD" value="19,1 mm" category="User Defined Properties"/><dwf:Property name="SN" value="1,0 mm" category="User Defined Properties"/></dwf:Object></dwf:Content>';
+  const result=extractCopperTubeMetadataFromContentXml(source,{source_file:"80004806.dwfx"});
+  assert.equal(result.status,"exact");
+  assert.equal(result.tubes.length,1);
+  const tube=result.tubes[0];
+  assert.equal(tube.part_number,"10139798");
+  assert.ok(Math.abs(tube.metadata.outer_diameter.value-19.05)<1e-12);
+  assert.equal(tube.metadata.wall_thickness.value,1.7);
+  assert.equal(tube.metadata.developed_length.value,120);
+  assert.equal(tube.revision,"-");
+  assert.equal(tube.source_evidence.part_number_method,"exact_object_label_prefix");
+  assert.equal(tube.source_evidence.source_record_kind,"object");
+});
