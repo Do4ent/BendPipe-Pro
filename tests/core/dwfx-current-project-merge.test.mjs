@@ -243,11 +243,52 @@ test("A35: merge restores exact imported origin from spatial evidence even if so
 
   const imported=result.project.tubes[0];
   assert.deepEqual(imported.origin,{
-    x:353.4770011901855,
-    y:100.55765368504771,
-    z:657.849999997579
+    x:353,
+    y:101,
+    z:658
   });
+  assert.deepEqual(imported.importEvidence.spatialPlacement.origin_mm,[
+    353.4770011901855,
+    100.55765368504771,
+    657.849999997579
+  ]);
+  assert.deepEqual(imported.importEvidence.spatialPlacement.editable_origin_mm,[353,101,658]);
   assert.equal(imported.importEvidence.spatialPlacement.editable_origin_seeded,true);
   assert.equal(imported.importEvidence.spatialPlacement.user_origin_override,false);
+  assert.equal(imported.importValidation.productionBlocked,true);
+});
+
+
+test("A36: current-project merge rounds imported editable LINE CLR and origin to 1 mm",()=>{
+  const source=tube("10102217","incoming");
+  source.origin={x:353.4770011901855,y:100.55765368504771,z:657.849999997579};
+  source.rows=[
+    {type:"LINE",L:10.0000001,LFormula:"10.0000001"},
+    {type:"BEND",angle:90,plane:"XY",rot:0,clr:34.999999750254474},
+    {type:"LINE",L:113.41737747192383,LFormula:"113.41737747192383"}
+  ];
+  source.importEvidence.spatialPlacement={
+    status:"exact",
+    origin_mm:[353.4770011901855,100.55765368504771,657.849999997579],
+    start_vector:[-1,0,0],
+    machine_compensation_applied:false
+  };
+
+  const result=mergeDwfxTubesIntoCurrentProject({
+    project:{id:"p",tubes:[]},
+    imported_projects:[{tubes:[source]}],
+    conflict:"copy",
+    make_id:()=> "unused",
+    linear_rounding_increment_mm:1
+  });
+
+  const imported=result.project.tubes[0];
+  assert.deepEqual(imported.origin,{x:353,y:101,z:658});
+  assert.equal(imported.rows[0].L,10);
+  assert.equal(imported.rows[1].clr,35);
+  assert.equal(imported.rows[2].L,113);
+  assert.equal(imported.rows[1].angle,90);
+  assert.equal(imported.importEvidence.linearDimensionNormalization.increment_mm,1);
+  assert.equal(imported.importValidation.linearDimensionsRoundedToMm,true);
   assert.equal(imported.importValidation.productionBlocked,true);
 });
