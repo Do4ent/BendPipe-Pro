@@ -298,8 +298,11 @@ if (!output.includes('data-tubebender-bundled="dwfx-import"')) {
 if (!output.includes('data-tubebender-bundled="dwfx-current-project-ui"')) {
   throw new Error("Standalone build is missing the current-project DWFx UI marker");
 }
-if (!output.includes("window.TubeBenderDwfxImport=Object.freeze({importSelectedDwfxFile,mergeDwfxTubesIntoCurrentProject})")) {
-  throw new Error("Standalone build does not expose the DWFx browser controller and current-project merge helper");
+if (!output.includes('data-tubebender-bundled="dwfx-lazy-bootstrap"') || !output.includes("loadDwfxModule")) {
+  throw new Error("Standalone build does not expose the lazy DWFx browser controller");
+}
+if (output.includes('<script type="module" data-tubebender-bundled="dwfx-import"')) {
+  throw new Error("DWFx module must not execute during initial standalone page load");
 }
 if (!output.includes("result?.status!=='dwfx_project_candidate'")) {
   throw new Error("Standalone project-open path is missing the guarded DWFx branch");
