@@ -478,6 +478,7 @@ export function buildDwfxReferenceScene({
   const sceneId=safeSceneId(source_file);
   const metadata=Object.freeze({
     id:sceneId,
+    runtime_scene_id:sceneId,
     name:String(source_file??"Imported DWFx"),
     source_file:String(source_file??""),
     source_format:"DWFx",
