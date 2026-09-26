@@ -20,6 +20,7 @@ export function prepareTrustedDwfxProjectImport({
   project_id="dwfx-project",
   project_name="Imported DWFx project",
   bbox=null,
+  reference_scene=null,
   buildPlan=buildDwfxAssemblyImportPlan,
   hydrateVariations=hydrateDwfxAssemblyVariationSegments,
   prepareAssembly=prepareDwfxAssemblyImport,
@@ -103,7 +104,8 @@ export function prepareTrustedDwfxProjectImport({
     assembly,
     project_id,
     project_name,
-    bbox
+    bbox,
+    reference_scene
   });
   if(!projectPackage||projectPackage.status!=="project_package_candidate"){
     return Object.freeze({
