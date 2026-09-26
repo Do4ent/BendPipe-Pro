@@ -70,7 +70,7 @@
           roughness:.7,
           metalness:.04,
           transparent,
-          opacity:transparent?.24:1,
+          opacity:transparent ? .24 : 1,
           depthWrite:!transparent,
           side:THREE.DoubleSide
         });
@@ -94,7 +94,7 @@
         const material=new THREE.LineBasicMaterial({
           color:rgbHex(asset.line_segments?.color_rgb,0x8795a8),
           transparent,
-          opacity:transparent?.28:1
+          opacity:transparent ? .28 : 1
         });
         const lines=new THREE.LineSegments(geometry,material);
         lines.userData.referenceShared=true;
@@ -492,6 +492,14 @@
       const selectedForDelete=removeIds.has(String(node.id))&&selectableNode(node);
       if(selectedForDelete&&!subtreeHasEditable(node))return null;
       const children=(node.children??[]).map(prune).filter(Boolean);
+      if(selectedForDelete){
+        return {
+          ...node,
+          geometry_instances:[],
+          geometry_status:children.length?"group":"metadata_only",
+          children
+        };
+      }
       return {...node,children};
     };
     return (nodes??[]).map(prune).filter(Boolean);
@@ -505,10 +513,54 @@
       if(!affected.has(String(scene.id)))continue;
       scene.tree=deleteSelectedFromTree(scene,scene.tree);
     }
-    project.referenceScenes=(project.referenceScenes??[]).filter((scene)=>
-      Array.isArray(scene.tree)&&scene.tree.length>0
-    );
-    pruneBulkSelection(project);
+    const kept=[];
+    for(const scene of project.referenceScenes??[]){
+      if(Array.isArray(scene.tree)&&scene.tree.length>0){
+        kept.push(scene);
+        continue;
+      }
+      const runtimeId=runtimeKey(scene);
+      runtimes.delete(runtimeId);
+      for(const key of [...templates.keys()]){
+        if(key.startsWith(runtimeId+"|"))templates.delete(key);
+      }
+    }
+    project.referenceScenes=kept;
+    bulkSelected.clear();
+  }
+
+  function selectScene(project,sceneId,checked=true){
+    const scene=findScene(project,sceneId);
+    if(!scene)return 0;
+    toggleSceneSelection(scene,checked);
+    return selectedCount(project);
+  }
+
+  function selectNode(project,sceneId,nodeId,checked=true){
+    const scene=findScene(project,sceneId);
+    const node=findNode(scene?.tree,nodeId);
+    if(!scene||!node||!selectableNode(node))return selectedCount(project);
+    toggleNodeSelection(scene,node,checked);
+    return selectedCount(project);
+  }
+
+  function clearSelection(){
+    bulkSelected.clear();
+    return 0;
+  }
+
+  function applyBulkAction(project,action){
+    const command=String(action??"");
+    if(command==="clear")return clearSelection();
+    if(!["show","hide","transparent","delete"].includes(command)){
+      throw new RangeError("Unknown reference bulk action: "+command);
+    }
+    if(!bulkSelected.size)return 0;
+    if(command==="show")applyBulkVisibility(project,true);
+    else if(command==="hide")applyBulkVisibility(project,false);
+    else if(command==="transparent")applyBulkTransparency(project);
+    else if(command==="delete")applyBulkDelete(project);
+    return selectedCount(project);
   }
 
   function bindTree(host,project,{switchTube,save,renderAll,refreshProjectTree,modelCommand}={}){
@@ -542,17 +594,12 @@
         event.stopPropagation();
         const action=button.dataset.refBulkAction;
         if(action==="clear"){
-          bulkSelected.clear();
+          clearSelection();
           refreshProjectTree?.();
           return;
         }
         if(!bulkSelected.size)return;
-        const mutate=()=>{
-          if(action==="show")applyBulkVisibility(project,true);
-          else if(action==="hide")applyBulkVisibility(project,false);
-          else if(action==="transparent")applyBulkTransparency(project);
-          else if(action==="delete")applyBulkDelete(project);
-        };
+        const mutate=()=>applyBulkAction(project,action);
         if(action==="delete"&&typeof modelCommand==="function"){
           modelCommand("Удалить импортированные компоненты",mutate);
         }else{
@@ -654,6 +701,10 @@
     render3D,
     treeItems,
     bindTree,
+    selectScene,
+    selectNode,
+    clearSelection,
+    applyBulkAction,
     selectedCount,
     restorePersistedRuntimes,
     runtimeSummary
