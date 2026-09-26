@@ -110,7 +110,7 @@ test("A22: standalone DWFx runtime is injected only at the final body close and 
   assert.ok(marker<finalBodyClose);
 
   const scripts=[];
-  const pattern=/<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/gi;
+  const pattern=/<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
   for(const match of html.matchAll(pattern)){
     scripts.push({
       attrs:match[1]??"",
