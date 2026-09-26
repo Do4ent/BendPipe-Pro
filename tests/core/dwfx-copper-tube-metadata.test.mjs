@@ -160,3 +160,19 @@ test("DWFx copper recognizer accepts real 10134724 Object-label fallback metadat
   assert.equal(tube.source_evidence.part_number_method,"exact_object_label_prefix");
   assert.equal(tube.source_evidence.source_record_kind,"object");
 });
+
+
+test("DWFx copper recognizer accepts real 10141455 Object-label fallback metadata",()=>{
+  const source='<dwf:Content xmlns:dwf="urn:dwf"><dwf:Object id="3CRYbsi_5UmTo_7y68W23g" label="10141455/ - Tube, Copper, on length, 1/2&quot; x 0,89mm:1" entityRef="2yRYbsi_5UmTo_7y68W23g"><dwf:Property name="Description" value="Tube, Copper, 1_2inch x 0,89mm" category="Design Tracking Properties"/><dwf:Property name="Material" value="Copper" category="Physical"/><dwf:Property name="Revision Number" value="-" category="Summary Information"/><dwf:Property name="Title" value="Tube, Copper, on length, 1/2&quot; x 0,89mm" category="Summary Information"/><dwf:Property name="Art.code manufacturer" value="DIN 1754, 1/2&quot; x 0,89mm" category="User Defined Properties"/><dwf:Property name="Description 1" value="Tube" category="User Defined Properties"/><dwf:Property name="Description 2" value="Copper" category="User Defined Properties"/><dwf:Property name="Length" value="2101,9 mm" category="User Defined Properties"/><dwf:Property name="OD" value="12,7 mm" category="User Defined Properties"/><dwf:Property name="SN" value="1,0 mm" category="User Defined Properties"/></dwf:Object></dwf:Content>';
+  const result=extractCopperTubeMetadataFromContentXml(source,{source_file:"80004806.dwfx"});
+  assert.equal(result.status,"exact");
+  assert.equal(result.tubes.length,1);
+  const tube=result.tubes[0];
+  assert.equal(tube.part_number,"10141455");
+  assert.equal(tube.metadata.outer_diameter.value,12.7);
+  assert.equal(tube.metadata.wall_thickness.value,0.89);
+  assert.equal(tube.metadata.developed_length.value,2101.9);
+  assert.equal(tube.revision,"-");
+  assert.equal(tube.source_evidence.part_number_method,"exact_object_label_prefix");
+  assert.equal(tube.source_evidence.source_record_kind,"object");
+});
