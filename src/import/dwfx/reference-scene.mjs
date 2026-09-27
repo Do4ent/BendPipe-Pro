@@ -538,6 +538,20 @@ function subtreeHasRecognizedObject(node,recognizedByObject){
   );
 }
 
+export function classifyReferenceSymbolCardLabel(label){
+  const core=referenceComponentCoreLabel(label);
+  const text=core.toLocaleLowerCase();
+
+  const symbolCard=
+    /^symbol\s+cards?\b/.test(text)||
+    /^symbol\s*[-_/]\s*cards?\b/.test(text)||
+    /^symboolkaart(?:en)?\b/.test(text)||
+    /^symbolkarte(?:n)?\b/.test(text)||
+    /(?:^|[^а-яё])карточк(?:а|и|у|е|ой|ою)\s+символ(?:а|ов|у|ом|е)?(?:[^а-яё]|$)/i.test(text);
+
+  return symbolCard?"symbol_card":null;
+}
+
 export function classifyReferenceAxialVentilatorLabel(label){
   const core=referenceComponentCoreLabel(label);
   const text=core.toLocaleLowerCase();
@@ -674,6 +688,7 @@ export function buildDwfxReferenceScene({
   let metadataOnlyCount=0;
   let unresolvedCount=0;
   let filteredFastenerCount=0;
+  let filteredSymbolCardCount=0;
   let filteredAxialVentilatorCount=0;
   let filteredHoseClampCount=0;
   let filteredCableGlandCount=0;
@@ -821,6 +836,19 @@ export function buildDwfxReferenceScene({
     }
 
     if(sourceIsLeaf&&!editablePart){
+      const symbolCardKind=classifyReferenceSymbolCardLabel(source.label);
+      if(symbolCardKind){
+        filteredSymbolCardCount+=1;
+        diagnostics.push(Object.freeze({
+          stage:"reference_symbol_card_filter",
+          object_id:String(source.id),
+          label:String(source.label??""),
+          component_kind:symbolCardKind,
+          status:"excluded"
+        }));
+        return null;
+      }
+
       const axialVentilatorKind=classifyReferenceAxialVentilatorLabel(source.label);
       if(axialVentilatorKind){
         filteredAxialVentilatorCount+=1;
@@ -1006,9 +1034,10 @@ export function buildDwfxReferenceScene({
       object_count:objectCount,
       leaf_count:leafCount,
       retained_leaf_count:
-        leafCount-filteredFastenerCount-filteredAxialVentilatorCount-filteredHoseClampCount-filteredCableGlandCount-filteredAnnotationLeafCount,
+        leafCount-filteredFastenerCount-filteredSymbolCardCount-filteredAxialVentilatorCount-filteredHoseClampCount-filteredCableGlandCount-filteredAnnotationLeafCount,
       filtered_fastener_count:filteredFastenerCount,
       filtered_fastener_by_kind:Object.freeze({...filteredFastenerByKind}),
+      filtered_symbol_card_count:filteredSymbolCardCount,
       filtered_axial_ventilator_count:filteredAxialVentilatorCount,
       filtered_hose_clamp_count:filteredHoseClampCount,
       filtered_cable_gland_count:filteredCableGlandCount,
