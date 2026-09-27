@@ -114,3 +114,20 @@ test("A20: returned project package is deeply frozen",()=>{
   assert.equal(Object.isFrozen(result.package.project.tubes),true);
   assert.equal(Object.isFrozen(result.package.project.tubes[0]),true);
 });
+
+
+test("A42: automatically fitted DWFx frame is marked separately from explicit user bbox",()=>{
+  const result=buildLegacyProjectPackageFromAssembly({
+    assembly:assembly(),
+    bbox:{x:739,y:1215,z:794},
+    bbox_source:"automatic_reference_geometry",
+    bbox_anchor:{x:0,y:0,z:0},
+    coordinate_offset:{x:-229,y:-49,z:-92}
+  });
+
+  assert.equal(result.bbox_status,"exact_automatic_reference_geometry");
+  assert.equal(result.package.project.bboxSource,"automatic_reference_geometry");
+  assert.deepEqual(result.package.project.bbox,{x:739,y:1215,z:794});
+  assert.deepEqual(result.package.project.bboxAnchor,{x:0,y:0,z:0});
+  assert.deepEqual(result.package.project.coordinateOffset,{x:-229,y:-49,z:-92});
+});
