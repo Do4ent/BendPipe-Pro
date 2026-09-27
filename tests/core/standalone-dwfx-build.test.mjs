@@ -356,3 +356,23 @@ test("A48: standalone exposes synchronized 3D and tree object context menus",()=
   assert.match(html,/Box3Helper/);
   assert.match(html,/Прямой участок удаляется только вместе с предыдущим гибом/);
 });
+
+
+test("A49: standalone keeps Project/Tube controls inside header and clamps tube dropdown",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/data-tubebender-bundled="project-tube-bar-layout-fix"/);
+  assert.match(html,/project-group,[\s\S]*tube-group\{[\s\S]*flex:1 1 0!important/);
+  assert.match(html,/grid-template-columns:382px minmax\(400px,450px\) minmax\(8px,1fr\) auto/);
+  assert.match(html,/grid-template-columns:310px minmax\(330px,410px\) minmax\(8px,1fr\) auto/);
+  assert.match(html,/body\.tb-project-map #tubeDropdown[\s\S]*position:fixed!important/);
+  assert.match(html,/max-width:calc\(100vw - 16px\)!important/);
+  assert.match(html,/function positionPopup\(id\)/);
+  assert.match(html,/const left=clamp\(rect\.left,margin,viewportWidth-width-margin\)/);
+  assert.match(html,/below\+measuredHeight<=viewportHeight-margin/);
+  assert.match(html,/rowCount:tube\.querySelectorAll\("\\.pt-tube-row"\)\.length/);
+  assert.match(html,/overlap:a\.right>b\.left\+\.5/);
+});
