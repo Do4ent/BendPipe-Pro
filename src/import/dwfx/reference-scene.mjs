@@ -392,6 +392,37 @@ function referenceComponentCoreLabel(label){
     .trim();
 }
 
+export function classifyReferenceAnnotationLabel(label){
+  const text=String(label??"").trim().toLocaleLowerCase();
+  if(
+    /^(?:annotation|annotations|annotatie|annotaties|anmerkung|anmerkungen)$/.test(text)
+  )return "annotation";
+  if(/^(?:аннотация|аннотации|примечание|примечания)$/.test(text))return "annotation";
+  return null;
+}
+
+function countObjectTree(node){
+  if(!node||typeof node!=="object")return Object.freeze({objects:0,leaves:0});
+  const children=Array.isArray(node.children)?node.children:[];
+  if(children.length===0)return Object.freeze({objects:1,leaves:1});
+  let objects=1;
+  let leaves=0;
+  for(const child of children){
+    const count=countObjectTree(child);
+    objects+=count.objects;
+    leaves+=count.leaves;
+  }
+  return Object.freeze({objects,leaves});
+}
+
+function subtreeHasRecognizedObject(node,recognizedByObject){
+  if(!node||typeof node!=="object")return false;
+  if(recognizedByObject.has(String(node.id)))return true;
+  return (node.children??[]).some((child)=>
+    subtreeHasRecognizedObject(child,recognizedByObject)
+  );
+}
+
 export function classifyReferenceFastenerLabel(label){
   const core=referenceComponentCoreLabel(label);
   const text=core.toLocaleLowerCase();
@@ -485,6 +516,8 @@ export function buildDwfxReferenceScene({
   let metadataOnlyCount=0;
   let unresolvedCount=0;
   let filteredFastenerCount=0;
+  let filteredAnnotationLeafCount=0;
+  let filteredAnnotationObjectCount=0;
   const filteredFastenerByKind={
     bolt:0,
     nut:0,
@@ -597,6 +630,35 @@ export function buildDwfxReferenceScene({
     if(sourceIsLeaf)leafCount+=1;
 
     const editablePart=recognizedByObject.get(String(source.id))??null;
+    const labelPath=[...ancestorLabels,String(source.label??"")];
+    const annotationPath=labelPath.some(
+      (label)=>classifyReferenceAnnotationLabel(label)==="annotation"
+    );
+
+    if(annotationPath&&!editablePart){
+      const canDropWholeSubtree=
+        sourceIsLeaf||
+        !subtreeHasRecognizedObject(source,recognizedByObject);
+      if(canDropWholeSubtree){
+        const count=countObjectTree(source);
+        if(!sourceIsLeaf){
+          objectCount+=Math.max(0,count.objects-1);
+          leafCount+=count.leaves;
+        }
+        filteredAnnotationLeafCount+=count.leaves;
+        filteredAnnotationObjectCount+=count.objects;
+        diagnostics.push(Object.freeze({
+          stage:"reference_annotation_filter",
+          object_id:String(source.id),
+          label:String(source.label??""),
+          filtered_object_count:count.objects,
+          filtered_leaf_count:count.leaves,
+          status:"excluded"
+        }));
+        return null;
+      }
+    }
+
     if(sourceIsLeaf&&!editablePart){
       const fastenerKind=classifyReferenceFastenerLabel(source.label);
       if(fastenerKind){
@@ -687,8 +749,7 @@ export function buildDwfxReferenceScene({
     }
 
     if(isLeaf&&geometryStatus==="unresolved")unresolvedCount+=1;
-    const labelPath=[...ancestorLabels,String(source.label??"")];
-    const annotation=labelPath.some((label)=>/^annotation$/i.test(label.trim()));
+    const annotation=annotationPath;
 
     return {
       id:String(source.id),
@@ -731,9 +792,12 @@ export function buildDwfxReferenceScene({
     stats:Object.freeze({
       object_count:objectCount,
       leaf_count:leafCount,
-      retained_leaf_count:leafCount-filteredFastenerCount,
+      retained_leaf_count:
+        leafCount-filteredFastenerCount-filteredAnnotationLeafCount,
       filtered_fastener_count:filteredFastenerCount,
       filtered_fastener_by_kind:Object.freeze({...filteredFastenerByKind}),
+      filtered_annotation_leaf_count:filteredAnnotationLeafCount,
+      filtered_annotation_object_count:filteredAnnotationObjectCount,
       placed_leaf_count:placedCount,
       drawable_leaf_count:drawableLeafCount,
       metadata_only_leaf_count:metadataOnlyCount,
