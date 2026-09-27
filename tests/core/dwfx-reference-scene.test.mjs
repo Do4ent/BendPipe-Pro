@@ -5,7 +5,8 @@ import {
   parseDwfxObjectTree,
   circularArcPolyline,
   classifyReferenceFastenerLabel,
-  classifyReferenceAnnotationLabel
+  classifyReferenceAnnotationLabel,
+  computeReferenceSceneBounds
 } from "../../src/import/dwfx/reference-scene.mjs";
 import {
   buildDisplayHsfSegmentIndex,
@@ -152,4 +153,66 @@ test("A41: reference annotation labels are excluded as display-only clutter",()=
   ]){
     assert.equal(classifyReferenceAnnotationLabel(label),null,label);
   }
+});
+
+
+test("A42: reference-scene bounds use retained placed geometry and nested transforms",()=>{
+  const identity=[
+    1,0,0,0,
+    0,1,0,0,
+    0,0,1,0,
+    0,0,0,1
+  ];
+  const translate=(x,y,z)=>[
+    1,0,0,0,
+    0,1,0,0,
+    0,0,1,0,
+    x,y,z,1
+  ];
+  const assets=[
+    {
+      id:"mesh",
+      status:"exact",
+      meshes:[{
+        vertices:[[0,0,0],[2,3,4]],
+        matrix:translate(1,2,3)
+      }],
+      line_segments:null,
+      nested_instances:[]
+    },
+    {
+      id:"group",
+      status:"exact",
+      meshes:[],
+      line_segments:null,
+      nested_instances:[{
+        asset_id:"mesh",
+        placement_matrix:translate(10,0,0),
+        status:"exact"
+      }]
+    }
+  ];
+  const tree=[{
+    id:"root",
+    geometry_instances:[{
+      asset_id:"group",
+      placement_matrix:translate(100,200,300),
+      status:"exact"
+    }],
+    children:[]
+  }];
+
+  const result=computeReferenceSceneBounds({
+    tree,
+    assets,
+    scale_mm_per_source_unit:10
+  });
+
+  assert.equal(result.status,"exact");
+  assert.deepEqual(result.source_units.min,[111,202,303]);
+  assert.deepEqual(result.source_units.max,[113,205,307]);
+  assert.deepEqual(result.mm.min,[1110,2020,3030]);
+  assert.deepEqual(result.mm.max,[1130,2050,3070]);
+  assert.deepEqual(result.mm.size,[20,30,40]);
+  assert.equal(result.point_count,2);
 });
