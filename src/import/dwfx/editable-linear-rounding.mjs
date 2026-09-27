@@ -2,6 +2,7 @@ import {
   BEND_ANGLE_DECIMAL_PLACES,
   roundBendAngleToDecimals
 } from "./editable-geometry-normalization.mjs";
+import { repairRoundedTubeContinuity } from "./editable-tube-integrity.mjs";
 
 function clone(value){
   return value==null ? value : JSON.parse(JSON.stringify(value));
@@ -47,7 +48,7 @@ export function roundEditableTubeLinearDimensions(
   if(!tube||typeof tube!=="object")throw new TypeError("tube is required");
   if(!Array.isArray(tube.rows))throw new TypeError("tube.rows is required");
 
-  const out=clone(tube);
+  let out=clone(tube);
   const changes=[];
   const angleChanges=[];
   const exactOrigin={
@@ -121,6 +122,28 @@ export function roundEditableTubeLinearDimensions(
     };
   }
 
+  const continuity=repairRoundedTubeContinuity(out);
+  if(
+    !continuity||
+    continuity.status!=="continuous_tube"||
+    !continuity.tube
+  ){
+    return Object.freeze({
+      status:"blocked",
+      tube:null,
+      normalization:null,
+      integrity:continuity?.integrity??null,
+      changed_count:changes.length+angleChanges.length,
+      linear_changed_count:changes.length,
+      angle_changed_count:angleChanges.length,
+      blocker:
+        continuity?.blocker??
+        "Rounded editable tube failed post-normalization continuity repair.",
+      production_ready:false
+    });
+  }
+  out=clone(continuity.tube);
+
   const normalization=Object.freeze({
     status:"rounded",
     increment_mm:Number(increment_mm),
@@ -161,6 +184,7 @@ export function roundEditableTubeLinearDimensions(
     status:"rounded",
     tube:out,
     normalization,
+    integrity:continuity.integrity,
     changed_count:changes.length+angleChanges.length,
     linear_changed_count:changes.length,
     angle_changed_count:angleChanges.length,
@@ -184,6 +208,24 @@ export function roundDwfxAssemblyLinearDimensions(
       bend_angle_decimal_places
     })
   );
+  const blocked=results
+    .map((result,index)=>({result,index}))
+    .filter(({result})=>result?.status!=="rounded"||!result?.tube);
+  if(blocked.length){
+    return Object.freeze({
+      status:"blocked",
+      assembly:null,
+      tube_count:results.length,
+      blocked_parts:Object.freeze(blocked.map(({result,index})=>Object.freeze({
+        index,
+        part_number:String(assembly.tubes[index]?.partNumber??assembly.tubes[index]?.name??""),
+        blocker:result?.blocker??"Post-rounding tube integrity failed."
+      }))),
+      blocker:"One or more rounded DWFx tubes failed continuity validation.",
+      production_ready:false
+    });
+  }
+
   const rounded=Object.freeze({
     ...assembly,
     tubes:Object.freeze(results.map((result)=>result.tube)),
