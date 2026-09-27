@@ -30,6 +30,7 @@ body.tb-project-map #projectEditor{
   min-width:0!important;
   max-width:100%!important;
   overflow:visible!important;
+  order:0!important;
 }
 body.tb-project-map #projectEditor .pt-group{
   min-width:0!important;
@@ -58,6 +59,15 @@ body.tb-project-map #projectEditor .tube-field-format{
     flex:1 1 0!important;
     width:auto!important;
     min-width:0!important;
+  }
+}
+@media (min-width:1121px) and (max-width:1240px){
+  body.tb-project-map .tb-brand{
+    flex:0 0 53px!important;
+    min-width:53px!important;
+  }
+  body.tb-project-map .tb-brand-text{
+    display:none!important;
   }
 }
 
