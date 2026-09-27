@@ -5,6 +5,7 @@ import {
   parseDwfxObjectTree,
   circularArcPolyline,
   classifyReferenceFastenerLabel,
+  classifyReferenceAxialVentilatorLabel,
   classifyReferenceCableGlandLabel,
   classifyReferenceHoseClampLabel,
   classifyReferenceAnnotationLabel,
@@ -278,5 +279,37 @@ test("A44: all Cable gland variants are excluded",()=>{
   ];
   for(const label of retained){
     assert.equal(classifyReferenceCableGlandLabel(label),null,label);
+  }
+});
+
+
+test("A45: axial ventilators are excluded without removing unrelated ventilation parts",()=>{
+  const excluded=[
+    "Ventilator, Axial, 230V, 50Hz:1",
+    "Ventilator Axial 120x120mm",
+    "Axial ventilator, 24VDC",
+    "Axial fan 120mm",
+    "Axial fans 230V",
+    "Axiaalventilator 230V",
+    "Axialventilator 24V",
+    "Осевой вентилятор 230В"
+  ];
+  for(const label of excluded){
+    assert.equal(
+      classifyReferenceAxialVentilatorLabel(label),
+      "axial_ventilator",
+      label
+    );
+  }
+
+  const retained=[
+    "Ventilator, Radial, 230V",
+    "Fan guard, axial ventilator",
+    "Ventilation duct",
+    "Fan bracket",
+    "Air filter"
+  ];
+  for(const label of retained){
+    assert.equal(classifyReferenceAxialVentilatorLabel(label),null,label);
   }
 });
