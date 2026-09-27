@@ -91,7 +91,7 @@ test("A40: reference fastener filter removes bolts nuts washers and screws witho
     ["10002347, Cable gland nut, Polyamide, M20x1,5:1","nut"],
     ["10000328, Washer, SS304, DIN 9021, M6, 6,4x18mm:1","washer"],
     ["10000134, Serrated lock washer, SS304, 6,4x11mm, DIN 6798:1","washer"],
-    ["10001620/F - Turnery ware, SS304, Hinge washer Ø ⅜\\" (5mm):1","washer"],
+    ['10001620/F - Turnery ware, SS304, Hinge washer Ø ⅜" (5mm):1',"washer"],
     ["DIN 933 - M6x16 - Stainless 304, Polished, Hexagon head screw, SS304, M6x16:1","screw"],
     ["Round head screw, ISO 7380-1 10002246:1","screw"],
     ["10002370, Flanged button screws, SS304, M6x12, torx:1","screw"],
