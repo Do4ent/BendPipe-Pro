@@ -1,3 +1,8 @@
+import {
+  BEND_ANGLE_INTEGER_TOLERANCE_DEG,
+  roundBendAngleNearInteger
+} from "./editable-geometry-normalization.mjs";
+
 function clone(value){
   return value==null ? value : JSON.parse(JSON.stringify(value));
 }
@@ -34,13 +39,17 @@ function recordChange(changes,path,before,after){
 
 export function roundEditableTubeLinearDimensions(
   tube,
-  {increment_mm=1}={}
+  {
+    increment_mm=1,
+    bend_angle_tolerance_deg=BEND_ANGLE_INTEGER_TOLERANCE_DEG
+  }={}
 ){
   if(!tube||typeof tube!=="object")throw new TypeError("tube is required");
   if(!Array.isArray(tube.rows))throw new TypeError("tube.rows is required");
 
   const out=clone(tube);
   const changes=[];
+  const angleChanges=[];
   const exactOrigin={
     x:finite(out?.origin?.x??0,"origin.x"),
     y:finite(out?.origin?.y??0,"origin.y"),
@@ -70,6 +79,24 @@ export function roundEditableTubeLinearDimensions(
       next.clr=after;
       next.clrSource="import_linear_rounding";
       recordChange(changes,"rows["+index+"].clr",before,after);
+
+      const angleBefore=finite(next.angle,"rows["+index+"].angle");
+      const angleNormalization=roundBendAngleNearInteger(
+        angleBefore,
+        {tolerance_deg:bend_angle_tolerance_deg}
+      );
+      next.angle=angleNormalization.editable_angle_deg;
+      next.angleFormula=numericFormula(next.angle);
+      if(angleNormalization.rounded_to_integer&&Math.abs(next.angle-angleBefore)>1e-12){
+        angleChanges.push(Object.freeze({
+          path:"rows["+index+"].angle",
+          source_deg:angleBefore,
+          editable_deg:next.angle,
+          delta_deg:next.angle-angleBefore,
+          nearest_integer_deg:angleNormalization.nearest_integer_deg,
+          tolerance_deg:angleNormalization.tolerance_deg
+        }));
+      }
     }
     return next;
   });
@@ -98,8 +125,11 @@ export function roundEditableTubeLinearDimensions(
     status:"rounded",
     increment_mm:Number(increment_mm),
     rule:"nearest_mm_half_away_from_zero",
+    bend_radius_rule:"nearest_whole_mm_half_away_from_zero",
+    bend_angle_rule:"nearest_integer_deg_if_within_tolerance",
+    bend_angle_integer_tolerance_deg:Number(bend_angle_tolerance_deg),
     source_geometry_preserved:true,
-    angles_unchanged:true,
+    angles_unchanged:angleChanges.length===0,
     rotations_unchanged:true,
     table_diameter_unchanged:true,
     machine_compensation_applied:false,
@@ -109,7 +139,8 @@ export function roundEditableTubeLinearDimensions(
     editable_origin_mm:Object.freeze([
       roundedOrigin.x,roundedOrigin.y,roundedOrigin.z
     ]),
-    changes:Object.freeze(changes)
+    changes:Object.freeze(changes),
+    angle_changes:Object.freeze(angleChanges)
   });
 
   out.importEvidence={
@@ -120,27 +151,38 @@ export function roundEditableTubeLinearDimensions(
     ...(out.importValidation??{}),
     productionBlocked:true,
     linearDimensionsRoundedToMm:true,
-    linearDimensionIncrementMm:Number(increment_mm)
+    linearDimensionIncrementMm:Number(increment_mm),
+    bendRadiiRoundedToWholeMm:true,
+    bendAnglesRoundedNearInteger:true,
+    bendAngleIntegerToleranceDeg:Number(bend_angle_tolerance_deg)
   };
 
   return Object.freeze({
     status:"rounded",
     tube:out,
     normalization,
-    changed_count:changes.length,
+    changed_count:changes.length+angleChanges.length,
+    linear_changed_count:changes.length,
+    angle_changed_count:angleChanges.length,
     production_ready:false
   });
 }
 
 export function roundDwfxAssemblyLinearDimensions(
   assembly,
-  {increment_mm=1}={}
+  {
+    increment_mm=1,
+    bend_angle_tolerance_deg=BEND_ANGLE_INTEGER_TOLERANCE_DEG
+  }={}
 ){
   if(!assembly||typeof assembly!=="object")throw new TypeError("assembly is required");
   if(!Array.isArray(assembly.tubes))throw new TypeError("assembly.tubes is required");
 
   const results=assembly.tubes.map((tube)=>
-    roundEditableTubeLinearDimensions(tube,{increment_mm})
+    roundEditableTubeLinearDimensions(tube,{
+      increment_mm,
+      bend_angle_tolerance_deg
+    })
   );
   const rounded=Object.freeze({
     ...assembly,
@@ -148,8 +190,15 @@ export function roundDwfxAssemblyLinearDimensions(
     linear_dimension_normalization:Object.freeze({
       status:"rounded",
       increment_mm:Number(increment_mm),
+      bend_angle_integer_tolerance_deg:Number(bend_angle_tolerance_deg),
       tube_count:results.length,
       changed_count:results.reduce((sum,result)=>sum+result.changed_count,0),
+      linear_changed_count:results.reduce(
+        (sum,result)=>sum+result.linear_changed_count,0
+      ),
+      angle_changed_count:results.reduce(
+        (sum,result)=>sum+result.angle_changed_count,0
+      ),
       source_geometry_preserved:true,
       production_ready:false
     })
