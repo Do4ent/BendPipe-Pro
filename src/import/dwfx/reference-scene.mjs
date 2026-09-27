@@ -543,9 +543,9 @@ export function classifyReferenceAxialVentilatorLabel(label){
   const text=core.toLocaleLowerCase();
 
   const axialVentilator=
-    /\bventilator\b[^,;]{0,40}\baxial\b/.test(text)||
-    /\baxial\b[^,;]{0,40}\bventilator\b/.test(text)||
-    /\baxial\s+fans?\b/.test(text)||
+    /^ventilator\b[^,;]{0,40}\baxial\b/.test(text)||
+    /^axial\b[^,;]{0,40}\bventilator\b/.test(text)||
+    /^axial\s+fans?\b/.test(text)||
     /\baxiaalventilator(?:en)?\b/.test(text)||
     /\baxialventilator(?:en)?\b/.test(text)||
     /(?:^|[^а-яё])осев(?:ой|ые|ого|ому|ым|ом)\s+вентилятор(?:ы|а|ов|у|ом|е)?(?:[^а-яё]|$)/i.test(text);
