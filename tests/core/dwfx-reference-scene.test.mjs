@@ -5,6 +5,7 @@ import {
   parseDwfxObjectTree,
   circularArcPolyline,
   classifyReferenceFastenerLabel,
+  classifyReferenceSymbolCardLabel,
   classifyReferenceAxialVentilatorLabel,
   classifyReferenceCableGlandLabel,
   classifyReferenceHoseClampLabel,
@@ -311,5 +312,36 @@ test("A45: axial ventilators are excluded without removing unrelated ventilation
   ];
   for(const label of retained){
     assert.equal(classifyReferenceAxialVentilatorLabel(label),null,label);
+  }
+});
+
+
+test("A46: Symbol card is excluded without removing unrelated cards",()=>{
+  const excluded=[
+    "Symbol card:1",
+    "Symbol card 24V:2",
+    "Symbol cards, panel set",
+    "Symbol-card",
+    "Symboolkaart",
+    "Symbolkarte",
+    "Карточка символа"
+  ];
+  for(const label of excluded){
+    assert.equal(
+      classifyReferenceSymbolCardLabel(label),
+      "symbol_card",
+      label
+    );
+  }
+
+  const retained=[
+    "Control card",
+    "PCB card",
+    "Card holder",
+    "Symbol plate",
+    "Warning symbol"
+  ];
+  for(const label of retained){
+    assert.equal(classifyReferenceSymbolCardLabel(label),null,label);
   }
 });
