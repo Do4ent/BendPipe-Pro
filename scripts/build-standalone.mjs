@@ -767,6 +767,31 @@ output = output.replace(
   "  if(importedDwfx){\n    restoreImportedSpatialOrigin(t);\n    const importedIndex=importedDiameterIndexFromEvidence(t,pkg?.pipeDb);"
 );
 
+
+const preserveViewerFrameCanvasAnchor =
+  "function onCanvasClick(event){\n  if (controls?.shouldSuppressSelection?.()) return;";
+if (!output.includes(preserveViewerFrameCanvasAnchor)) {
+  throw new Error("3D canvas selection handler anchor was not found");
+}
+output = output.replace(
+  preserveViewerFrameCanvasAnchor,
+  "let preserveViewerFrameForCanvasInteraction=false;\n"+
+  "function onCanvasClick(event){\n"+
+  "  preserveViewerFrameForCanvasInteraction=true;\n"+
+  "  queueMicrotask(()=>{preserveViewerFrameForCanvasInteraction=false;});\n"+
+  "  if (controls?.shouldSuppressSelection?.()) return;"
+);
+
+const renderAllViewerFitAnchor =
+  "  safeUiCall('renderViewerOnly', ()=>renderViewerOnly(true));";
+if (!output.includes(renderAllViewerFitAnchor)) {
+  throw new Error("renderAll viewer auto-fit anchor was not found");
+}
+output = output.replace(
+  renderAllViewerFitAnchor,
+  "  safeUiCall('renderViewerOnly', ()=>renderViewerOnly(!preserveViewerFrameForCanvasInteraction));"
+);
+
 const originEditorHandler =
   "state.origin[a]=v;if(!validatePipeBounds(inp,rowsForStartPointValidation(),state.diameterIndex,before)){state.origin[a]=old;renderAll();return;}syncActiveTubeFromState();save();renderAll();";
 if (!output.includes(originEditorHandler)) {
