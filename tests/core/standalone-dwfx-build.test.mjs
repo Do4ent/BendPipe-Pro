@@ -345,7 +345,7 @@ test("A48: standalone exposes synchronized 3D and tree object context menus",()=
   assert.match(html,/data-object-action="delete"/);
   assert.match(html,/Переместить выбранные объекты/);
   assert.match(html,/source==="3d"/);
-  assert.match(html,/source==="tree"/);
+  assert.match(html,/source!=="3d"/);
   assert.match(html,/contextmenu/);
   assert.match(html,/event\.ctrlKey\|\|event\.metaKey/);
   assert.match(html,/translation_mm/);
