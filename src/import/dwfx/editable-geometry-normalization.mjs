@@ -27,7 +27,7 @@ function unit(value,label="vector"){
 }
 
 export const AXIS_PARALLEL_TOLERANCE_DEG=0.25;
-export const BEND_ANGLE_INTEGER_TOLERANCE_DEG=0.01;
+export const BEND_ANGLE_DECIMAL_PLACES=2;
 
 export function snapDirectionToPrincipalAxis(
   direction,
@@ -74,30 +74,28 @@ export function snapDirectionToPrincipalAxis(
   });
 }
 
-export function roundBendAngleNearInteger(
+export function roundBendAngleToDecimals(
   angle_deg,
-  {tolerance_deg=BEND_ANGLE_INTEGER_TOLERANCE_DEG}={}
+  {decimal_places=BEND_ANGLE_DECIMAL_PLACES}={}
 ){
   const source=finite(angle_deg,"angle_deg");
-  const tolerance=finite(tolerance_deg,"tolerance_deg");
-  if(tolerance<0||tolerance>=0.5){
-    throw new RangeError("tolerance_deg must be in [0,0.5)");
+  const places=Number(decimal_places);
+  if(!Number.isInteger(places)||places<0||places>6){
+    throw new RangeError("decimal_places must be an integer in [0,6]");
   }
-  const nearest=source<0
-    ?-Math.round(Math.abs(source))
-    :Math.round(source);
-  const deviation=Math.abs(source-nearest);
-  const rounded=deviation<=tolerance;
-  const editable=rounded?nearest:source;
+  const factor=10**places;
+  const scaled=Math.abs(source)*factor;
+  const roundedMagnitude=Math.round(scaled+Number.EPSILON)/factor;
+  const signed=source<0?-roundedMagnitude:roundedMagnitude;
+  const editable=Object.is(signed,-0)?0:signed;
 
   return Object.freeze({
-    status:rounded?"rounded_integer":"preserved_non_integer",
+    status:"rounded_decimals",
     source_angle_deg:source,
-    editable_angle_deg:Object.is(editable,-0)?0:editable,
-    nearest_integer_deg:Object.is(nearest,-0)?0:nearest,
-    deviation_deg:deviation,
-    tolerance_deg:tolerance,
-    rounded_to_integer:rounded,
+    editable_angle_deg:editable,
+    decimal_places:places,
+    increment_deg:1/factor,
+    changed:Math.abs(editable-source)>1e-12,
     source_preserved:true
   });
 }
