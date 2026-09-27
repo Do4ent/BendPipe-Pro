@@ -4,6 +4,10 @@ import { prepareDwfxAssemblyImport } from "./assembly-import-pipeline.mjs";
 import { buildLegacyProjectPackageFromAssembly } from "./legacy-project-package.mjs";
 import { spatiallyPlaceDwfxAssembly } from "./editable-spatial-placement.mjs";
 import { roundDwfxAssemblyLinearDimensions } from "./editable-linear-rounding.mjs";
+import {
+  deriveAutomaticFrameFromReferenceBounds,
+  rebaseDwfxAssemblyToAutomaticFrame
+} from "./automatic-frame-fit.mjs";
 
 /**
  * Compose the trusted DWFx project import path:
@@ -163,11 +167,58 @@ export function prepareTrustedDwfxProjectImport({
   }
   const editableAssembly=linearRounding.assembly;
 
+  let packageAssembly=editableAssembly;
+  let effectiveBbox=bbox;
+  let effectiveBboxAnchor=null;
+  let effectiveCoordinateOffset=null;
+  let automaticFrame=null;
+
+  if(effectiveBbox==null&&reference_scene){
+    automaticFrame=deriveAutomaticFrameFromReferenceBounds(reference_scene);
+    if(automaticFrame?.status==="exact"){
+      const rebased=rebaseDwfxAssemblyToAutomaticFrame({
+        assembly:editableAssembly,
+        frame:automaticFrame
+      });
+      if(
+        !rebased||
+        rebased.status!=="rebased_assembly"||
+        !rebased.assembly
+      ){
+        return Object.freeze({
+          status:"blocked",
+          stage:"automatic_frame",
+          editable_ready:false,
+          production_ready:false,
+          plan,
+          hydration,
+          assembly:editableAssembly,
+          spatial_placement:spatialPlacement,
+          linear_rounding:linearRounding,
+          automatic_frame:automaticFrame,
+          project_package:null,
+          blocker:
+            rebased?.blocker??
+            "Automatic DWFx frame fitting could not preserve editable tube placement."
+        });
+      }
+      packageAssembly=rebased.assembly;
+      effectiveBbox=automaticFrame.bbox;
+      effectiveBboxAnchor=automaticFrame.bbox_anchor;
+      effectiveCoordinateOffset=automaticFrame.coordinate_offset;
+    }
+  }
+
   const projectPackage=buildProjectPackage({
-    assembly:editableAssembly,
+    assembly:packageAssembly,
     project_id,
     project_name,
-    bbox,
+    bbox:effectiveBbox,
+    bbox_anchor:effectiveBboxAnchor,
+    coordinate_offset:effectiveCoordinateOffset,
+    bbox_source:automaticFrame?.status==="exact"
+      ?"automatic_reference_geometry"
+      :"explicit",
     reference_scene
   });
   if(!projectPackage||projectPackage.status!=="project_package_candidate"){
@@ -178,9 +229,10 @@ export function prepareTrustedDwfxProjectImport({
       production_ready:false,
       plan,
       hydration,
-      assembly:editableAssembly,
+      assembly:packageAssembly,
       spatial_placement:spatialPlacement,
       linear_rounding:linearRounding,
+      automatic_frame:automaticFrame,
       project_package:projectPackage??null,
       blocker:
         projectPackage?.blocker??
@@ -195,9 +247,10 @@ export function prepareTrustedDwfxProjectImport({
     production_ready:false,
     plan,
     hydration,
-    assembly:editableAssembly,
+    assembly:packageAssembly,
     spatial_placement:spatialPlacement,
     linear_rounding:linearRounding,
+    automatic_frame:automaticFrame,
     project_package:projectPackage,
     package:projectPackage.package,
     blocker:
