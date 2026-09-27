@@ -545,7 +545,7 @@ export function classifyReferenceCableGlandLabel(label){
   const cableGland=
     /\bcable\s+glands?\b/.test(text)||
     /\bkabelwartels?\b/.test(text)||
-    /\bkabelverschraubungen?\b/.test(text)||
+    /\bkabelverschraubung(?:en)?\b/.test(text)||
     /(?:^|[^а-яё])кабельн(?:ый|ая|ое|ые|ого|ому|ым|ом)\s+(?:ввод|вводы|сальник|сальники)(?:[^а-яё]|$)/i.test(text);
 
   return cableGland?"cable_gland":null;
