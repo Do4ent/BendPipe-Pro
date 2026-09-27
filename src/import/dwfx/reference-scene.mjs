@@ -538,17 +538,17 @@ function subtreeHasRecognizedObject(node,recognizedByObject){
   );
 }
 
-export function classifyReferenceCableGlandBlackLabel(label){
+export function classifyReferenceCableGlandLabel(label){
   const core=referenceComponentCoreLabel(label);
   const text=core.toLocaleLowerCase();
 
-  const cableGlandBlack=
-    /\bcable\s+gland\s+black\b/.test(text)||
-    /\bzwarte\s+kabelwartel\b/.test(text)||
-    /\bschwarze\s+kabelverschraubung\b/.test(text)||
-    /(?:^|[^а-яё])черн(?:ый|ая|ое|ые|ого|ому|ым|ом)\s+кабельн(?:ый|ая|ое|ые)\s+(?:ввод|сальник)(?:[^а-яё]|$)/i.test(text);
+  const cableGland=
+    /\bcable\s+glands?\b/.test(text)||
+    /\bkabelwartels?\b/.test(text)||
+    /\bkabelverschraubungen?\b/.test(text)||
+    /(?:^|[^а-яё])кабельн(?:ый|ая|ое|ые|ого|ому|ым|ом)\s+(?:ввод|вводы|сальник|сальники)(?:[^а-яё]|$)/i.test(text);
 
-  return cableGlandBlack?"cable_gland_black":null;
+  return cableGland?"cable_gland":null;
 }
 
 export function classifyReferenceHoseClampLabel(label){
@@ -660,7 +660,7 @@ export function buildDwfxReferenceScene({
   let unresolvedCount=0;
   let filteredFastenerCount=0;
   let filteredHoseClampCount=0;
-  let filteredCableGlandBlackCount=0;
+  let filteredCableGlandCount=0;
   let filteredAnnotationLeafCount=0;
   let filteredAnnotationObjectCount=0;
   const filteredFastenerByKind={
@@ -805,14 +805,14 @@ export function buildDwfxReferenceScene({
     }
 
     if(sourceIsLeaf&&!editablePart){
-      const cableGlandBlackKind=classifyReferenceCableGlandBlackLabel(source.label);
-      if(cableGlandBlackKind){
-        filteredCableGlandBlackCount+=1;
+      const cableGlandKind=classifyReferenceCableGlandLabel(source.label);
+      if(cableGlandKind){
+        filteredCableGlandCount+=1;
         diagnostics.push(Object.freeze({
-          stage:"reference_cable_gland_black_filter",
+          stage:"reference_cable_gland_filter",
           object_id:String(source.id),
           label:String(source.label??""),
-          component_kind:cableGlandBlackKind,
+          component_kind:cableGlandKind,
           status:"excluded"
         }));
         return null;
@@ -977,11 +977,11 @@ export function buildDwfxReferenceScene({
       object_count:objectCount,
       leaf_count:leafCount,
       retained_leaf_count:
-        leafCount-filteredFastenerCount-filteredHoseClampCount-filteredCableGlandBlackCount-filteredAnnotationLeafCount,
+        leafCount-filteredFastenerCount-filteredHoseClampCount-filteredCableGlandCount-filteredAnnotationLeafCount,
       filtered_fastener_count:filteredFastenerCount,
       filtered_fastener_by_kind:Object.freeze({...filteredFastenerByKind}),
       filtered_hose_clamp_count:filteredHoseClampCount,
-      filtered_cable_gland_black_count:filteredCableGlandBlackCount,
+      filtered_cable_gland_count:filteredCableGlandCount,
       filtered_annotation_leaf_count:filteredAnnotationLeafCount,
       filtered_annotation_object_count:filteredAnnotationObjectCount,
       placed_leaf_count:placedCount,
