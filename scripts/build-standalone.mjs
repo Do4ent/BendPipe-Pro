@@ -14,6 +14,7 @@ const dwfxEntryPath = path.join(root, "src", "import", "dwfx", "browser-file-imp
 const dwfxCurrentProjectUiPath = path.join(root, "src", "import", "dwfx", "current-project-ui.js");
 const dwfxReferenceSceneUiPath = path.join(root, "src", "import", "dwfx", "reference-scene-ui.js");
 const objectSelectionContextUiPath = path.join(root, "src", "ui", "object-selection-context-ui.js");
+const projectTubeBarLayoutFixPath = path.join(root, "src", "ui", "project-tube-bar-layout-fix.js");
 const distDir = path.join(root, "dist");
 const outputPath = path.join(distDir, "TubeBender_CAD_VC207R7_M1_Standalone.html");
 
@@ -1072,6 +1073,10 @@ const objectSelectionContextUi = fs.readFileSync(objectSelectionContextUiPath, "
 const bundledObjectSelectionContextUi =
   `<script data-tubebender-bundled="object-selection-context-ui">\n${objectSelectionContextUi}\n</script>`;
 
+const projectTubeBarLayoutFix = fs.readFileSync(projectTubeBarLayoutFixPath, "utf8").replace(/<\/script/gi, "<\\/script");
+const bundledProjectTubeBarLayoutFix =
+  `<script data-tubebender-bundled="project-tube-bar-layout-fix">\n${projectTubeBarLayoutFix}\n</script>`;
+
 if (!output.includes("</body>")) {
   throw new Error("Standalone source HTML is missing </body>");
 }
@@ -1086,6 +1091,8 @@ output =
   bundledDwfxReferenceSceneUi +
   "\n" +
   bundledObjectSelectionContextUi +
+  "\n" +
+  bundledProjectTubeBarLayoutFix +
   "\n" +
   bundledDwfxCurrentProjectUi +
   "\n" +
