@@ -40,6 +40,37 @@ body.tb-project-map #projectEditor{
   overflow:visible!important;
   gap:8px!important;
 }
+body.tb-project-map .tb-brand{grid-column:1!important;}
+body.tb-project-map #projectEditor{grid-column:2!important;}
+body.tb-project-map .tb-map-head-spacer{grid-column:3!important;}
+body.tb-project-map .tb-head-actions{grid-column:4!important;}
+body.tb-project-map .tb-window-controls{
+  grid-column:5!important;
+  grid-row:1!important;
+  justify-self:end!important;
+  align-self:center!important;
+  display:flex!important;
+  flex:0 0 auto!important;
+  height:38px!important;
+  gap:4px!important;
+  margin:0!important;
+  padding:0 0 0 7px!important;
+  border-left:1px solid #173247!important;
+  white-space:nowrap!important;
+}
+body.tb-project-map .tb-window-control{
+  flex:0 0 38px!important;
+  width:38px!important;
+  height:38px!important;
+  min-width:38px!important;
+  min-height:38px!important;
+  padding:0!important;
+  margin:0!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  line-height:1!important;
+}
 body.tb-project-map #projectEditor .pt-group{
   min-width:0!important;
   max-width:100%!important;
@@ -77,7 +108,7 @@ body.tb-project-map #projectEditor .pt-divider{
 @media (min-width:1551px){
   body.tb-project-map .tb-map-header{
     display:grid!important;
-    grid-template-columns:382px minmax(400px,450px) minmax(8px,1fr) auto!important;
+    grid-template-columns:382px minmax(400px,450px) minmax(8px,1fr) auto auto!important;
     column-gap:14px!important;
   }
   body.tb-project-map #projectEditor{
@@ -88,7 +119,7 @@ body.tb-project-map #projectEditor .pt-divider{
 @media (min-width:1121px) and (max-width:1550px){
   body.tb-project-map .tb-map-header{
     display:grid!important;
-    grid-template-columns:310px minmax(330px,410px) minmax(8px,1fr) auto!important;
+    grid-template-columns:310px minmax(330px,410px) minmax(8px,1fr) auto auto!important;
     column-gap:12px!important;
   }
   body.tb-project-map .tb-brand{
@@ -103,12 +134,17 @@ body.tb-project-map #projectEditor .pt-divider{
 @media (max-width:1120px){
   body.tb-project-map .tb-map-header{
     display:grid!important;
-    grid-template-columns:52px minmax(0,1fr)!important;
+    grid-template-columns:52px minmax(0,1fr) auto!important;
     column-gap:8px!important;
   }
   body.tb-project-map .tb-map-head-spacer,
   body.tb-project-map .tb-head-actions{
     display:none!important;
+  }
+  body.tb-project-map .tb-window-controls{
+    grid-column:3!important;
+    grid-row:1!important;
+    justify-self:end!important;
   }
   body.tb-project-map #projectEditor{
     width:100%!important;
