@@ -385,6 +385,121 @@ function safeSceneId(sourceFile){
   return "dwfx-reference:"+String(sourceFile??"imported.dwfx");
 }
 
+
+function emptyBounds(){
+  return {
+    min:[Infinity,Infinity,Infinity],
+    max:[-Infinity,-Infinity,-Infinity],
+    point_count:0
+  };
+}
+
+function expandBounds(bounds,point){
+  const p=v3(point);
+  if(!p)return;
+  for(let axis=0;axis<3;axis+=1){
+    bounds.min[axis]=Math.min(bounds.min[axis],p[axis]);
+    bounds.max[axis]=Math.max(bounds.max[axis],p[axis]);
+  }
+  bounds.point_count+=1;
+}
+
+function transformBoundsPoint(bounds,point,matrix){
+  const transformed=transformPoint(point,matrix);
+  if(transformed)expandBounds(bounds,transformed);
+}
+
+export function computeReferenceSceneBounds({
+  tree,
+  assets,
+  scale_mm_per_source_unit=1
+}){
+  if(!Array.isArray(tree))throw new TypeError("reference tree must be an array");
+  if(!Array.isArray(assets))throw new TypeError("reference assets must be an array");
+  const scale=Number(scale_mm_per_source_unit);
+  if(!Number.isFinite(scale)||scale<=0){
+    throw new RangeError("scale_mm_per_source_unit must be positive");
+  }
+
+  const byId=new Map(assets.map((asset)=>[String(asset?.id??""),asset]));
+  const bounds=emptyBounds();
+
+  const visitAsset=(assetId,parentMatrix,stack=new Set())=>{
+    const key=String(assetId??"");
+    if(!key||stack.has(key))return;
+    const asset=byId.get(key);
+    if(!asset||asset.status!=="exact")return;
+    const nextStack=new Set(stack);
+    nextStack.add(key);
+
+    for(const mesh of asset.meshes??[]){
+      const meshMatrix=multiply4(parentMatrix,matrix16(mesh?.matrix));
+      for(const vertex of mesh?.vertices??[]){
+        transformBoundsPoint(bounds,vertex,meshMatrix);
+      }
+    }
+
+    const positions=asset.line_segments?.positions??[];
+    for(let index=0;index+2<positions.length;index+=3){
+      transformBoundsPoint(
+        bounds,
+        [positions[index],positions[index+1],positions[index+2]],
+        parentMatrix
+      );
+    }
+
+    for(const nested of asset.nested_instances??[]){
+      if(nested?.status!=="exact")continue;
+      const nestedMatrix=multiply4(
+        parentMatrix,
+        matrix16(nested?.placement_matrix)
+      );
+      visitAsset(nested.asset_id,nestedMatrix,nextStack);
+    }
+  };
+
+  const visitNode=(node)=>{
+    for(const instance of node?.geometry_instances??[]){
+      if(instance?.status!=="exact")continue;
+      visitAsset(
+        instance.asset_id,
+        matrix16(instance.placement_matrix)
+      );
+    }
+    for(const child of node?.children??[])visitNode(child);
+  };
+  for(const root of tree)visitNode(root);
+
+  if(bounds.point_count===0){
+    return Object.freeze({
+      status:"empty",
+      point_count:0,
+      source_units:null,
+      mm:null
+    });
+  }
+
+  const min=bounds.min;
+  const max=bounds.max;
+  const size=max.map((value,index)=>value-min[index]);
+  const scaled=(value)=>Number((value*scale).toFixed(6));
+
+  return Object.freeze({
+    status:"exact",
+    point_count:bounds.point_count,
+    source_units:Object.freeze({
+      min:Object.freeze([...min]),
+      max:Object.freeze([...max]),
+      size:Object.freeze([...size])
+    }),
+    mm:Object.freeze({
+      min:Object.freeze(min.map(scaled)),
+      max:Object.freeze(max.map(scaled)),
+      size:Object.freeze(size.map(scaled))
+    })
+  });
+}
+
 function referenceComponentCoreLabel(label){
   return String(label??"")
     .replace(/:\d+\s*$/,"")
@@ -772,6 +887,11 @@ export function buildDwfxReferenceScene({
 
   const tree=roots.map((root)=>enrich(root,[])).filter(Boolean);
   const assets=Object.freeze([...assetCache.values()]);
+  const sceneBounds=computeReferenceSceneBounds({
+    tree,
+    assets,
+    scale_mm_per_source_unit:scale
+  });
   const manifest=Object.freeze([...assetManifest.values()]);
   const exactAssets=manifest.filter((asset)=>asset.status==="exact");
 
@@ -787,6 +907,14 @@ export function buildDwfxReferenceScene({
     production_ready:false,
     canonical_ready:false,
     scale_mm_per_source_unit:scale,
+    bounds_mm:sceneBounds.status==="exact"
+      ? Object.freeze({
+          min:Object.freeze([...sceneBounds.mm.min]),
+          max:Object.freeze([...sceneBounds.mm.max]),
+          size:Object.freeze([...sceneBounds.mm.size])
+        })
+      : null,
+    bounds_source_units:sceneBounds.source_units,
     tree:Object.freeze(tree.map(freezeTreeNode)),
     asset_manifest:manifest,
     stats:Object.freeze({
@@ -816,6 +944,13 @@ export function buildDwfxReferenceScene({
     source_file:String(source_file??""),
     readonly:true,
     scale_mm_per_source_unit:scale,
+    bounds_mm:sceneBounds.status==="exact"
+      ? Object.freeze({
+          min:Object.freeze([...sceneBounds.mm.min]),
+          max:Object.freeze([...sceneBounds.mm.max]),
+          size:Object.freeze([...sceneBounds.mm.size])
+        })
+      : null,
     assets
   });
 
