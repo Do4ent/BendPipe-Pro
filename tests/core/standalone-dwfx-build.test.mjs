@@ -314,3 +314,17 @@ test("A36: standalone keeps rounded editable origin instead of restoring exact s
   assert.match(html,/normalized\?\.editable_origin_mm/);
   assert.match(html,/linear_rounding_increment_mm:1/);
 });
+
+
+test("A39: active imported DWFx tube uses one copper color for LINE and BEND",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/const importedDwfxTube=String\(activeTube\(\)\?\.importEvidence\?\.source\?\.format\?\?''\)\.toUpperCase\(\)==='DWFX'/);
+  assert.match(html,/const bendBodyColor=importedDwfxTube\?0xc77738:0xd98b4a/);
+  assert.match(html,/tubeElementMaterial\(bendBodyColor, rowIndex\)/);
+  assert.match(html,/DWFX'\?0xc77738:0x4da3ff/);
+  assert.match(html,/DWFX'\?0xc77738:0xff9a3c/);
+});
