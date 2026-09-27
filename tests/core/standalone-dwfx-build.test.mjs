@@ -367,6 +367,8 @@ test("A49: standalone preserves VC207R7 flex header and clamps Project/Tube drop
   assert.match(html,/data-tubebender-bundled="project-tube-bar-layout-fix"/);
   assert.match(html,/preserve the native \.tb-map-header flex layout/);
   assert.match(html,/body\.tb-project-map \.tb-map-header\{[\s\S]*min-width:0!important/);
+  assert.match(html,/body\.tb-project-map #projectEditor\{[\s\S]*order:0!important/);
+  assert.match(html,/@media \(min-width:1121px\) and \(max-width:1240px\)\{[\s\S]*\.tb-brand\{[\s\S]*flex:0 0 53px!important[\s\S]*\.tb-brand-text\{[\s\S]*display:none!important/);
   assert.match(html,/@media \(min-width:1121px\) and \(max-width:1550px\)\{[\s\S]*project-group,[\s\S]*tube-group\{[\s\S]*flex:1 1 0!important/);
   assert.doesNotMatch(html,/body\.tb-project-map \.tb-brand\{grid-column:/);
   assert.doesNotMatch(html,/body\.tb-project-map #projectEditor\{grid-column:/);
