@@ -385,6 +385,57 @@ function safeSceneId(sourceFile){
   return "dwfx-reference:"+String(sourceFile??"imported.dwfx");
 }
 
+function referenceComponentCoreLabel(label){
+  return String(label??"")
+    .replace(/:\\d+\\s*$/,"")
+    .replace(/^\\s*\\d{5,}(?:\\/[A-Za-z0-9._-]+)?\\s*(?:[-,]\\s*)?/,"")
+    .trim();
+}
+
+export function classifyReferenceFastenerLabel(label){
+  const core=referenceComponentCoreLabel(label);
+  const text=core.toLocaleLowerCase();
+
+  const washer=
+    /\\bwashers?\\b/.test(text)||
+    /\\bunterlegscheiben?\\b/.test(text)||
+    /\\bsluitringen?\\b/.test(text)||
+    /(?:^|[^а-яё])шайб(?:а|ы|у|е|ой|ою)?(?:[^а-яё]|$)/i.test(text);
+  if(washer)return "washer";
+
+  const screw=
+    /\\bscrews?\\b/.test(text)||
+    /\\bschrauben?\\b/.test(text)||
+    /\\bschroeven?\\b/.test(text)||
+    /(?:^|[^а-яё])винт(?:ы|а|ов|у|ом|е)?(?:[^а-яё]|$)/i.test(text);
+  if(screw)return "screw";
+
+  const nut=
+    /\\bnuts?\\b/.test(text)||
+    /\\bmuttern?\\b/.test(text)||
+    /\\bmoeren?\\b/.test(text)||
+    /(?:^|[^а-яё])гайк(?:а|и|у|е|ой|ою)?(?:[^а-яё]|$)/i.test(text);
+  if(nut){
+    const embeddedAccessory=
+      /\\bwith\\b[^,;]{0,80}\\b(?:contra\\s+)?nut\\b/.test(text)||
+      /\\bmet\\b[^,;]{0,80}\\bmoer\\b/.test(text)||
+      /\\bmit\\b[^,;]{0,80}\\bmutter\\b/.test(text);
+    if(!embeddedAccessory)return "nut";
+  }
+
+  const bolt=
+    /\\bbolts?\\b/.test(text)||
+    /\\bbouten?\\b/.test(text)||
+    /(?:^|[^а-яё])болт(?:ы|а|ов|у|ом|е)?(?:[^а-яё]|$)/i.test(text);
+  if(bolt){
+    const accessoryForBolt=
+      /^(?:sealing\\s+ring|gasket|o[- ]?ring)\\b/.test(text);
+    if(!accessoryForBolt)return "bolt";
+  }
+
+  return null;
+}
+
 /**
  * Build a read-only reference scene from every instantiated leaf Object in a
  * DWFx Content tree. It never promotes this geometry to canonical/editable
@@ -433,6 +484,13 @@ export function buildDwfxReferenceScene({
   let drawableLeafCount=0;
   let metadataOnlyCount=0;
   let unresolvedCount=0;
+  let filteredFastenerCount=0;
+  const filteredFastenerByKind={
+    bolt:0,
+    nut:0,
+    washer:0,
+    screw:0
+  };
 
   const resolvingAssets=new Set();
   const assetFor=(name)=>{
@@ -535,12 +593,34 @@ export function buildDwfxReferenceScene({
 
   const enrich=(source,ancestorLabels=[])=>{
     objectCount+=1;
-    const children=source.children.map((child)=>
-      enrich(child,[...ancestorLabels,String(source.label??"")])
-    );
-    const isLeaf=children.length===0;
-    if(isLeaf)leafCount+=1;
+    const sourceIsLeaf=source.children.length===0;
+    if(sourceIsLeaf)leafCount+=1;
 
+    const editablePart=recognizedByObject.get(String(source.id))??null;
+    if(sourceIsLeaf&&!editablePart){
+      const fastenerKind=classifyReferenceFastenerLabel(source.label);
+      if(fastenerKind){
+        filteredFastenerCount+=1;
+        filteredFastenerByKind[fastenerKind]+=1;
+        diagnostics.push(Object.freeze({
+          stage:"reference_fastener_filter",
+          object_id:String(source.id),
+          label:String(source.label??""),
+          fastener_kind:fastenerKind,
+          status:"excluded"
+        }));
+        return null;
+      }
+    }
+
+    const children=source.children
+      .map((child)=>
+        enrich(child,[...ancestorLabels,String(source.label??"")])
+      )
+      .filter(Boolean);
+    if(!sourceIsLeaf&&children.length===0)return null;
+
+    const isLeaf=sourceIsLeaf;
     const link=linksByObject.get(String(source.id))??null;
     const geometryInstances=[];
     let geometryStatus=isLeaf?"unresolved":"group";
@@ -621,7 +701,7 @@ export function buildDwfxReferenceScene({
       geometry_anchor_id:anchorId,
       geometry_anchor_kind:anchorKind,
       geometry_status:geometryStatus,
-      editable_part_number:recognizedByObject.get(String(source.id))??null,
+      editable_part_number:editablePart,
       annotation,
       visible:true,
       geometry_instances:geometryInstances,
@@ -629,7 +709,7 @@ export function buildDwfxReferenceScene({
     };
   };
 
-  const tree=roots.map((root)=>enrich(root,[]));
+  const tree=roots.map((root)=>enrich(root,[])).filter(Boolean);
   const assets=Object.freeze([...assetCache.values()]);
   const manifest=Object.freeze([...assetManifest.values()]);
   const exactAssets=manifest.filter((asset)=>asset.status==="exact");
@@ -651,6 +731,9 @@ export function buildDwfxReferenceScene({
     stats:Object.freeze({
       object_count:objectCount,
       leaf_count:leafCount,
+      retained_leaf_count:leafCount-filteredFastenerCount,
+      filtered_fastener_count:filteredFastenerCount,
+      filtered_fastener_by_kind:Object.freeze({...filteredFastenerByKind}),
       placed_leaf_count:placedCount,
       drawable_leaf_count:drawableLeafCount,
       metadata_only_leaf_count:metadataOnlyCount,
