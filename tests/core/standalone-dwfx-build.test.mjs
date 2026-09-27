@@ -397,3 +397,34 @@ test("A50: 3D component selection preserves the current viewer framing",()=>{
     /safeUiCall\('renderViewerOnly', \(\)=>renderViewerOnly\(!preserveViewerFrameForCanvasInteraction\)\)/
   );
 });
+
+
+test("A51: window controls stay in one top-right header row",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(
+    html,
+    /grid-template-columns:382px minmax\(400px,450px\) minmax\(8px,1fr\) auto auto/
+  );
+  assert.match(
+    html,
+    /grid-template-columns:310px minmax\(330px,410px\) minmax\(8px,1fr\) auto auto/
+  );
+  assert.match(
+    html,
+    /grid-template-columns:52px minmax\(0,1fr\) auto/
+  );
+  assert.match(html,/body\.tb-project-map \.tb-window-controls\{[\s\S]*grid-column:5!important/);
+  assert.match(html,/grid-row:1!important/);
+  assert.match(html,/justify-self:end!important/);
+  assert.match(html,/align-self:center!important/);
+  assert.match(html,/body\.tb-project-map \.tb-window-control\{[\s\S]*flex:0 0 38px!important/);
+
+  const min=html.indexOf('id="tbWinMin"');
+  const max=html.indexOf('id="tbWinMax"');
+  const close=html.indexOf('id="tbWinClose"');
+  assert.ok(min>=0&&max>min&&close>max);
+});
