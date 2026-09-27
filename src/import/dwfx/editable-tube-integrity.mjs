@@ -112,7 +112,7 @@ export function repairRoundedTubeContinuity(
   tube,
   {
     endpoint_tolerance_mm=1e-8,
-    tangency_tolerance_deg=1e-8,
+    tangency_tolerance_deg=1e-5,
     axis_parallel_tolerance_deg=AXIS_PARALLEL_TOLERANCE_DEG
   }={}
 ){
