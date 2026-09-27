@@ -12,159 +12,56 @@
     const style=document.createElement("style");
     style.id="tbProjectTubeLayoutFixStyles";
     style.textContent=`
-/* Project/Tube bar final layout guard: prevent Project from overlapping TB logo. */
+/*
+ * Safe VC207R7 header corrections.
+ * IMPORTANT: preserve the native .tb-map-header flex layout. Do not replace it
+ * with grid: the approved UI builds its header dynamically as
+ * Brand -> Project/Tube -> spacer -> actions -> window controls.
+ */
 body.tb-project-map .tb-map-header{
   min-width:0!important;
   overflow:visible!important;
 }
 body.tb-project-map .tb-brand{
-  min-width:0!important;
-  width:auto!important;
-  max-width:100%!important;
-  overflow:hidden!important;
-}
-body.tb-project-map .tb-brand-text{
-  min-width:0!important;
-  overflow:hidden!important;
-}
-body.tb-project-map .tb-brand-title,
-body.tb-project-map .tb-brand-sub{
-  overflow:hidden!important;
-  text-overflow:ellipsis!important;
-  white-space:nowrap!important;
+  min-width:0;
 }
 body.tb-project-map #projectEditor{
   box-sizing:border-box!important;
   min-width:0!important;
   max-width:100%!important;
   overflow:visible!important;
-  gap:8px!important;
-}
-body.tb-project-map .tb-brand{grid-column:1!important;}
-body.tb-project-map #projectEditor{grid-column:2!important;}
-body.tb-project-map .tb-map-head-spacer{grid-column:3!important;}
-body.tb-project-map .tb-head-actions{grid-column:4!important;}
-body.tb-project-map .tb-window-controls{
-  grid-column:5!important;
-  grid-row:1!important;
-  justify-self:end!important;
-  align-self:center!important;
-  display:flex!important;
-  flex:0 0 auto!important;
-  height:38px!important;
-  gap:4px!important;
-  margin:0!important;
-  padding:0 0 0 7px!important;
-  border-left:1px solid #173247!important;
-  white-space:nowrap!important;
-}
-body.tb-project-map .tb-window-control{
-  flex:0 0 38px!important;
-  width:38px!important;
-  height:38px!important;
-  min-width:38px!important;
-  min-height:38px!important;
-  padding:0!important;
-  margin:0!important;
-  display:inline-flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  line-height:1!important;
 }
 body.tb-project-map #projectEditor .pt-group{
   min-width:0!important;
   max-width:100%!important;
 }
-body.tb-project-map #projectEditor .project-group,
-body.tb-project-map #projectEditor .tube-group{
-  flex:1 1 0!important;
-  width:auto!important;
-  min-width:0!important;
-  max-width:none!important;
-}
-body.tb-project-map #projectEditor .project-combo,
-body.tb-project-map #projectEditor .tube-combo{
-  flex:1 1 auto!important;
-  width:100%!important;
+body.tb-project-map #projectEditor .pt-combo{
   min-width:0!important;
   max-width:100%!important;
-  box-sizing:border-box!important;
 }
-body.tb-project-map #projectEditor .pt-label{
+body.tb-project-map #projectEditor .pt-label,
+body.tb-project-map #projectEditor .tube-field-format{
   min-width:0!important;
   overflow:hidden!important;
   text-overflow:ellipsis!important;
   white-space:nowrap!important;
 }
-body.tb-project-map #projectEditor .tube-field-format{
-  min-width:0!important;
-  overflow:hidden!important;
-}
-body.tb-project-map #projectEditor .pt-divider{
-  flex:0 0 1px!important;
-}
 
-/* Desktop: explicit grid tracks keep TB brand and Project/Tube fields disjoint. */
-@media (min-width:1551px){
-  body.tb-project-map .tb-map-header{
-    display:grid!important;
-    grid-template-columns:382px minmax(400px,450px) minmax(8px,1fr) auto auto!important;
-    column-gap:14px!important;
-  }
-  body.tb-project-map #projectEditor{
-    width:100%!important;
-    flex:none!important;
-  }
-}
+/*
+ * VC207R7 narrows #projectEditor from 450 to 410 px at 1121..1550 px,
+ * while legacy child groups stayed at 215 + 215 with a 20 px gap.
+ * Let only those two groups shrink inside the existing flex container.
+ */
 @media (min-width:1121px) and (max-width:1550px){
-  body.tb-project-map .tb-map-header{
-    display:grid!important;
-    grid-template-columns:310px minmax(330px,410px) minmax(8px,1fr) auto auto!important;
-    column-gap:12px!important;
-  }
-  body.tb-project-map .tb-brand{
-    min-width:0!important;
-    width:auto!important;
-  }
-  body.tb-project-map #projectEditor{
-    width:100%!important;
-    flex:none!important;
-  }
-}
-@media (max-width:1120px){
-  body.tb-project-map .tb-map-header{
-    display:grid!important;
-    grid-template-columns:52px minmax(0,1fr) auto!important;
-    column-gap:8px!important;
-  }
-  body.tb-project-map .tb-map-head-spacer,
-  body.tb-project-map .tb-head-actions{
-    display:none!important;
-  }
-  body.tb-project-map .tb-window-controls{
-    grid-column:3!important;
-    grid-row:1!important;
-    justify-self:end!important;
-  }
-  body.tb-project-map #projectEditor{
-    width:100%!important;
-    flex:none!important;
-    gap:6px!important;
-  }
-}
-@media (max-width:620px){
-  body.tb-project-map #projectEditor{
-    gap:4px!important;
-  }
-  body.tb-project-map #projectEditor .project-group{
-    flex:0 1 42%!important;
-  }
+  body.tb-project-map #projectEditor .project-group,
   body.tb-project-map #projectEditor .tube-group{
-    flex:1 1 58%!important;
+    flex:1 1 0!important;
+    width:auto!important;
+    min-width:0!important;
   }
 }
 
-/* Dropdowns are viewport overlays, never clipped by the header/workspace. */
+/* Dropdowns are viewport overlays and therefore cannot be clipped by the header. */
 body.tb-project-map #projectDropdown,
 body.tb-project-map #tubeDropdown,
 body.tb-project-map #projectMenu,
@@ -209,7 +106,6 @@ body.tb-project-map #projectDropdown .pt-tube-row{
   function isOpen(el){
     return !!el&&!el.classList.contains("hidden")&&getComputedStyle(el).display!=="none";
   }
-
   function clamp(value,min,max){
     return Math.min(Math.max(value,min),Math.max(min,max));
   }
@@ -233,7 +129,6 @@ body.tb-project-map #projectDropdown .pt-tube-row{
     popup.style.left="0px";
     popup.style.top="0px";
 
-    // Measure only after the popup has its final width.
     const measuredHeight=Math.min(
       popup.scrollHeight||popup.getBoundingClientRect().height||180,
       Math.max(120,viewportHeight-margin*2)
@@ -241,17 +136,17 @@ body.tb-project-map #projectDropdown .pt-tube-row{
     const left=clamp(rect.left,margin,viewportWidth-width-margin);
     const below=rect.bottom+5;
     const above=rect.top-measuredHeight-5;
-    const top=
-      below+measuredHeight<=viewportHeight-margin
-        ? below
-        : Math.max(margin,above);
+    const top=below+measuredHeight<=viewportHeight-margin
+      ? below
+      : Math.max(margin,above);
 
     popup.style.left=Math.round(left)+"px";
     popup.style.top=Math.round(top)+"px";
     popup.style.maxHeight=Math.max(120,viewportHeight-top-margin)+"px";
 
-    const expanded=id==="projectDropdown"||id==="tubeDropdown";
-    if(expanded)anchor.setAttribute("aria-expanded","true");
+    if(id==="projectDropdown"||id==="tubeDropdown"){
+      anchor.setAttribute("aria-expanded","true");
+    }
     return true;
   }
 
@@ -276,51 +171,68 @@ body.tb-project-map #projectDropdown .pt-tube-row{
       if(!popup||popup.dataset.layoutFixBound==="1")continue;
       popup.dataset.layoutFixBound="1";
       const observer=new MutationObserver(()=>{
-        if(isOpen(popup)){
-          requestAnimationFrame(()=>positionPopup(id));
-        }else{
-          updateAria();
-        }
+        if(isOpen(popup))requestAnimationFrame(()=>positionPopup(id));
+        else updateAria();
       });
       observer.observe(popup,{attributes:true,attributeFilter:["class"],childList:true,subtree:false});
     }
-
     for(const [id,spec] of Object.entries(popupSpecs)){
       const anchor=document.getElementById(spec.anchor);
       if(!anchor||anchor.dataset.layoutFixBound==="1")continue;
       anchor.dataset.layoutFixBound="1";
-      anchor.addEventListener("click",()=>{
-        requestAnimationFrame(()=>positionPopup(id));
-      });
+      anchor.addEventListener("click",()=>requestAnimationFrame(()=>positionPopup(id)));
     }
   }
 
+  function rectData(el){
+    if(!el)return null;
+    const r=el.getBoundingClientRect();
+    return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};
+  }
+
+  function overlaps(a,b,tolerance=.5){
+    if(!a||!b)return false;
+    return !(
+      a.right<=b.left+tolerance||
+      b.right<=a.left+tolerance||
+      a.bottom<=b.top+tolerance||
+      b.bottom<=a.top+tolerance
+    );
+  }
+
   function validateLayout(){
+    const brand=rectData(document.querySelector(".tb-brand"));
+    const editor=rectData(document.getElementById("projectEditor"));
+    const actions=rectData(document.querySelector(".tb-head-actions"));
+    const controls=rectData(document.querySelector(".tb-window-controls"));
+    const header=rectData(document.querySelector(".tb-map-header"));
+    const checksHead=rectData(document.querySelector(".tb-map-right .tb-card-head"));
+
     const result={
       viewport:{width:window.innerWidth,height:window.innerHeight},
-      overlap:false,
+      header,
+      brand,
+      projectEditor:editor,
+      actions,
+      windowControls:controls,
+      checksHead,
+      overlaps:{
+        brandProject:overlaps(brand,editor),
+        projectActions:overlaps(editor,actions),
+        actionsWindow:overlaps(actions,controls),
+        windowChecks:overlaps(controls,checksHead)
+      },
       tubeDropdown:null
     };
-    const brand=document.querySelector(".tb-brand");
-    const editor=document.getElementById("projectEditor");
-    if(brand&&editor&&document.body.classList.contains("tb-project-map")){
-      const a=brand.getBoundingClientRect();
-      const b=editor.getBoundingClientRect();
-      result.brand={left:a.left,right:a.right,width:a.width};
-      result.projectEditor={left:b.left,right:b.right,width:b.width};
-      result.overlap=a.right>b.left+.5;
-    }
+
     const tube=document.getElementById("tubeDropdown");
     if(tube&&isOpen(tube)){
-      const r=tube.getBoundingClientRect();
+      const r=rectData(tube);
       result.tubeDropdown={
-        left:r.left,right:r.right,top:r.top,bottom:r.bottom,
-        width:r.width,height:r.height,
+        ...r,
         insideViewport:
-          r.left>=-0.5&&
-          r.right<=window.innerWidth+0.5&&
-          r.top>=-0.5&&
-          r.bottom<=window.innerHeight+0.5,
+          r.left>=-0.5&&r.right<=window.innerWidth+0.5&&
+          r.top>=-0.5&&r.bottom<=window.innerHeight+0.5,
         rowCount:tube.querySelectorAll(".pt-tube-row").length
       };
     }
@@ -342,7 +254,6 @@ body.tb-project-map #projectDropdown .pt-tube-row{
       requestAnimationFrame(repositionOpenPopups);
     });
     bodyObserver.observe(document.body,{childList:true,subtree:true});
-
     requestAnimationFrame(repositionOpenPopups);
   }
 
@@ -352,9 +263,6 @@ body.tb-project-map #projectDropdown .pt-tube-row{
     validateLayout
   });
 
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",install,{once:true});
-  }else{
-    install();
-  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});
+  else install();
 })();
