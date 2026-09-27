@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 
 import {
   AXIS_PARALLEL_TOLERANCE_DEG,
-  BEND_ANGLE_INTEGER_TOLERANCE_DEG,
+  BEND_ANGLE_DECIMAL_PLACES,
   snapDirectionToPrincipalAxis,
-  roundBendAngleNearInteger
+  roundBendAngleToDecimals
 } from "../../src/import/dwfx/editable-geometry-normalization.mjs";
 
 function dirFromAxisDeviationDeg(deg){
@@ -32,21 +32,19 @@ test("A37: world-axis recognition uses the agreed 0.25 degree tolerance",()=>{
   assert.ok(Math.abs(genuine.editable_direction[0]-dirFromAxisDeviationDeg(3.036350304)[0])<1e-12);
 });
 
-test("A37: bend-angle tolerance rounds numeric noise but preserves the real 3.03644 degree bend",()=>{
-  assert.equal(BEND_ANGLE_INTEGER_TOLERANCE_DEG,0.01);
+test("A37: every imported bend angle rounds to two decimal places",()=>{
+  assert.equal(BEND_ANGLE_DECIMAL_PLACES,2);
 
   for(const [source,expected] of [
     [90.00169482333327,90],
     [45.001394688684776,45],
     [14.999986319092592,15],
-    [89.99990335689326,90]
+    [89.99990335689326,90],
+    [3.036439962824889,3.04],
+    [-3.036439962824889,-3.04]
   ]){
-    const result=roundBendAngleNearInteger(source);
-    assert.equal(result.rounded_to_integer,true);
+    const result=roundBendAngleToDecimals(source);
+    assert.equal(result.decimal_places,2);
     assert.equal(result.editable_angle_deg,expected);
   }
-
-  const genuine=roundBendAngleNearInteger(3.036439962824889);
-  assert.equal(genuine.rounded_to_integer,false);
-  assert.equal(genuine.editable_angle_deg,3.036439962824889);
 });
