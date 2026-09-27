@@ -93,6 +93,47 @@ let output = source.replace(
   () => bundledThree
 );
 
+const importedTubeBodyColor=0xc77738;
+const importedTubeBendColorAnchor =
+  "const mesh = new THREE.Mesh(geo, tubeElementMaterial(0xd98b4a, rowIndex));";
+if (!output.includes(importedTubeBendColorAnchor)) {
+  throw new Error("Active bend tube color anchor was not found");
+}
+output = output.replace(
+  importedTubeBendColorAnchor,
+  "const importedDwfxTube=String(activeTube()?.importEvidence?.source?.format??'').toUpperCase()==='DWFX';\n" +
+  "  const bendBodyColor=importedDwfxTube?0x" +
+  importedTubeBodyColor.toString(16).padStart(6,"0") +
+  ":0xd98b4a;\n" +
+  "  const mesh = new THREE.Mesh(geo, tubeElementMaterial(bendBodyColor, rowIndex));"
+);
+
+const importedTubeLineNodeAnchor =
+  "pos = end; addNode(pipeGroup,pos,0x4da3ff,.06,i,'LINE');";
+if (!output.includes(importedTubeLineNodeAnchor)) {
+  throw new Error("Active LINE node color anchor was not found");
+}
+output = output.replace(
+  importedTubeLineNodeAnchor,
+  "pos = end; addNode(pipeGroup,pos," +
+  "(String(activeTube()?.importEvidence?.source?.format??'').toUpperCase()==='DWFX'?0x" +
+  importedTubeBodyColor.toString(16).padStart(6,"0") +
+  ":0x4da3ff),.06,i,'LINE');"
+);
+
+const importedTubeBendNodeAnchor =
+  "pos = b.end; dir = b.dir; addNode(pipeGroup,pos, 0xff9a3c,.06,i,'BEND');";
+if (!output.includes(importedTubeBendNodeAnchor)) {
+  throw new Error("Active BEND node color anchor was not found");
+}
+output = output.replace(
+  importedTubeBendNodeAnchor,
+  "pos = b.end; dir = b.dir; addNode(pipeGroup,pos," +
+  " (String(activeTube()?.importEvidence?.source?.format??'').toUpperCase()==='DWFX'?0x" +
+  importedTubeBodyColor.toString(16).padStart(6,"0") +
+  ":0xff9a3c),.06,i,'BEND');"
+);
+
 const importedToolingGuardSort =
   "  for(const t of allTubeRecords()){\n    if(!t.toolingId){\n      const legacy=pipeDb[Number(t.diameterIndex)];\n      if(legacy?.id)t.toolingId=legacy.id;\n    }\n  }";
 if (!output.includes(importedToolingGuardSort)) {
