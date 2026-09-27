@@ -153,6 +153,33 @@
     );
   }
 
+  function nodeTranslationMm(node){
+    const value=node?.translation_mm;
+    const source=Array.isArray(value)
+      ? {x:value[0],y:value[1],z:value[2]}
+      : value&&typeof value==="object"
+        ? value
+        : {};
+    const out={
+      x:Number(source.x)||0,
+      y:Number(source.y)||0,
+      z:Number(source.z)||0
+    };
+    return out;
+  }
+
+  function addTranslationMm(a,b){
+    return {
+      x:(Number(a?.x)||0)+(Number(b?.x)||0),
+      y:(Number(a?.y)||0)+(Number(b?.y)||0),
+      z:(Number(a?.z)||0)+(Number(b?.z)||0)
+    };
+  }
+
+  function selectedKeySet(){
+    return new Set(bulkSelected);
+  }
+
   function renderSceneTree({
     parent,
     sceneMeta,
@@ -166,25 +193,43 @@
     sceneGroup.name="DWFx reference: "+String(sceneMeta?.source_file??sceneMeta?.name??"");
     sceneGroup.userData.referenceGeometry=true;
     sceneGroup.userData.referenceSceneId=sceneMeta.id;
-    sceneGroup.scale.setScalar(
-      (Number(sceneMeta?.scale_mm_per_source_unit)||Number(runtime.scale_mm_per_source_unit)||1)*
-      Number(geomScale||1)
-    );
+    const scaleMm=Number(sceneMeta?.scale_mm_per_source_unit)||
+      Number(runtime.scale_mm_per_source_unit)||1;
+    sceneGroup.scale.setScalar(scaleMm*Number(geomScale||1));
 
     const hidden=hiddenSet(sceneMeta);
     const transparent=transparentSet(sceneMeta);
     const editable=editablePartSet(project);
+    const selectedKeys=selectedKeySet();
+    const selectedGroups=[];
 
-    const visit=(node,parentHidden=false,parentTransparent=false)=>{
+    const visit=(
+      node,
+      parentHidden=false,
+      parentTransparent=false,
+      parentTranslation={x:0,y:0,z:0}
+    )=>{
       const nodeHidden=parentHidden||hidden.has(String(node.id))||node.visible===false;
       if(nodeHidden)return;
       const nodeTransparent=parentTransparent||transparent.has(String(node.id));
+      const translation=addTranslationMm(parentTranslation,nodeTranslationMm(node));
 
       const recognizedPart=String(node.editable_part_number??"");
       const suppressEditable=
         recognizedPart&&editable.has(recognizedPart);
 
       if(!suppressEditable){
+        const nodeGroup=new THREE.Group();
+        nodeGroup.userData.referenceShared=true;
+        nodeGroup.userData.referenceGeometry=true;
+        nodeGroup.userData.referenceNodeId=String(node.id);
+        nodeGroup.userData.referenceSceneId=String(sceneMeta.id);
+        nodeGroup.position.set(
+          translation.x/scaleMm,
+          translation.y/scaleMm,
+          translation.z/scaleMm
+        );
+        let instanceCount=0;
         for(const instance of node.geometry_instances??[]){
           if(instance?.status!=="exact")continue;
           const asset=runtime.assetsById.get(String(instance.asset_id));
@@ -204,15 +249,38 @@
             placed.matrix.fromArray(instance.placement_matrix);
             placed.matrixAutoUpdate=false;
           }
-          sceneGroup.add(placed);
+          nodeGroup.add(placed);
+          instanceCount+=1;
+        }
+        if(instanceCount){
+          sceneGroup.add(nodeGroup);
+          if(selectedKeys.has(selectionKey(sceneMeta.id,node.id))){
+            selectedGroups.push(nodeGroup);
+          }
         }
       }
 
-      for(const child of node.children??[])visit(child,nodeHidden,nodeTransparent);
+      for(const child of node.children??[]){
+        visit(child,nodeHidden,nodeTransparent,translation);
+      }
     };
 
-    for(const root of sceneMeta?.tree??[])visit(root,false,false);
+    for(const root of sceneMeta?.tree??[]){
+      visit(root,false,false,{x:0,y:0,z:0});
+    }
     parent.add(sceneGroup);
+
+    if(selectedGroups.length){
+      sceneGroup.updateMatrixWorld(true);
+      for(const group of selectedGroups){
+        const box=new THREE.Box3().setFromObject(group);
+        if(box.isEmpty())continue;
+        const helper=new THREE.Box3Helper(box,0x4da3ff);
+        helper.userData.helper=true;
+        helper.userData.referenceSelectionHelper=true;
+        parent.add(helper);
+      }
+    }
   }
 
   function render3D({parent,project,THREE,geomScale}){
@@ -647,6 +715,65 @@
     return selectedCount(project);
   }
 
+  function selectedKeys(project){
+    pruneBulkSelection(project);
+    return Object.freeze([...bulkSelected]);
+  }
+
+  function replaceSelection(project,keys=[]){
+    bulkSelected.clear();
+    for(const key of keys??[]){
+      const entry=sceneNodeFromKey(project,key);
+      if(entry&&selectableNode(entry.node)){
+        bulkSelected.add(selectionKey(entry.scene.id,entry.node.id));
+      }
+    }
+    rangeAnchorKey=null;
+    return selectedCount(project);
+  }
+
+  function selectOnlyNode(project,sceneId,nodeId){
+    bulkSelected.clear();
+    const scene=findScene(project,sceneId);
+    const node=findNode(scene?.tree,nodeId);
+    if(!scene||!node||!selectableNode(node))return 0;
+    bulkSelected.add(selectionKey(scene.id,node.id));
+    rangeAnchorKey=selectionKey(scene.id,node.id);
+    selected={sceneId:String(scene.id),nodeId:String(node.id)};
+    return selectedCount(project);
+  }
+
+  function selectedTopLevelEntries(project){
+    const entries=selectedEntries(project);
+    const selectedSet=new Set(
+      entries.map(({scene,node})=>selectionKey(scene.id,node.id))
+    );
+    return entries.filter(({scene,node})=>
+      !ancestorsFor(scene.tree,node.id).some((ancestorId)=>
+        selectedSet.has(selectionKey(scene.id,ancestorId))
+      )
+    );
+  }
+
+  function moveSelection(project,deltaMm){
+    const delta={
+      x:Number(deltaMm?.x)||0,
+      y:Number(deltaMm?.y)||0,
+      z:Number(deltaMm?.z)||0
+    };
+    if(!delta.x&&!delta.y&&!delta.z)return 0;
+    const entries=selectedTopLevelEntries(project);
+    for(const {node} of entries){
+      const current=nodeTranslationMm(node);
+      node.translation_mm={
+        x:Number((current.x+delta.x).toFixed(6)),
+        y:Number((current.y+delta.y).toFixed(6)),
+        z:Number((current.z+delta.z).toFixed(6))
+      };
+    }
+    return entries.length;
+  }
+
   function applyBulkAction(project,action){
     const command=String(action??"");
     if(command==="clear")return clearSelection();
@@ -854,6 +981,10 @@
     bindTree,
     selectScene,
     selectNode,
+    selectOnlyNode,
+    selectedKeys,
+    replaceSelection,
+    moveSelection,
     clearSelection,
     applyBulkAction,
     applyModifierSelection,
