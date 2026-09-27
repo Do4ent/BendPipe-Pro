@@ -358,17 +358,20 @@ test("A48: standalone exposes synchronized 3D and tree object context menus",()=
 });
 
 
-test("A49: standalone keeps Project/Tube controls inside header and clamps tube dropdown",()=>{
+test("A49: standalone preserves VC207R7 flex header and clamps Project/Tube dropdowns",()=>{
   if(!fs.existsSync(output)){
     execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
   }
   const html=fs.readFileSync(output,"utf8");
 
   assert.match(html,/data-tubebender-bundled="project-tube-bar-layout-fix"/);
-  assert.match(html,/body\.tb-project-map \.tb-brand\{[\s\S]*min-width:0!important/);
-  assert.match(html,/project-group,[\s\S]*tube-group\{[\s\S]*flex:1 1 0!important/);
-  assert.match(html,/grid-template-columns:382px minmax\(400px,450px\) minmax\(8px,1fr\) auto/);
-  assert.match(html,/grid-template-columns:310px minmax\(330px,410px\) minmax\(8px,1fr\) auto/);
+  assert.match(html,/preserve the native \.tb-map-header flex layout/);
+  assert.match(html,/body\.tb-project-map \.tb-map-header\{[\s\S]*min-width:0!important/);
+  assert.match(html,/@media \(min-width:1121px\) and \(max-width:1550px\)\{[\s\S]*project-group,[\s\S]*tube-group\{[\s\S]*flex:1 1 0!important/);
+  assert.doesNotMatch(html,/body\.tb-project-map \.tb-brand\{grid-column:/);
+  assert.doesNotMatch(html,/body\.tb-project-map #projectEditor\{grid-column:/);
+  assert.doesNotMatch(html,/body\.tb-project-map \.tb-window-controls\{[\s\S]*grid-column:/);
+
   assert.match(html,/body\.tb-project-map #tubeDropdown[\s\S]*position:fixed!important/);
   assert.match(html,/max-width:calc\(100vw - 16px\)!important/);
   assert.match(html,/function positionPopup\(id\)/);
@@ -379,7 +382,10 @@ test("A49: standalone keeps Project/Tube controls inside header and clamps tube 
   assert.match(html,/const left=clamp\(rect\.left,margin,viewportWidth-width-margin\)/);
   assert.match(html,/below\+measuredHeight<=viewportHeight-margin/);
   assert.match(html,/rowCount:tube\.querySelectorAll/);
-  assert.match(html,/result\.overlap=/);
+  assert.match(html,/brandProject:overlaps\(brand,editor\)/);
+  assert.match(html,/projectActions:overlaps\(editor,actions\)/);
+  assert.match(html,/actionsWindow:overlaps\(actions,controls\)/);
+  assert.match(html,/windowChecks:overlaps\(controls,checksHead\)/);
 });
 
 
@@ -399,32 +405,20 @@ test("A50: 3D component selection preserves the current viewer framing",()=>{
 });
 
 
-test("A51: window controls stay in one top-right header row",()=>{
+test("A51: window controls retain native VC207R7 flex placement and order",()=>{
   if(!fs.existsSync(output)){
     execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
   }
   const html=fs.readFileSync(output,"utf8");
 
-  assert.match(
-    html,
-    /grid-template-columns:382px minmax\(400px,450px\) minmax\(8px,1fr\) auto auto/
-  );
-  assert.match(
-    html,
-    /grid-template-columns:310px minmax\(330px,410px\) minmax\(8px,1fr\) auto auto/
-  );
-  assert.match(
-    html,
-    /grid-template-columns:52px minmax\(0,1fr\) auto/
-  );
-  assert.match(html,/body\.tb-project-map \.tb-window-controls\{[\s\S]*grid-column:5!important/);
-  assert.match(html,/grid-row:1!important/);
-  assert.match(html,/justify-self:end!important/);
-  assert.match(html,/align-self:center!important/);
-  assert.match(html,/body\.tb-project-map \.tb-window-control\{[\s\S]*flex:0 0 38px!important/);
+  assert.match(html,/\.tb-map-header\{height:var\(--r7-head\)!important/);
+  assert.match(html,/\.tb-window-controls\{display:flex;gap:4px;align-items:center/);
+  assert.match(html,/\.tb-window-control\{width:38px;height:38px/);
+  assert.match(html,/@media \(max-width:1120px\)\{[\s\S]*\.tb-head-actions,\.tb-window-controls\{display:none!important\}/);
 
   const min=html.indexOf('id="tbWinMin"');
   const max=html.indexOf('id="tbWinMax"');
   const close=html.indexOf('id="tbWinClose"');
   assert.ok(min>=0&&max>min&&close>max);
 });
+
