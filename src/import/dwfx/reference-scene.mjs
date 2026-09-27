@@ -538,6 +538,21 @@ function subtreeHasRecognizedObject(node,recognizedByObject){
   );
 }
 
+export function classifyReferenceStickerLabel(label){
+  const core=referenceComponentCoreLabel(label);
+  const text=core.toLocaleLowerCase();
+
+  const sticker=
+    /^stickers?\b/.test(text)||
+    /^labels?\s+sticker\b/.test(text)||
+    /^sticker\s+labels?\b/.test(text)||
+    /^aufkleber\b/.test(text)||
+    /^stickers?\b/.test(text)||
+    /(?:^|[^а-яё])наклейк(?:а|и|у|е|ой|ою)?(?:[^а-яё]|$)/i.test(text);
+
+  return sticker?"sticker":null;
+}
+
 export function classifyReferenceSymbolCardLabel(label){
   const core=referenceComponentCoreLabel(label);
   const text=core.toLocaleLowerCase();
@@ -688,6 +703,7 @@ export function buildDwfxReferenceScene({
   let metadataOnlyCount=0;
   let unresolvedCount=0;
   let filteredFastenerCount=0;
+  let filteredStickerCount=0;
   let filteredSymbolCardCount=0;
   let filteredAxialVentilatorCount=0;
   let filteredHoseClampCount=0;
@@ -836,6 +852,19 @@ export function buildDwfxReferenceScene({
     }
 
     if(sourceIsLeaf&&!editablePart){
+      const stickerKind=classifyReferenceStickerLabel(source.label);
+      if(stickerKind){
+        filteredStickerCount+=1;
+        diagnostics.push(Object.freeze({
+          stage:"reference_sticker_filter",
+          object_id:String(source.id),
+          label:String(source.label??""),
+          component_kind:stickerKind,
+          status:"excluded"
+        }));
+        return null;
+      }
+
       const symbolCardKind=classifyReferenceSymbolCardLabel(source.label);
       if(symbolCardKind){
         filteredSymbolCardCount+=1;
@@ -1034,9 +1063,10 @@ export function buildDwfxReferenceScene({
       object_count:objectCount,
       leaf_count:leafCount,
       retained_leaf_count:
-        leafCount-filteredFastenerCount-filteredSymbolCardCount-filteredAxialVentilatorCount-filteredHoseClampCount-filteredCableGlandCount-filteredAnnotationLeafCount,
+        leafCount-filteredFastenerCount-filteredStickerCount-filteredSymbolCardCount-filteredAxialVentilatorCount-filteredHoseClampCount-filteredCableGlandCount-filteredAnnotationLeafCount,
       filtered_fastener_count:filteredFastenerCount,
       filtered_fastener_by_kind:Object.freeze({...filteredFastenerByKind}),
+      filtered_sticker_count:filteredStickerCount,
       filtered_symbol_card_count:filteredSymbolCardCount,
       filtered_axial_ventilator_count:filteredAxialVentilatorCount,
       filtered_hose_clamp_count:filteredHoseClampCount,
