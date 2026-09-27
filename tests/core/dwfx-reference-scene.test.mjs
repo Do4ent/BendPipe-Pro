@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { parseDwfxObjectTree, circularArcPolyline } from "../../src/import/dwfx/reference-scene.mjs";
+import {
+  parseDwfxObjectTree,
+  circularArcPolyline,
+  classifyReferenceFastenerLabel
+} from "../../src/import/dwfx/reference-scene.mjs";
 import {
   buildDisplayHsfSegmentIndex,
   decodeIndexedDisplaySegment
@@ -77,4 +81,48 @@ test("DWFx display-only circular arc sampler preserves source endpoints and arc 
   const middleSample=points[Math.floor(points.length/2)];
   assert.ok(middleSample[0]>0);
   assert.ok(middleSample[1]>0);
+});
+
+
+test("A40: reference fastener filter removes bolts nuts washers and screws without deleting assemblies that only mention them",()=>{
+  const excluded=[
+    ["10000102, Caged nut, SS836A, M6, DIN 88109:5","nut"],
+    ["10000258, Hexagonal nut, SS304, M8, DIN 934:1","nut"],
+    ["10002347, Cable gland nut, Polyamide, M20x1,5:1","nut"],
+    ["10000328, Washer, SS304, DIN 9021, M6, 6,4x18mm:1","washer"],
+    ["10000134, Serrated lock washer, SS304, 6,4x11mm, DIN 6798:1","washer"],
+    ["10001620/F - Turnery ware, SS304, Hinge washer Ø ⅜\\" (5mm):1","washer"],
+    ["DIN 933 - M6x16 - Stainless 304, Polished, Hexagon head screw, SS304, M6x16:1","screw"],
+    ["Round head screw, ISO 7380-1 10002246:1","screw"],
+    ["10002370, Flanged button screws, SS304, M6x12, torx:1","screw"],
+    ["123456, Hex bolt, M8x30:1","bolt"]
+  ];
+  for(const [label,kind] of excluded){
+    assert.equal(classifyReferenceFastenerLabel(label),kind,label);
+  }
+
+  assert.equal(
+    classifyReferenceFastenerLabel(
+      '10003595, Sealing ring, Aluminium, Banjo bolt, 1/4":1'
+    ),
+    null
+  );
+  assert.equal(
+    classifyReferenceFastenerLabel(
+      "10000104, Clamp tankthrough with contra nut, Brass, 15mm:1"
+    ),
+    null
+  );
+  assert.equal(
+    classifyReferenceFastenerLabel(
+      '10000271, Reducing ring, Brass, 1" x 1/2":1'
+    ),
+    null
+  );
+  assert.equal(
+    classifyReferenceFastenerLabel(
+      "10000373, Elbow, Copper, 90°, female x female, 22mm:2"
+    ),
+    null
+  );
 });
