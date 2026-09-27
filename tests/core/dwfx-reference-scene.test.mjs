@@ -5,6 +5,7 @@ import {
   parseDwfxObjectTree,
   circularArcPolyline,
   classifyReferenceFastenerLabel,
+  classifyReferenceHoseClampLabel,
   classifyReferenceAnnotationLabel,
   computeReferenceSceneBounds
 } from "../../src/import/dwfx/reference-scene.mjs";
@@ -215,4 +216,33 @@ test("A42: reference-scene bounds use retained placed geometry and nested transf
   assert.deepEqual(result.mm.max,[1130,2050,3070]);
   assert.deepEqual(result.mm.size,[20,30,40]);
   assert.equal(result.point_count,2);
+});
+
+
+test("A43: hose clamps are excluded without removing hoses or unrelated clamps",()=>{
+  const excluded=[
+    "Hoseclamp SS304 22-32mm:1",
+    "Hoseclamp ss304 11-17mm:16",
+    "10008997, Hose clamp ,wide ,29-31mm DIN 3017:1",
+    "Hose clamp, SS304, 11-17mm",
+    "Hose clip 12-20mm",
+    "Slangklem RVS 20-32mm",
+    "Schlauchschelle 20-32mm",
+    "Шланговый хомут 20-32 мм",
+    "Хомут для шланга 20-32 мм"
+  ];
+  for(const label of excluded){
+    assert.equal(classifyReferenceHoseClampLabel(label),"hose_clamp",label);
+  }
+
+  const retained=[
+    "10141429/ - Hose, EPDM, Castor 13x20mm:1",
+    "10141438/ - Hose, PVC, Jupiter SD 25x32,6mm:1",
+    "10000104, Clamp tankthrough with contra nut, Brass, 15mm:1",
+    "Pipe clamp, SS304, 22mm",
+    "Cable clamp"
+  ];
+  for(const label of retained){
+    assert.equal(classifyReferenceHoseClampLabel(label),null,label);
+  }
 });
