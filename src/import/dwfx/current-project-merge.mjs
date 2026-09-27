@@ -227,10 +227,18 @@ export function mergeDwfxTubesIntoCurrentProject({
           {recommended_tolerance_mm:diameter_rounding_tolerance_mm}
         ).tube;
       }
-      materialized=roundEditableTubeLinearDimensions(
+      const roundedImport=roundEditableTubeLinearDimensions(
         materialized,
         {increment_mm:linear_rounding_increment_mm}
-      ).tube;
+      );
+      if(roundedImport.status!=="rounded"||!roundedImport.tube){
+        throw new Error(
+          "Imported tube "+originalName+
+          " failed post-rounding continuity validation: "+
+          String(roundedImport.blocker??"unknown integrity failure")
+        );
+      }
+      materialized=roundedImport.tube;
 
       if(existingIndexes.length&&conflict==="copy"){
         usedNames.delete(nameKey(materialized.name));
