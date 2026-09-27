@@ -5,6 +5,7 @@ import {
   parseDwfxObjectTree,
   circularArcPolyline,
   classifyReferenceFastenerLabel,
+  classifyReferenceStickerLabel,
   classifyReferenceSymbolCardLabel,
   classifyReferenceAxialVentilatorLabel,
   classifyReferenceCableGlandLabel,
@@ -343,5 +344,36 @@ test("A46: Symbol card is excluded without removing unrelated cards",()=>{
   ];
   for(const label of retained){
     assert.equal(classifyReferenceSymbolCardLabel(label),null,label);
+  }
+});
+
+
+test("A47: Sticker is excluded without removing unrelated labels or plates",()=>{
+  const excluded=[
+    "Sticker:1",
+    "Sticker warning high voltage:2",
+    "Stickers, safety set",
+    "Sticker label",
+    "Aufkleber",
+    "Наклейка",
+    "Наклейки предупреждения"
+  ];
+  for(const label of excluded){
+    assert.equal(
+      classifyReferenceStickerLabel(label),
+      "sticker",
+      label
+    );
+  }
+
+  const retained=[
+    "Nameplate",
+    "Warning plate",
+    "Cable label",
+    "Label holder",
+    "Symbol card"
+  ];
+  for(const label of retained){
+    assert.equal(classifyReferenceStickerLabel(label),null,label);
   }
 });
