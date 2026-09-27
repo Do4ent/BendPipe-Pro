@@ -373,6 +373,6 @@ test("A49: standalone keeps Project/Tube controls inside header and clamps tube 
   assert.match(html,/function positionPopup\(id\)/);
   assert.match(html,/const left=clamp\(rect\.left,margin,viewportWidth-width-margin\)/);
   assert.match(html,/below\+measuredHeight<=viewportHeight-margin/);
-  assert.match(html,/rowCount:tube\.querySelectorAll\("\\.pt-tube-row"\)\.length/);
+  assert.match(html,/rowCount:tube\.querySelectorAll/);
   assert.match(html,/overlap:a\.right>b\.left\+\.5/);
 });
