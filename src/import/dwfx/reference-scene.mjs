@@ -538,6 +538,19 @@ function subtreeHasRecognizedObject(node,recognizedByObject){
   );
 }
 
+export function classifyReferenceCableGlandBlackLabel(label){
+  const core=referenceComponentCoreLabel(label);
+  const text=core.toLocaleLowerCase();
+
+  const cableGlandBlack=
+    /\bcable\s+gland\s+black\b/.test(text)||
+    /\bzwarte\s+kabelwartel\b/.test(text)||
+    /\bschwarze\s+kabelverschraubung\b/.test(text)||
+    /(?:^|[^а-яё])черн(?:ый|ая|ое|ые|ого|ому|ым|ом)\s+кабельн(?:ый|ая|ое|ые)\s+(?:ввод|сальник)(?:[^а-яё]|$)/i.test(text);
+
+  return cableGlandBlack?"cable_gland_black":null;
+}
+
 export function classifyReferenceHoseClampLabel(label){
   const core=referenceComponentCoreLabel(label);
   const text=core.toLocaleLowerCase();
@@ -647,6 +660,7 @@ export function buildDwfxReferenceScene({
   let unresolvedCount=0;
   let filteredFastenerCount=0;
   let filteredHoseClampCount=0;
+  let filteredCableGlandBlackCount=0;
   let filteredAnnotationLeafCount=0;
   let filteredAnnotationObjectCount=0;
   const filteredFastenerByKind={
@@ -791,6 +805,19 @@ export function buildDwfxReferenceScene({
     }
 
     if(sourceIsLeaf&&!editablePart){
+      const cableGlandBlackKind=classifyReferenceCableGlandBlackLabel(source.label);
+      if(cableGlandBlackKind){
+        filteredCableGlandBlackCount+=1;
+        diagnostics.push(Object.freeze({
+          stage:"reference_cable_gland_black_filter",
+          object_id:String(source.id),
+          label:String(source.label??""),
+          component_kind:cableGlandBlackKind,
+          status:"excluded"
+        }));
+        return null;
+      }
+
       const hoseClampKind=classifyReferenceHoseClampLabel(source.label);
       if(hoseClampKind){
         filteredHoseClampCount+=1;
@@ -950,10 +977,11 @@ export function buildDwfxReferenceScene({
       object_count:objectCount,
       leaf_count:leafCount,
       retained_leaf_count:
-        leafCount-filteredFastenerCount-filteredHoseClampCount-filteredAnnotationLeafCount,
+        leafCount-filteredFastenerCount-filteredHoseClampCount-filteredCableGlandBlackCount-filteredAnnotationLeafCount,
       filtered_fastener_count:filteredFastenerCount,
       filtered_fastener_by_kind:Object.freeze({...filteredFastenerByKind}),
       filtered_hose_clamp_count:filteredHoseClampCount,
+      filtered_cable_gland_black_count:filteredCableGlandBlackCount,
       filtered_annotation_leaf_count:filteredAnnotationLeafCount,
       filtered_annotation_object_count:filteredAnnotationObjectCount,
       placed_leaf_count:placedCount,
