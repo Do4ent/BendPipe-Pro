@@ -13,6 +13,7 @@ const threePath = path.join(root, "vendor", "three", "r160", "three.min.js");
 const dwfxEntryPath = path.join(root, "src", "import", "dwfx", "browser-file-import.mjs");
 const dwfxCurrentProjectUiPath = path.join(root, "src", "import", "dwfx", "current-project-ui.js");
 const dwfxReferenceSceneUiPath = path.join(root, "src", "import", "dwfx", "reference-scene-ui.js");
+const objectSelectionContextUiPath = path.join(root, "src", "ui", "object-selection-context-ui.js");
 const distDir = path.join(root, "dist");
 const outputPath = path.join(distDir, "TubeBender_CAD_VC207R7_M1_Standalone.html");
 
@@ -1067,6 +1068,10 @@ const dwfxReferenceSceneUi = fs.readFileSync(dwfxReferenceSceneUiPath, "utf8").r
 const bundledDwfxReferenceSceneUi =
   `<script data-tubebender-bundled="dwfx-reference-scene-ui">\n${dwfxReferenceSceneUi}\n</script>`;
 
+const objectSelectionContextUi = fs.readFileSync(objectSelectionContextUiPath, "utf8").replace(/<\/script/gi, "<\\/script");
+const bundledObjectSelectionContextUi =
+  `<script data-tubebender-bundled="object-selection-context-ui">\n${objectSelectionContextUi}\n</script>`;
+
 if (!output.includes("</body>")) {
   throw new Error("Standalone source HTML is missing </body>");
 }
@@ -1079,6 +1084,8 @@ output =
   bundledDwfx +
   "\n" +
   bundledDwfxReferenceSceneUi +
+  "\n" +
+  bundledObjectSelectionContextUi +
   "\n" +
   bundledDwfxCurrentProjectUi +
   "\n" +
