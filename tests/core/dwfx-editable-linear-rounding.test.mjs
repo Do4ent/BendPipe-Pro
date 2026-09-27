@@ -151,3 +151,33 @@ test("A36: assembly rounding is applied to every imported tube",()=>{
   assert.equal(result.assembly.tubes[1].rows[0].L,37);
   assert.equal(result.production_ready,false);
 });
+
+
+test("A37: bend CLR always rounds to whole mm and only near-integer angles round",()=>{
+  const source=tube();
+  source.rows=[
+    {type:"LINE",L:100.2,LFormula:"100.2"},
+    {type:"BEND",angle:90.00169482333327,angleFormula:"90.00169482333327",plane:"XY",rot:0,rotFormula:"0",clr:14.99990365405163},
+    {type:"LINE",L:80.1,LFormula:"80.1"},
+    {type:"BEND",angle:3.036439962824889,angleFormula:"3.036439962824889",plane:"XZ",rot:0,rotFormula:"0",clr:39.998977876168375},
+    {type:"LINE",L:50.4,LFormula:"50.4"}
+  ];
+
+  const result=roundEditableTubeLinearDimensions(source);
+  const bends=result.tube.rows.filter((row)=>row.type==="BEND");
+
+  assert.equal(bends[0].clr,15);
+  assert.equal(bends[0].angle,90);
+  assert.equal(bends[0].angleFormula,"90");
+
+  assert.equal(bends[1].clr,40);
+  assert.equal(bends[1].angle,3.036439962824889);
+  assert.equal(bends[1].angleFormula,"3.036439962824889");
+
+  assert.equal(result.normalization.bend_angle_integer_tolerance_deg,0.01);
+  assert.equal(result.normalization.bend_radius_rule,"nearest_whole_mm_half_away_from_zero");
+  assert.equal(result.normalization.angle_changes.length,1);
+  assert.equal(result.angle_changed_count,1);
+  assert.equal(result.tube.importValidation.bendRadiiRoundedToWholeMm,true);
+  assert.equal(result.tube.importValidation.bendAnglesRoundedNearInteger,true);
+});
