@@ -36,6 +36,7 @@ export function buildLegacyProjectPackageFromAssembly({
   app_version="VC207R7-M1",
   schema_version="2.0",
   bbox=null,
+  bbox_source="explicit",
   bbox_anchor=null,
   coordinate_offset=null,
   axis_signs=null,
@@ -57,10 +58,16 @@ export function buildLegacyProjectPackageFromAssembly({
   }
 
   const projectBbox=bboxOrNull(bbox);
+  const bboxSource=String(bbox_source??"explicit");
+  const bboxStatus=projectBbox
+    ? (bboxSource==="automatic_reference_geometry"
+        ? "exact_automatic_reference_geometry"
+        : "exact_explicit")
+    : "unresolved";
   const project=Object.freeze({
     id:String(project_id),
     name:String(project_name),
-    ...(projectBbox?{bbox:projectBbox}:{}),
+    ...(projectBbox?{bbox:projectBbox,bboxSource}:{}),
     ...(bbox_anchor?{bboxAnchor:cloneFrozen(bbox_anchor)}:{}),
     ...(coordinate_offset?{coordinateOffset:cloneFrozen(coordinate_offset)}:{}),
     ...(axis_signs?{axisSigns:cloneFrozen(axis_signs)}:{}),
@@ -71,7 +78,7 @@ export function buildLegacyProjectPackageFromAssembly({
   return Object.freeze({
     status:"project_package_candidate",
     production_ready:false,
-    bbox_status:projectBbox?"exact_explicit":"unresolved",
+    bbox_status:bboxStatus,
     package:Object.freeze({
       type:"TubeBenderProject",
       version:String(app_version),
