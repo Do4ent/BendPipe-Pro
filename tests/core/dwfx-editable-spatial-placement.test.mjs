@@ -199,3 +199,58 @@ test("A33: assembly placement returns editable tubes with exact pose",()=>{
   assert.equal(result.assembly.spatial_placement_status,"exact_reference_scene");
   assert.deepEqual(result.assembly.tubes[0].origin,{x:30,y:40,z:50});
 });
+
+
+test("A37: placement snaps every near-axis LINE to global X Y Z within 0.25 degrees",()=>{
+  const theta=0.1*Math.PI/180;
+  const cos=Math.cos(theta);
+  const sin=Math.sin(theta);
+  const matrix=[
+    cos,sin,0,0,
+    -sin,cos,0,0,
+    0,0,1,0,
+    1,2,3,1
+  ];
+  const result=spatiallyPlaceEditableTube({
+    tube:tube(),
+    reference_node:node(matrix),
+    scale_mm_per_source_unit:10
+  });
+
+  assert.equal(result.status,"placed");
+  assert.deepEqual(result.tube.startVector,{x:1,y:0,z:0});
+
+  const normalization=result.tube.importEvidence.spatialPlacement.axis_parallel_normalization;
+  assert.equal(normalization.tolerance_deg,0.25);
+  assert.equal(normalization.line_count,3);
+  assert.equal(normalization.classified_axis_parallel_count,3);
+  assert.equal(normalization.snapped_count,2);
+  assert.deepEqual(
+    normalization.lines.map((line)=>line.parallel_axis),
+    ["+X","+Y","+Z"]
+  );
+  assert.ok(Math.abs(
+    result.tube.importEvidence.spatialPlacement.source_start_vector[1]-sin
+  )<1e-12);
+  assert.deepEqual(
+    result.tube.importEvidence.spatialPlacement.editable_start_vector,
+    [1,0,0]
+  );
+
+  let direction=[1,0,0];
+  const expected=[[1,0,0],[0,1,0],[0,0,1]];
+  let lineIndex=0;
+  for(const row of result.tube.rows){
+    if(row.type==="LINE"){
+      assert.ok(angleBetweenVectorsDeg(direction,expected[lineIndex])<1e-8);
+      lineIndex+=1;
+    }else{
+      direction=[...replayLegacyDirection(direction,{
+        angle:row.angle,
+        plane:row.plane,
+        rotation:row.rot
+      })];
+    }
+  }
+  assert.equal(lineIndex,3);
+});
