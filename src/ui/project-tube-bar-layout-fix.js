@@ -17,6 +17,22 @@ body.tb-project-map .tb-map-header{
   min-width:0!important;
   overflow:visible!important;
 }
+body.tb-project-map .tb-brand{
+  min-width:0!important;
+  width:auto!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+body.tb-project-map .tb-brand-text{
+  min-width:0!important;
+  overflow:hidden!important;
+}
+body.tb-project-map .tb-brand-title,
+body.tb-project-map .tb-brand-sub{
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
 body.tb-project-map #projectEditor{
   box-sizing:border-box!important;
   min-width:0!important;
