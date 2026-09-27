@@ -749,9 +749,11 @@
       entries.map(({scene,node})=>selectionKey(scene.id,node.id))
     );
     return entries.filter(({scene,node})=>
-      !ancestorsFor(scene.tree,node.id).some((ancestorId)=>
-        selectedSet.has(selectionKey(scene.id,ancestorId))
-      )
+      !ancestorsFor(scene.tree,node.id)
+        .filter((ancestorId)=>String(ancestorId)!==String(node.id))
+        .some((ancestorId)=>
+          selectedSet.has(selectionKey(scene.id,ancestorId))
+        )
     );
   }
 
