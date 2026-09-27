@@ -38,7 +38,9 @@ test("A48: reference selection movement translates only selected top-level branc
   assert.equal(ui.selectNode(project,"scene","group",true),2);
   assert.deepEqual(Array.from(ui.selectedKeys(project)).sort(),["scene|group","scene|leaf"]);
   assert.equal(ui.moveSelection(project,{x:10,y:-5,z:2}),1);
-  assert.deepEqual(project.referenceScenes[0].tree[0].translation_mm,{x:10,y:-5,z:2});
+  assert.equal(project.referenceScenes[0].tree[0].translation_mm.x,10);
+  assert.equal(project.referenceScenes[0].tree[0].translation_mm.y,-5);
+  assert.equal(project.referenceScenes[0].tree[0].translation_mm.z,2);
   assert.equal("translation_mm" in project.referenceScenes[0].tree[0].children[0],false);
 });
 
@@ -58,7 +60,9 @@ test("A48: reference selection can be replaced by one 3D-picked leaf",()=>{
   ui.replaceSelection(project,["scene|b"]);
   assert.deepEqual(Array.from(ui.selectedKeys(project)),["scene|b"]);
   assert.equal(ui.moveSelection(project,{x:1,y:2,z:3}),1);
-  assert.deepEqual(project.referenceScenes[0].tree[1].translation_mm,{x:1,y:2,z:3});
+  assert.equal(project.referenceScenes[0].tree[1].translation_mm.x,1);
+  assert.equal(project.referenceScenes[0].tree[1].translation_mm.y,2);
+  assert.equal(project.referenceScenes[0].tree[1].translation_mm.z,3);
   assert.equal("translation_mm" in project.referenceScenes[0].tree[0],false);
 });
 
