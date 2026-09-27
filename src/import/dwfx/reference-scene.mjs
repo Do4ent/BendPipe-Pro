@@ -538,6 +538,21 @@ function subtreeHasRecognizedObject(node,recognizedByObject){
   );
 }
 
+export function classifyReferenceHoseClampLabel(label){
+  const core=referenceComponentCoreLabel(label);
+  const text=core.toLocaleLowerCase();
+
+  const hoseClamp=
+    /\bhose\s*[- ]?\s*clamps?\b/.test(text)||
+    /\bhose\s*clips?\b/.test(text)||
+    /\bslangklem(?:men)?\b/.test(text)||
+    /\bschlauchschelle(?:n)?\b/.test(text)||
+    /(?:^|[^а-яё])шлангов(?:ый|ые|ого|ому|ым|ом)\s+хомут(?:ы|а|ов|у|ом|е)?(?:[^а-яё]|$)/i.test(text)||
+    /(?:^|[^а-яё])хомут(?:ы|а|ов|у|ом|е)?\s+(?:для\s+)?шланг(?:а|ов|у|ом|е)?(?:[^а-яё]|$)/i.test(text);
+
+  return hoseClamp?"hose_clamp":null;
+}
+
 export function classifyReferenceFastenerLabel(label){
   const core=referenceComponentCoreLabel(label);
   const text=core.toLocaleLowerCase();
@@ -631,6 +646,7 @@ export function buildDwfxReferenceScene({
   let metadataOnlyCount=0;
   let unresolvedCount=0;
   let filteredFastenerCount=0;
+  let filteredHoseClampCount=0;
   let filteredAnnotationLeafCount=0;
   let filteredAnnotationObjectCount=0;
   const filteredFastenerByKind={
@@ -775,6 +791,19 @@ export function buildDwfxReferenceScene({
     }
 
     if(sourceIsLeaf&&!editablePart){
+      const hoseClampKind=classifyReferenceHoseClampLabel(source.label);
+      if(hoseClampKind){
+        filteredHoseClampCount+=1;
+        diagnostics.push(Object.freeze({
+          stage:"reference_hose_clamp_filter",
+          object_id:String(source.id),
+          label:String(source.label??""),
+          component_kind:hoseClampKind,
+          status:"excluded"
+        }));
+        return null;
+      }
+
       const fastenerKind=classifyReferenceFastenerLabel(source.label);
       if(fastenerKind){
         filteredFastenerCount+=1;
@@ -921,9 +950,10 @@ export function buildDwfxReferenceScene({
       object_count:objectCount,
       leaf_count:leafCount,
       retained_leaf_count:
-        leafCount-filteredFastenerCount-filteredAnnotationLeafCount,
+        leafCount-filteredFastenerCount-filteredHoseClampCount-filteredAnnotationLeafCount,
       filtered_fastener_count:filteredFastenerCount,
       filtered_fastener_by_kind:Object.freeze({...filteredFastenerByKind}),
+      filtered_hose_clamp_count:filteredHoseClampCount,
       filtered_annotation_leaf_count:filteredAnnotationLeafCount,
       filtered_annotation_object_count:filteredAnnotationObjectCount,
       placed_leaf_count:placedCount,
