@@ -328,3 +328,31 @@ test("A39: active imported DWFx tube uses one copper color for LINE and BEND",()
   assert.match(html,/DWFX'\?0xc77738:0x4da3ff/);
   assert.match(html,/DWFX'\?0xc77738:0xff9a3c/);
 });
+
+
+test("A48: standalone exposes synchronized 3D and tree object context menus",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/data-tubebender-bundled="object-selection-context-ui"/);
+  assert.match(html,/id="tbObjectContextMenu"/);
+  assert.match(html,/data-object-action="move"/);
+  assert.match(html,/data-object-action="hide"/);
+  assert.match(html,/data-object-action="show"/);
+  assert.match(html,/data-object-action="transparent"/);
+  assert.match(html,/data-object-action="delete"/);
+  assert.match(html,/Переместить выбранные объекты/);
+  assert.match(html,/source==="3d"/);
+  assert.match(html,/source==="tree"/);
+  assert.match(html,/contextmenu/);
+  assert.match(html,/event\.ctrlKey\|\|event\.metaKey/);
+  assert.match(html,/translation_mm/);
+  assert.match(html,/moveSelection/);
+  assert.match(html,/uiHiddenIn3D/);
+  assert.match(html,/uiTransparentIn3D/);
+  assert.match(html,/tb-object-selected/);
+  assert.match(html,/Box3Helper/);
+  assert.match(html,/Прямой участок удаляется только вместе с предыдущим гибом/);
+});
