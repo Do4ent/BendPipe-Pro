@@ -215,3 +215,84 @@ test("A36: linear-rounding blocker stops project packaging",()=>{
   assert.match(result.blocker,/rounding failed/);
   assert.equal(packageCalled,false);
 });
+
+
+test("A42: trusted DWFx import auto-fits frame from filtered reference bounds",()=>{
+  let packaged=null;
+  const sourceAssembly={
+    status:"assembly_candidate",
+    editable_ready:true,
+    production_ready:false,
+    tubes:[{
+      id:"dwfx:A",
+      partNumber:"A",
+      origin:{x:86,y:757,z:525},
+      rows:[{type:"LINE",L:120}],
+      importEvidence:{
+        spatialPlacement:{
+          status:"exact",
+          origin_mm:[85.6,756.8,525.2],
+          editable_origin_mm:[86,757,525]
+        }
+      },
+      importValidation:{productionBlocked:true}
+    }]
+  };
+  const referenceScene={
+    bounds_mm:{
+      min:[-228.722992,-48.592343,-91.496798],
+      max:[509.276981,1165.827818,701.999969],
+      size:[737.999973,1214.420161,793.496767]
+    }
+  };
+
+  const result=prepareTrustedDwfxProjectImport({
+    ...args({
+    prepareAssembly:()=>sourceAssembly,
+    placeAssembly:({assembly})=>({
+      status:"placed_assembly",
+      assembly,
+      production_ready:false
+    }),
+    roundAssembly:(assembly)=>({
+      status:"rounded_assembly",
+      assembly,
+      tube_count:1,
+      changed_count:0,
+      production_ready:false
+    }),
+    buildProjectPackage:(input)=>{
+      packaged=input;
+      return {
+        status:"project_package_candidate",
+        bbox_status:"exact_automatic_reference_geometry",
+        production_ready:false,
+        package:{
+          type:"TubeBenderProject",
+          schemaVersion:"2.0",
+          project:{
+            id:"p",
+            name:"P",
+            bbox:input.bbox,
+            bboxAnchor:input.bbox_anchor,
+            coordinateOffset:input.coordinate_offset,
+            tubes:input.assembly.tubes
+          }
+        }
+      };
+    }
+    }),
+    reference_scene:referenceScene
+  });
+
+  // The real automatic-frame
+  // path is exercised without an explicit user bbox.
+  // prepareTrustedDwfxProjectImport receives it through the top-level argument.
+  assert.equal(result.status,"project_import_candidate");
+  assert.ok(packaged);
+  assert.deepEqual(packaged.bbox,{x:739,y:1215,z:794});
+  assert.deepEqual(packaged.bbox_anchor,{x:0,y:0,z:0});
+  assert.deepEqual(packaged.coordinate_offset,{x:-229,y:-49,z:-92});
+  assert.equal(packaged.bbox_source,"automatic_reference_geometry");
+  assert.deepEqual(packaged.assembly.tubes[0].origin,{x:315,y:806,z:617});
+});
