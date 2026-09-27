@@ -5,7 +5,7 @@ import {
   parseDwfxObjectTree,
   circularArcPolyline,
   classifyReferenceFastenerLabel,
-  classifyReferenceCableGlandBlackLabel,
+  classifyReferenceCableGlandLabel,
   classifyReferenceHoseClampLabel,
   classifyReferenceAnnotationLabel,
   computeReferenceSceneBounds
@@ -249,27 +249,34 @@ test("A43: hose clamps are excluded without removing hoses or unrelated clamps",
 });
 
 
-test("A44: Cable gland black is excluded without removing other cable-gland variants",()=>{
+test("A44: all Cable gland variants are excluded",()=>{
   const excluded=[
     "10000165, Cable gland black, Polyamide, M20 x 1,5, clamping range 6-12mm:1",
     "10002343, Cable gland black, Polyamide, M32 x 1,5, clamping range 18-25mm:1",
-    "Cable gland black M25"
+    "10002351, Cable gland blind, Polyamide, M20x1,5:1",
+    "10002347, Cable gland nut, Polyamide, M20x1,5:1",
+    "Cable gland, grey, M20",
+    "Cable glands, stainless steel, M25",
+    "Kabelwartel M20",
+    "Kabelverschraubung M32",
+    "Кабельный ввод M20",
+    "Кабельный сальник M25"
   ];
   for(const label of excluded){
     assert.equal(
-      classifyReferenceCableGlandBlackLabel(label),
-      "cable_gland_black",
+      classifyReferenceCableGlandLabel(label),
+      "cable_gland",
       label
     );
   }
 
   const retained=[
-    "10002351, Cable gland blind, Polyamide, M20x1,5:1",
-    "10002347, Cable gland nut, Polyamide, M20x1,5:1",
-    "Cable gland, grey, M20",
-    "Cable, black, 5m"
+    "Cable, black, 5m",
+    "Cable clamp",
+    "Cable tray",
+    "Gland plate"
   ];
   for(const label of retained){
-    assert.equal(classifyReferenceCableGlandBlackLabel(label),null,label);
+    assert.equal(classifyReferenceCableGlandLabel(label),null,label);
   }
 });
