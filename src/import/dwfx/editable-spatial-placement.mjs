@@ -4,6 +4,10 @@ import {
   replayLegacyDirection,
   angleBetweenVectorsDeg
 } from "../../recognition/legacy-row-kinematics.mjs";
+import {
+  AXIS_PARALLEL_TOLERANCE_DEG,
+  snapDirectionToPrincipalAxis
+} from "./editable-geometry-normalization.mjs";
 
 function clone(value){
   return value==null ? value : JSON.parse(JSON.stringify(value));
@@ -121,7 +125,8 @@ export function spatiallyPlaceEditableTube({
   reference_node,
   scale_mm_per_source_unit,
   direction_tolerance_deg=0.02,
-  plane_normal_tolerance_deg=0.05
+  plane_normal_tolerance_deg=0.05,
+  axis_parallel_tolerance_deg=AXIS_PARALLEL_TOLERANCE_DEG
 }){
   if(!tube||typeof tube!=="object")throw new TypeError("tube is required");
   const canonical=tube.importEvidence?.canonicalGeometry;
@@ -151,12 +156,28 @@ export function spatiallyPlaceEditableTube({
 
   let origin;
   let startVector;
+  let sourceStartVector;
   let rows=[];
+  const directionNormalizations=[];
+  const bendDirectionNormalizations=[];
 
   if(primitives.length===1){
     const line=primitives[0];
     origin=transformSourcePointMm(unwrap(line.start,"LINE start"),matrix,scale);
-    startVector=transformSourceVector(unwrap(line.direction,"LINE direction"),matrix);
+    sourceStartVector=transformSourceVector(
+      unwrap(line.direction,"LINE direction"),
+      matrix
+    );
+    const directionNormalization=snapDirectionToPrincipalAxis(
+      sourceStartVector,
+      {tolerance_deg:axis_parallel_tolerance_deg}
+    );
+    startVector=[...directionNormalization.editable_direction];
+    directionNormalizations.push(Object.freeze({
+      element_id:line.element_id,
+      primitive_index:0,
+      ...directionNormalization
+    }));
     const length=finite(unwrap(line.length,"LINE length"),"LINE length");
     rows=[{
       type:"LINE",
@@ -178,17 +199,52 @@ export function spatiallyPlaceEditableTube({
     const frame=rebased.frame;
     const local=rebased.canonical_geometry.primitives;
     origin=transformLocalPointMm([0,0,0],frame,matrix,scale);
-    startVector=transformLocalVector([1,0,0],frame,matrix);
+
+    const lineDirections=new Map();
+    for(let i=0;i<local.length;i+=1){
+      const primitive=local[i];
+      if(primitive?.type!=="LINE")continue;
+      const sourceDirection=transformLocalVector(
+        unwrap(primitive.direction,"LINE "+i+" direction"),
+        frame,
+        matrix
+      );
+      const normalization=snapDirectionToPrincipalAxis(
+        sourceDirection,
+        {tolerance_deg:axis_parallel_tolerance_deg}
+      );
+      const record=Object.freeze({
+        element_id:primitive.element_id,
+        primitive_index:i,
+        ...normalization
+      });
+      lineDirections.set(i,record);
+      directionNormalizations.push(record);
+    }
+    const firstDirection=lineDirections.get(0);
+    if(!firstDirection){
+      return Object.freeze({
+        status:"blocked",
+        tube:null,
+        blocker:"Placed editable tube is missing its first LINE direction."
+      });
+    }
+    sourceStartVector=[...firstDirection.source_direction];
+    startVector=[...firstDirection.editable_direction];
     let replay=[...startVector];
 
     for(let i=0;i<local.length;i+=1){
       const primitive=local[i];
       if(primitive.type==="LINE"){
-        const expected=transformLocalVector(
-          unwrap(primitive.direction,"LINE "+i+" direction"),
-          frame,
-          matrix
-        );
+        const lineDirection=lineDirections.get(i);
+        if(!lineDirection){
+          return Object.freeze({
+            status:"blocked",
+            tube:null,
+            blocker:"Placed editable LINE "+i+" has no normalized world direction."
+          });
+        }
+        const expected=[...lineDirection.editable_direction];
         const directionError=angleBetweenVectorsDeg(replay,expected);
         if(directionError>direction_tolerance_deg){
           return Object.freeze({
@@ -212,19 +268,76 @@ export function spatiallyPlaceEditableTube({
 
       const previous=local[i-1];
       const following=local[i+1];
-      const incoming=transformLocalVector(unwrap(previous.direction,"incoming direction"),frame,matrix);
-      const outgoing=transformLocalVector(unwrap(following.direction,"outgoing direction"),frame,matrix);
-      const normal=transformLocalVector(unwrap(primitive.bend_plane_normal,"bend normal"),frame,matrix);
+      const incomingDirection=lineDirections.get(i-1);
+      const outgoingDirection=lineDirections.get(i+1);
+      if(!incomingDirection||!outgoingDirection){
+        return Object.freeze({
+          status:"blocked",
+          tube:null,
+          blocker:"Placed BEND "+i+" is missing adjacent normalized LINE directions."
+        });
+      }
+      const incoming=[...incomingDirection.editable_direction];
+      const outgoing=[...outgoingDirection.editable_direction];
+      const normal=transformLocalVector(
+        unwrap(primitive.bend_plane_normal,"bend normal"),
+        frame,
+        matrix
+      );
       const signedAngle=finite(unwrap(primitive.angle,"bend angle"),"bend angle");
+      const transitionMagnitude=angleBetweenVectorsDeg(incoming,outgoing);
+      const editableSignedAngle=(Math.sign(signedAngle)||1)*transitionMagnitude;
+      const incomingSnapDelta=incomingDirection.status==="axis_parallel"
+        ?incomingDirection.deviation_deg
+        :0;
+      const outgoingSnapDelta=outgoingDirection.status==="axis_parallel"
+        ?outgoingDirection.deviation_deg
+        :0;
+      const sourceAngleDelta=Math.abs(
+        Math.abs(signedAngle)-transitionMagnitude
+      );
+      const allowedSourceAngleDelta=
+        direction_tolerance_deg+
+        incomingSnapDelta+
+        outgoingSnapDelta+
+        1e-6;
+      if(sourceAngleDelta>allowedSourceAngleDelta){
+        return Object.freeze({
+          status:"blocked",
+          tube:null,
+          blocker:"Axis normalization changes BEND "+i+" beyond its source-evidence allowance.",
+          source_angle_deg:signedAngle,
+          normalized_transition_angle_deg:transitionMagnitude,
+          angle_delta_deg:sourceAngleDelta,
+          allowed_angle_delta_deg:allowedSourceAngleDelta
+        });
+      }
+      const effectivePlaneTolerance=
+        plane_normal_tolerance_deg+
+        incomingSnapDelta+
+        outgoingSnapDelta+
+        1e-6;
       const settings=solveLegacyBendSettings({
         incoming,
         target:outgoing,
-        signedAngleHintDeg:signedAngle,
+        signedAngleHintDeg:editableSignedAngle,
         targetPlaneNormal:normal,
         preferredPlane:i===1?displayPlane(displayAxis(startVector)):null,
         directionToleranceDeg:direction_tolerance_deg,
-        planeNormalToleranceDeg:plane_normal_tolerance_deg
+        planeNormalToleranceDeg:effectivePlaneTolerance
       });
+      bendDirectionNormalizations.push(Object.freeze({
+        element_id:primitive.element_id,
+        primitive_index:i,
+        source_angle_deg:signedAngle,
+        normalized_transition_angle_deg:editableSignedAngle,
+        source_to_editable_angle_delta_deg:sourceAngleDelta,
+        allowed_source_angle_delta_deg:allowedSourceAngleDelta,
+        incoming_line_axis:incomingDirection.parallel_axis,
+        outgoing_line_axis:outgoingDirection.parallel_axis,
+        incoming_line_snapped:incomingDirection.snapped,
+        outgoing_line_snapped:outgoingDirection.snapped
+      }));
       if(settings.status!=="exact"){
         return Object.freeze({
           status:"blocked",
@@ -282,7 +395,25 @@ export function spatiallyPlaceEditableTube({
       placement_matrix:[...matrix],
       scale_mm_per_source_unit:scale,
       origin_mm:[...origin],
-      start_vector:[...startVector],
+      start_vector:[...(sourceStartVector??startVector)],
+      source_start_vector:[...(sourceStartVector??startVector)],
+      editable_start_vector:[...startVector],
+      axis_parallel_normalization:Object.freeze({
+        status:"applied",
+        tolerance_deg:Number(axis_parallel_tolerance_deg),
+        line_count:directionNormalizations.length,
+        classified_axis_parallel_count:directionNormalizations.filter(
+          (item)=>item.status==="axis_parallel"
+        ).length,
+        snapped_count:directionNormalizations.filter(
+          (item)=>item.snapped===true
+        ).length,
+        source_geometry_preserved:true,
+        lines:Object.freeze(directionNormalizations)
+      }),
+      bend_direction_normalization:Object.freeze(
+        bendDirectionNormalizations
+      ),
       placement_source:"dwfx_reference_scene_exact_instance",
       machine_compensation_applied:false
     }
@@ -291,7 +422,12 @@ export function spatiallyPlaceEditableTube({
     ...(placed.importValidation??{}),
     productionBlocked:true,
     spatialPlacementResolved:true,
-    coordinateMappingResolved:true
+    coordinateMappingResolved:true,
+    axisParallelNormalizationApplied:true,
+    axisParallelToleranceDeg:Number(axis_parallel_tolerance_deg),
+    axisParallelSnappedLineCount:directionNormalizations.filter(
+      (item)=>item.snapped===true
+    ).length
   };
   return Object.freeze({
     status:"placed",
