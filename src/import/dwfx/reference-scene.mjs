@@ -387,8 +387,8 @@ function safeSceneId(sourceFile){
 
 function referenceComponentCoreLabel(label){
   return String(label??"")
-    .replace(/:\\d+\\s*$/,"")
-    .replace(/^\\s*\\d{5,}(?:\\/[A-Za-z0-9._-]+)?\\s*(?:[-,]\\s*)?/,"")
+    .replace(/:\d+\s*$/,"")
+    .replace(/^\s*\d{5,}(?:\/[A-Za-z0-9._-]+)?\s*(?:[-,]\s*)?/,"")
     .trim();
 }
 
@@ -397,39 +397,39 @@ export function classifyReferenceFastenerLabel(label){
   const text=core.toLocaleLowerCase();
 
   const washer=
-    /\\bwashers?\\b/.test(text)||
-    /\\bunterlegscheiben?\\b/.test(text)||
-    /\\bsluitringen?\\b/.test(text)||
+    /\bwashers?\b/.test(text)||
+    /\bunterlegscheiben?\b/.test(text)||
+    /\bsluitringen?\b/.test(text)||
     /(?:^|[^а-яё])шайб(?:а|ы|у|е|ой|ою)?(?:[^а-яё]|$)/i.test(text);
   if(washer)return "washer";
 
   const screw=
-    /\\bscrews?\\b/.test(text)||
-    /\\bschrauben?\\b/.test(text)||
-    /\\bschroeven?\\b/.test(text)||
+    /\bscrews?\b/.test(text)||
+    /\bschrauben?\b/.test(text)||
+    /\bschroeven?\b/.test(text)||
     /(?:^|[^а-яё])винт(?:ы|а|ов|у|ом|е)?(?:[^а-яё]|$)/i.test(text);
   if(screw)return "screw";
 
   const nut=
-    /\\bnuts?\\b/.test(text)||
-    /\\bmuttern?\\b/.test(text)||
-    /\\bmoeren?\\b/.test(text)||
+    /\bnuts?\b/.test(text)||
+    /\bmuttern?\b/.test(text)||
+    /\bmoeren?\b/.test(text)||
     /(?:^|[^а-яё])гайк(?:а|и|у|е|ой|ою)?(?:[^а-яё]|$)/i.test(text);
   if(nut){
     const embeddedAccessory=
-      /\\bwith\\b[^,;]{0,80}\\b(?:contra\\s+)?nut\\b/.test(text)||
-      /\\bmet\\b[^,;]{0,80}\\bmoer\\b/.test(text)||
-      /\\bmit\\b[^,;]{0,80}\\bmutter\\b/.test(text);
+      /\bwith\b[^,;]{0,80}\b(?:contra\s+)?nut\b/.test(text)||
+      /\bmet\b[^,;]{0,80}\bmoer\b/.test(text)||
+      /\bmit\b[^,;]{0,80}\bmutter\b/.test(text);
     if(!embeddedAccessory)return "nut";
   }
 
   const bolt=
-    /\\bbolts?\\b/.test(text)||
-    /\\bbouten?\\b/.test(text)||
+    /\bbolts?\b/.test(text)||
+    /\bbouten?\b/.test(text)||
     /(?:^|[^а-яё])болт(?:ы|а|ов|у|ом|е)?(?:[^а-яё]|$)/i.test(text);
   if(bolt){
     const accessoryForBolt=
-      /^(?:sealing\\s+ring|gasket|o[- ]?ring)\\b/.test(text);
+      /^(?:sealing\s+ring|gasket|o[- ]?ring)\b/.test(text);
     if(!accessoryForBolt)return "bolt";
   }
 
