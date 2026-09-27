@@ -381,3 +381,19 @@ test("A49: standalone keeps Project/Tube controls inside header and clamps tube 
   assert.match(html,/rowCount:tube\.querySelectorAll/);
   assert.match(html,/result\.overlap=/);
 });
+
+
+test("A50: 3D component selection preserves the current viewer framing",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/let preserveViewerFrameForCanvasInteraction=false/);
+  assert.match(html,/function onCanvasClick\(event\)\{\s*preserveViewerFrameForCanvasInteraction=true/);
+  assert.match(html,/queueMicrotask\(\(\)=>\{preserveViewerFrameForCanvasInteraction=false;\}\)/);
+  assert.match(
+    html,
+    /safeUiCall\('renderViewerOnly', \(\)=>renderViewerOnly\(!preserveViewerFrameForCanvasInteraction\)\)/
+  );
+});
