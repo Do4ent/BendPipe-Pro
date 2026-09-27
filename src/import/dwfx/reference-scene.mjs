@@ -538,6 +538,21 @@ function subtreeHasRecognizedObject(node,recognizedByObject){
   );
 }
 
+export function classifyReferenceAxialVentilatorLabel(label){
+  const core=referenceComponentCoreLabel(label);
+  const text=core.toLocaleLowerCase();
+
+  const axialVentilator=
+    /\bventilator\b[^,;]{0,40}\baxial\b/.test(text)||
+    /\baxial\b[^,;]{0,40}\bventilator\b/.test(text)||
+    /\baxial\s+fans?\b/.test(text)||
+    /\baxiaalventilator(?:en)?\b/.test(text)||
+    /\baxialventilator(?:en)?\b/.test(text)||
+    /(?:^|[^а-яё])осев(?:ой|ые|ого|ому|ым|ом)\s+вентилятор(?:ы|а|ов|у|ом|е)?(?:[^а-яё]|$)/i.test(text);
+
+  return axialVentilator?"axial_ventilator":null;
+}
+
 export function classifyReferenceCableGlandLabel(label){
   const core=referenceComponentCoreLabel(label);
   const text=core.toLocaleLowerCase();
@@ -659,6 +674,7 @@ export function buildDwfxReferenceScene({
   let metadataOnlyCount=0;
   let unresolvedCount=0;
   let filteredFastenerCount=0;
+  let filteredAxialVentilatorCount=0;
   let filteredHoseClampCount=0;
   let filteredCableGlandCount=0;
   let filteredAnnotationLeafCount=0;
@@ -805,6 +821,19 @@ export function buildDwfxReferenceScene({
     }
 
     if(sourceIsLeaf&&!editablePart){
+      const axialVentilatorKind=classifyReferenceAxialVentilatorLabel(source.label);
+      if(axialVentilatorKind){
+        filteredAxialVentilatorCount+=1;
+        diagnostics.push(Object.freeze({
+          stage:"reference_axial_ventilator_filter",
+          object_id:String(source.id),
+          label:String(source.label??""),
+          component_kind:axialVentilatorKind,
+          status:"excluded"
+        }));
+        return null;
+      }
+
       const cableGlandKind=classifyReferenceCableGlandLabel(source.label);
       if(cableGlandKind){
         filteredCableGlandCount+=1;
@@ -977,9 +1006,10 @@ export function buildDwfxReferenceScene({
       object_count:objectCount,
       leaf_count:leafCount,
       retained_leaf_count:
-        leafCount-filteredFastenerCount-filteredHoseClampCount-filteredCableGlandCount-filteredAnnotationLeafCount,
+        leafCount-filteredFastenerCount-filteredAxialVentilatorCount-filteredHoseClampCount-filteredCableGlandCount-filteredAnnotationLeafCount,
       filtered_fastener_count:filteredFastenerCount,
       filtered_fastener_by_kind:Object.freeze({...filteredFastenerByKind}),
+      filtered_axial_ventilator_count:filteredAxialVentilatorCount,
       filtered_hose_clamp_count:filteredHoseClampCount,
       filtered_cable_gland_count:filteredCableGlandCount,
       filtered_annotation_leaf_count:filteredAnnotationLeafCount,
