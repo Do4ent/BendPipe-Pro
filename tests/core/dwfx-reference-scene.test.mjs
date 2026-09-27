@@ -4,7 +4,8 @@ import assert from "node:assert/strict";
 import {
   parseDwfxObjectTree,
   circularArcPolyline,
-  classifyReferenceFastenerLabel
+  classifyReferenceFastenerLabel,
+  classifyReferenceAnnotationLabel
 } from "../../src/import/dwfx/reference-scene.mjs";
 import {
   buildDisplayHsfSegmentIndex,
@@ -125,4 +126,30 @@ test("A40: reference fastener filter removes bolts nuts washers and screws witho
     ),
     null
   );
+});
+
+
+test("A41: reference annotation labels are excluded as display-only clutter",()=>{
+  for(const label of [
+    "Annotation",
+    "Annotations",
+    "Annotatie",
+    "Annotaties",
+    "Anmerkung",
+    "Anmerkungen",
+    "Аннотация",
+    "Примечания"
+  ]){
+    assert.equal(classifyReferenceAnnotationLabel(label),"annotation",label);
+  }
+
+  for(const label of [
+    "Diameter Dimension 1",
+    "Linear Dimension 3",
+    "Leader Text 1",
+    "Clamp tankthrough with contra nut",
+    "Tube, Copper, 3/8"
+  ]){
+    assert.equal(classifyReferenceAnnotationLabel(label),null,label);
+  }
 });
