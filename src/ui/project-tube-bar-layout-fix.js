@@ -21,6 +21,27 @@
 body.tb-project-map .tb-map-header{
   min-width:0!important;
   overflow:visible!important;
+  flex-wrap:nowrap!important;
+}
+body.tb-project-map .tb-brand{order:10!important;}
+body.tb-project-map #projectEditor{order:20!important;}
+body.tb-project-map .tb-map-head-spacer{order:30!important;}
+body.tb-project-map .tb-head-actions{order:40!important;}
+body.tb-project-map .tb-window-controls{
+  order:50!important;
+  position:static!important;
+  flex:0 0 auto!important;
+  margin-left:4px!important;
+  padding-left:7px!important;
+  align-self:center!important;
+  white-space:nowrap!important;
+}
+body.tb-project-map .tb-window-control{
+  flex:0 0 38px!important;
+  width:38px!important;
+  min-width:38px!important;
+  height:38px!important;
+  min-height:38px!important;
 }
 body.tb-project-map .tb-brand{
   min-width:0;
