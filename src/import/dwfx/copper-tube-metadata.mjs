@@ -98,10 +98,20 @@ function partNumberFromObjectLabel(label){
   return match?match[1]:null;
 }
 
+function partNumberFromEntityLabel(label){
+  const text=String(label??"");
+  const pattern=/(?:^|[\\/])(\d{5,})\.ipt/ig;
+  let part=null;
+  for(const match of text.matchAll(pattern)) part=match[1];
+  return part;
+}
+
 function candidateFromRecord(record,part,{
   source_file,
   source_kind,
-  part_number_method
+  part_number_method,
+  reported_part_number_property=null,
+  entity_filename_part_number=null
 }){
   if(!isCopperTubeEntity(record)) return null;
 
@@ -151,6 +161,8 @@ function candidateFromRecord(record,part,{
       recognition_kind:"copper_tube_fallback",
       source_record_kind:source_kind,
       part_number_method,
+      reported_part_number_property,
+      entity_filename_part_number,
       dimension_property:dimensionsEvidence.name,
       dimension_text:dimensionsEvidence.value,
       dimension_notation:d.source_notation,
@@ -174,35 +186,75 @@ export function extractCopperTubeMetadataFromContentXml(
   {source_file="unknown.dwfx"}={}
 ){
   const candidates=[];
+  const entities=parseEntityRecords(xml);
+  const objects=parseObjectRecords(xml);
+  const objectLabelPartsByEntity=new Map();
 
-  for(const entity of parseEntityRecords(xml)){
+  for(const object of objects){
+    const labelPart=partNumberFromObjectLabel(object.label);
+    const entityRef=String(object.entity_ref??"");
+    if(!labelPart||!entityRef)continue;
+    const set=objectLabelPartsByEntity.get(entityRef)??new Set();
+    set.add(labelPart);
+    objectLabelPartsByEntity.set(entityRef,set);
+  }
+
+  for(const entity of entities){
     const partNumber=firstProperty(entity,"Part Number","Design Tracking Properties");
     if(!partNumber||!/^\d+$/.test(String(partNumber).trim())) continue;
-    const part=String(partNumber).trim();
+    const reportedPart=String(partNumber).trim();
+    const filenamePart=partNumberFromEntityLabel(entity.label);
+    const instanceParts=objectLabelPartsByEntity.get(String(entity.id))??new Set();
+
+    const identityOverride=
+      filenamePart &&
+      filenamePart!==reportedPart &&
+      instanceParts.has(filenamePart);
+
+    const part=identityOverride?filenamePart:reportedPart;
     const candidate=candidateFromRecord(entity,part,{
       source_file,
       source_kind:"entity",
-      part_number_method:"explicit_property"
+      part_number_method:identityOverride
+        ?"object_label_plus_entity_filename_override_stale_property"
+        :"explicit_property",
+      reported_part_number_property:reportedPart,
+      entity_filename_part_number:filenamePart
     });
     if(candidate) candidates.push(candidate);
   }
 
   const entityParts=new Set(candidates.map((candidate)=>candidate.part_number));
-  for(const object of parseObjectRecords(xml)){
+  for(const object of objects){
     const explicitPart=firstProperty(
       object,
       "Part Number",
       "Design Tracking Properties"
     );
-    if(explicitPart) continue;
+    const labelPart=partNumberFromObjectLabel(object.label);
+    if(!labelPart||entityParts.has(labelPart)) continue;
 
-    const part=partNumberFromObjectLabel(object.label);
-    if(!part||entityParts.has(part)) continue;
+    const linkedEntity=entities.find((entity)=>
+      String(entity.id)===String(object.entity_ref??"")
+    )??null;
+    const filenamePart=partNumberFromEntityLabel(linkedEntity?.label);
+    const explicitText=explicitPart==null?null:String(explicitPart).trim();
+    const corroboratedConflict=
+      explicitText &&
+      /^\d+$/.test(explicitText) &&
+      explicitText!==labelPart &&
+      filenamePart===labelPart;
 
-    const candidate=candidateFromRecord(object,part,{
+    if(explicitPart&&!corroboratedConflict) continue;
+
+    const candidate=candidateFromRecord(object,labelPart,{
       source_file,
       source_kind:"object",
-      part_number_method:"exact_object_label_prefix"
+      part_number_method:corroboratedConflict
+        ?"object_label_plus_entity_filename_override_stale_property"
+        :"exact_object_label_prefix",
+      reported_part_number_property:explicitText,
+      entity_filename_part_number:filenamePart
     });
     if(candidate) candidates.push(candidate);
   }
