@@ -434,3 +434,24 @@ test("A51: window controls are repaired into the final top header and stay last"
   assert.ok(min>=0&&max>min&&close>max);
 });
 
+
+
+test("A53: standalone mouse navigation matches Autodesk CAD orbit/pan conventions",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/this\._heldKeys = new Set\(\)/);
+  assert.match(html,/if\(p\.button===1\)this\._mode=e\.shiftKey\?'rotate':'pan'/);
+  assert.match(html,/else if\(p\.button===0&&f4\)this\._mode='rotate'/);
+  assert.match(html,/else if\(p\.button===0&&f2\)this\._mode='pan'/);
+  assert.match(html,/else if\(p\.button===0\)this\._mode='select'/);
+  assert.match(html,/if\(this\._mode==='pan'\)this\.pan\(dx,dy\)/);
+  assert.match(html,/else if\(this\._mode==='rotate'\)this\.rotate\(dx,dy\)/);
+  assert.match(html,/wheel\(e\)\{/);
+  assert.doesNotMatch(
+    html,
+    /p\.button === 1 \|\| p\.button === 2 \|\| e\.shiftKey/
+  );
+});
