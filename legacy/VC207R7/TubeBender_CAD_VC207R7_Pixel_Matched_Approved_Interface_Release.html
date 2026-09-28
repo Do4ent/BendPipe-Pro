@@ -4352,6 +4352,12 @@ body.tb-project-map #projectEditor .pt-menu-btn, body.tb-project-map #projectEdi
 }
 @media (max-width:620px){.tb-edit-dashboard{grid-template-columns:1fr!important}.tb-project-map #ribbonGroups .view-current{width:45px!important;min-width:45px!important}.tb-project-map #ribbonGroups .view-current::after{display:none!important}.tb-tree-node.level2{padding-left:36px!important}}
 </style>
+<style id="tbNoEditAreaStyles">
+body.tb-project-map .tb-map-center{grid-template-rows:minmax(0,1fr)!important;gap:0!important}
+body.tb-project-map .tb-map-edit{display:none!important}
+body.tb-project-map .tb-bottom-tab[data-tab="edit"]{display:none!important}
+#tbLegacyWorkbenchHost{display:none!important}
+</style>
 </head>
 <body>
 <div id="app">
@@ -15443,10 +15449,11 @@ function buildShell(){
    <button class="tb-head-action icon-only" id="tbActionHelp" title="Справка"><span class="glyph">?</span></button>`;header.appendChild(actions);
   const ws=document.createElement('div');ws.className='tb-map-workspace';ws.innerHTML=`
    <aside class="tb-map-left"><section class="tb-card tb-tree-card"><div class="tb-card-head"><span class="tb-tree-title">Проект</span><button class="tb-new-project-btn" id="tbNewProjectTop">＋ Новый</button></div><div class="tb-tree-search"><input id="tbTreeSearch" placeholder="${mt('search')}"><button class="tb-small-btn" id="tbTreeFilter" title="Фильтр">▽</button></div><div class="tb-tree-scroll" id="tbProjectTree"></div><div class="tb-tree-actions"><button id="tbTreeAdd" title="Добавить трубу">＋</button><button id="tbTreeCopy" title="Копировать трубу">⧉</button><button id="tbTreeDelete" title="Удалить">♜</button><div class="spacer"></div><button id="tbTreeUp" title="Предыдущий элемент">↑</button><button id="tbTreeDown" title="Следующий элемент">↓</button><button title="Ещё">•••</button></div></section></aside>
-   <main class="tb-map-center"><section class="tb-card tb-map-3d"><div class="tb-card-head"><span id="tb3DStatus" class="tb-status-dot"></span><div class="tb-3d-toolbar" id="tb3DToolbarHost"></div><button class="tb-card-menu" id="tbLayersButton" type="button" title="Слои">⋮</button></div><div class="tb-3d-host" id="tb3DHost"></div></section><section class="tb-card tb-map-edit"><div class="tb-card-head"><span id="tbEditStatus" class="tb-status-dot warn"></span><span>Редактирование: <b id="tbEditHeadSelection" class="tb-edit-caption">${mt('noSelection')}</b></span><button class="tb-card-menu" type="button">⌃</button></div><div class="tb-edit-body"><div class="tb-edit-summary" id="tbEditSummary"></div><div class="tb-unfold-host" id="tbUnfoldHost"></div></div></section></main>
+   <main class="tb-map-center"><section class="tb-card tb-map-3d"><div class="tb-card-head"><span id="tb3DStatus" class="tb-status-dot"></span><div class="tb-3d-toolbar" id="tb3DToolbarHost"></div><button class="tb-card-menu" id="tbLayersButton" type="button" title="Слои">⋮</button></div><div class="tb-3d-host" id="tb3DHost"></div></section></main>
    <aside class="tb-map-right"><section class="tb-card"><div class="tb-card-head"><span id="tbChecksDot" class="tb-status-dot"></span><span>${mt('checks')}</span><button class="tb-card-menu" type="button">⋮</button></div><div id="tbChecksPanel"></div></section><section class="tb-card"><div class="tb-card-head"><span class="tb-status-dot"></span><span>${mt('production')}</span><button class="tb-card-menu" type="button">⋮</button></div><div class="tb-production-body"><div class="tb-tube-tech"><div class="tb-copper-coil"></div><div id="tbTechnologyInfo"></div></div><div class="tb-production-actions"><button data-prod="simulation"><span class="ico">▷</span>${mt('simulation')}<span style="margin-left:auto">›</span></button><button data-prod="manufacturing"><span class="ico">⌁</span>${mt('bendCard')}<span style="margin-left:auto">›</span></button><button data-prod="manufacturing"><span class="ico">▤</span>${mt('operations')}<span style="margin-left:auto">›</span></button><button data-prod="reports"><span class="ico">▧</span>${mt('report')}<span style="margin-left:auto">›</span></button></div></div></section></aside>`;
-  const bottom=document.createElement('nav');bottom.className='tb-map-bottom';bottom.innerHTML=`<button class="tb-bottom-tab" data-tab="map"><span class="ico">⌂</span>${mt('projectMap')}</button><button class="tb-bottom-tab" data-tab="3d"><span class="ico">◇</span>${mt('model3d')}</button><button class="tb-bottom-tab active" data-tab="edit"><span class="ico">✎</span>${mt('edit')}</button><button class="tb-bottom-tab" data-tab="checks"><span class="ico">⬡</span>${mt('checks')}</button><button class="tb-bottom-tab" data-tab="production"><span class="ico">♜</span>${mt('production')}</button><div class="tb-bottom-status"><span id="tbBottomProject"></span><span>${mt('units')}</span></div><div class="tb-snap-toggle"><span>Привязки</span><span class="tb-switch"></span></div>`;
-  app.replaceChildren(header,ws,bottom);$('tb3DToolbarHost').appendChild(ribbon);$('tb3DHost').appendChild(viewer);$('tbUnfoldHost').appendChild(workbench);if(chrome)chrome.remove();
+  const bottom=document.createElement('nav');bottom.className='tb-map-bottom';bottom.innerHTML=`<button class="tb-bottom-tab" data-tab="map"><span class="ico">⌂</span>${mt('projectMap')}</button><button class="tb-bottom-tab active" data-tab="3d"><span class="ico">◇</span>${mt('model3d')}</button><button class="tb-bottom-tab" data-tab="checks"><span class="ico">⬡</span>${mt('checks')}</button><button class="tb-bottom-tab" data-tab="production"><span class="ico">♜</span>${mt('production')}</button><div class="tb-bottom-status"><span id="tbBottomProject"></span><span>${mt('units')}</span></div><div class="tb-snap-toggle"><span>Привязки</span><span class="tb-switch"></span></div>`;
+  const legacyWorkbenchHost=document.createElement('div');legacyWorkbenchHost.id='tbLegacyWorkbenchHost';legacyWorkbenchHost.hidden=true;
+  app.replaceChildren(header,ws,bottom,legacyWorkbenchHost);$('tb3DToolbarHost').appendChild(ribbon);$('tb3DHost').appendChild(viewer);legacyWorkbenchHost.appendChild(workbench);if(chrome)chrome.remove();
   bindShell();setTimeout(()=>{try{resize?.();fitPipeToViewerKeepOrbit?.();markViewerDirty?.();}catch{}},60);
 }
 function bindShell(){
@@ -15456,7 +15463,7 @@ function bindShell(){
   $('tbActionUndo')?.addEventListener('click',tbUndo);
   $('tbActionRedo')?.addEventListener('click',tbRedo);
   tbHistoryUpdateUi();
-  $('tbActionHelp')?.addEventListener('click',()=>ptToast('Выберите элемент дерева проекта. Его параметры появятся в панели редактирования.'));$('tbLayersButton')?.addEventListener('click',()=>window.TubeBenderEngineering?.open?.('overview'));$('tbTreeFilter')?.addEventListener('click',()=>ptToast('Фильтр дерева: используйте строку поиска.'));
+  $('tbActionHelp')?.addEventListener('click',()=>ptToast('Выберите элемент дерева проекта или объект в 3D для работы с ним.'));$('tbLayersButton')?.addEventListener('click',()=>window.TubeBenderEngineering?.open?.('overview'));$('tbTreeFilter')?.addEventListener('click',()=>ptToast('Фильтр дерева: используйте строку поиска.'));
   $('tbNewProjectTop')?.addEventListener('click',showNewProjectDialog);
   $('tbTreeAdd')?.addEventListener('click',()=>ptActions?.tubeNew?.());$('tbTreeCopy')?.addEventListener('click',()=>ptActions?.tubeCopy?.());$('tbTreeDelete')?.addEventListener('click',()=>ptActions?.tubeDelete?.());
   $('tbTreeSearch')?.addEventListener('input',refreshProjectTree);
@@ -15465,7 +15472,7 @@ function bindShell(){
   document.querySelectorAll('.tb-bottom-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tb-bottom-tab').forEach(x=>x.classList.toggle('active',x===b));setMobilePanel(b.dataset.tab);if(b.dataset.tab==='production'&&window.innerWidth>900)window.TubeBenderEngineering?.open?.('manufacturing');}));
   initNewProjectDialog();
 }
-function setMobilePanel(tab){document.body.classList.remove('tb-show-tree','tb-show-checks','tb-show-edit');if(window.innerWidth>860)return;if(tab==='map')document.body.classList.add('tb-show-tree');else if(tab==='checks'||tab==='production')document.body.classList.add('tb-show-checks');else if(tab==='edit')document.body.classList.add('tb-show-edit');}
+function setMobilePanel(tab){document.body.classList.remove('tb-show-tree','tb-show-checks','tb-show-edit');if(window.innerWidth>860)return;if(tab==='map')document.body.classList.add('tb-show-tree');else if(tab==='checks'||tab==='production')document.body.classList.add('tb-show-checks');}
 function refreshProjectTree(){
   const host=$('tbProjectTree');if(!host)return;let p;try{p=activeProject();}catch{return;}ensureConstructionMetadata();
   const q=String($('tbTreeSearch')?.value||'').trim().toLowerCase(),b=currentBody(),items=[];
