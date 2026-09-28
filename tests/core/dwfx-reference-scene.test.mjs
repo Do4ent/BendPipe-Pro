@@ -5,6 +5,7 @@ import {
   parseDwfxObjectTree,
   circularArcPolyline,
   classifyReferenceFastenerLabel,
+  classifyReferenceTypePlateLabel,
   classifyReferenceStickerLabel,
   classifyReferenceSymbolCardLabel,
   classifyReferenceAxialVentilatorLabel,
@@ -376,5 +377,32 @@ test("A47: Sticker is excluded without removing unrelated labels or plates",()=>
   ];
   for(const label of retained){
     assert.equal(classifyReferenceStickerLabel(label),null,label);
+  }
+});
+
+
+test("A48: Type plate components are excluded without deleting unrelated plates",()=>{
+  const excluded=[
+    "10000033/D - Type plate, Standard, 135x115x1 RVS, S63-1224:1",
+    "Type plate",
+    "Type plate stainless steel",
+    "Type-plate 120x80",
+    "Typeplaat",
+    "Typenschild",
+    "Шильдик"
+  ];
+  for(const label of excluded){
+    assert.equal(classifyReferenceTypePlateLabel(label),"type_plate",label);
+  }
+
+  const retained=[
+    "Mounting plate",
+    "Warning plate",
+    "Base plate",
+    "Plate heat exchanger",
+    "Symbol card"
+  ];
+  for(const label of retained){
+    assert.equal(classifyReferenceTypePlateLabel(label),null,label);
   }
 });
