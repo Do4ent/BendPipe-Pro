@@ -155,3 +155,19 @@ test("A55: recognized imported tubes are always rendered fully opaque",()=>{
   assert.match(code,/return !isRecognizedTube\(tube\)/);
   assert.match(code,/row\.uiTransparentIn3D=false/);
 });
+
+
+test("A57: project-tree context menu survives dynamic buildShell creation and rerenders",()=>{
+  const code=fs.readFileSync(
+    path.join(root,"src","ui","object-selection-context-ui.js"),
+    "utf8"
+  );
+
+  assert.match(code,/function projectTreeForEvent\(event\)/);
+  assert.match(code,/document\.getElementById\("tbProjectTree"\)/);
+  assert.match(code,/tree===target\|\|tree\.contains\(target\)/);
+  assert.match(code,/document\.addEventListener\("click",onTreeClick\)/);
+  assert.match(code,/document\.addEventListener\("contextmenu",onTreeContext,true\)/);
+  assert.doesNotMatch(code,/tree\?\.addEventListener\("contextmenu",onTreeContext\)/);
+  assert.match(code,/treeObserver\.observe\(document\.body,\{childList:true,subtree:true\}\)/);
+});
