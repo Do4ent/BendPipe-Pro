@@ -503,7 +503,7 @@ export function computeReferenceSceneBounds({
 function referenceComponentCoreLabel(label){
   return String(label??"")
     .replace(/:\d+\s*$/,"")
-    .replace(/^\s*\d{5,}(?:\/[A-Za-z0-9._-]+)?\s*(?:[-,]\s*)?/,"")
+    .replace(/^\s*\d{5,}(?:\/[A-Za-z0-9._-]*)?\s*(?:[-,]\s*)?/,"")
     .trim();
 }
 
