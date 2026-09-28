@@ -201,3 +201,27 @@ test("DWFx copper recognizer accepts real 10139798 straight tube Object-label fa
   assert.equal(tube.source_evidence.part_number_method,"exact_object_label_prefix");
   assert.equal(tube.source_evidence.source_record_kind,"object");
 });
+
+
+test("DWFx copper recognizer corrects real 10104935 when Object label and IPT filename agree against stale Part Number",()=>{
+  const source='<dwf:Content xmlns:dwf="urn:dwf"><dwf:Entity id="entity-10104935" label="C:\\\\Temp\\\\Standard Route, S2\\\\10104933\\\\10104935.iptAgEBAAQAAABfAAAA"><dwf:Property name="Part Number" value="10102473" category="Design Tracking Properties"/><dwf:Property name="Description" value="Tube, Copper 3_8inch x 0,76" category="Design Tracking Properties"/><dwf:Property name="Material" value="Copper" category="Physical"/><dwf:Property name="Revision Number" value="A" category="Summary Information"/><dwf:Property name="Title" value="Tube, Copper, 3/8&quot; x 0,76mm" category="Summary Information"/><dwf:Property name="Description 1" value="Tube" category="User Defined Properties"/><dwf:Property name="Description 2" value="Copper" category="User Defined Properties"/><dwf:Property name="Length" value="1250,4 mm" category="User Defined Properties"/></dwf:Entity><dwf:Object id="obj-10104935" label="10104935/A - Tube, Copper, 3/8&quot; x 0,76mm:1" entityRef="entity-10104935"><dwf:Property name="Part Number" value="10102473" category="Design Tracking Properties"/><dwf:Property name="Description" value="Tube, Copper 3_8inch x 0,76" category="Design Tracking Properties"/><dwf:Property name="Material" value="Copper" category="Physical"/><dwf:Property name="Revision Number" value="A" category="Summary Information"/><dwf:Property name="Title" value="Tube, Copper, 3/8&quot; x 0,76mm" category="Summary Information"/><dwf:Property name="Description 1" value="Tube" category="User Defined Properties"/><dwf:Property name="Description 2" value="Copper" category="User Defined Properties"/><dwf:Property name="Length" value="1250,4 mm" category="User Defined Properties"/></dwf:Object></dwf:Content>';
+  const result=extractCopperTubeMetadataFromContentXml(source,{source_file:"80004806.dwfx"});
+  assert.equal(result.status,"exact");
+  assert.equal(result.tubes.length,1);
+  const tube=result.tubes[0];
+  assert.equal(tube.part_number,"10104935");
+  assert.equal(tube.metadata.developed_length.value,1250.4);
+  assert.equal(
+    tube.source_evidence.part_number_method,
+    "object_label_plus_entity_filename_override_stale_property"
+  );
+  assert.equal(tube.source_evidence.reported_part_number_property,"10102473");
+  assert.equal(tube.source_evidence.entity_filename_part_number,"10104935");
+});
+
+test("DWFx copper recognizer still refuses a mismatching Object label when no IPT filename corroborates it",()=>{
+  const source='<dwf:Content xmlns:dwf="urn:dwf"><dwf:Object id="route-copy" label="10141451/ - Tube, Copper, on length 3/4&quot; x 1,7mm:1"><dwf:Property name="Part Number" value="10102473" category="Design Tracking Properties"/><dwf:Property name="Description" value="Copper tube 3_4inch x 1,7" category="Design Tracking Properties"/><dwf:Property name="Material" value="Copper" category="Physical"/><dwf:Property name="Title" value="Tube, Copper, on length 3/4&quot; x 1,7mm" category="Summary Information"/><dwf:Property name="Description 1" value="Tube" category="User Defined Properties"/><dwf:Property name="Description 2" value="Copper" category="User Defined Properties"/><dwf:Property name="Length" value="1018,6 mm" category="User Defined Properties"/></dwf:Object></dwf:Content>';
+  const result=extractCopperTubeMetadataFromContentXml(source);
+  assert.equal(result.status,"blocked");
+  assert.equal(result.tubes.length,0);
+});
