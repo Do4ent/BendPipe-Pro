@@ -288,6 +288,7 @@ test("A44: all Cable gland variants are excluded",()=>{
 test("A45: axial ventilators are excluded without removing unrelated ventilation parts",()=>{
   const excluded=[
     "Ventilator, Axial, 230V, 50Hz:1",
+    "10009128/ - Ventilator, Axial, Ø450 YWF.A4T-450S-5DIAP0 :1",
     "Ventilator Axial 120x120mm",
     "Axial ventilator, 24VDC",
     "Axial fan 120mm",
