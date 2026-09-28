@@ -356,6 +356,65 @@
     }
   }
 
+  function treeRowForKey(key){
+    const host=document.getElementById("tbProjectTree");
+    if(!host||!key)return null;
+    for(const row of host.querySelectorAll(
+      "[data-ref-node],[data-tree-tube],[data-tree-row],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
+    )){
+      if(keyForTreeRow(row)===key)return row;
+    }
+    return null;
+  }
+
+  function scrollTreeSelectionIntoView(key){
+    const attempt=(remaining)=>{
+      const row=treeRowForKey(key);
+      if(row){
+        row.scrollIntoView?.({block:"nearest",inline:"nearest",behavior:"auto"});
+        return;
+      }
+      if(remaining>0)requestAnimationFrame(()=>attempt(remaining-1));
+    };
+    requestAnimationFrame(()=>attempt(3));
+  }
+
+  function revealTreeKey(key){
+    const entry=parseKey(key);
+    const p=project();
+    if(!entry||!p)return false;
+
+    if(entry.kind==="ref"){
+      const changed=refApi()?.revealNode?.(p,entry.sceneId,entry.nodeId)===true;
+      if(changed){
+        try{if(typeof refreshProjectTree==="function")refreshProjectTree();}catch{}
+      }
+    }else{
+      try{if(typeof refreshProjectTree==="function")refreshProjectTree();}catch{}
+    }
+
+    requestAnimationFrame(()=>{
+      updateTreeSelectionStyles();
+      scrollTreeSelectionIntoView(key);
+    });
+    return true;
+  }
+
+  function adoptReferenceSelection({source="tree",replaceNonReference=false}={}){
+    if(replaceNonReference){
+      for(const key of [...selected]){
+        if(!key.startsWith(PREFIX.ref))selected.delete(key);
+      }
+    }
+    syncReferenceIntoSelection();
+    updateTreeSelectionStyles();
+    try{
+      if(typeof update3D==="function")update3D();
+      if(typeof markViewerDirty==="function")markViewerDirty();
+    }catch{}
+    return selected.size;
+  }
+
   function refreshVisualSelection(){
     updateTreeSelectionStyles();
     try{
@@ -368,12 +427,18 @@
     const host=document.getElementById("tbProjectTree");
     if(!host)return;
     syncReferenceIntoSelection();
-    host.querySelectorAll(".tb-object-selected").forEach((node)=>node.classList.remove("tb-object-selected"));
+    host.querySelectorAll(".tb-object-selected").forEach((node)=>{
+      node.classList.remove("tb-object-selected");
+      node.removeAttribute("aria-selected");
+    });
     for(const row of host.querySelectorAll(
       "[data-ref-node],[data-tree-tube],[data-tree-row],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
     )){
       const key=keyForTreeRow(row);
-      if(key&&selected.has(key))row.classList.add("tb-object-selected");
+      if(key&&selected.has(key)){
+        row.classList.add("tb-object-selected");
+        row.setAttribute("aria-selected","true");
+      }
     }
   }
 
@@ -714,6 +779,7 @@
       additive:!!(event.ctrlKey||event.metaKey),
       toggle:!!(event.ctrlKey||event.metaKey)
     });
+    revealTreeKey(picked.key);
   }
 
   function onCanvasContext(event){
@@ -723,6 +789,7 @@
     event.stopPropagation();
     syncReferenceIntoSelection();
     if(!selected.has(picked.key))setSelectedKey(picked.key,{additive:false});
+    revealTreeKey(picked.key);
     showContextMenu(event,{source:"3d"});
   }
 
@@ -732,10 +799,12 @@
     const key=keyForTreeRow(row);
     if(!key)return;
     if(row.matches("[data-ref-node]")){
+      const replaceNonReference=!(event.ctrlKey||event.metaKey||event.shiftKey);
       setTimeout(()=>{
-        syncReferenceIntoSelection();
-        updateTreeSelectionStyles();
-        try{if(typeof update3D==="function")update3D();}catch{}
+        adoptReferenceSelection({
+          source:"tree",
+          replaceNonReference
+        });
       },0);
       return;
     }
@@ -773,7 +842,7 @@
       '.tb-object-move-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}.tb-object-move-head b{flex:1}.tb-object-move-head button{border:0;background:transparent;color:#b9c8da;font-size:18px;cursor:pointer}'+
       '.tb-object-move-grid{display:grid;grid-template-columns:80px 1fr;gap:7px;align-items:center}.tb-object-move-grid input{height:29px;border:1px solid #3a506b;border-radius:5px;background:#0b1320;color:#fff;padding:0 7px}'+
       '.tb-object-move-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:11px}.tb-object-move-actions button{height:29px;border:1px solid #3d536e;border-radius:5px;background:#17283d;color:#e5edf7;padding:0 10px;cursor:pointer}.tb-object-move-actions button.primary{background:#24558a;border-color:#3c7fc1}'+
-      '#tbProjectTree .tb-object-selected{box-shadow:inset 3px 0 0 #ffd54a!important;background:rgba(255,213,74,.10)!important}';
+      '#tbProjectTree .tb-object-selected{box-shadow:inset 3px 0 0 #ffd54a!important,0 0 0 1px rgba(255,213,74,.35)!important;background:rgba(255,213,74,.14)!important;color:#fff8cf!important}';
     document.head.appendChild(style);
   }
 
@@ -819,6 +888,8 @@
     selectionEntries,
     applyAction,
     applyMove,
+    revealTreeKey,
+    adoptReferenceSelection,
     refresh:refreshVisualSelection
   });
 
