@@ -129,3 +129,14 @@ test("A52: object context exposes bidirectional tree/3D synchronization",()=>{
   assert.match(code,/row\.classList\.add\("tb-object-selected"\)/);
   assert.match(code,/row\.setAttribute\("aria-selected","true"\)/);
 });
+
+
+test("A54: right-drag orbit suppresses the 3D context menu",()=>{
+  const code=fs.readFileSync(
+    path.join(root,"src","ui","object-selection-context-ui.js"),
+    "utf8"
+  );
+  assert.match(code,/function onCanvasContext\(event\)/);
+  assert.match(code,/controls\?\.shouldSuppressSelection\?\.\(\)/);
+  assert.match(code,/event\.preventDefault\(\);[\s\S]*event\.stopPropagation\(\);[\s\S]*return;/);
+});
