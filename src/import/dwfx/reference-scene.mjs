@@ -538,6 +538,20 @@ function subtreeHasRecognizedObject(node,recognizedByObject){
   );
 }
 
+export function classifyReferenceTypePlateLabel(label){
+  const core=referenceComponentCoreLabel(label);
+  const text=core.toLocaleLowerCase();
+
+  const typePlate=
+    /^type\s+plates?\b/.test(text)||
+    /^type[-_\s]*plates?\b/.test(text)||
+    /^typeplaat(?:jes|en)?\b/.test(text)||
+    /^typenschild(?:er)?\b/.test(text)||
+    /(?:^|[^а-яё])шильдик(?:и|а|ов|у|ом|е)?(?:[^а-яё]|$)/i.test(text);
+
+  return typePlate?"type_plate":null;
+}
+
 export function classifyReferenceStickerLabel(label){
   const core=referenceComponentCoreLabel(label);
   const text=core.toLocaleLowerCase();
@@ -703,6 +717,7 @@ export function buildDwfxReferenceScene({
   let metadataOnlyCount=0;
   let unresolvedCount=0;
   let filteredFastenerCount=0;
+  let filteredTypePlateCount=0;
   let filteredStickerCount=0;
   let filteredSymbolCardCount=0;
   let filteredAxialVentilatorCount=0;
@@ -852,6 +867,19 @@ export function buildDwfxReferenceScene({
     }
 
     if(sourceIsLeaf&&!editablePart){
+      const typePlateKind=classifyReferenceTypePlateLabel(source.label);
+      if(typePlateKind){
+        filteredTypePlateCount+=1;
+        diagnostics.push(Object.freeze({
+          stage:"reference_type_plate_filter",
+          object_id:String(source.id),
+          label:String(source.label??""),
+          component_kind:typePlateKind,
+          status:"excluded"
+        }));
+        return null;
+      }
+
       const stickerKind=classifyReferenceStickerLabel(source.label);
       if(stickerKind){
         filteredStickerCount+=1;
@@ -1063,9 +1091,10 @@ export function buildDwfxReferenceScene({
       object_count:objectCount,
       leaf_count:leafCount,
       retained_leaf_count:
-        leafCount-filteredFastenerCount-filteredStickerCount-filteredSymbolCardCount-filteredAxialVentilatorCount-filteredHoseClampCount-filteredCableGlandCount-filteredAnnotationLeafCount,
+        leafCount-filteredFastenerCount-filteredTypePlateCount-filteredStickerCount-filteredSymbolCardCount-filteredAxialVentilatorCount-filteredHoseClampCount-filteredCableGlandCount-filteredAnnotationLeafCount,
       filtered_fastener_count:filteredFastenerCount,
       filtered_fastener_by_kind:Object.freeze({...filteredFastenerByKind}),
+      filtered_type_plate_count:filteredTypePlateCount,
       filtered_sticker_count:filteredStickerCount,
       filtered_symbol_card_count:filteredSymbolCardCount,
       filtered_axial_ventilator_count:filteredAxialVentilatorCount,
