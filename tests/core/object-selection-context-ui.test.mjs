@@ -140,3 +140,18 @@ test("A54: right-drag orbit suppresses the 3D context menu",()=>{
   assert.match(code,/controls\?\.shouldSuppressSelection\?\.\(\)/);
   assert.match(code,/event\.preventDefault\(\);[\s\S]*event\.stopPropagation\(\);[\s\S]*return;/);
 });
+
+
+test("A55: recognized imported tubes are always rendered fully opaque",()=>{
+  const code=fs.readFileSync(
+    path.join(root,"src","ui","object-selection-context-ui.js"),
+    "utf8"
+  );
+
+  assert.match(code,/function isRecognizedTube\(tube\)/);
+  assert.match(code,/return !!tube\?\.importEvidence/);
+  assert.match(code,/if\(isRecognizedTube\(tube\)\)\{[\s\S]*tube\.uiTransparentIn3D=false/);
+  assert.match(code,/applyMaterialOpacity\(object,1\)/);
+  assert.match(code,/return !isRecognizedTube\(tube\)/);
+  assert.match(code,/row\.uiTransparentIn3D=false/);
+});
