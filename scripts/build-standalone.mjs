@@ -221,8 +221,10 @@ if(!output.includes(passiveMaterialAnchor)){
 output=output.replace(
   passiveMaterialAnchor,
   "function passiveTubeMaterial(color=PASSIVE_TUBE_COLOR,opacity=PASSIVE_TUBE_OPACITY){\n"+
+  "  const editIsolation=!!selectedAssemblyId||activeTubeEditRowIndex()>=0;\n"+
+  "  const shownColor=editIsolation?0x6f747b:0xc77738;\n"+
   "  return new THREE.MeshStandardMaterial({\n"+
-  "    color,\n"+
+  "    color:shownColor,\n"+
   "    roughness:.58,\n"+
   "    metalness:.08,\n"+
   "    transparent:false,\n"+
