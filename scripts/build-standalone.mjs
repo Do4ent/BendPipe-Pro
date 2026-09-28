@@ -96,6 +96,8 @@ let output = source.replace(
 );
 
 const importedTubeBodyColor=0xc77738;
+const tubeCopperColor=0xc77738;
+const tubeEditMutedColor=0x6f747b;
 const importedTubeBendColorAnchor =
   "const mesh = new THREE.Mesh(geo, tubeElementMaterial(0xd98b4a, rowIndex));";
 if (!output.includes(importedTubeBendColorAnchor)) {
@@ -103,10 +105,7 @@ if (!output.includes(importedTubeBendColorAnchor)) {
 }
 output = output.replace(
   importedTubeBendColorAnchor,
-  "const importedDwfxTube=String(activeTube()?.importEvidence?.source?.format??'').toUpperCase()==='DWFX';\n" +
-  "  const bendBodyColor=importedDwfxTube?0x" +
-  importedTubeBodyColor.toString(16).padStart(6,"0") +
-  ":0xd98b4a;\n" +
+  "const bendBodyColor=0xc77738;\n" +
   "  const mesh = new THREE.Mesh(geo, tubeElementMaterial(bendBodyColor, rowIndex));"
 );
 
@@ -117,10 +116,7 @@ if (!output.includes(importedTubeLineNodeAnchor)) {
 }
 output = output.replace(
   importedTubeLineNodeAnchor,
-  "pos = end; addNode(pipeGroup,pos," +
-  "(String(activeTube()?.importEvidence?.source?.format??'').toUpperCase()==='DWFX'?0x" +
-  importedTubeBodyColor.toString(16).padStart(6,"0") +
-  ":0x4da3ff),.06,i,'LINE');"
+  "pos = end; addNode(pipeGroup,pos,0xc77738,.06,i,'LINE');"
 );
 
 const importedTubeBendNodeAnchor =
@@ -130,10 +126,111 @@ if (!output.includes(importedTubeBendNodeAnchor)) {
 }
 output = output.replace(
   importedTubeBendNodeAnchor,
-  "pos = b.end; dir = b.dir; addNode(pipeGroup,pos," +
-  " (String(activeTube()?.importEvidence?.source?.format??'').toUpperCase()==='DWFX'?0x" +
-  importedTubeBodyColor.toString(16).padStart(6,"0") +
-  ":0xff9a3c),.06,i,'BEND');"
+  "pos = b.end; dir = b.dir; addNode(pipeGroup,pos,0xc77738,.06,i,'BEND');"
+);
+
+
+const tubeOpacityAnchor =
+  "function tubeElementOpacity(rowIndex){\n"+
+  "  if(selectedAssemblyId) return state.rows?.[rowIndex]?.assemblyId===selectedAssemblyId ? 1 : 0.18;\n"+
+  "  const active = activeTubeEditRowIndex();\n"+
+  "  if (active < 0) return 1;\n"+
+  "  return Number(rowIndex) === active ? 1 : 0.18;\n"+
+  "}";
+if(!output.includes(tubeOpacityAnchor)){
+  throw new Error("tubeElementOpacity anchor was not found");
+}
+output=output.replace(
+  tubeOpacityAnchor,
+  "function tubeElementOpacity(rowIndex){ return 1; }\n"+
+  "function tubeElementDisplayColor(baseColor,rowIndex){\n"+
+  "  if(selectedAssemblyId){\n"+
+  "    return state.rows?.[rowIndex]?.assemblyId===selectedAssemblyId ? 0xc77738 : 0x6f747b;\n"+
+  "  }\n"+
+  "  const active=activeTubeEditRowIndex();\n"+
+  "  if(active<0)return 0xc77738;\n"+
+  "  return Number(rowIndex)===active ? 0xc77738 : 0x6f747b;\n"+
+  "}"
+);
+
+const tubeShownColorAnchor =
+  "  const shownColor = invalid ? 0xff3b30 : color;";
+if(!output.includes(tubeShownColorAnchor)){
+  throw new Error("tubeElementMaterial shownColor anchor was not found");
+}
+output=output.replace(
+  tubeShownColorAnchor,
+  "  const shownColor = invalid ? 0xff3b30 : tubeElementDisplayColor(color,rowIndex);"
+);
+
+const selectionOpacityAnchor =
+  "  const opacity = tubeElementOpacity(rowIndex);\n"+
+  "  if (!obj) return;";
+if(!output.includes(selectionOpacityAnchor)){
+  throw new Error("applyTubeSelectionOpacity anchor was not found");
+}
+output=output.replace(
+  selectionOpacityAnchor,
+  "  const opacity = 1;\n"+
+  "  const displayColor=tubeElementDisplayColor(0xc77738,rowIndex);\n"+
+  "  if (!obj) return;"
+);
+
+const selectionMaterialAnchor =
+  "      mat.transparent = opacity < 0.999;\n"+
+  "      mat.opacity = opacity;\n"+
+  "      mat.depthWrite = opacity >= 0.999;";
+if(!output.includes(selectionMaterialAnchor)){
+  throw new Error("applyTubeSelectionOpacity material anchor was not found");
+}
+output=output.replace(
+  selectionMaterialAnchor,
+  "      mat.transparent = false;\n"+
+  "      mat.opacity = 1;\n"+
+  "      mat.depthWrite = true;\n"+
+  "      if(mat.color)mat.color.setHex(displayColor);"
+);
+
+const passiveConstantsAnchor =
+  "const PASSIVE_TUBE_COLOR=0x7f8998;\n"+
+  "const PASSIVE_TUBE_OPACITY=.30;";
+if(!output.includes(passiveConstantsAnchor)){
+  throw new Error("passive tube color constants were not found");
+}
+output=output.replace(
+  passiveConstantsAnchor,
+  "const PASSIVE_TUBE_COLOR=0xc77738;\n"+
+  "const PASSIVE_TUBE_OPACITY=1;"
+);
+
+const passiveMaterialAnchor =
+  "function passiveTubeMaterial(color=PASSIVE_TUBE_COLOR,opacity=PASSIVE_TUBE_OPACITY){\n"+
+  "  return new THREE.MeshStandardMaterial({\n"+
+  "    color,\n"+
+  "    roughness:.88,\n"+
+  "    metalness:0,\n"+
+  "    transparent:true,\n"+
+  "    opacity,\n"+
+  "    depthTest:true,\n"+
+  "    depthWrite:false\n"+
+  "  });\n"+
+  "}";
+if(!output.includes(passiveMaterialAnchor)){
+  throw new Error("passiveTubeMaterial anchor was not found");
+}
+output=output.replace(
+  passiveMaterialAnchor,
+  "function passiveTubeMaterial(color=PASSIVE_TUBE_COLOR,opacity=PASSIVE_TUBE_OPACITY){\n"+
+  "  return new THREE.MeshStandardMaterial({\n"+
+  "    color,\n"+
+  "    roughness:.58,\n"+
+  "    metalness:.08,\n"+
+  "    transparent:false,\n"+
+  "    opacity:1,\n"+
+  "    depthTest:true,\n"+
+  "    depthWrite:true\n"+
+  "  });\n"+
+  "}"
 );
 
 const importedToolingGuardSort =
