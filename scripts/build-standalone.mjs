@@ -196,6 +196,39 @@ output = output.replace(
   "  camera.updateProjectionMatrix();\n  renderer.setSize(w, h, false);\n  // Preserve user camera zoom/orbit on viewport or browser-scale changes.\n  // Initial/view-orientation fitting is invoked explicitly by its callers.\n  markViewerDirty();\n}\nfunction animate(){"
 );
 
+
+const windowControlsRepairAnchor =
+  "  function ensureWindowControls(){\\n"+
+  "    const h=document.querySelector('.tb-map-header');\\n"+
+  "    if(!h||document.getElementById('tbWindowControls'))return;\\n"+
+  "    const c=document.createElement('div');c.id='tbWindowControls';c.className='tb-window-controls';";
+if (!output.includes(windowControlsRepairAnchor)) {
+  throw new Error("VC207R7 ensureWindowControls anchor was not found");
+}
+output = output.replace(
+  windowControlsRepairAnchor,
+  "  function ensureWindowControls(){\\n"+
+  "    const h=document.querySelector('.tb-map-header');\\n"+
+  "    if(!h)return;\\n"+
+  "    let c=document.getElementById('tbWindowControls');\\n"+
+  "    if(!c){c=document.createElement('div');c.id='tbWindowControls';c.className='tb-window-controls';"
+);
+
+const windowControlsCreationTail =
+  "    c.innerHTML='<button class=\"tb-window-control\" id=\"tbWinMin\" title=\"Свернуть\">−</button><button class=\"tb-window-control\" id=\"tbWinMax\" title=\"Во весь экран\">□</button><button class=\"tb-window-control close\" id=\"tbWinClose\" title=\"Закрыть\">×</button>';\\n"+
+  "    h.appendChild(c);\\n"+
+  "    document.getElementById('tbWinMin').onclick=()=>toast('В браузерной версии сворачивание выполняется средствами окна браузера');";
+if (!output.includes(windowControlsCreationTail)) {
+  throw new Error("VC207R7 window-controls creation tail was not found");
+}
+output = output.replace(
+  windowControlsCreationTail,
+  "    c.innerHTML='<button class=\"tb-window-control\" id=\"tbWinMin\" title=\"Свернуть\">−</button><button class=\"tb-window-control\" id=\"tbWinMax\" title=\"Во весь экран\">□</button><button class=\"tb-window-control close\" id=\"tbWinClose\" title=\"Закрыть\">×</button>';\\n"+
+  "    }\\n"+
+  "    if(c.parentElement!==h||h.lastElementChild!==c)h.appendChild(c);\\n"+
+  "    document.getElementById('tbWinMin').onclick=()=>toast('В браузерной версии сворачивание выполняется средствами окна браузера');"
+);
+
 const exactStartVectorStateAnchor =
   "  startDir: { az: 0, el: 0 },\n  startAxis: 'X',";
 if (!output.includes(exactStartVectorStateAnchor)) {
