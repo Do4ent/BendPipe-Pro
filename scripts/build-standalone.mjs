@@ -186,6 +186,79 @@ output = output.replace(
   "      const previousZoom=Math.max(this.minZoom,Math.min(this.maxZoom,Number(this.camera.zoom)||1));\n      const nextZoom=Math.max(this.minZoom, Math.min(this.maxZoom, previousZoom / factor));\n      if(Math.abs(nextZoom-previousZoom)<=1e-12)return;\n      this.camera.zoom=nextZoom;\n      this.camera.updateProjectionMatrix();\n      markViewerDirty();"
 );
 
+
+const autodeskNavigationStateAnchor =
+  "    this._suppressSelectionUntil = 0;\\n\\n"+
+  "    this.domElement.style.touchAction = 'none';";
+if (!output.includes(autodeskNavigationStateAnchor)) {
+  throw new Error("SimpleOrbitControls navigation state anchor was not found");
+}
+output = output.replace(
+  autodeskNavigationStateAnchor,
+  "    this._suppressSelectionUntil = 0;\\n"+
+  "    this._heldKeys = new Set();\\n"+
+  "    this._onKeyDown = e => {\\n"+
+  "      const key=String(e.code||e.key||'').toUpperCase();\\n"+
+  "      this._heldKeys.add(key);\\n"+
+  "      if((key==='F2'||key==='F4')&&document.activeElement===this.domElement)e.preventDefault();\\n"+
+  "    };\\n"+
+  "    this._onKeyUp = e => this._heldKeys.delete(String(e.code||e.key||'').toUpperCase());\\n"+
+  "    window.addEventListener('keydown',this._onKeyDown,{passive:false});\\n"+
+  "    window.addEventListener('keyup',this._onKeyUp,{passive:true});\\n\\n"+
+  "    this.domElement.style.touchAction = 'none';"
+);
+
+const autodeskDownModeAnchor =
+  "      this._mode = (p.pointerType === 'mouse' && (p.button === 1 || p.button === 2 || e.shiftKey)) ? 'pan' : 'rotate';";
+if (!output.includes(autodeskDownModeAnchor)) {
+  throw new Error("SimpleOrbitControls pointer-down mode anchor was not found");
+}
+output = output.replace(
+  autodeskDownModeAnchor,
+  "      if(p.pointerType==='mouse'){\\n"+
+  "        const f4=this._heldKeys.has('F4');\\n"+
+  "        const f2=this._heldKeys.has('F2');\\n"+
+  "        if(p.button===1)this._mode=e.shiftKey?'rotate':'pan';\\n"+
+  "        else if(p.button===0&&f4)this._mode='rotate';\\n"+
+  "        else if(p.button===0&&f2)this._mode='pan';\\n"+
+  "        else if(p.button===0)this._mode='select';\\n"+
+  "        else this._mode='none';\\n"+
+  "      }else this._mode='rotate';"
+);
+
+const autodeskMoveModeAnchor =
+  "    if (this._mode === 'pan' || (p.pointerType === 'mouse' && e.shiftKey)) this.pan(dx,dy);\\n"+
+  "    else this.rotate(dx,dy);";
+if (!output.includes(autodeskMoveModeAnchor)) {
+  throw new Error("SimpleOrbitControls pointer-move mode anchor was not found");
+}
+output = output.replace(
+  autodeskMoveModeAnchor,
+  "    if(p.pointerType==='mouse'){\\n"+
+  "      if(p.button===1)this._mode=e.shiftKey?'rotate':'pan';\\n"+
+  "      else if(p.button===0&&this._heldKeys.has('F4'))this._mode='rotate';\\n"+
+  "      else if(p.button===0&&this._heldKeys.has('F2'))this._mode='pan';\\n"+
+  "    }\\n"+
+  "    if(this._mode==='pan')this.pan(dx,dy);\\n"+
+  "    else if(this._mode==='rotate')this.rotate(dx,dy);"
+);
+
+const autodeskRemainingModeAnchor =
+  "      this._mode = remaining.pointerType === 'mouse' && (remaining.button === 1 || remaining.button === 2) ? 'pan' : 'rotate';";
+if (!output.includes(autodeskRemainingModeAnchor)) {
+  throw new Error("SimpleOrbitControls remaining-pointer mode anchor was not found");
+}
+output = output.replace(
+  autodeskRemainingModeAnchor,
+  "      if(remaining.pointerType==='mouse'){\\n"+
+  "        if(remaining.button===1)this._mode='pan';\\n"+
+  "        else if(remaining.button===0&&this._heldKeys.has('F4'))this._mode='rotate';\\n"+
+  "        else if(remaining.button===0&&this._heldKeys.has('F2'))this._mode='pan';\\n"+
+  "        else if(remaining.button===0)this._mode='select';\\n"+
+  "        else this._mode='none';\\n"+
+  "      }else this._mode='rotate';"
+);
+
 const resizeFitAnchor =
   "  camera.updateProjectionMatrix();\n  renderer.setSize(w, h, false);\n  fitPipeToViewerKeepOrbit();\n}\nfunction animate(){";
 if (!output.includes(resizeFitAnchor)) {
