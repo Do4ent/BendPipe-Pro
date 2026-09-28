@@ -484,7 +484,7 @@ test("A57: Project Map no longer renders the Editing area",()=>{
   assert.doesNotMatch(html,/<section class="tb-card tb-map-edit">/);
   assert.doesNotMatch(html,/id="tbEditSummary"/);
   assert.doesNotMatch(html,/data-tab="edit"/);
-  assert.match(html,/id="tbLegacyWorkbenchHost"/);
+  assert.match(html,/legacyWorkbenchHost\.id='tbLegacyWorkbenchHost'/);
   assert.match(html,/#tbLegacyWorkbenchHost\{display:none!important\}/);
   assert.match(
     html,
