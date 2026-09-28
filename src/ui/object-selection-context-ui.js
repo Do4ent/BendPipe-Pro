@@ -55,6 +55,10 @@
   function activeTubeId(){
     try{return String(state?.activeTubeId??"");}catch{return "";}
   }
+
+  function isRecognizedTube(tube){
+    return !!tube?.importEvidence;
+  }
   function rowFor(entry){
     const tube=tubeById(entry?.tubeId);
     if(!tube)return null;
@@ -261,7 +265,10 @@
       if(passive){
         const tube=tubeById(passive.userData.tubeId);
         if(tube?.uiHiddenIn3D===true)passive.visible=false;
-        if(tube?.uiTransparentIn3D===true&&!object.userData?.helper){
+        if(isRecognizedTube(tube)){
+          tube.uiTransparentIn3D=false;
+          if(!object.userData?.helper)applyMaterialOpacity(object,1);
+        }else if(tube?.uiTransparentIn3D===true&&!object.userData?.helper){
           applyMaterialOpacity(object,.24);
         }
         return;
@@ -275,7 +282,11 @@
         if(row?.uiHiddenIn3D===true||tube?.uiHiddenIn3D===true){
           rowHolder.visible=false;
         }
-        if((row?.uiTransparentIn3D===true||tube?.uiTransparentIn3D===true)&&!object.userData?.helper){
+        if(isRecognizedTube(tube)){
+          tube.uiTransparentIn3D=false;
+          if(row)row.uiTransparentIn3D=false;
+          if(!object.userData?.helper)applyMaterialOpacity(object,1);
+        }else if((row?.uiTransparentIn3D===true||tube?.uiTransparentIn3D===true)&&!object.userData?.helper){
           applyMaterialOpacity(object,.24);
         }
       }
@@ -646,7 +657,11 @@
   }
 
   function toggleTransparency(entries){
-    const editable=entries.filter((entry)=>entry.kind!=="ref");
+    const editable=entries.filter((entry)=>{
+      if(entry.kind==="ref")return false;
+      const tube=tubeById(entry.tubeId);
+      return !isRecognizedTube(tube);
+    });
     const allTransparent=editable.length>0&&editable.every((entry)=>{
       if(entry.kind==="tube")return tubeById(entry.tubeId)?.uiTransparentIn3D===true;
       if(entry.kind==="row")return rowFor(entry)?.uiTransparentIn3D===true;
@@ -658,6 +673,22 @@
       return false;
     });
     const next=!allTransparent;
+    for(const entry of entries){
+      if(entry.kind==="ref")continue;
+      const tube=tubeById(entry.tubeId);
+      if(!isRecognizedTube(tube))continue;
+      tube.uiTransparentIn3D=false;
+      if(entry.kind==="row"){
+        const row=rowFor(entry);
+        if(row)row.uiTransparentIn3D=false;
+      }else if(entry.kind==="assembly"){
+        for(const row of tube?.rows??[]){
+          if(String(row?.assemblyId??"")===String(entry.assemblyId)){
+            row.uiTransparentIn3D=false;
+          }
+        }
+      }
+    }
     for(const entry of editable){
       if(entry.kind==="tube"){
         const tube=tubeById(entry.tubeId);
