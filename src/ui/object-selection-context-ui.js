@@ -155,6 +155,13 @@
     )??null;
   }
 
+  function projectTreeForEvent(event){
+    const target=event?.target;
+    const tree=document.getElementById("tbProjectTree");
+    if(!tree||!target)return null;
+    return tree===target||tree.contains(target)?tree:null;
+  }
+
   function skip3DHit(object){
     let item=object;
     while(item){
@@ -832,6 +839,7 @@
   }
 
   function onTreeClick(event){
+    if(!projectTreeForEvent(event))return;
     const row=treeRowFromTarget(event.target);
     if(!row)return;
     const key=keyForTreeRow(row);
@@ -853,6 +861,7 @@
   }
 
   function onTreeContext(event){
+    if(!projectTreeForEvent(event))return;
     const row=treeRowFromTarget(event.target);
     if(!row)return;
     const key=keyForTreeRow(row);
@@ -891,9 +900,10 @@
     const canvas=document.getElementById("threeCanvas");
     canvas?.addEventListener("click",onCanvasClick);
     canvas?.addEventListener("contextmenu",onCanvasContext);
-    const tree=document.getElementById("tbProjectTree");
-    tree?.addEventListener("click",onTreeClick);
-    tree?.addEventListener("contextmenu",onTreeContext);
+    // Project tree is built dynamically by buildShell(), so bind through
+    // document instead of capturing a possibly non-existent tree element.
+    document.addEventListener("click",onTreeClick);
+    document.addEventListener("contextmenu",onTreeContext,true);
     document.addEventListener("pointerdown",(event)=>{
       if(contextMenu?.style.display==="block"&&!event.target.closest("#tbObjectContextMenu"))hideContextMenu();
       if(movePanel?.style.display==="block"&&!event.target.closest("#tbObjectMovePanel")&&!event.target.closest('[data-object-action="move"]')){}
@@ -913,8 +923,27 @@
       update3D._tbObjectContext=true;
     }
 
-    const treeObserver=new MutationObserver(()=>updateTreeSelectionStyles());
-    if(tree)treeObserver.observe(tree,{childList:true,subtree:true});
+    const treeObserver=new MutationObserver((mutations)=>{
+      let treeChanged=false;
+      for(const mutation of mutations){
+        const target=mutation.target;
+        if(
+          target?.id==="tbProjectTree"||
+          target?.closest?.("#tbProjectTree")||
+          [...(mutation.addedNodes??[])].some((node)=>
+            node?.nodeType===1&&(
+              node.id==="tbProjectTree"||
+              node.querySelector?.("#tbProjectTree")
+            )
+          )
+        ){
+          treeChanged=true;
+          break;
+        }
+      }
+      if(treeChanged)updateTreeSelectionStyles();
+    });
+    treeObserver.observe(document.body,{childList:true,subtree:true});
     try{decorateRenderedObjects();}catch{}
     updateTreeSelectionStyles();
   }
