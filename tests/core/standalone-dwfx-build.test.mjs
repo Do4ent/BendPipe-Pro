@@ -407,7 +407,7 @@ test("A50: 3D component selection preserves the current viewer framing",()=>{
 });
 
 
-test("A51: window controls retain native VC207R7 flex placement and order",()=>{
+test("A51: window controls are repaired into the final top header and stay last",()=>{
   if(!fs.existsSync(output)){
     execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
   }
@@ -417,6 +417,16 @@ test("A51: window controls retain native VC207R7 flex placement and order",()=>{
   assert.match(html,/\.tb-window-controls\{display:flex;gap:4px;align-items:center/);
   assert.match(html,/\.tb-window-control\{width:38px;height:38px/);
   assert.match(html,/@media \(max-width:1120px\)\{[\s\S]*\.tb-head-actions,\.tb-window-controls\{display:none!important\}/);
+
+  assert.match(html,/let c=document\.getElementById\('tbWindowControls'\)/);
+  assert.match(html,/if\(!c\)\{c=document\.createElement\('div'\)/);
+  assert.match(html,/if\(c\.parentElement!==h\|\|h\.lastElementChild!==c\)h\.appendChild\(c\)/);
+
+  assert.match(html,/body\.tb-project-map \.tb-brand\{order:10!important/);
+  assert.match(html,/body\.tb-project-map #projectEditor\{order:20!important/);
+  assert.match(html,/body\.tb-project-map \.tb-map-head-spacer\{order:30!important/);
+  assert.match(html,/body\.tb-project-map \.tb-head-actions\{order:40!important/);
+  assert.match(html,/body\.tb-project-map \.tb-window-controls\{[\s\S]*order:50!important[\s\S]*position:static!important/);
 
   const min=html.indexOf('id="tbWinMin"');
   const max=html.indexOf('id="tbWinMax"');
