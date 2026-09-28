@@ -316,17 +316,19 @@ test("A36: standalone keeps rounded editable origin instead of restoring exact s
 });
 
 
-test("A39: active imported DWFx tube uses one copper color for LINE and BEND",()=>{
+test("A39: every tube uses one opaque copper body color outside edit isolation",()=>{
   if(!fs.existsSync(output)){
     execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
   }
   const html=fs.readFileSync(output,"utf8");
 
-  assert.match(html,/const importedDwfxTube=String\(activeTube\(\)\?\.importEvidence\?\.source\?\.format\?\?''\)\.toUpperCase\(\)==='DWFX'/);
-  assert.match(html,/const bendBodyColor=importedDwfxTube\?0xc77738:0xd98b4a/);
-  assert.match(html,/tubeElementMaterial\(bendBodyColor, rowIndex\)/);
-  assert.match(html,/DWFX'\?0xc77738:0x4da3ff/);
-  assert.match(html,/DWFX'\?0xc77738:0xff9a3c/);
+  assert.match(html,/const bendBodyColor=0xc77738/);
+  assert.match(html,/tubeElementMaterial\(0xc77738, rowIndex\)/);
+  assert.match(html,/addNode\(pipeGroup,pos,0xc77738,.06,i,'LINE'\)/);
+  assert.match(html,/addNode\(pipeGroup,pos,0xc77738,.06,i,'BEND'\)/);
+  assert.match(html,/const PASSIVE_TUBE_COLOR=0xc77738/);
+  assert.match(html,/const PASSIVE_TUBE_OPACITY=1/);
+  assert.match(html,/transparent:false,[\s\S]*opacity:1,[\s\S]*depthWrite:true/);
 });
 
 
@@ -455,4 +457,21 @@ test("A53: standalone mouse navigation matches Autodesk CAD orbit/pan convention
     html,
     /p\.button === 1 \|\| p\.button === 2 \|\| e\.shiftKey/
   );
+});
+
+
+test("A56: editing one tube element grays the others without making any tube transparent",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/function tubeElementOpacity\(rowIndex\)\{ return 1; \}/);
+  assert.match(html,/function tubeElementDisplayColor\(baseColor,rowIndex\)/);
+  assert.match(html,/return Number\(rowIndex\)===active \? 0xc77738 : 0x6f747b/);
+  assert.match(html,/const editIsolation=!!selectedAssemblyId\|\|activeTubeEditRowIndex\(\)>=0/);
+  assert.match(html,/const shownColor=editIsolation\?0x6f747b:0xc77738/);
+  assert.match(html,/mat\.transparent = false/);
+  assert.match(html,/mat\.opacity = 1/);
+  assert.match(html,/mat\.depthWrite = true/);
 });
