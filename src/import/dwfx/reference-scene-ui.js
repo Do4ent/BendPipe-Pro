@@ -649,6 +649,7 @@
   function clearSelection(){
     bulkSelected.clear();
     rangeAnchorKey=null;
+    selected=null;
     return 0;
   }
 
@@ -722,13 +723,17 @@
 
   function replaceSelection(project,keys=[]){
     bulkSelected.clear();
+    let active=null;
     for(const key of keys??[]){
       const entry=sceneNodeFromKey(project,key);
       if(entry&&selectableNode(entry.node)){
-        bulkSelected.add(selectionKey(entry.scene.id,entry.node.id));
+        const normalized=selectionKey(entry.scene.id,entry.node.id);
+        bulkSelected.add(normalized);
+        active={sceneId:String(entry.scene.id),nodeId:String(entry.node.id)};
       }
     }
-    rangeAnchorKey=null;
+    selected=active;
+    rangeAnchorKey=active?selectionKey(active.sceneId,active.nodeId):null;
     return selectedCount(project);
   }
 
@@ -790,6 +795,35 @@
     return selectedCount(project);
   }
 
+  function revealNode(project,sceneId,nodeId){
+    const scene=findScene(project,sceneId);
+    const node=findNode(scene?.tree,nodeId);
+    if(!scene||!node)return false;
+    project.referenceGeometryTreeCollapsed=false;
+    scene.treeCollapsed=false;
+    const collapsed=new Set(
+      Array.isArray(scene.collapsedNodeIds)
+        ? scene.collapsedNodeIds.map(String)
+        : []
+    );
+    for(const ancestorId of ancestorsFor(scene.tree,node.id)){
+      if(String(ancestorId)!==String(node.id))collapsed.delete(String(ancestorId));
+    }
+    scene.collapsedNodeIds=[...collapsed];
+    selected={sceneId:String(scene.id),nodeId:String(node.id)};
+    return true;
+  }
+
+  function notifyExternalSelection(source="tree"){
+    queueMicrotask(()=>{
+      try{
+        window.TubeBenderObjectContext?.adoptReferenceSelection?.({source});
+      }catch(error){
+        console.warn("Reference selection synchronization:",error);
+      }
+    });
+  }
+
   function bindTree(host,project,{switchTube,save,renderAll,refreshProjectTree,modelCommand}={}){
     if(!host||!project)return;
 
@@ -809,7 +843,11 @@
         const firstScene=(project.referenceScenes??[])[0]??null;
         const firstNode=firstScene?collectSelectableNodes(firstScene.tree??[])[0]??null:null;
         rangeAnchorKey=firstScene&&firstNode?selectionKey(firstScene.id,firstNode.id):null;
+        selected=firstScene&&firstNode
+          ? {sceneId:String(firstScene.id),nodeId:String(firstNode.id)}
+          : null;
         refreshProjectTree?.();
+        notifyExternalSelection("tree");
       });
     }
 
@@ -833,7 +871,9 @@
         toggleSceneSelection(scene,input.checked);
         const first=collectSelectableNodes(scene.tree??[])[0]??null;
         rangeAnchorKey=first?selectionKey(scene.id,first.id):null;
+        selected=first?{sceneId:String(scene.id),nodeId:String(first.id)}:null;
         refreshProjectTree?.();
+        notifyExternalSelection("tree");
       });
     });
 
@@ -846,7 +886,11 @@
         if(!scene||!node)return;
         toggleNodeSelection(scene,node,input.checked);
         rangeAnchorKey=selectionKey(scene.id,node.id);
+        selected=input.checked
+          ? {sceneId:String(scene.id),nodeId:String(node.id)}
+          : selected;
         refreshProjectTree?.();
+        notifyExternalSelection("tree");
       });
     });
 
@@ -935,6 +979,7 @@
           );
           selected={sceneId:String(scene.id),nodeId:String(node.id)};
           refreshProjectTree?.();
+          notifyExternalSelection("tree");
           return;
         }
 
@@ -955,8 +1000,13 @@
         }
 
         selected={sceneId:String(scene.id),nodeId:String(node.id)};
-        if(!node.editable_part_number)rangeAnchorKey=key;
+        if(!node.editable_part_number){
+          bulkSelected.clear();
+          bulkSelected.add(key);
+          rangeAnchorKey=key;
+        }
         refreshProjectTree?.();
+        notifyExternalSelection("tree");
       });
     });
   }
@@ -986,6 +1036,7 @@
     selectOnlyNode,
     selectedKeys,
     replaceSelection,
+    revealNode,
     moveSelection,
     clearSelection,
     applyBulkAction,
