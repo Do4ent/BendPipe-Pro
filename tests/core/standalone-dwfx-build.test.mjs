@@ -473,3 +473,21 @@ test("A56: editing one tube element grays the others without making any tube tra
   assert.match(html,/mat\.opacity = 1/);
   assert.match(html,/mat\.depthWrite = true/);
 });
+
+
+test("A57: Project Map no longer renders the Editing area",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.doesNotMatch(html,/<section class="tb-card tb-map-edit">/);
+  assert.doesNotMatch(html,/id="tbEditSummary"/);
+  assert.doesNotMatch(html,/data-tab="edit"/);
+  assert.match(html,/id="tbLegacyWorkbenchHost"/);
+  assert.match(html,/#tbLegacyWorkbenchHost\{display:none!important\}/);
+  assert.match(
+    html,
+    /body\.tb-project-map \.tb-map-center\{grid-template-rows:minmax\(0,1fr\)!important;gap:0!important\}/
+  );
+});
