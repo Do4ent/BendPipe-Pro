@@ -78,3 +78,54 @@ test("A48: object context UI remains valid classic JavaScript",()=>{
   assert.match(code,/data-object-action="transparent"/);
   assert.match(code,/data-object-action="delete"/);
 });
+
+
+test("A52: reference selection API keeps active and bulk selection synchronized",()=>{
+  const ui=loadReferenceUi();
+  const project={
+    referenceGeometryTreeCollapsed:true,
+    referenceScenes:[{
+      id:"scene",
+      treeCollapsed:true,
+      collapsedNodeIds:["group","leaf"],
+      tree:[{
+        id:"group",
+        label:"Group",
+        geometry_instances:[],
+        children:[{
+          id:"leaf",
+          label:"Leaf",
+          geometry_instances:[],
+          children:[]
+        }]
+      }]
+    }]
+  };
+
+  ui.replaceSelection(project,["scene|leaf"]);
+  assert.deepEqual(Array.from(ui.selectedKeys(project)),["scene|leaf"]);
+
+  assert.equal(ui.revealNode(project,"scene","leaf"),true);
+  assert.equal(project.referenceGeometryTreeCollapsed,false);
+  assert.equal(project.referenceScenes[0].treeCollapsed,false);
+  assert.equal(project.referenceScenes[0].collapsedNodeIds.includes("group"),false);
+  assert.deepEqual(Array.from(ui.selectedKeys(project)),["scene|leaf"]);
+
+  ui.clearSelection();
+  assert.deepEqual(Array.from(ui.selectedKeys(project)),[]);
+});
+
+test("A52: object context exposes bidirectional tree/3D synchronization",()=>{
+  const code=fs.readFileSync(
+    path.join(root,"src","ui","object-selection-context-ui.js"),
+    "utf8"
+  );
+
+  assert.match(code,/function adoptReferenceSelection/);
+  assert.match(code,/function revealTreeKey/);
+  assert.match(code,/refApi\(\)\?\.revealNode/);
+  assert.match(code,/scrollIntoView\?\.\(\{block:"nearest",inline:"nearest",behavior:"auto"\}\)/);
+  assert.match(code,/revealTreeKey\(picked\.key\)/);
+  assert.match(code,/row\.classList\.add\("tb-object-selected"\)/);
+  assert.match(code,/row\.setAttribute\("aria-selected","true"\)/);
+});
