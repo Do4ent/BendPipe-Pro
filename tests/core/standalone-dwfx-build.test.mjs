@@ -438,25 +438,23 @@ test("A51: window controls are repaired into the final top header and stay last"
 
 
 
-test("A53: standalone mouse navigation matches Autodesk CAD orbit/pan conventions",()=>{
+test("A53: left drag orbits, middle drag pans, and right click remains for context menu",()=>{
   if(!fs.existsSync(output)){
     execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
   }
   const html=fs.readFileSync(output,"utf8");
 
-  assert.match(html,/if\(p\.button===2\)this\._mode='rotate'/);
-  assert.match(html,/else if\(p\.button===1\)this\._mode=e\.shiftKey\?'rotate':'pan'/);
-  assert.match(html,/else if\(p\.button===0\)this\._mode='select'/);
+  assert.match(html,/if\(p\.button===0\)this\._mode='rotate'/);
+  assert.match(html,/else if\(p\.button===1\)this\._mode='pan'/);
   assert.match(html,/else this\._mode='none'/);
-  assert.match(html,/if\(p\.pointerType==='mouse'&&p\.button===1\)this\._mode=e\.shiftKey\?'rotate':'pan'/);
+  assert.match(html,/if\(p\.pointerType==='mouse'\)\{[\s\S]*if\(p\.button===0\)this\._mode='rotate'/);
+  assert.match(html,/else if\(p\.button===1\)this\._mode='pan'/);
   assert.match(html,/if\(this\._mode==='pan'\)this\.pan\(dx,dy\)/);
   assert.match(html,/else if\(this\._mode==='rotate'\)this\.rotate\(dx,dy\)/);
-  assert.match(html,/if\(remaining\.button===2\)this\._mode='rotate'/);
+  assert.match(html,/if\(remaining\.button===0\)this\._mode='rotate'/);
+  assert.match(html,/else if\(remaining\.button===1\)this\._mode='pan'/);
   assert.match(html,/wheel\(e\)\{/);
-  assert.doesNotMatch(
-    html,
-    /p\.button === 1 \|\| p\.button === 2 \|\| e\.shiftKey/
-  );
+  assert.doesNotMatch(html,/if\(p\.button===2\)this\._mode='rotate'/);
 });
 
 
