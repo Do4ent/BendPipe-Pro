@@ -783,6 +783,13 @@
   }
 
   function onCanvasContext(event){
+    try{
+      if(controls?.shouldSuppressSelection?.()){
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+    }catch{}
     const picked=pick3D(event);
     if(!picked)return;
     event.preventDefault();
