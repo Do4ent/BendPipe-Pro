@@ -195,7 +195,8 @@ if (!output.includes(autodeskDownModeAnchor)) {
 output = output.replace(
   autodeskDownModeAnchor,
   "      if(p.pointerType==='mouse'){\n"+
-  "        if(p.button===1)this._mode=e.shiftKey?'rotate':'pan';\n"+
+  "        if(p.button===2)this._mode='rotate';\n"+
+  "        else if(p.button===1)this._mode=e.shiftKey?'rotate':'pan';\n"+
   "        else if(p.button===0)this._mode='select';\n"+
   "        else this._mode='none';\n"+
   "      }else this._mode='rotate';"
@@ -222,7 +223,8 @@ if (!output.includes(autodeskRemainingModeAnchor)) {
 output = output.replace(
   autodeskRemainingModeAnchor,
   "      if(remaining.pointerType==='mouse'){\n"+
-  "        if(remaining.button===1)this._mode='pan';\n"+
+  "        if(remaining.button===2)this._mode='rotate';\n"+
+  "        else if(remaining.button===1)this._mode='pan';\n"+
   "        else if(remaining.button===0)this._mode='select';\n"+
   "        else this._mode='none';\n"+
   "      }else this._mode='rotate';"
