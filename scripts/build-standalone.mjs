@@ -451,7 +451,7 @@ output=output.replace(
 );
 
 const projectTreeEndAnchor =
-  "    });\n  });\n  try{\n    const referenceItems=window.TubeBenderReferenceSceneUi?.treeItems?.({";
+  "    });\n  });\n  host.innerHTML=items.join('');";
 if(!output.includes(projectTreeEndAnchor)){
   throw new Error("project tree tube-end insertion anchor was not found");
 }
@@ -461,7 +461,7 @@ output=output.replace(
   "    const endFixed=t?.engineering?.ports?.P2?.locked===true;\n"+
   "    items.push(`<div class=\"tb-tree-node level2 clickable ${endFixed?'tb-tube-end-fixed':''}\" data-tree-end=\"1\"><span class=\"tb-tree-icon\">${endFixed?'⚓':'◎'}</span><span class=\"tb-tree-label\">Конец трубы</span><span class=\"tb-tree-eye\">${endFixed?'зафиксирован':'свободный'}</span></div>`);\n"+
   "  });\n"+
-  "  try{\n    const referenceItems=window.TubeBenderReferenceSceneUi?.treeItems?.({"
+  "  host.innerHTML=items.join('');"
 );
 const p1PortCardUiAnchor =
   "<label class=\"eng-check\"><input id=\"engPort_${k}_locked\" type=\"checkbox\" ${p.locked?'checked':''}> Ассоциативно закрепить порт</label>";
