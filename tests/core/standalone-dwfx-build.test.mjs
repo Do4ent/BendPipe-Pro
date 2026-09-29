@@ -469,7 +469,7 @@ test("A56: editing one tube element grays the others without making any tube tra
   assert.match(html,/function tubeElementDisplayColor\(baseColor,rowIndex\)/);
   assert.match(html,/return Number\(rowIndex\)===active \? 0xc77738 : 0x6f747b/);
   assert.match(html,/const editIsolation=!!selectedAssemblyId\|\|activeTubeEditRowIndex\(\)>=0/);
-  assert.match(html,/const shownColor=editIsolation\?0x6f747b:0xc77738/);
+  assert.match(html,/const shownColor=invalid\?0xff3b30:\(editIsolation\?0x6f747b:0xc77738\)/);
   assert.match(html,/mat\.transparent = false/);
   assert.match(html,/mat\.opacity = 1/);
   assert.match(html,/mat\.depthWrite = true/);
