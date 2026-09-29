@@ -1,5 +1,6 @@
 import { normalizeImportedTubeDiameterToCatalog } from "./table-diameter-normalization.mjs";
 import { roundEditableTubeLinearDimensions } from "./editable-linear-rounding.mjs";
+import { normalizeImportedTubeBendRadiiToTechnology } from "./technological-radius-normalization.mjs";
 
 function clone(value){
   return value==null ? value : JSON.parse(JSON.stringify(value));
@@ -108,7 +109,8 @@ export function mergeDwfxTubesIntoCurrentProject({
   source_file=null,
   diameter_catalog=null,
   diameter_rounding_tolerance_mm=0.35,
-  linear_rounding_increment_mm=1
+  linear_rounding_increment_mm=1,
+  technology_radius_od_tolerance_mm=0.02
 }){
   if(!project||typeof project!=="object"){
     throw new TypeError("current project is required");
@@ -239,6 +241,22 @@ export function mergeDwfxTubesIntoCurrentProject({
         );
       }
       materialized=roundedImport.tube;
+
+      if(Array.isArray(diameter_catalog)&&diameter_catalog.length){
+        const radiusNormalized=normalizeImportedTubeBendRadiiToTechnology(
+          materialized,
+          diameter_catalog,
+          {od_tolerance_mm:technology_radius_od_tolerance_mm}
+        );
+        if(radiusNormalized.status==="blocked"||!radiusNormalized.tube){
+          throw new Error(
+            "Imported tube "+originalName+
+            " failed technological bend-radius normalization: "+
+            String(radiusNormalized.blocker??"unknown normalization failure")
+          );
+        }
+        materialized=radiusNormalized.tube;
+      }
 
       if(existingIndexes.length&&conflict==="copy"){
         usedNames.delete(nameKey(materialized.name));
