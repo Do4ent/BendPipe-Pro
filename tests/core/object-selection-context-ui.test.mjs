@@ -171,3 +171,20 @@ test("A57: project-tree context menu survives dynamic buildShell creation and re
   assert.doesNotMatch(code,/tree\?\.addEventListener\("contextmenu",onTreeContext\)/);
   assert.match(code,/treeObserver\.observe\(document\.body,\{childList:true,subtree:true\}\)/);
 });
+
+
+test("A58: every object context menu exposes Hide Others and isolates editable objects",()=>{
+  const code=fs.readFileSync(
+    path.join(root,"src","ui","object-selection-context-ui.js"),
+    "utf8"
+  );
+
+  assert.match(code,/data-object-action="isolate"/);
+  assert.match(code,/Скрыть другие/);
+  assert.match(code,/function isolateEditableSelection\(entries,projectValue\)/);
+  assert.match(code,/tube\.uiHiddenIn3D=true/);
+  assert.match(code,/row\.uiHiddenIn3D=!keep/);
+  assert.match(code,/else if\(action==="isolate"\)/);
+  assert.match(code,/refApi\(\)\?\.isolateSelection\?\.\(p\)/);
+  assert.match(code,/isolate:"Скрыть другие объекты"/);
+});
