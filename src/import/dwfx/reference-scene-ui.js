@@ -180,6 +180,220 @@
     return new Set(bulkSelected);
   }
 
+  const FRAME_IDENTITY=Object.freeze([
+    1,0,0,0,
+    0,1,0,0,
+    0,0,1,0,
+    0,0,0,1
+  ]);
+
+  function frameMatrix16(value){
+    if(!Array.isArray(value)||value.length!==16)return FRAME_IDENTITY;
+    const out=value.map(Number);
+    return out.every(Number.isFinite)?out:FRAME_IDENTITY;
+  }
+
+  function frameMultiply4(a,b){
+    const left=frameMatrix16(a),right=frameMatrix16(b);
+    const out=new Array(16).fill(0);
+    for(let col=0;col<4;col+=1){
+      for(let row=0;row<4;row+=1){
+        let sum=0;
+        for(let k=0;k<4;k+=1){
+          sum+=left[k*4+row]*right[col*4+k];
+        }
+        out[col*4+row]=sum;
+      }
+    }
+    return out;
+  }
+
+  function frameTransformPoint(point,matrix){
+    if(!Array.isArray(point)||point.length<3)return null;
+    const x=Number(point[0]),y=Number(point[1]),z=Number(point[2]);
+    if(![x,y,z].every(Number.isFinite))return null;
+    const m=frameMatrix16(matrix);
+    const w=m[3]*x+m[7]*y+m[11]*z+m[15];
+    const denom=Number.isFinite(w)&&Math.abs(w)>1e-12?w:1;
+    return [
+      (m[0]*x+m[4]*y+m[8]*z+m[12])/denom,
+      (m[1]*x+m[5]*y+m[9]*z+m[13])/denom,
+      (m[2]*x+m[6]*y+m[10]*z+m[14])/denom
+    ];
+  }
+
+  function runtimeForScene(scene){
+    let runtime=runtimes.get(runtimeKey(scene));
+    if(!runtime&&scene?.display_runtime){
+      registerRuntime(scene.display_runtime);
+      runtime=runtimes.get(runtimeKey(scene));
+    }
+    return runtime??null;
+  }
+
+  function emptyFrameBounds(){
+    return {
+      min:[Infinity,Infinity,Infinity],
+      max:[-Infinity,-Infinity,-Infinity],
+      point_count:0
+    };
+  }
+
+  function expandFrameBounds(bounds,pointMm){
+    if(!Array.isArray(pointMm)||pointMm.length<3)return;
+    const point=pointMm.slice(0,3).map(Number);
+    if(!point.every(Number.isFinite))return;
+    for(let axis=0;axis<3;axis+=1){
+      bounds.min[axis]=Math.min(bounds.min[axis],point[axis]);
+      bounds.max[axis]=Math.max(bounds.max[axis],point[axis]);
+    }
+    bounds.point_count+=1;
+  }
+
+  function appendAssetBounds({
+    runtime,
+    assetId,
+    matrix,
+    translationMm,
+    scaleMm,
+    bounds,
+    stack=new Set()
+  }){
+    const key=String(assetId??"");
+    if(!key||stack.has(key))return;
+    const asset=runtime?.assetsById?.get(key);
+    if(!asset||asset.status!=="exact")return;
+    const nextStack=new Set(stack);
+    nextStack.add(key);
+
+    const appendPoint=(point,transform)=>{
+      const source=frameTransformPoint(point,transform);
+      if(!source)return;
+      expandFrameBounds(bounds,[
+        source[0]*scaleMm+translationMm.x,
+        source[1]*scaleMm+translationMm.y,
+        source[2]*scaleMm+translationMm.z
+      ]);
+    };
+
+    for(const mesh of asset.meshes??[]){
+      const meshMatrix=frameMultiply4(matrix,mesh?.matrix);
+      for(const vertex of mesh?.vertices??[])appendPoint(vertex,meshMatrix);
+    }
+
+    const positions=asset.line_segments?.positions??[];
+    for(let index=0;index+2<positions.length;index+=3){
+      appendPoint(
+        [positions[index],positions[index+1],positions[index+2]],
+        matrix
+      );
+    }
+
+    for(const nested of asset.nested_instances??[]){
+      if(nested?.status!=="exact")continue;
+      appendAssetBounds({
+        runtime,
+        assetId:nested.asset_id,
+        matrix:frameMultiply4(matrix,nested.placement_matrix),
+        translationMm,
+        scaleMm,
+        bounds,
+        stack:nextStack
+      });
+    }
+  }
+
+  function currentReferenceProjectBounds(project){
+    const bounds=emptyFrameBounds();
+    for(const scene of project?.referenceScenes??[]){
+      const runtime=runtimeForScene(scene);
+      if(!runtime){
+        return Object.freeze({
+          status:"unresolved",
+          reason:"Reference-scene runtime is unavailable.",
+          point_count:bounds.point_count
+        });
+      }
+      const scaleMm=Number(scene?.scale_mm_per_source_unit)||
+        Number(runtime?.scale_mm_per_source_unit)||1;
+      if(!Number.isFinite(scaleMm)||scaleMm<=0){
+        return Object.freeze({
+          status:"unresolved",
+          reason:"Reference-scene scale is invalid.",
+          point_count:bounds.point_count
+        });
+      }
+
+      const visit=(node,parentTranslation={x:0,y:0,z:0})=>{
+        const translation=addTranslationMm(parentTranslation,nodeTranslationMm(node));
+        for(const instance of node?.geometry_instances??[]){
+          if(instance?.status!=="exact")continue;
+          appendAssetBounds({
+            runtime,
+            assetId:instance.asset_id,
+            matrix:frameMatrix16(instance.placement_matrix),
+            translationMm:translation,
+            scaleMm,
+            bounds
+          });
+        }
+        for(const child of node?.children??[])visit(child,translation);
+      };
+      for(const root of scene?.tree??[])visit(root);
+    }
+
+    if(bounds.point_count===0){
+      return Object.freeze({
+        status:"empty",
+        point_count:0,
+        min:null,
+        max:null,
+        size:null
+      });
+    }
+    const size=bounds.max.map((value,index)=>value-bounds.min[index]);
+    return Object.freeze({
+      status:"exact",
+      point_count:bounds.point_count,
+      min:Object.freeze([...bounds.min]),
+      max:Object.freeze([...bounds.max]),
+      size:Object.freeze(size)
+    });
+  }
+
+  function automaticFrameFromCurrentBounds(bounds){
+    if(bounds?.status!=="exact")return Object.freeze({
+      status:bounds?.status??"unresolved",
+      reason:bounds?.reason??"Reference bounds are unavailable."
+    });
+    const min=bounds.min.map(Math.floor);
+    const max=bounds.max.map(Math.ceil);
+    const size=max.map((value,index)=>value-min[index]);
+    if(!size.every((value)=>Number.isFinite(value)&&value>0)){
+      return Object.freeze({
+        status:"unresolved",
+        reason:"Remaining imported geometry does not define a positive 3D frame."
+      });
+    }
+    return Object.freeze({
+      status:"exact",
+      bbox:Object.freeze({x:size[0],y:size[1],z:size[2]}),
+      bboxAnchor:Object.freeze({x:0,y:0,z:0}),
+      coordinateOffset:Object.freeze({x:min[0],y:min[1],z:min[2]}),
+      exactBoundsMm:Object.freeze({
+        min:Object.freeze([...bounds.min]),
+        max:Object.freeze([...bounds.max]),
+        size:Object.freeze([...bounds.size])
+      }),
+      frameBoundsMm:Object.freeze({
+        min:Object.freeze([...min]),
+        max:Object.freeze([...max]),
+        size:Object.freeze([...size])
+      }),
+      roundingRule:"floor_min_ceil_max_mm"
+    });
+  }
+
   function renderSceneTree({
     parent,
     sceneMeta,
@@ -663,6 +877,35 @@
     return (nodes??[]).map(prune).filter(Boolean);
   }
 
+  function previewDeleteFrame(project){
+    const selectedNow=selectedEntries(project);
+    if(!selectedNow.length){
+      return Object.freeze({
+        status:"no_selection",
+        frame:null,
+        selected_count:0
+      });
+    }
+    const affected=new Set(selectedNow.map(({scene})=>String(scene.id)));
+    const scenes=[];
+    for(const source of project?.referenceScenes??[]){
+      const scene=JSON.parse(JSON.stringify(source));
+      if(affected.has(String(scene.id))){
+        scene.tree=deleteSelectedFromTree(scene,scene.tree);
+      }
+      if(Array.isArray(scene.tree)&&scene.tree.length)scenes.push(scene);
+    }
+    const bounds=currentReferenceProjectBounds({referenceScenes:scenes});
+    const frame=automaticFrameFromCurrentBounds(bounds);
+    return Object.freeze({
+      status:frame.status,
+      frame:frame.status==="exact"?frame:null,
+      bounds,
+      selected_count:selectedNow.length,
+      reason:frame.status==="exact"?null:frame.reason??bounds.reason??null
+    });
+  }
+
   function applyBulkDelete(project){
     const affected=new Set(
       selectedEntries(project).map(({scene})=>String(scene.id))
@@ -1097,6 +1340,8 @@
     clearSelection,
     isolateSelection,
     showAll,
+    currentReferenceProjectBounds,
+    previewDeleteFrame,
     applyBulkAction,
     applyModifierSelection,
     selectedCount,
