@@ -1,7 +1,12 @@
 import { prepareTrustedDwfxFileImport } from "./trusted-file-import.mjs";
 import { mergeDwfxTubesIntoCurrentProject } from "./current-project-merge.mjs";
 import { normalizeImportedProjectDiameters } from "./table-diameter-normalization.mjs";
-export { mergeDwfxTubesIntoCurrentProject, normalizeImportedProjectDiameters };
+import { normalizeImportedProjectBendRadiiToTechnology } from "./technological-radius-normalization.mjs";
+export {
+  mergeDwfxTubesIntoCurrentProject,
+  normalizeImportedProjectDiameters,
+  normalizeImportedProjectBendRadiiToTechnology
+};
 
 function fileNameOf(file){
   return String(file?.name??"");
