@@ -835,6 +835,115 @@
     }
   }
 
+  function finitePoint3(value,fallback={x:0,y:0,z:0}){
+    const source=value&&typeof value==="object"?value:{};
+    const out={};
+    for(const axis of ["x","y","z"]){
+      const n=Number(source[axis]);
+      out[axis]=Number.isFinite(n)?n:Number(fallback?.[axis])||0;
+    }
+    return out;
+  }
+
+  function frameDimensions(projectValue){
+    const source=projectValue?.bbox??state?.bbox??{};
+    return finitePoint3(source,{x:0,y:0,z:0});
+  }
+
+  function frameOffset(projectValue){
+    const source=projectValue?.coordinateOffset??state?.coordinateOffset??{};
+    return finitePoint3(source,{x:0,y:0,z:0});
+  }
+
+  function frameChanged(a,b,tolerance=.001){
+    return ["x","y","z"].some(
+      (axis)=>Math.abs((Number(a?.[axis])||0)-(Number(b?.[axis])||0))>tolerance
+    );
+  }
+
+  function frameText(value){
+    return ["x","y","z"]
+      .map((axis)=>{
+        const n=Number(value?.[axis])||0;
+        return Math.abs(n-Math.round(n))<1e-9
+          ? String(Math.round(n))
+          : n.toFixed(2);
+      })
+      .join(" × ");
+  }
+
+  function shouldApplyReferenceFrame(projectValue,preview){
+    const frame=preview?.frame;
+    if(preview?.status!=="exact"||!frame)return false;
+    const current=frameDimensions(projectValue);
+    const next=frameDimensions({bbox:frame.bbox});
+    const dimensionsChanged=frameChanged(current,next);
+    if(!dimensionsChanged)return true;
+    const message=
+      "После удаления импортированного компонента габаритная рамка изменится.\n\n"+
+      "Текущая: "+frameText(current)+" мм\n"+
+      "Новая: "+frameText(next)+" мм\n\n"+
+      "Обновить габаритную рамку?";
+    try{return window.confirm(message);}
+    catch{return false;}
+  }
+
+  function updateImportOriginEvidence(tube,oldOrigin,newOrigin,oldOffset,newOffset){
+    const spatial=tube?.importEvidence?.spatialPlacement;
+    if(!spatial||typeof spatial!=="object")return;
+    spatial.editable_origin_mm=[newOrigin.x,newOrigin.y,newOrigin.z];
+    spatial.reference_frame_rebase_after_delete={
+      status:"applied",
+      source_editable_origin_mm:[oldOrigin.x,oldOrigin.y,oldOrigin.z],
+      previous_coordinate_offset_mm:[oldOffset.x,oldOffset.y,oldOffset.z],
+      next_coordinate_offset_mm:[newOffset.x,newOffset.y,newOffset.z],
+      rebased_editable_origin_mm:[newOrigin.x,newOrigin.y,newOrigin.z],
+      physical_world_position_preserved:true,
+      source_geometry_preserved:true
+    };
+    const linear=tube?.importEvidence?.linearDimensionNormalization;
+    if(linear&&typeof linear==="object"){
+      linear.project_frame_rebased_origin_mm=[newOrigin.x,newOrigin.y,newOrigin.z];
+    }
+  }
+
+  function applyReferenceFrame(projectValue,frame){
+    if(!projectValue||frame?.status!=="exact")return false;
+    const oldOffset=frameOffset(projectValue);
+    const nextOffset=finitePoint3(frame.coordinateOffset,oldOffset);
+    const delta={
+      x:oldOffset.x-nextOffset.x,
+      y:oldOffset.y-nextOffset.y,
+      z:oldOffset.z-nextOffset.z
+    };
+
+    for(const tube of projectValue.tubes??[]){
+      const oldOrigin=finitePoint3(tube?.origin,{x:0,y:0,z:0});
+      const newOrigin={
+        x:Number((oldOrigin.x+delta.x).toFixed(6)),
+        y:Number((oldOrigin.y+delta.y).toFixed(6)),
+        z:Number((oldOrigin.z+delta.z).toFixed(6))
+      };
+      tube.origin=newOrigin;
+      updateImportOriginEvidence(tube,oldOrigin,newOrigin,oldOffset,nextOffset);
+    }
+
+    projectValue.bbox={...frame.bbox};
+    projectValue.bboxAnchor={...frame.bboxAnchor};
+    projectValue.coordinateOffset={...nextOffset};
+
+    if(typeof state==="object"&&state){
+      state.bbox={...frame.bbox};
+      state.bboxAnchor={...frame.bboxAnchor};
+      state.coordinateOffset={...nextOffset};
+      const active=(projectValue.tubes??[]).find(
+        (tube)=>String(tube?.id)===activeTubeId()
+      );
+      if(active?.origin)state.origin={...active.origin};
+    }
+    return true;
+  }
+
   function showAllObjects(projectValue){
     for(const tube of projectValue?.tubes??[]){
       tube.uiHiddenIn3D=false;
@@ -875,9 +984,26 @@
         toggleTransparency(entries);
       }else if(action==="delete"){
         const refs=selectedReferenceEntries(entries);
-        if(refs.length)refApi()?.applyBulkAction?.(p,"delete");
+        let framePreview=null;
+        let applyFrame=false;
+        if(refs.length){
+          framePreview=refApi()?.previewDeleteFrame?.(p)??null;
+          if(framePreview?.status==="exact"){
+            applyFrame=shouldApplyReferenceFrame(p,framePreview);
+          }
+          refApi()?.applyBulkAction?.(p,"delete");
+        }
         deleteRows(entries);
         deleteTubes(entries);
+        if(refs.length&&applyFrame&&framePreview?.frame){
+          applyReferenceFrame(p,framePreview.frame);
+        }else if(refs.length&&framePreview&&framePreview.status!=="exact"){
+          try{
+            if(typeof ptToast==="function"){
+              ptToast("Компонент удалён; габаритная рамка не пересчитана: "+String(framePreview.reason??"нет точных габаритов"));
+            }
+          }catch{}
+        }
         selected.clear();
         refApi()?.clearSelection?.();
       }
@@ -1123,6 +1249,7 @@
     selectionEntries,
     applyAction,
     applyMove,
+    applyReferenceFrame,
     revealTreeKey,
     adoptReferenceSelection,
     decorateProjectTreeAsTreeView,
