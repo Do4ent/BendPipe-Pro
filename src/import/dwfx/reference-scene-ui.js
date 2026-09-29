@@ -561,6 +561,51 @@
     }
   }
 
+  function isolateSelection(project){
+    const selectedTop=selectedTopLevelEntries(project);
+    const selectedByScene=new Map();
+    for(const {scene,node} of selectedTop){
+      const key=String(scene.id);
+      const list=selectedByScene.get(key)??[];
+      list.push(node);
+      selectedByScene.set(key,list);
+    }
+
+    for(const scene of project?.referenceScenes??[]){
+      const chosen=selectedByScene.get(String(scene.id))??[];
+      if(!chosen.length){
+        scene.visible=false;
+        continue;
+      }
+
+      scene.visible=true;
+      const keep=new Set();
+      for(const selectedNode of chosen){
+        for(const id of ancestorsFor(scene.tree,selectedNode.id))keep.add(String(id));
+        for(const item of collectSelectableSubtree(selectedNode))keep.add(String(item.id));
+
+        // A selected group may contain metadata/editable descendants that are not
+        // bulk-selectable but are still required to preserve the complete subtree.
+        const stack=[...(selectedNode.children??[])];
+        while(stack.length){
+          const child=stack.shift();
+          keep.add(String(child.id));
+          stack.unshift(...(child.children??[]));
+        }
+      }
+
+      const hidden=new Set();
+      const stack=[...(scene.tree??[])];
+      while(stack.length){
+        const node=stack.shift();
+        if(!keep.has(String(node.id)))hidden.add(String(node.id));
+        stack.unshift(...(node.children??[]));
+      }
+      scene.hiddenNodeIds=[...hidden];
+    }
+    return selectedTop.length;
+  }
+
   function applyBulkTransparency(project){
     const entries=selectedEntries(project);
     if(!entries.length)return;
@@ -1039,6 +1084,7 @@
     revealNode,
     moveSelection,
     clearSelection,
+    isolateSelection,
     applyBulkAction,
     applyModifierSelection,
     selectedCount,
