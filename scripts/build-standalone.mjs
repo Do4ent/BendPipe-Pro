@@ -493,6 +493,39 @@ output=output.replace(
   p1SaveLockAnchor,
   "q.locked=k==='P1'?true:!!E(`engPort_${k}_locked`)?.checked;"
 );
+const fixedEndHistoryBeginAnchor =
+  "  const token={label:String(label||'Изменение'),before:tbHistorySnapshot()};";
+if(!output.includes(fixedEndHistoryBeginAnchor)){
+  throw new Error("tbHistoryBegin fixed-end anchor was not found");
+}
+output=output.replace(
+  fixedEndHistoryBeginAnchor,
+  "  const token={label:String(label||'Изменение'),before:tbHistorySnapshot(),fixedEndGuard:window.TubeBenderEngineering?.captureFixedEndConstraint?.()??null};"
+);
+
+const fixedEndHistoryCommitAnchor =
+  "function tbHistoryCommit(token){\n"+
+  "  if(!token||tbHistory.transaction!==token)return false;\n"+
+  "  const after=tbHistorySnapshot();";
+if(!output.includes(fixedEndHistoryCommitAnchor)){
+  throw new Error("tbHistoryCommit fixed-end anchor was not found");
+}
+output=output.replace(
+  fixedEndHistoryCommitAnchor,
+  "function tbHistoryCommit(token){\n"+
+  "  if(!token||tbHistory.transaction!==token)return false;\n"+
+  "  const fixedEndResult=token.fixedEndGuard?window.TubeBenderEngineering?.enforceFixedEndConstraint?.(token.fixedEndGuard):null;\n"+
+  "  if(fixedEndResult?.ok===false){\n"+
+  "    token.fixedEndRejected=true;\n"+
+  "    tbHistory.transaction=null;\n"+
+  "    tbHistoryUpdateUi();\n"+
+  "    if(token?.before)tbHistoryRestore(token.before);\n"+
+  "    ptToast(fixedEndResult.message||'Изменение отменено: зафиксированный конец трубы должен оставаться неподвижным');\n"+
+  "    return false;\n"+
+  "  }\n"+
+  "  token.fixedEndAdjustedRows=fixedEndResult?.adjustedRows||[];\n"+
+  "  const after=tbHistorySnapshot();"
+);
 const fixedEndCommandAnchor =
   "function tbModelCommand(label,mutate){\n"+
   "  if(typeof mutate!=='function')throw new TypeError('Model command requires a mutator');\n"+
