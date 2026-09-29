@@ -476,6 +476,7 @@
       '<button type="button" data-object-action="hide">◌ <span>Скрыть</span></button>'+
       '<button type="button" data-object-action="isolate">◎ <span>Скрыть другие</span></button>'+
       '<button type="button" data-object-action="show">◉ <span>Показать</span></button>'+
+      '<button type="button" data-object-action="show-all">◉ <span>Показать все</span></button>'+
       '<button type="button" data-object-action="transparent">◫ <span>Прозрачность</span></button>'+
       '<div class="tb-object-context-separator"></div>'+
       '<button type="button" class="danger" data-object-action="delete">🗑 <span>Удалить</span></button>';
@@ -492,16 +493,23 @@
     return menu;
   }
 
-  function showContextMenu(event,{source="3d"}={}){
-    const entries=selectionEntries();
-    if(!entries.length)return;
+  function showContextMenu(event,{source="3d",allowEmpty=false,selectionAvailable=true}={}){
+    const entries=selectionAvailable?selectionEntries():[];
+    if(!entries.length&&!allowEmpty)return;
     const menu=ensureContextMenu();
+    const hasSelection=entries.length>0;
     const title=menu.querySelector("[data-context-title]");
-    if(title)title.textContent="Выбрано: "+entries.length;
+    if(title)title.textContent=hasSelection
+      ?"Выбрано: "+entries.length
+      :(source==="3d"?"3D-окно":"Дерево проекта");
+    for(const button of menu.querySelectorAll("[data-object-action]")){
+      const action=button.dataset.objectAction;
+      if(action!=="show-all")button.hidden=!hasSelection;
+    }
     const move=menu.querySelector('[data-object-action="move"]');
     if(move){
-      const allowed=source==="3d"&&canMoveSelection();
-      move.hidden=source!=="3d";
+      const allowed=hasSelection&&source==="3d"&&canMoveSelection();
+      move.hidden=!hasSelection||source!=="3d";
       move.disabled=!allowed;
       move.title=allowed
         ?"Переместить выбранные объекты на ΔX / ΔY / ΔZ"
@@ -827,15 +835,32 @@
     }
   }
 
+  function showAllObjects(projectValue){
+    for(const tube of projectValue?.tubes??[]){
+      tube.uiHiddenIn3D=false;
+      tube.visible=true;
+      for(const row of tube.rows??[])row.uiHiddenIn3D=false;
+    }
+    if(Array.isArray(state?.rows)){
+      for(const row of state.rows)row.uiHiddenIn3D=false;
+    }
+    refApi()?.showAll?.(projectValue);
+  }
+
   function applyAction(action){
     const entries=selectionEntries();
-    if(!entries.length)return;
     const p=project();
     if(!p)return;
+    if(action!=="show-all"&&!entries.length)return;
 
     const mutate=()=>{
       if(typeof syncActiveTubeFromState==="function")syncActiveTubeFromState();
-      prepareReferenceSelection(entries);
+
+      if(action==="show-all"){
+        showAllObjects(p);
+      }else{
+        prepareReferenceSelection(entries);
+      }
 
       if(action==="hide"||action==="show"){
         const refs=selectedReferenceEntries(entries);
@@ -863,6 +888,7 @@
       hide:"Скрыть выбранные объекты",
       isolate:"Скрыть другие объекты",
       show:"Показать выбранные объекты",
+      "show-all":"Показать все объекты",
       transparent:"Изменить прозрачность выбранных объектов",
       delete:"Удалить выбранные объекты"
     }[action]||"Изменить выбранные объекты";
@@ -895,9 +921,12 @@
       }
     }catch{}
     const picked=pick3D(event);
-    if(!picked)return;
     event.preventDefault();
     event.stopPropagation();
+    if(!picked){
+      showContextMenu(event,{source:"3d",allowEmpty:true,selectionAvailable:false});
+      return;
+    }
     syncReferenceIntoSelection();
     if(!selected.has(picked.key))setSelectedKey(picked.key,{additive:false});
     revealTreeKey(picked.key);
@@ -929,7 +958,12 @@
   function onTreeContext(event){
     if(!projectTreeForEvent(event))return;
     const row=treeRowFromTarget(event.target);
-    if(!row)return;
+    if(!row){
+      event.preventDefault();
+      event.stopPropagation();
+      showContextMenu(event,{source:"tree",allowEmpty:true,selectionAvailable:false});
+      return;
+    }
     const key=keyForTreeRow(row);
     if(!key)return;
     event.preventDefault();
