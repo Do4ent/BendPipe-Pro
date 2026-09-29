@@ -1307,6 +1307,7 @@ window.TubeBenderDwfxImport=Object.freeze({
   importSelectedDwfxFile:async(...args)=>(await loadDwfxModule()).importSelectedDwfxFile(...args),
   mergeDwfxTubesIntoCurrentProject:async(...args)=>(await loadDwfxModule()).mergeDwfxTubesIntoCurrentProject(...args),
   normalizeImportedProjectDiameters:async(...args)=>(await loadDwfxModule()).normalizeImportedProjectDiameters(...args),
+  normalizeImportedProjectBendRadiiToTechnology:async(...args)=>(await loadDwfxModule()).normalizeImportedProjectBendRadiiToTechnology(...args),
   preload:loadDwfxModule
 });
 const tbDwfxInput=document.getElementById("poFileInput");
@@ -1440,6 +1441,21 @@ const newPoLoadFile = `async function poLoadFile(file){
         normalizedPackage={...result.package,project:normalized.project};
         dwfxImport.diameter_normalized_count=normalized.normalized_count;
         dwfxImport.diameter_large_deviation_count=normalized.large_deviation_count;
+      }
+      if(
+        normalizedPackage?.project &&
+        typeof bridge.normalizeImportedProjectBendRadiiToTechnology==='function'
+      ){
+        const radiusNormalized=await bridge.normalizeImportedProjectBendRadiiToTechnology(
+          normalizedPackage.project,
+          Array.isArray(pipeDb)?pipeDb:[],
+          {od_tolerance_mm:0.02}
+        );
+        normalizedPackage={...normalizedPackage,project:radiusNormalized.project};
+        dwfxImport.technological_radius_normalized_count=radiusNormalized.normalized_count;
+        dwfxImport.technological_radius_changed_count=radiusNormalized.changed_count;
+        dwfxImport.technological_radius_unresolved_count=radiusNormalized.unresolved_count;
+        dwfxImport.technological_radius_blocked_count=radiusNormalized.blocked_count;
       }
       const recentPackage={...normalizedPackage,dwfxImport};
       const pkg=poNormalizePackage(recentPackage,meta);
