@@ -2,6 +2,7 @@
   const selected=new Set();
   let contextMenu=null;
   let movePanel=null;
+  let issuesPanel=null;
   let installed=false;
   let ownRaycaster=null;
   const PREFIX={
@@ -465,6 +466,84 @@
     return entries.length>0&&entries.every((entry)=>entry.kind==="ref"||entry.kind==="tube");
   }
 
+  function invalidElementDiagnosis(entries=selectionEntries()){
+    if(!Array.isArray(entries)||entries.length!==1)return null;
+    const entry=entries[0];
+    if(entry?.kind!=="row")return null;
+    const tube=tubeById(entry.tubeId);
+    if(!tube)return null;
+    let issues=[];
+    try{
+      if(typeof tubeRowValidationIssues==="function"){
+        issues=tubeRowValidationIssues(tube,entry.rowIndex)??[];
+      }
+    }catch{}
+    issues=[...new Set(
+      (Array.isArray(issues)?issues:[])
+        .map((value)=>String(value??"").trim())
+        .filter(Boolean)
+    )];
+    if(!issues.length)return null;
+    const row=rowFor(entry);
+    const type=row?.type==="BEND"?"Гиб":
+      row?.type==="LINE"?"Прямой участок":
+      "Элемент";
+    return {
+      entry,
+      tube,
+      row,
+      issues,
+      title:type+" "+(Number(entry.rowIndex)+1)
+    };
+  }
+
+  function ensureIssuesPanel(){
+    if(issuesPanel)return issuesPanel;
+    const panel=document.createElement("div");
+    panel.id="tbObjectIssuesPanel";
+    panel.className="tb-object-issues-panel";
+    panel.innerHTML=
+      '<div class="tb-object-issues-head">'+
+      '<div><b data-issues-title>Что не правильно?</b><div data-issues-subtitle></div></div>'+
+      '<button type="button" data-issues-close aria-label="Закрыть">×</button>'+
+      '</div>'+
+      '<div class="tb-object-issues-list" data-issues-list></div>';
+    document.body.appendChild(panel);
+    panel.querySelector("[data-issues-close]")?.addEventListener("click",()=>panel.style.display="none");
+    issuesPanel=panel;
+    return panel;
+  }
+
+  function openInvalidElementDiagnosis(){
+    const diagnosis=invalidElementDiagnosis();
+    if(!diagnosis)return false;
+    const panel=ensureIssuesPanel();
+    const subtitle=panel.querySelector("[data-issues-subtitle]");
+    if(subtitle){
+      subtitle.textContent=diagnosis.title+
+        (diagnosis.tube?.name?" · "+String(diagnosis.tube.name):"");
+    }
+    const list=panel.querySelector("[data-issues-list]");
+    if(list){
+      list.innerHTML="";
+      diagnosis.issues.forEach((issue)=>{
+        const row=document.createElement("div");
+        row.className="tb-object-issue-row";
+        const marker=document.createElement("span");
+        marker.className="tb-object-issue-marker";
+        marker.textContent="!";
+        const text=document.createElement("span");
+        text.textContent=issue;
+        row.append(marker,text);
+        list.appendChild(row);
+      });
+    }
+    panel.style.display="block";
+    panel.style.left=Math.max(12,(window.innerWidth-panel.offsetWidth)/2)+"px";
+    panel.style.top=Math.max(12,(window.innerHeight-panel.offsetHeight)/2)+"px";
+    return true;
+  }
+
   function ensureContextMenu(){
     if(contextMenu)return contextMenu;
     const menu=document.createElement("div");
@@ -478,6 +557,7 @@
       '<button type="button" data-object-action="show">◉ <span>Показать</span></button>'+
       '<button type="button" data-object-action="show-all">◉ <span>Показать все</span></button>'+
       '<button type="button" data-object-action="transparent">◫ <span>Прозрачность</span></button>'+
+      '<button type="button" class="diagnose" data-object-action="diagnose">? <span>Что не правильно?</span></button>'+
       '<div class="tb-object-context-separator"></div>'+
       '<button type="button" class="danger" data-object-action="delete">🗑 <span>Удалить</span></button>';
     document.body.appendChild(menu);
@@ -487,6 +567,7 @@
       const action=button.dataset.objectAction;
       hideContextMenu();
       if(action==="move")openMovePanel();
+      else if(action==="diagnose")openInvalidElementDiagnosis();
       else applyAction(action);
     });
     contextMenu=menu;
@@ -505,6 +586,15 @@
     for(const button of menu.querySelectorAll("[data-object-action]")){
       const action=button.dataset.objectAction;
       if(action!=="show-all")button.hidden=!hasSelection;
+    }
+    const diagnosis=hasSelection?invalidElementDiagnosis(entries):null;
+    const diagnose=menu.querySelector('[data-object-action="diagnose"]');
+    if(diagnose){
+      diagnose.hidden=!diagnosis;
+      diagnose.disabled=!diagnosis;
+      diagnose.title=diagnosis
+        ?diagnosis.issues.join("\n")
+        :"Доступно только для некорректного элемента трубы";
     }
     const move=menu.querySelector('[data-object-action="move"]');
     if(move){
@@ -1161,6 +1251,17 @@
       '.tb-object-context-menu button{display:flex;width:100%;align-items:center;gap:9px;text-align:left;border:0;border-radius:4px;background:transparent;color:#e6eef8;padding:7px 9px;cursor:pointer}'+
       '.tb-object-context-menu button:hover:not(:disabled){background:#233750}'+
       '.tb-object-context-menu button:disabled{opacity:.4;cursor:not-allowed}'+
+      '.tb-object-context-menu button.diagnose{color:#ffb4b4}'+
+      '.tb-object-context-menu button.diagnose:hover:not(:disabled){background:#4a232a;color:#ffd4d4}'+
+      '.tb-object-issues-panel{position:fixed;z-index:120010;display:none;width:min(430px,calc(100vw - 24px));max-height:min(520px,calc(100vh - 24px));overflow:auto;background:#101927;border:1px solid #65414a;border-radius:9px;box-shadow:0 18px 45px rgba(0,0,0,.62);font:12px/1.4 Segoe UI,Arial,sans-serif;color:#e6eef8}'+
+      '.tb-object-issues-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid #3d2d35;background:#24181d}'+
+      '.tb-object-issues-head b{color:#ffb4b4;font-size:13px}'+
+      '.tb-object-issues-head [data-issues-subtitle]{margin-top:2px;color:#aebed1;font-size:11px}'+
+      '.tb-object-issues-head button{width:25px;height:25px;border:0;border-radius:4px;background:transparent;color:#dce7f4;cursor:pointer;font-size:19px;line-height:1}'+
+      '.tb-object-issues-head button:hover{background:#4a2a32}'+
+      '.tb-object-issues-list{display:flex;flex-direction:column;gap:6px;padding:10px 12px}'+
+      '.tb-object-issue-row{display:grid;grid-template-columns:20px 1fr;gap:7px;align-items:start;padding:7px 8px;border:1px solid #4b3239;border-radius:6px;background:#1c1418;color:#ffd4d4}'+
+      '.tb-object-issue-marker{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;background:#ff4c4c;color:#fff;font-weight:900;font-size:11px}'+
       '.tb-object-context-menu button.danger{color:#ff9b9b}'+
       '.tb-object-context-separator{height:1px;background:#2d3b4f;margin:3px 4px}'+
       '.tb-object-move-panel{position:fixed;z-index:120001;display:none;width:300px;padding:10px;background:#101927;border:1px solid #48607e;border-radius:8px;box-shadow:0 16px 42px rgba(0,0,0,.62);color:#e6eef8;font:12px Segoe UI,Arial,sans-serif}'+
@@ -1197,9 +1298,16 @@
     document.addEventListener("pointerdown",(event)=>{
       if(contextMenu?.style.display==="block"&&!event.target.closest("#tbObjectContextMenu"))hideContextMenu();
       if(movePanel?.style.display==="block"&&!event.target.closest("#tbObjectMovePanel")&&!event.target.closest('[data-object-action="move"]')){}
+      if(issuesPanel?.style.display==="block"&&!event.target.closest("#tbObjectIssuesPanel")&&!event.target.closest('[data-object-action="diagnose"]')){
+        issuesPanel.style.display="none";
+      }
     });
     window.addEventListener("keydown",(event)=>{
-      if(event.key==="Escape"){hideContextMenu();closeMovePanel();}
+      if(event.key==="Escape"){
+        hideContextMenu();
+        closeMovePanel();
+        if(issuesPanel)issuesPanel.style.display="none";
+      }
     });
 
     // Re-apply hidden/transparency/selection state after every legacy 3D rebuild.
@@ -1250,6 +1358,8 @@
     applyAction,
     applyMove,
     applyReferenceFrame,
+    invalidElementDiagnosis,
+    openInvalidElementDiagnosis,
     revealTreeKey,
     adoptReferenceSelection,
     decorateProjectTreeAsTreeView,
