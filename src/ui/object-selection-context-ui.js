@@ -973,6 +973,58 @@
     showContextMenu(event,{source:"tree"});
   }
 
+  function projectTreeRows(host){
+    if(!host)return [];
+    return [...host.querySelectorAll(
+      "[data-tree-tube],[data-tree-row],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin],[data-ref-scene-row],[data-ref-node]"
+    )];
+  }
+
+  function decorateProjectTreeAsTreeView(){
+    const host=document.getElementById("tbProjectTree");
+    if(!host)return;
+    host.classList.add("tb-project-treeview");
+    host.setAttribute("role","tree");
+
+    const rows=projectTreeRows(host);
+    if(!rows.length)return;
+    const paddings=rows.map((row)=>{
+      const inline=parseFloat(row.style.paddingLeft);
+      if(Number.isFinite(inline))return inline;
+      try{
+        const computed=parseFloat(getComputedStyle(row).paddingLeft);
+        return Number.isFinite(computed)?computed:0;
+      }catch{
+        return 0;
+      }
+    });
+    const minPadding=Math.min(...paddings);
+
+    rows.forEach((row,index)=>{
+      const padding=paddings[index];
+      const depth=Math.max(0,Math.round((padding-minPadding)/18));
+      row.classList.add("tb-treeview-row");
+      row.dataset.treeviewDepth=String(depth);
+      row.style.setProperty("--tb-treeview-depth",String(depth));
+      row.style.setProperty("--tb-treeview-branch-x",(11+depth*18)+"px");
+      row.setAttribute("role","treeitem");
+      row.setAttribute("aria-level",String(depth+1));
+
+      const expander=row.querySelector(
+        ".tb-tree-icon,[data-ref-toggle],[data-ref-scene-toggle],[data-tree-toggle],[data-tree-expand]"
+      );
+      if(expander){
+        row.classList.add("tb-treeview-expandable");
+        const marker=String(expander.textContent??"").trim();
+        if(marker==="▾"||marker==="▼"||marker==="−"){
+          row.setAttribute("aria-expanded","true");
+        }else if(marker==="▸"||marker==="▶"||marker==="+"){
+          row.setAttribute("aria-expanded","false");
+        }
+      }
+    });
+  }
+
   function installStyles(){
     if(document.getElementById("tbObjectContextStyles"))return;
     const style=document.createElement("style");
@@ -989,7 +1041,19 @@
       '.tb-object-move-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}.tb-object-move-head b{flex:1}.tb-object-move-head button{border:0;background:transparent;color:#b9c8da;font-size:18px;cursor:pointer}'+
       '.tb-object-move-grid{display:grid;grid-template-columns:80px 1fr;gap:7px;align-items:center}.tb-object-move-grid input{height:29px;border:1px solid #3a506b;border-radius:5px;background:#0b1320;color:#fff;padding:0 7px}'+
       '.tb-object-move-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:11px}.tb-object-move-actions button{height:29px;border:1px solid #3d536e;border-radius:5px;background:#17283d;color:#e5edf7;padding:0 10px;cursor:pointer}.tb-object-move-actions button.primary{background:#24558a;border-color:#3c7fc1}'+
-      '#tbProjectTree .tb-object-selected{box-shadow:inset 3px 0 0 #ffd54a!important,0 0 0 1px rgba(255,213,74,.35)!important;background:rgba(255,213,74,.14)!important;color:#fff8cf!important}';
+      '#tbProjectTree .tb-object-selected{box-shadow:inset 3px 0 0 #ffd54a!important,0 0 0 1px rgba(255,213,74,.35)!important;background:rgba(255,213,74,.14)!important;color:#fff8cf!important}'+
+      '#tbProjectTree.tb-project-treeview{padding:4px 3px 8px;overflow:auto;user-select:none}'+
+      '#tbProjectTree.tb-project-treeview .tb-treeview-row{position:relative;display:flex;align-items:center;min-height:26px;margin:1px 2px;padding-left:calc(8px + var(--tb-treeview-depth)*18px)!important;padding-right:4px;border-radius:4px;white-space:nowrap;box-sizing:border-box}'+
+      '#tbProjectTree.tb-project-treeview .tb-treeview-row:hover{background:rgba(105,148,196,.12)}'+
+      '#tbProjectTree.tb-project-treeview .tb-treeview-row[data-treeview-depth]:not([data-treeview-depth="0"])::before{content:"";position:absolute;left:var(--tb-treeview-branch-x);top:-14px;bottom:13px;border-left:1px solid rgba(128,151,178,.38);pointer-events:none}'+
+      '#tbProjectTree.tb-project-treeview .tb-treeview-row[data-treeview-depth]:not([data-treeview-depth="0"])::after{content:"";position:absolute;left:var(--tb-treeview-branch-x);top:13px;width:11px;border-top:1px solid rgba(128,151,178,.38);pointer-events:none}'+
+      '#tbProjectTree.tb-project-treeview .tb-tree-icon,#tbProjectTree.tb-project-treeview [data-ref-toggle],#tbProjectTree.tb-project-treeview [data-ref-scene-toggle],#tbProjectTree.tb-project-treeview [data-tree-toggle],#tbProjectTree.tb-project-treeview [data-tree-expand]{width:18px!important;min-width:18px!important;height:18px!important;padding:0!important;margin:0 2px 0 0!important;border:0!important;background:transparent!important;color:#aebed0!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:3px!important;line-height:18px!important}'+
+      '#tbProjectTree.tb-project-treeview .tb-tree-icon:hover,#tbProjectTree.tb-project-treeview [data-ref-toggle]:hover,#tbProjectTree.tb-project-treeview [data-ref-scene-toggle]:hover,#tbProjectTree.tb-project-treeview [data-tree-toggle]:hover,#tbProjectTree.tb-project-treeview [data-tree-expand]:hover{background:rgba(117,157,202,.18)!important;color:#eaf2fb!important}'+
+      '#tbProjectTree.tb-project-treeview .tb-tree-label{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:24px}'+
+      '#tbProjectTree.tb-project-treeview .tb-tree-eye{margin-left:auto;flex:0 0 auto;opacity:.75}'+
+      '#tbProjectTree.tb-project-treeview input[type="checkbox"]{width:13px;height:13px;margin:0 5px 0 1px;flex:0 0 auto}'+
+      '#tbProjectTree.tb-project-treeview .tb-treeview-row.active{background:rgba(66,123,183,.20)}'+
+      '#tbProjectTree.tb-project-treeview .tb-treeview-row.tb-object-selected{background:rgba(255,213,74,.14)!important}';
     document.head.appendChild(style);
   }
 
@@ -1041,10 +1105,14 @@
           break;
         }
       }
-      if(treeChanged)updateTreeSelectionStyles();
+      if(treeChanged){
+        decorateProjectTreeAsTreeView();
+        updateTreeSelectionStyles();
+      }
     });
     treeObserver.observe(document.body,{childList:true,subtree:true});
     try{decorateRenderedObjects();}catch{}
+    decorateProjectTreeAsTreeView();
     updateTreeSelectionStyles();
   }
 
@@ -1057,6 +1125,7 @@
     applyMove,
     revealTreeKey,
     adoptReferenceSelection,
+    decorateProjectTreeAsTreeView,
     refresh:refreshVisualSelection
   });
 
