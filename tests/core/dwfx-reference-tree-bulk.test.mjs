@@ -304,3 +304,92 @@ test("A28: tree search expands collapsed reference levels for matching imported 
   assert.match(html,/Subassembly A/);
   assert.match(html,/Bracket 42/);
 });
+
+
+test("A61: deleting an imported component previews a tighter exact project frame",()=>{
+  const api=loadUi();
+  const identity=[
+    1,0,0,0,
+    0,1,0,0,
+    0,0,1,0,
+    0,0,0,1
+  ];
+  const project={
+    id:"frame-delete",
+    bbox:{x:110,y:10,z:10},
+    coordinateOffset:{x:0,y:0,z:0},
+    tubes:[],
+    referenceScenes:[{
+      id:"scene-frame",
+      runtime_scene_id:"scene-frame",
+      scale_mm_per_source_unit:1,
+      tree:[
+        {
+          id:"left",
+          label:"Left component",
+          readonly:true,
+          geometry_status:"exact",
+          geometry_instances:[{
+            asset_id:"left-asset",
+            placement_matrix:identity,
+            status:"exact"
+          }],
+          children:[]
+        },
+        {
+          id:"right",
+          label:"Right component",
+          readonly:true,
+          geometry_status:"exact",
+          geometry_instances:[{
+            asset_id:"right-asset",
+            placement_matrix:identity,
+            status:"exact"
+          }],
+          children:[]
+        }
+      ]
+    }]
+  };
+
+  api.registerRuntime({
+    scene_id:"scene-frame",
+    scale_mm_per_source_unit:1,
+    assets:[
+      {
+        id:"left-asset",
+        status:"exact",
+        kind:"mesh",
+        meshes:[{
+          vertices:[[0,0,0],[10,10,10]],
+          matrix:identity
+        }],
+        nested_instances:[]
+      },
+      {
+        id:"right-asset",
+        status:"exact",
+        kind:"mesh",
+        meshes:[{
+          vertices:[[100,0,0],[110,10,10]],
+          matrix:identity
+        }],
+        nested_instances:[]
+      }
+    ]
+  });
+
+  api.selectNode(project,"scene-frame","right",true);
+  const preview=api.previewDeleteFrame(project);
+
+  assert.equal(preview.status,"exact");
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(preview.frame.bbox)),
+    {x:10,y:10,z:10}
+  );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(preview.frame.coordinateOffset)),
+    {x:0,y:0,z:0}
+  );
+  assert.equal(project.referenceScenes[0].tree.length,2);
+});
