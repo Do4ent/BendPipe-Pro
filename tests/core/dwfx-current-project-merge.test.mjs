@@ -292,3 +292,48 @@ test("A36: current-project merge rounds imported editable LINE CLR and origin to
   assert.equal(imported.importValidation.linearDimensionsRoundedToMm,true);
   assert.equal(imported.importValidation.productionBlocked,true);
 });
+
+
+test("A62: current-project import automatically corrects recognized CLR to active technology",()=>{
+  const source=tube("10102217","incoming");
+  source.origin={x:0,y:0,z:0};
+  source.startVector={x:1,y:0,z:0};
+  source.rows=[
+    {type:"LINE",L:100},
+    {type:"BEND",angle:90,plane:"XY",rot:0,clr:31},
+    {type:"LINE",L:120}
+  ];
+  source.importEvidence.metadata={outer_diameter_mm:9.53};
+  source.importEvidence.canonicalGeometry={
+    primitives:[
+      {type:"LINE"},
+      {type:"BEND",clr:{value:31.2}},
+      {type:"LINE"}
+    ]
+  };
+
+  const result=mergeDwfxTubesIntoCurrentProject({
+    project:{id:"p",tubes:[]},
+    imported_projects:[{tubes:[source]}],
+    conflict:"copy",
+    make_id:()=> "unused",
+    diameter_catalog:[
+      {id:"tool-9-r25",mm:9.53,Rb:25},
+      {id:"tool-12-r40",mm:12.7,Rb:40}
+    ]
+  });
+
+  const imported=result.project.tubes[0];
+  assert.equal(imported.rows[1].clr,25);
+  assert.equal(imported.rows[1].clrSource,"technology_table_normalization");
+  assert.equal(imported.toolingId,null);
+  assert.equal(imported.toolingUnresolved,true);
+  assert.equal(
+    imported.importEvidence.technologicalRadiusNormalization.target_clr_mm,
+    25
+  );
+  assert.deepEqual(
+    imported.importEvidence.technologicalRadiusNormalization.recognized_clrs_mm,
+    [31.2]
+  );
+});
