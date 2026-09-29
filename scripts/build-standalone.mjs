@@ -451,18 +451,17 @@ output=output.replace(
 );
 
 const projectTreeEndAnchor =
-  "  try{\n    const referenceItems=window.TubeBenderReferenceSceneUi?.treeItems?.({";
+  "    });\n  });\n  try{\n    const referenceItems=window.TubeBenderReferenceSceneUi?.treeItems?.({";
 if(!output.includes(projectTreeEndAnchor)){
   throw new Error("project tree tube-end insertion anchor was not found");
 }
 output=output.replace(
   projectTreeEndAnchor,
-  "  const activeTubeForEnd=(p?.tubes||[]).find(t=>String(t?.id)===String(state.activeTubeId));\n"+
-  "  if(activeTubeForEnd){\n"+
-  "    const endFixed=activeTubeForEnd?.engineering?.ports?.P2?.locked===true;\n"+
+  "    });\n"+
+  "    const endFixed=t?.engineering?.ports?.P2?.locked===true;\n"+
   "    items.push(`<div class=\"tb-tree-node level2 clickable ${endFixed?'tb-tube-end-fixed':''}\" data-tree-end=\"1\"><span class=\"tb-tree-icon\">${endFixed?'⚓':'◎'}</span><span class=\"tb-tree-label\">Конец трубы</span><span class=\"tb-tree-eye\">${endFixed?'зафиксирован':'свободный'}</span></div>`);\n"+
-  "  }\n"+
-  projectTreeEndAnchor
+  "  });\n"+
+  "  try{\n    const referenceItems=window.TubeBenderReferenceSceneUi?.treeItems?.({"
 );
 const p1AlwaysFixedAnchor =
   "if(!e.ports.P1)e.ports.P1={id:id('port'),name:'P1',locked:false,position:deep(t.origin||{x:0,y:0,z:0}),direction:t.startAxis||'+X',diameter:null,endType:'plain',ownerObjectId:'',externalRefId:''};";
