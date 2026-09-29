@@ -474,6 +474,7 @@
       '<div class="tb-object-context-title" data-context-title>Выбрано: 1</div>'+
       '<button type="button" data-object-action="move">↔ <span>Переместить…</span></button>'+
       '<button type="button" data-object-action="hide">◌ <span>Скрыть</span></button>'+
+      '<button type="button" data-object-action="isolate">◎ <span>Скрыть другие</span></button>'+
       '<button type="button" data-object-action="show">◉ <span>Показать</span></button>'+
       '<button type="button" data-object-action="transparent">◫ <span>Прозрачность</span></button>'+
       '<div class="tb-object-context-separator"></div>'+
@@ -663,6 +664,67 @@
     }
   }
 
+  function isolateEditableSelection(entries,projectValue){
+    const wholeTubes=new Set(
+      entries
+        .filter((entry)=>entry.kind==="tube")
+        .map((entry)=>String(entry.tubeId))
+    );
+    const rowsByTube=new Map();
+    const assembliesByTube=new Map();
+
+    for(const entry of entries){
+      const tubeId=String(entry.tubeId??"");
+      if(!tubeId)continue;
+      if(entry.kind==="row"){
+        const set=rowsByTube.get(tubeId)??new Set();
+        set.add(Number(entry.rowIndex));
+        rowsByTube.set(tubeId,set);
+      }else if(entry.kind==="assembly"){
+        const set=assembliesByTube.get(tubeId)??new Set();
+        set.add(String(entry.assemblyId));
+        assembliesByTube.set(tubeId,set);
+      }
+    }
+
+    for(const tube of projectValue?.tubes??[]){
+      const tubeId=String(tube?.id??"");
+      const keepWhole=wholeTubes.has(tubeId);
+      const rowSet=rowsByTube.get(tubeId)??new Set();
+      const assemblySet=assembliesByTube.get(tubeId)??new Set();
+      const partial=rowSet.size>0||assemblySet.size>0;
+
+      if(keepWhole){
+        tube.uiHiddenIn3D=false;
+        tube.visible=true;
+        for(const row of tube.rows??[])row.uiHiddenIn3D=false;
+        continue;
+      }
+
+      if(partial){
+        tube.uiHiddenIn3D=false;
+        tube.visible=true;
+        (tube.rows??[]).forEach((row,index)=>{
+          const keep=
+            rowSet.has(index)||
+            (row?.assemblyId&&assemblySet.has(String(row.assemblyId)));
+          row.uiHiddenIn3D=!keep;
+        });
+        continue;
+      }
+
+      tube.uiHiddenIn3D=true;
+    }
+
+    // Keep the active legacy row array synchronized with the active project tube.
+    const active=tubeById(activeTubeId());
+    if(active&&Array.isArray(state?.rows)&&Array.isArray(active.rows)){
+      state.rows.forEach((row,index)=>{
+        if(active.rows[index])row.uiHiddenIn3D=active.rows[index].uiHiddenIn3D===true;
+      });
+    }
+  }
+
   function toggleTransparency(entries){
     const editable=entries.filter((entry)=>{
       if(entry.kind==="ref")return false;
@@ -779,6 +841,9 @@
         const refs=selectedReferenceEntries(entries);
         if(refs.length)refApi()?.applyBulkAction?.(p,action);
         for(const entry of entries)if(entry.kind!=="ref")setDisplayState(entry,action);
+      }else if(action==="isolate"){
+        isolateEditableSelection(entries,p);
+        refApi()?.isolateSelection?.(p);
       }else if(action==="transparent"){
         const refs=selectedReferenceEntries(entries);
         if(refs.length)refApi()?.applyBulkAction?.(p,"transparent");
@@ -796,6 +861,7 @@
 
     const label={
       hide:"Скрыть выбранные объекты",
+      isolate:"Скрыть другие объекты",
       show:"Показать выбранные объекты",
       transparent:"Изменить прозрачность выбранных объектов",
       delete:"Удалить выбранные объекты"
