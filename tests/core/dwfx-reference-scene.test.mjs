@@ -406,3 +406,19 @@ test("A48: Type plate components are excluded without deleting unrelated plates"
     assert.equal(classifyReferenceTypePlateLabel(label),null,label);
   }
 });
+
+
+test("A59: reference isolate keeps selected branch visible and hides other scenes",()=>{
+  const code=fs.readFileSync(
+    path.join(root,"src","import","dwfx","reference-scene-ui.js"),
+    "utf8"
+  );
+
+  assert.match(code,/function isolateSelection\(project\)/);
+  assert.match(code,/const selectedTop=selectedTopLevelEntries\(project\)/);
+  assert.match(code,/scene\.visible=false/);
+  assert.match(code,/scene\.visible=true/);
+  assert.match(code,/for\(const id of ancestorsFor\(scene\.tree,selectedNode\.id\)\)keep\.add/);
+  assert.match(code,/scene\.hiddenNodeIds=\[\.\.\.hidden\]/);
+  assert.match(code,/isolateSelection,/);
+});
