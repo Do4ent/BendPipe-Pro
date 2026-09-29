@@ -313,7 +313,10 @@ output = output.replace(
   "      else if(p.button===1)this._mode='pan';\n"+
   "    }\n"+
   "    if(this._mode==='pan')this.pan(dx,dy);\n"+
-  "    else if(this._mode==='rotate')this.rotate(dx,dy);"
+  "    else if(this._mode==='rotate'){\n"+
+  "      if(p.pointerType==='mouse')this.rotate(dx,-dy);\n"+
+  "      else this.rotate(dx,dy);\n"+
+  "    }"
 );
 
 const autodeskRemainingModeAnchor =
