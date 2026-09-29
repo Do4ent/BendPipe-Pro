@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   parseDwfxObjectTree,
@@ -409,8 +410,8 @@ test("A48: Type plate components are excluded without deleting unrelated plates"
 
 
 test("A59: reference isolate keeps selected branch visible and hides other scenes",()=>{
-  const code=fs.readFileSync(
-    path.join(root,"src","import","dwfx","reference-scene-ui.js"),
+  const code=readFileSync(
+    new URL("../../src/import/dwfx/reference-scene-ui.js",import.meta.url),
     "utf8"
   );
 
