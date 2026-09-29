@@ -548,7 +548,7 @@ test("A63: invalid tube elements are red in text UI and 3D",()=>{
 
   assert.match(html,/function tubeRowValidationIssues\(tube,rowIndex\)/);
   assert.match(html,/function tubeRowIsInvalid\(rowIndex,tube=activeTube\(\)\)/);
-  assert.match(html,/Прямой участок короче Lmin/);
+  assert.match(html,/Внутренний прямой участок короче Lmin/);
   assert.match(html,/Некорректный угол гиба/);
   assert.match(html,/Некорректный радиус гиба/);
   assert.match(html,/не соответствует технологическому R/);
@@ -582,4 +582,35 @@ test("A64: project TreeView shows green or red circular tube status indicators",
   assert.match(html,/Все элементы трубы корректны/);
   assert.match(html,/Проблемных элементов: /);
   assert.match(html,/if\(label\)n\.insertBefore\(dot,label\)/);
+});
+
+
+test("A65: short start and end straights use removable technological allowances in the bending card",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/function straightRowIndexes\(rows\)/);
+  assert.match(html,/function isEndStraightRowIndex\(rows,rowIndex\)/);
+  assert.match(html,/function technologicalEndAllowancePlan\(tube=activeTube\(\),options=\{\}\)/);
+  assert.match(html,/startAllowance,endAllowance,totalAllowance:startAllowance\+endAllowance/);
+  assert.match(html,/removableAfterBending:true/);
+  assert.match(html,/nominalGeometryChanged:false/);
+
+  assert.match(html,/const endpoint=rowIndex>=0&&isEndStraightRowIndex\(state\.rows\|\|\[\],rowIndex\)/);
+  assert.match(html,/!isEndStraightRowIndex\(rows,rowIndex\).*Внутренний прямой участок короче Lmin/s);
+  assert.match(html,/rows\.every\(\(r,index\)=>r\?\.type!=='LINE'\|\|isEndStraightRowIndex\(rows,index\)/);
+  assert.match(html,/const endpoint=i===0\|\|i===lengths\.length-1/);
+
+  assert.match(html,/endAllowances=technologicalEndAllowancePlan/);
+  assert.match(html,/bendNo===1\?endAllowances\.startAllowance:0/);
+  assert.match(html,/endAllowances\.totalAllowance/);
+  assert.match(html,/return \{steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,xyz,endAllowances\}/);
+
+  assert.match(html,/id='engTechnologicalAllowance'/);
+  assert.match(html,/Технологический припуск \(удалить после гибки\)/);
+  assert.match(html,/Первый Y\/L в карте уже включает начальный припуск/);
+  assert.match(html,/Номинальные размеры готовой детали не изменены/);
+  assert.match(html,/Припуски карты гибки/);
 });
