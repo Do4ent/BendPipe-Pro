@@ -188,3 +188,43 @@ test("A58: every object context menu exposes Hide Others and isolates editable o
   assert.match(code,/refApi\(\)\?\.isolateSelection\?\.\(p\)/);
   assert.match(code,/isolate:"Скрыть другие объекты"/);
 });
+
+
+test("A59: Show All restores all editable and reference visibility from tree or 3D context",()=>{
+  const referenceUi=loadReferenceUi();
+  const project={
+    referenceScenes:[{
+      id:"scene-a",
+      visible:false,
+      hiddenNodeIds:["group","leaf"],
+      tree:[{
+        id:"group",
+        label:"Group",
+        geometry_instances:[],
+        children:[{
+          id:"leaf",
+          label:"Leaf",
+          geometry_instances:[],
+          children:[]
+        }]
+      }]
+    }]
+  };
+
+  assert.equal(referenceUi.showAll(project),3);
+  assert.equal(project.referenceScenes[0].visible,true);
+  assert.deepEqual(Array.from(project.referenceScenes[0].hiddenNodeIds),[]);
+
+  const code=fs.readFileSync(
+    path.join(root,"src","ui","object-selection-context-ui.js"),
+    "utf8"
+  );
+  assert.match(code,/data-object-action="show-all"/);
+  assert.match(code,/Показать все/);
+  assert.match(code,/function showAllObjects\(projectValue\)/);
+  assert.match(code,/tube\.uiHiddenIn3D=false/);
+  assert.match(code,/row\.uiHiddenIn3D=false/);
+  assert.match(code,/refApi\(\)\?\.showAll\?\.\(projectValue\)/);
+  assert.match(code,/source:"3d",allowEmpty:true,selectionAvailable:false/);
+  assert.match(code,/source:"tree",allowEmpty:true,selectionAvailable:false/);
+});
