@@ -450,7 +450,8 @@ test("A53: left drag orbits, middle drag pans, and right click remains for conte
   assert.match(html,/if\(p\.pointerType==='mouse'\)\{[\s\S]*if\(p\.button===0\)this\._mode='rotate'/);
   assert.match(html,/else if\(p\.button===1\)this\._mode='pan'/);
   assert.match(html,/if\(this\._mode==='pan'\)this\.pan\(dx,dy\)/);
-  assert.match(html,/else if\(this\._mode==='rotate'\)this\.rotate\(dx,dy\)/);
+  assert.match(html,/else if\(this\._mode==='rotate'\)\{[\s\S]*if\(p\.pointerType==='mouse'\)this\.rotate\(dx,-dy\)/);
+  assert.match(html,/else this\.rotate\(dx,dy\)/);
   assert.match(html,/if\(remaining\.button===0\)this\._mode='rotate'/);
   assert.match(html,/else if\(remaining\.button===1\)this\._mode='pan'/);
   assert.match(html,/wheel\(e\)\{/);
@@ -489,5 +490,22 @@ test("A57: Project Map no longer renders the Editing area",()=>{
   assert.match(
     html,
     /body\.tb-project-map \.tb-map-center\{grid-template-rows:minmax\(0,1fr\)!important;gap:0!important\}/
+  );
+});
+
+
+test("A58: left-mouse upward drag rotates the model away from the user",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(
+    html,
+    /if\(p\.pointerType==='mouse'\)this\.rotate\(dx,-dy\)/
+  );
+  assert.match(
+    html,
+    /else this\.rotate\(dx,dy\)/
   );
 });
