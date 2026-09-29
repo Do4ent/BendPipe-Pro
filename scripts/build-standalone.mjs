@@ -463,6 +463,15 @@ output=output.replace(
   "  });\n"+
   "  try{\n    const referenceItems=window.TubeBenderReferenceSceneUi?.treeItems?.({"
 );
+const p1PortCardUiAnchor =
+  "<label class=\"eng-check\"><input id=\"engPort_${k}_locked\" type=\"checkbox\" ${p.locked?'checked':''}> Ассоциативно закрепить порт</label>";
+if(!output.includes(p1PortCardUiAnchor)){
+  throw new Error("P1/P2 port-card lock control anchor was not found");
+}
+output=output.replace(
+  p1PortCardUiAnchor,
+  "${k==='P1'?'<label class=\"eng-check\"><input id=\"engPort_P1_locked\" type=\"checkbox\" checked disabled> ⚓ Начальная точка всегда зафиксирована</label>':`<label class=\"eng-check\"><input id=\"engPort_${k}_locked\" type=\"checkbox\" ${p.locked?'checked':''}> Ассоциативно закрепить порт</label>`}"
+);
 const p1AlwaysFixedAnchor =
   "if(!e.ports.P1)e.ports.P1={id:id('port'),name:'P1',locked:false,position:deep(t.origin||{x:0,y:0,z:0}),direction:t.startAxis||'+X',diameter:null,endType:'plain',ownerObjectId:'',externalRefId:''};";
 if(!output.includes(p1AlwaysFixedAnchor)){
