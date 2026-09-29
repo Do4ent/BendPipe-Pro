@@ -565,3 +565,21 @@ test("A63: invalid tube elements are red in text UI and 3D",()=>{
   assert.match(html,/invalidIssues=tubeRowValidationIssues\(activeTube\(\),rowIndex\)/);
   assert.match(html,/\[data-tree-row\],\[data-tree-assembly-part\]/);
 });
+
+
+test("A64: project TreeView shows green or red circular tube status indicators",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/function tubeValidationSummary\(tube\)/);
+  assert.match(html,/tb-tube-status-dot/);
+  assert.match(html,/\.tb-tube-status-dot\.ok\{background:#43d36b/);
+  assert.match(html,/\.tb-tube-status-dot\.problem\{background:#ff4c4c/);
+  assert.match(html,/dot\.className='tb-tube-status-dot '\+\(summary\.valid\?'ok':'problem'\)/);
+  assert.match(html,/dot\.dataset\.tubeStatus=summary\.valid\?'ok':'problem'/);
+  assert.match(html,/Все элементы трубы корректны/);
+  assert.match(html,/Проблемных элементов: /);
+  assert.match(html,/if\(label\)n\.insertBefore\(dot,label\)/);
+});
