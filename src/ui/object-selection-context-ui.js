@@ -354,6 +354,11 @@
             if(String(object.userData?.tubeId??"")===String(entry.tubeId))objects.push(object);
           });
         }
+      }else if(entry.kind==="end"){
+        if(entry.tubeId!==activeTubeId())continue;
+        pipeGroup.traverse((object)=>{
+          if(object.userData?.tubeEnd===true&&!object.userData?.objectSelectionHelper)objects.push(object);
+        });
       }else if(entry.kind==="row"){
         if(entry.tubeId!==activeTubeId())continue;
         pipeGroup.traverse((object)=>{
@@ -462,7 +467,7 @@
       node.removeAttribute("aria-selected");
     });
     for(const row of host.querySelectorAll(
-      "[data-ref-node],[data-tree-tube],[data-tree-row],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
+      "[data-ref-node],[data-tree-tube],[data-tree-row],[data-tree-end],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
     )){
       const key=keyForTreeRow(row);
       if(key&&selected.has(key)){
@@ -475,6 +480,44 @@
   function canMoveSelection(){
     const entries=selectionEntries();
     return entries.length>0&&entries.every((entry)=>entry.kind==="ref"||entry.kind==="tube");
+  }
+
+  function endConstraintSelection(entries=selectionEntries()){
+    if(!Array.isArray(entries)||entries.length!==1)return null;
+    const entry=entries[0];
+    if(entry?.kind!=="end")return null;
+    const tube=tubeById(entry.tubeId);
+    if(!tube)return null;
+    const fixed=tube?.engineering?.ports?.P2?.locked===true;
+    return {entry,tube,fixed};
+  }
+
+  function toggleEndConstraint(){
+    const selectedEnd=endConstraintSelection();
+    if(!selectedEnd)return false;
+    const api=window.TubeBenderEngineering;
+    if(typeof api?.setEndConstraint!=="function"){
+      if(typeof ptToast==="function")ptToast("Связь конца трубы недоступна");
+      return false;
+    }
+    const makeFixed=!selectedEnd.fixed;
+    const mutate=()=>{
+      const result=api.setEndConstraint(selectedEnd.tube,makeFixed);
+      if(result?.ok===false){
+        if(typeof ptToast==="function")ptToast(result.message||"Не удалось изменить связь конца трубы");
+        return false;
+      }
+      return true;
+    };
+    const label=makeFixed?"Зафиксировать конец трубы":"Освободить конец трубы";
+    const ok=typeof tbModelCommand==="function"?tbModelCommand(label,mutate):mutate();
+    if(ok===false)return false;
+    try{if(typeof save==="function")save();}catch{}
+    try{if(typeof renderAll==="function")renderAll();}catch{}
+    try{if(typeof refreshProjectTree==="function")refreshProjectTree();}catch{}
+    refreshVisualSelection();
+    if(typeof ptToast==="function")ptToast(makeFixed?"⚓ Конец трубы зафиксирован":"Конец трубы освобождён");
+    return true;
   }
 
   function invalidElementDiagnosis(entries=selectionEntries()){
@@ -568,6 +611,7 @@
       '<button type="button" data-object-action="show">◉ <span>Показать</span></button>'+
       '<button type="button" data-object-action="show-all">◉ <span>Показать все</span></button>'+
       '<button type="button" data-object-action="transparent">◫ <span>Прозрачность</span></button>'+
+      '<button type="button" class="anchor-end" data-object-action="anchor-end">⚓ <span>Зафиксировать</span></button>'+
       '<button type="button" class="diagnose" data-object-action="diagnose">? <span>Что не правильно?</span></button>'+
       '<div class="tb-object-context-separator"></div>'+
       '<button type="button" class="danger" data-object-action="delete">🗑 <span>Удалить</span></button>';
@@ -578,6 +622,7 @@
       const action=button.dataset.objectAction;
       hideContextMenu();
       if(action==="move")openMovePanel();
+      else if(action==="anchor-end")toggleEndConstraint();
       else if(action==="diagnose")openInvalidElementDiagnosis();
       else applyAction(action);
     });
@@ -598,19 +643,38 @@
       const action=button.dataset.objectAction;
       if(action!=="show-all")button.hidden=!hasSelection;
     }
+    const endSelection=hasSelection?endConstraintSelection(entries):null;
+    const anchorEnd=menu.querySelector('[data-object-action="anchor-end"]');
+    if(anchorEnd){
+      anchorEnd.hidden=!endSelection;
+      anchorEnd.disabled=!endSelection;
+      const label=anchorEnd.querySelector("span");
+      if(label)label.textContent=endSelection?.fixed?"Освободить":"Зафиксировать";
+      anchorEnd.title=endSelection
+        ?(endSelection.fixed
+          ?"Освободить конец трубы — он снова сможет изменять положение при редактировании геометрии"
+          :"Зафиксировать текущие мировые координаты конца трубы")
+        :"";
+    }
+    if(endSelection){
+      for(const button of menu.querySelectorAll("[data-object-action]")){
+        if(button.dataset.objectAction!=="anchor-end")button.hidden=true;
+      }
+      if(title)title.textContent="Конец трубы";
+    }
     const diagnosis=hasSelection?invalidElementDiagnosis(entries):null;
     const diagnose=menu.querySelector('[data-object-action="diagnose"]');
     if(diagnose){
-      diagnose.hidden=!diagnosis;
-      diagnose.disabled=!diagnosis;
+      diagnose.hidden=endSelection||!diagnosis;
+      diagnose.disabled=endSelection||!diagnosis;
       diagnose.title=diagnosis
         ?diagnosis.issues.join("\n")
         :"Доступно только для некорректного элемента трубы";
     }
     const move=menu.querySelector('[data-object-action="move"]');
     if(move){
-      const allowed=hasSelection&&source==="3d"&&canMoveSelection();
-      move.hidden=!hasSelection||source!=="3d";
+      const allowed=hasSelection&&!endSelection&&source==="3d"&&canMoveSelection();
+      move.hidden=!!endSelection||!hasSelection||source!=="3d";
       move.disabled=!allowed;
       move.title=allowed
         ?"Переместить выбранные объекты на ΔX / ΔY / ΔZ"
@@ -1273,6 +1337,8 @@
       '.tb-object-issues-list{display:flex;flex-direction:column;gap:6px;padding:10px 12px}'+
       '.tb-object-issue-row{display:grid;grid-template-columns:20px 1fr;gap:7px;align-items:start;padding:7px 8px;border:1px solid #4b3239;border-radius:6px;background:#1c1418;color:#ffd4d4}'+
       '.tb-object-issue-marker{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;background:#ff4c4c;color:#fff;font-weight:900;font-size:11px}'+
+      '.tb-object-context-menu button.anchor-end{color:#ffd273}'+
+      '.tb-object-context-menu button.anchor-end:hover:not(:disabled){background:#4a3a1e;color:#ffe0a0}'+
       '.tb-object-context-menu button.danger{color:#ff9b9b}'+
       '.tb-object-context-separator{height:1px;background:#2d3b4f;margin:3px 4px}'+
       '.tb-object-move-panel{position:fixed;z-index:120001;display:none;width:300px;padding:10px;background:#101927;border:1px solid #48607e;border-radius:8px;box-shadow:0 16px 42px rgba(0,0,0,.62);color:#e6eef8;font:12px Segoe UI,Arial,sans-serif}'+
@@ -1371,6 +1437,8 @@
     applyReferenceFrame,
     invalidElementDiagnosis,
     openInvalidElementDiagnosis,
+    endConstraintSelection,
+    toggleEndConstraint,
     revealTreeKey,
     adoptReferenceSelection,
     decorateProjectTreeAsTreeView,
