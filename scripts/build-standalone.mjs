@@ -95,6 +95,21 @@ let output = source.replace(
   () => bundledThree
 );
 
+
+const invalidTubeCssAnchor =
+  ".route-chip .num{color:var(--muted)}";
+if(!output.includes(invalidTubeCssAnchor)){
+  throw new Error("invalid tube element CSS anchor was not found");
+}
+output=output.replace(
+  invalidTubeCssAnchor,
+  invalidTubeCssAnchor+
+  ".tb-invalid-tube-element,.tb-invalid-tube-element .tb-tree-label,.tb-invalid-tube-element .tb-tree-icon,.tb-invalid-tube-element .tb-tree-eye,.label3d.tb-invalid-tube-element,.label3d.tb-invalid-tube-element .direct-display-value,.route-chip.tb-invalid-tube-element{color:#ff4c4c!important}"+
+  ".tb-invalid-tube-element .direct-degree-symbol{color:#ff4c4c!important}"+
+  ".tb-tree-node.tb-invalid-tube-element{background:rgba(255,76,76,.08)!important}"+
+  ".label3d.tb-invalid-tube-element{box-shadow:0 0 0 1px rgba(255,76,76,.70)!important}"
+);
+
 const importedTubeBodyColor=0xc77738;
 const tubeCopperColor=0xc77738;
 const tubeEditMutedColor=0x6f747b;
@@ -150,7 +165,57 @@ output=output.replace(
   "  const active=activeTubeEditRowIndex();\n"+
   "  if(active<0)return 0xc77738;\n"+
   "  return Number(rowIndex)===active ? 0xc77738 : 0x6f747b;\n"+
-  "}"
+  "}\n"+
+  "function tubeRowValidationIssues(tube,rowIndex){\n"+
+  "  const issues=[];\n"+
+  "  const rows=tube?.rows??(tube?.id===state.activeTubeId?state.rows:[]);\n"+
+  "  const index=Number(rowIndex);\n"+
+  "  const row=rows?.[index];\n"+
+  "  if(!row)return ['Элемент трубы отсутствует'];\n"+
+  "  const tool=pipeAt(tube?.diameterIndex);\n"+
+  "  const technologicalLmin=Number(tool?.Lmin);\n"+
+  "  if(row.type==='LINE'){\n"+
+  "    const length=Number(row.L);\n"+
+  "    if(!Number.isFinite(length)||length<0)issues.push('Некорректная длина прямого участка');\n"+
+  "    else if(Number.isFinite(technologicalLmin)&&length+1e-6<technologicalLmin)issues.push('Прямой участок короче Lmin '+fmt(technologicalLmin,1)+' мм');\n"+
+  "  }else if(row.type==='BEND'){\n"+
+  "    const angle=Number(row.angle);\n"+
+  "    if(!Number.isFinite(angle)||Math.abs(angle)<1e-9||Math.abs(angle)>180+1e-6)issues.push('Некорректный угол гиба');\n"+
+  "    const clr=Number(row.clr);\n"+
+  "    if(!Number.isFinite(clr)||clr<=0)issues.push('Некорректный радиус гиба');\n"+
+  "    const technologyClr=Number(tool?.Rb);\n"+
+  "    if(Number.isFinite(clr)&&clr>0&&Number.isFinite(technologyClr)&&technologyClr>0&&Math.abs(clr-technologyClr)>0.05){\n"+
+  "      issues.push('CLR '+fmt(clr,2)+' мм не соответствует технологическому R'+fmt(technologyClr,2)+' мм');\n"+
+  "    }\n"+
+  "  }else{\n"+
+  "    issues.push('Неизвестный тип элемента трубы');\n"+
+  "  }\n"+
+  "  try{\n"+
+  "    const bounds=tube?.id===state.activeTubeId?analyzePipeBounds(rows,tube?.diameterIndex):analyzeTubeBounds(tube);\n"+
+  "    if(bounds?.violatingRows?.includes(index))issues.push('Элемент нарушает габаритную рамку или зазор 5 мм');\n"+
+  "  }catch{}\n"+
+  "  try{\n"+
+  "    const project=projectForTube(tube);\n"+
+  "    const collisions=getProjectCollisionAnalysis(project)?.collisions??[];\n"+
+  "    const involved=collisions.some(c=>\n"+
+  "      (String(c?.tubeAId)===String(tube?.id)&&Number(c?.rowA)===index)||\n"+
+  "      (String(c?.tubeBId)===String(tube?.id)&&Number(c?.rowB)===index)\n"+
+  "    );\n"+
+  "    if(involved)issues.push('Элемент участвует в пересечении');\n"+
+  "  }catch{}\n"+
+  "  return [...new Set(issues)];\n"+
+  "}\n"+
+  "function tubeRowIsInvalid(rowIndex,tube=activeTube()){ return tubeRowValidationIssues(tube,rowIndex).length>0; }"
+);
+
+const tubeInvalidAnchor =
+  "  const invalid = boundsRowIsInvalid(rowIndex);";
+if(!output.includes(tubeInvalidAnchor)){
+  throw new Error("tubeElementMaterial invalid-state anchor was not found");
+}
+output=output.replace(
+  tubeInvalidAnchor,
+  "  const invalid = tubeRowIsInvalid(rowIndex,activeTube());"
 );
 
 const tubeShownColorAnchor =
@@ -172,7 +237,8 @@ if(!output.includes(selectionOpacityAnchor)){
 output=output.replace(
   selectionOpacityAnchor,
   "  const opacity = 1;\n"+
-  "  const displayColor=tubeElementDisplayColor(0xc77738,rowIndex);\n"+
+  "  const invalid=tubeRowIsInvalid(rowIndex,activeTube());\n"+
+  "  const displayColor=invalid?0xff3b30:tubeElementDisplayColor(0xc77738,rowIndex);\n"+
   "  if (!obj) return;"
 );
 
@@ -188,7 +254,8 @@ output=output.replace(
   "      mat.transparent = false;\n"+
   "      mat.opacity = 1;\n"+
   "      mat.depthWrite = true;\n"+
-  "      if(mat.color)mat.color.setHex(displayColor);"
+  "      if(mat.color)mat.color.setHex(displayColor);\n"+
+  "      if(invalid&&mat.emissive){mat.emissive.setHex(0x8f0000);mat.emissiveIntensity=.34;}"
 );
 
 const passiveConstantsAnchor =
@@ -220,13 +287,15 @@ if(!output.includes(passiveMaterialAnchor)){
 }
 output=output.replace(
   passiveMaterialAnchor,
-  "function passiveTubeMaterial(color=PASSIVE_TUBE_COLOR,opacity=PASSIVE_TUBE_OPACITY){\n"+
+  "function passiveTubeMaterial(color=PASSIVE_TUBE_COLOR,opacity=PASSIVE_TUBE_OPACITY,invalid=false){\n"+
   "  const editIsolation=!!selectedAssemblyId||activeTubeEditRowIndex()>=0;\n"+
-  "  const shownColor=editIsolation?0x6f747b:0xc77738;\n"+
+  "  const shownColor=invalid?0xff3b30:(editIsolation?0x6f747b:0xc77738);\n"+
   "  return new THREE.MeshStandardMaterial({\n"+
   "    color:shownColor,\n"+
   "    roughness:.58,\n"+
   "    metalness:.08,\n"+
+  "    emissive:invalid?0x8f0000:0x000000,\n"+
+  "    emissiveIntensity:invalid?.34:0,\n"+
   "    transparent:false,\n"+
   "    opacity:1,\n"+
   "    depthTest:true,\n"+
@@ -235,6 +304,54 @@ output=output.replace(
   "}"
 );
 
+
+
+const passiveCylinderAnchor =
+  "function makePassiveCylinder(a,b,r,color=PASSIVE_TUBE_COLOR,opacity=PASSIVE_TUBE_OPACITY){\n"+
+  "  const dir=b.clone().sub(a),len=Math.max(.001,dir.length());\n"+
+  "  const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,24,1,false),passiveTubeMaterial(color,opacity));";
+if(!output.includes(passiveCylinderAnchor)){
+  throw new Error("passive cylinder anchor was not found");
+}
+output=output.replace(
+  passiveCylinderAnchor,
+  "function makePassiveCylinder(a,b,r,color=PASSIVE_TUBE_COLOR,opacity=PASSIVE_TUBE_OPACITY,tube=null,rowIndex=-1){\n"+
+  "  const dir=b.clone().sub(a),len=Math.max(.001,dir.length());\n"+
+  "  const invalid=Number.isInteger(rowIndex)&&tubeRowIsInvalid(rowIndex,tube);\n"+
+  "  const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,24,1,false),passiveTubeMaterial(color,opacity,invalid));"
+);
+
+const passiveBendAnchor =
+  "function makePassiveBend(start,dir,plane,angleRad,R,tubeR,rotationDeg=0,opacity=PASSIVE_TUBE_OPACITY){";
+if(!output.includes(passiveBendAnchor)){
+  throw new Error("passive bend anchor was not found");
+}
+output=output.replace(
+  passiveBendAnchor,
+  "function makePassiveBend(start,dir,plane,angleRad,R,tubeR,rotationDeg=0,opacity=PASSIVE_TUBE_OPACITY,tube=null,rowIndex=-1){"
+);
+const passiveBendMeshAnchor =
+  "  const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(16,steps*2),tubeR,14,false),passiveTubeMaterial(PASSIVE_TUBE_COLOR,opacity));";
+if(!output.includes(passiveBendMeshAnchor)){
+  throw new Error("passive bend material anchor was not found");
+}
+output=output.replace(
+  passiveBendMeshAnchor,
+  "  const invalid=Number.isInteger(rowIndex)&&tubeRowIsInvalid(rowIndex,tube);\n"+
+  "  const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(16,steps*2),tubeR,14,false),passiveTubeMaterial(PASSIVE_TUBE_COLOR,opacity,invalid));"
+);
+
+const passiveLoopAnchor = "  (tube.rows||[]).forEach(r=>{";
+if(!output.includes(passiveLoopAnchor)){
+  throw new Error("passive tube row loop anchor was not found");
+}
+output=output.replace(passiveLoopAnchor,"  (tube.rows||[]).forEach((r,rowIndex)=>{");
+const passiveCylinderCall = "      tubeGroup.add(makePassiveCylinder(pos,end,tubeR));";
+if(!output.includes(passiveCylinderCall))throw new Error("passive cylinder call anchor missing");
+output=output.replace(passiveCylinderCall,"      tubeGroup.add(makePassiveCylinder(pos,end,tubeR,PASSIVE_TUBE_COLOR,PASSIVE_TUBE_OPACITY,tube,rowIndex));");
+const passiveBendCall = "      const b=makePassiveBend(pos,dir,plane,angle,bendR,tubeR,getBendRotationValue(r));";
+if(!output.includes(passiveBendCall))throw new Error("passive bend call anchor missing");
+output=output.replace(passiveBendCall,"      const b=makePassiveBend(pos,dir,plane,angle,bendR,tubeR,getBendRotationValue(r),PASSIVE_TUBE_OPACITY,tube,rowIndex);");
 
 const bendRotationCommitAnchor =
   "function commitBendRotationInput(input){\n"+
@@ -1238,6 +1355,25 @@ const newBoundsBind = `function bind(){
   qs('boundsCollapseBtn')?.addEventListener('click',()=>setBoundsWarningCollapsed(!boundsWarningCollapsed));`;
 output = output.replace(oldBoundsBind,newBoundsBind);
 
+
+const invalidLabelAnchor =
+  "  qs('viewer').appendChild(el);\n"+
+  "  labels.push({ el, pos: pos.clone(), rowIndex, field });";
+if(!output.includes(invalidLabelAnchor)){
+  throw new Error("tube element label anchor was not found");
+}
+output=output.replace(
+  invalidLabelAnchor,
+  "  const invalidIssues=tubeRowValidationIssues(activeTube(),rowIndex);\n"+
+  "  if(invalidIssues.length){\n"+
+  "    el.classList.add('tb-invalid-tube-element');\n"+
+  "    el.dataset.invalid='true';\n"+
+  "    el.title=(el.title?el.title+'\\n':'')+invalidIssues.join('\\n');\n"+
+  "  }\n"+
+  "  qs('viewer').appendChild(el);\n"+
+  "  labels.push({ el, pos: pos.clone(), rowIndex, field });"
+);
+
 const referenceDisposeAnchor =
   "  root.traverse?.(obj=>{\n    if (obj.geometry?.dispose) geometries.add(obj.geometry);";
 if (!output.includes(referenceDisposeAnchor)) {
@@ -1286,6 +1422,25 @@ output = output.replace(
       modelCommand:tbModelCommand
     });\n  }catch(error){\n    console.warn("DWFx reference tree binding:",error);\n  }`
 );
+
+const invalidTreeRowsAnchor =
+  "  host.querySelectorAll('[data-tree-tube]').forEach(n=>n.addEventListener('click',()=>switchTube(n.dataset.treeTube)));";
+if(!output.includes(invalidTreeRowsAnchor)){
+  throw new Error("Project tree row decoration anchor was not found");
+}
+output=output.replace(
+  invalidTreeRowsAnchor,
+  "  host.querySelectorAll('[data-tree-row],[data-tree-assembly-part]').forEach(n=>{\n"+
+  "    const rowIndex=Number(n.dataset.treeRow??n.dataset.treeRowRef);\n"+
+  "    if(!Number.isInteger(rowIndex)||rowIndex<0)return;\n"+
+  "    const issues=tubeRowValidationIssues(activeTube(),rowIndex);\n"+
+  "    n.classList.toggle('tb-invalid-tube-element',issues.length>0);\n"+
+  "    if(issues.length)n.title=issues.join('\\n');\n"+
+  "  });\n"+
+  invalidTreeRowsAnchor
+);
+
+
 
 const dwfxEntryUrl = moduleDataUrl(dwfxEntryPath);
 const bundledDwfx =
