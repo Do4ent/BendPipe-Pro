@@ -523,3 +523,19 @@ test("A59: bend rotation editor rounds to the same two decimals as bend angle",(
   assert.match(html,/row\.rot = val/);
   assert.match(html,/input\.value = row\.rotFormula/);
 });
+
+
+test("A62: standalone applies active technology radii after DWFx recognition",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/normalizeImportedProjectBendRadiiToTechnology/);
+  assert.match(html,/technological_radius_normalized_count/);
+  assert.match(html,/technological_radius_changed_count/);
+  assert.match(html,/technology_table_normalization/);
+  assert.match(html,/single_common_nearest_available_radius_minimax/);
+  assert.match(html,/tooling_selected:false/);
+  assert.match(html,/source_geometry_preserved:true/);
+});
