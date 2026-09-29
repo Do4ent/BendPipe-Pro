@@ -157,9 +157,9 @@ test("A37: bend CLR rounds to whole mm and every bend angle rounds to two decima
   const source=tube();
   source.rows=[
     {type:"LINE",L:100.2,LFormula:"100.2"},
-    {type:"BEND",angle:90.00169482333327,angleFormula:"90.00169482333327",plane:"XY",rot:0,rotFormula:"0",clr:14.99990365405163},
+    {type:"BEND",angle:90.00169482333327,angleFormula:"90.00169482333327",plane:"XY",rot:45.001287,rotFormula:"45.001287",clr:14.99990365405163},
     {type:"LINE",L:80.1,LFormula:"80.1"},
-    {type:"BEND",angle:3.036439962824889,angleFormula:"3.036439962824889",plane:"XZ",rot:0,rotFormula:"0",clr:39.998977876168375},
+    {type:"BEND",angle:3.036439962824889,angleFormula:"3.036439962824889",plane:"XZ",rot:-12.34567,rotFormula:"-12.34567",clr:39.998977876168375},
     {type:"LINE",L:50.4,LFormula:"50.4"}
   ];
 
@@ -169,17 +169,27 @@ test("A37: bend CLR rounds to whole mm and every bend angle rounds to two decima
   assert.equal(bends[0].clr,15);
   assert.equal(bends[0].angle,90);
   assert.equal(bends[0].angleFormula,"90.00");
+  assert.equal(bends[0].rot,45);
+  assert.equal(bends[0].rotFormula,"45.00");
 
   assert.equal(bends[1].clr,40);
   assert.equal(bends[1].angle,3.04);
   assert.equal(bends[1].angleFormula,"3.04");
+  assert.equal(bends[1].rot,-12.35);
+  assert.equal(bends[1].rotFormula,"-12.35");
 
   assert.equal(result.normalization.bend_angle_decimal_places,2);
   assert.equal(result.normalization.bend_angle_rule,"nearest_0_01_degree");
+  assert.equal(result.normalization.bend_rotation_decimal_places,2);
+  assert.equal(result.normalization.bend_rotation_rule,"nearest_0_01_degree");
   assert.equal(result.normalization.bend_radius_rule,"nearest_whole_mm_half_away_from_zero");
   assert.equal(result.normalization.angle_changes.length,2);
+  assert.equal(result.normalization.rotation_changes.length,2);
   assert.equal(result.angle_changed_count,2);
+  assert.equal(result.rotation_changed_count,2);
   assert.equal(result.tube.importValidation.bendRadiiRoundedToWholeMm,true);
   assert.equal(result.tube.importValidation.bendAnglesRoundedToDecimals,true);
   assert.equal(result.tube.importValidation.bendAngleDecimalPlaces,2);
+  assert.equal(result.tube.importValidation.bendRotationsRoundedToDecimals,true);
+  assert.equal(result.tube.importValidation.bendRotationDecimalPlaces,2);
 });
