@@ -370,6 +370,60 @@ const passiveBendCall = "      const b=makePassiveBend(pos,dir,plane,angle,bendR
 if(!output.includes(passiveBendCall))throw new Error("passive bend call anchor missing");
 output=output.replace(passiveBendCall,"      const b=makePassiveBend(pos,dir,plane,angle,bendR,tubeR,getBendRotationValue(r),PASSIVE_TUBE_OPACITY,tube,rowIndex);");
 
+const fixedEndCommandAnchor =
+  "function tbModelCommand(label,mutate){\n"+
+  "  if(typeof mutate!=='function')throw new TypeError('Model command requires a mutator');\n"+
+  "  if(typeof poReadOnly==='function'&&poReadOnly()){\n"+
+  "    ptToast('Проект открыт только для просмотра');\n"+
+  "    tbHistoryUpdateUi();\n"+
+  "    return false;\n"+
+  "  }\n"+
+  "  if(tbHistory.applying||tbHistory.transaction)return mutate();\n"+
+  "  const token=tbHistoryBegin(label);\n"+
+  "  try{\n"+
+  "    const result=mutate();\n"+
+  "    if(result===false){tbHistoryCancel(token);return false;}\n"+
+  "    tbHistoryCommit(token);\n"+
+  "    return result===undefined?true:result;\n"+
+  "  }catch(error){\n"+
+  "    tbHistoryCancel(token);\n"+
+  "    throw error;\n"+
+  "  }\n"+
+  "}";
+if(!output.includes(fixedEndCommandAnchor)){
+  throw new Error("tbModelCommand fixed-end anchor was not found");
+}
+output=output.replace(
+  fixedEndCommandAnchor,
+  "function tbModelCommand(label,mutate){\n"+
+  "  if(typeof mutate!=='function')throw new TypeError('Model command requires a mutator');\n"+
+  "  if(typeof poReadOnly==='function'&&poReadOnly()){\n"+
+  "    ptToast('Проект открыт только для просмотра');\n"+
+  "    tbHistoryUpdateUi();\n"+
+  "    return false;\n"+
+  "  }\n"+
+  "  if(tbHistory.applying||tbHistory.transaction)return mutate();\n"+
+  "  const token=tbHistoryBegin(label);\n"+
+  "  const fixedEndGuard=window.TubeBenderEngineering?.captureFixedEndConstraint?.()??null;\n"+
+  "  try{\n"+
+  "    const result=mutate();\n"+
+  "    if(result===false){tbHistoryCancel(token);return false;}\n"+
+  "    const fixedEndResult=fixedEndGuard?window.TubeBenderEngineering?.enforceFixedEndConstraint?.(fixedEndGuard):null;\n"+
+  "    if(fixedEndResult?.ok===false){\n"+
+  "      tbHistoryCancel(token);\n"+
+  "      if(token?.before)tbHistoryRestore(token.before);\n"+
+  "      ptToast(fixedEndResult.message||'Изменение отменено: зафиксированный конец трубы должен оставаться неподвижным');\n"+
+  "      return false;\n"+
+  "    }\n"+
+  "    tbHistoryCommit(token);\n"+
+  "    if(fixedEndResult?.adjustedRows?.length){try{syncActiveTubeFromState();save();renderAll();}catch{}}\n"+
+  "    return result===undefined?true:result;\n"+
+  "  }catch(error){\n"+
+  "    tbHistoryCancel(token);\n"+
+  "    throw error;\n"+
+  "  }\n"+
+  "}"
+);
 const bendRotationCommitAnchor =
   "function commitBendRotationInput(input){\n"+
   "  if (!input) return false;\n"+
