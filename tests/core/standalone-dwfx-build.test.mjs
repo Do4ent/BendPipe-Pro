@@ -538,3 +538,30 @@ test("A62: standalone applies active technology radii after DWFx recognition",()
   assert.match(html,/technological_radius_blocked_count/);
   assert.match(html,/od_tolerance_mm:0\.02/);
 });
+
+
+test("A63: invalid tube elements are red in text UI and 3D",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/function tubeRowValidationIssues\(tube,rowIndex\)/);
+  assert.match(html,/function tubeRowIsInvalid\(rowIndex,tube=activeTube\(\)\)/);
+  assert.match(html,/Прямой участок короче Lmin/);
+  assert.match(html,/Некорректный угол гиба/);
+  assert.match(html,/Некорректный радиус гиба/);
+  assert.match(html,/не соответствует технологическому R/);
+  assert.match(html,/Элемент нарушает габаритную рамку или зазор 5 мм/);
+  assert.match(html,/Элемент участвует в пересечении/);
+
+  assert.match(html,/const invalid = tubeRowIsInvalid\(rowIndex,activeTube\(\)\)/);
+  assert.match(html,/const displayColor=invalid\?0xff3b30:tubeElementDisplayColor/);
+  assert.match(html,/passiveTubeMaterial\(color=PASSIVE_TUBE_COLOR,opacity=PASSIVE_TUBE_OPACITY,invalid=false\)/);
+  assert.match(html,/tubeRowIsInvalid\(rowIndex,tube\)/);
+
+  assert.match(html,/tb-invalid-tube-element/);
+  assert.match(html,/color:#ff4c4c!important/);
+  assert.match(html,/invalidIssues=tubeRowValidationIssues\(activeTube\(\),rowIndex\)/);
+  assert.match(html,/\[data-tree-row\],\[data-tree-assembly-part\]/);
+});
