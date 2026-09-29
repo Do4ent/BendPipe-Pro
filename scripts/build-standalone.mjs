@@ -235,6 +235,53 @@ output=output.replace(
   "}"
 );
 
+
+const bendRotationCommitAnchor =
+\`function commitBendRotationInput(input){
+  if (!input) return false;
+  const rowIndex = Number(input.dataset.rowIndex);
+  const row = state.rows[rowIndex];
+  if (!row || row.type !== 'BEND') return false;
+  const val = evalFormula(input.value, NaN);
+  const ok = Number.isFinite(val);
+  setInputValidity(input, ok);
+  if (!ok) return false;
+  const before = analyzePipeBounds();
+  const oldRot = row.rot, oldFormula = row.rotFormula;
+  row.rotFormula = String(input.value ?? '').trim();
+  row.rot = Number(val.toFixed(6));
+  if (!validatePipeBounds(input, state.rows, state.diameterIndex, before)) { row.rot = oldRot; row.rotFormula = oldFormula; return false; }
+  save();
+  renderAll();
+  return true;
+}\`;
+if(!output.includes(bendRotationCommitAnchor)){
+  throw new Error("commitBendRotationInput anchor was not found");
+}
+output=output.replace(
+  bendRotationCommitAnchor,
+\`function commitBendRotationInput(input){
+  if (!input) return false;
+  const rowIndex = Number(input.dataset.rowIndex);
+  const row = state.rows[rowIndex];
+  if (!row || row.type !== 'BEND') return false;
+  const sourceVal = evalFormula(input.value, NaN);
+  const ok = Number.isFinite(sourceVal);
+  setInputValidity(input, ok);
+  if (!ok) return false;
+  const val = Number(sourceVal.toFixed(2));
+  const before = analyzePipeBounds();
+  const oldRot = row.rot, oldFormula = row.rotFormula;
+  row.rotFormula = val.toFixed(2);
+  row.rot = val;
+  input.value = row.rotFormula;
+  if (!validatePipeBounds(input, state.rows, state.diameterIndex, before)) { row.rot = oldRot; row.rotFormula = oldFormula; return false; }
+  save();
+  renderAll();
+  return true;
+}\`
+);
+
 const importedToolingGuardSort =
   "  for(const t of allTubeRecords()){\n    if(!t.toolingId){\n      const legacy=pipeDb[Number(t.diameterIndex)];\n      if(legacy?.id)t.toolingId=legacy.id;\n    }\n  }";
 if (!output.includes(importedToolingGuardSort)) {
