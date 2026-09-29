@@ -247,3 +247,24 @@ test("A60: project tree is decorated as a classic TreeView",()=>{
   assert.match(source,/border-top:1px solid rgba\(128,151,178,.38\)/);
   assert.match(source,/decorateProjectTreeAsTreeView\(\);[\s\S]*updateTreeSelectionStyles\(\);/);
 });
+
+
+test("A61: reference deletion prompts only for changed frame dimensions and preserves world placement",()=>{
+  const source=fs.readFileSync(
+    path.join(root,"src","ui","object-selection-context-ui.js"),
+    "utf8"
+  );
+
+  assert.match(source,/previewDeleteFrame\?\.\(p\)/);
+  assert.match(source,/function shouldApplyReferenceFrame\(projectValue,preview\)/);
+  assert.match(source,/const dimensionsChanged=frameChanged\(current,next\)/);
+  assert.match(source,/if\(!dimensionsChanged\)return true/);
+  assert.match(source,/window\.confirm\(message\)/);
+  assert.match(source,/Текущая: /);
+  assert.match(source,/Новая: /);
+  assert.match(source,/function applyReferenceFrame\(projectValue,frame\)/);
+  assert.match(source,/x:oldOffset\.x-nextOffset\.x/);
+  assert.match(source,/physical_world_position_preserved:true/);
+  assert.match(source,/projectValue\.bbox=\{\.\.\.frame\.bbox\}/);
+  assert.match(source,/projectValue\.coordinateOffset=\{\.\.\.nextOffset\}/);
+});
