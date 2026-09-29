@@ -534,8 +534,7 @@ test("A62: standalone applies active technology radii after DWFx recognition",()
   assert.match(html,/normalizeImportedProjectBendRadiiToTechnology/);
   assert.match(html,/technological_radius_normalized_count/);
   assert.match(html,/technological_radius_changed_count/);
-  assert.match(html,/technology_table_normalization/);
-  assert.match(html,/single_common_nearest_available_radius_minimax/);
-  assert.match(html,/tooling_selected:false/);
-  assert.match(html,/source_geometry_preserved:true/);
+  assert.match(html,/technological_radius_unresolved_count/);
+  assert.match(html,/technological_radius_blocked_count/);
+  assert.match(html,/od_tolerance_mm:0\.02/);
 });
