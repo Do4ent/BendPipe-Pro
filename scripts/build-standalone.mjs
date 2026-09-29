@@ -237,49 +237,49 @@ output=output.replace(
 
 
 const bendRotationCommitAnchor =
-\`function commitBendRotationInput(input){
-  if (!input) return false;
-  const rowIndex = Number(input.dataset.rowIndex);
-  const row = state.rows[rowIndex];
-  if (!row || row.type !== 'BEND') return false;
-  const val = evalFormula(input.value, NaN);
-  const ok = Number.isFinite(val);
-  setInputValidity(input, ok);
-  if (!ok) return false;
-  const before = analyzePipeBounds();
-  const oldRot = row.rot, oldFormula = row.rotFormula;
-  row.rotFormula = String(input.value ?? '').trim();
-  row.rot = Number(val.toFixed(6));
-  if (!validatePipeBounds(input, state.rows, state.diameterIndex, before)) { row.rot = oldRot; row.rotFormula = oldFormula; return false; }
-  save();
-  renderAll();
-  return true;
-}\`;
+  "function commitBendRotationInput(input){\n"+
+  "  if (!input) return false;\n"+
+  "  const rowIndex = Number(input.dataset.rowIndex);\n"+
+  "  const row = state.rows[rowIndex];\n"+
+  "  if (!row || row.type !== 'BEND') return false;\n"+
+  "  const val = evalFormula(input.value, NaN);\n"+
+  "  const ok = Number.isFinite(val);\n"+
+  "  setInputValidity(input, ok);\n"+
+  "  if (!ok) return false;\n"+
+  "  const before = analyzePipeBounds();\n"+
+  "  const oldRot = row.rot, oldFormula = row.rotFormula;\n"+
+  "  row.rotFormula = String(input.value ?? '').trim();\n"+
+  "  row.rot = Number(val.toFixed(6));\n"+
+  "  if (!validatePipeBounds(input, state.rows, state.diameterIndex, before)) { row.rot = oldRot; row.rotFormula = oldFormula; return false; }\n"+
+  "  save();\n"+
+  "  renderAll();\n"+
+  "  return true;\n"+
+  "}";
 if(!output.includes(bendRotationCommitAnchor)){
   throw new Error("commitBendRotationInput anchor was not found");
 }
 output=output.replace(
   bendRotationCommitAnchor,
-\`function commitBendRotationInput(input){
-  if (!input) return false;
-  const rowIndex = Number(input.dataset.rowIndex);
-  const row = state.rows[rowIndex];
-  if (!row || row.type !== 'BEND') return false;
-  const sourceVal = evalFormula(input.value, NaN);
-  const ok = Number.isFinite(sourceVal);
-  setInputValidity(input, ok);
-  if (!ok) return false;
-  const val = Number(sourceVal.toFixed(2));
-  const before = analyzePipeBounds();
-  const oldRot = row.rot, oldFormula = row.rotFormula;
-  row.rotFormula = val.toFixed(2);
-  row.rot = val;
-  input.value = row.rotFormula;
-  if (!validatePipeBounds(input, state.rows, state.diameterIndex, before)) { row.rot = oldRot; row.rotFormula = oldFormula; return false; }
-  save();
-  renderAll();
-  return true;
-}\`
+  "function commitBendRotationInput(input){\n"+
+  "  if (!input) return false;\n"+
+  "  const rowIndex = Number(input.dataset.rowIndex);\n"+
+  "  const row = state.rows[rowIndex];\n"+
+  "  if (!row || row.type !== 'BEND') return false;\n"+
+  "  const sourceVal = evalFormula(input.value, NaN);\n"+
+  "  const ok = Number.isFinite(sourceVal);\n"+
+  "  setInputValidity(input, ok);\n"+
+  "  if (!ok) return false;\n"+
+  "  const val = Number(sourceVal.toFixed(2));\n"+
+  "  const before = analyzePipeBounds();\n"+
+  "  const oldRot = row.rot, oldFormula = row.rotFormula;\n"+
+  "  row.rotFormula = val.toFixed(2);\n"+
+  "  row.rot = val;\n"+
+  "  input.value = row.rotFormula;\n"+
+  "  if (!validatePipeBounds(input, state.rows, state.diameterIndex, before)) { row.rot = oldRot; row.rotFormula = oldFormula; return false; }\n"+
+  "  save();\n"+
+  "  renderAll();\n"+
+  "  return true;\n"+
+  "}"
 );
 
 const importedToolingGuardSort =
