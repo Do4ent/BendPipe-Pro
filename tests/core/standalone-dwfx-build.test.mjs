@@ -509,3 +509,17 @@ test("A58: left-mouse upward drag rotates the model away from the user",()=>{
     /else this\.rotate\(dx,dy\)/
   );
 });
+
+
+test("A59: bend rotation editor rounds to the same two decimals as bend angle",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/const sourceVal = evalFormula\(input\.value, NaN\)/);
+  assert.match(html,/const val = Number\(sourceVal\.toFixed\(2\)\)/);
+  assert.match(html,/row\.rotFormula = val\.toFixed\(2\)/);
+  assert.match(html,/row\.rot = val/);
+  assert.match(html,/input\.value = row\.rotFormula/);
+});
