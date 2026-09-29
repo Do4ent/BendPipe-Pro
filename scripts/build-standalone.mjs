@@ -370,6 +370,34 @@ const passiveBendCall = "      const b=makePassiveBend(pos,dir,plane,angle,bendR
 if(!output.includes(passiveBendCall))throw new Error("passive bend call anchor missing");
 output=output.replace(passiveBendCall,"      const b=makePassiveBend(pos,dir,plane,angle,bendR,tubeR,getBendRotationValue(r),PASSIVE_TUBE_OPACITY,tube,rowIndex);");
 
+const terminalTubeEndNodeAnchor =
+  "    if ((state.rows || []).length) addNode(pipeGroup,pos,0x43d36b,.105, Math.max(0,(state.rows||[]).length-1), state.rows?.[(state.rows||[]).length-1]?.type || 'LINE');";
+if(!output.includes(terminalTubeEndNodeAnchor)){
+  throw new Error("terminal tube end node anchor was not found");
+}
+output=output.replace(
+  terminalTubeEndNodeAnchor,
+  "    if ((state.rows || []).length){\n"+
+  "      const tubeEndNode=addNode(pipeGroup,pos,activeTube()?.engineering?.ports?.P2?.locked?0xffc247:0x43d36b,.105,Math.max(0,(state.rows||[]).length-1),state.rows?.[(state.rows||[]).length-1]?.type||'LINE');\n"+
+  "      if(tubeEndNode){tubeEndNode.traverse?.(obj=>{obj.userData=obj.userData||{};obj.userData.tubeEnd=true;});tubeEndNode.userData.tubeEnd=true;}\n"+
+  "      if(activeTube()?.engineering?.ports?.P2?.locked)addStaticLabel('⚓',pos.clone().add(new THREE.Vector3(0,0,.28)),'tube-end-fixed');\n"+
+  "    }"
+);
+
+const projectTreeEndAnchor =
+  "  try{\n    const referenceItems=window.TubeBenderReferenceSceneUi?.treeItems?.({";
+if(!output.includes(projectTreeEndAnchor)){
+  throw new Error("project tree tube-end insertion anchor was not found");
+}
+output=output.replace(
+  projectTreeEndAnchor,
+  "  const activeTubeForEnd=(p?.tubes||[]).find(t=>String(t?.id)===String(state.activeTubeId));\n"+
+  "  if(activeTubeForEnd){\n"+
+  "    const endFixed=activeTubeForEnd?.engineering?.ports?.P2?.locked===true;\n"+
+  "    items.push(`<div class=\"tb-tree-node level2 clickable ${endFixed?'tb-tube-end-fixed':''}\" data-tree-end=\"1\"><span class=\"tb-tree-icon\">${endFixed?'⚓':'◎'}</span><span class=\"tb-tree-label\">Конец трубы</span><span class=\"tb-tree-eye\">${endFixed?'зафиксирован':'свободный'}</span></div>`);\n"+
+  "  }\n"+
+  projectTreeEndAnchor
+);
 const p1AlwaysFixedAnchor =
   "if(!e.ports.P1)e.ports.P1={id:id('port'),name:'P1',locked:false,position:deep(t.origin||{x:0,y:0,z:0}),direction:t.startAxis||'+X',diameter:null,endType:'plain',ownerObjectId:'',externalRefId:''};";
 if(!output.includes(p1AlwaysFixedAnchor)){
