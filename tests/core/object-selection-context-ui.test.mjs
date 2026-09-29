@@ -290,3 +290,26 @@ test("A66: invalid tube element context exposes What is wrong diagnosis only for
   assert.match(code,/diagnosis\.issues\.forEach/);
   assert.match(code,/tb-object-issue-marker/);
 });
+
+
+test("A67: tube-end context exposes anchor fix-release action only for the end point",()=>{
+  const code=fs.readFileSync(
+    path.join(root,"src","ui","object-selection-context-ui.js"),
+    "utf8"
+  );
+
+  assert.match(code,/end:"end:"/);
+  assert.match(code,/function endKey\(tubeId\)/);
+  assert.match(code,/kind:"end"/);
+  assert.match(code,/\[data-tree-end\]/);
+  assert.match(code,/data\.tubeEnd&&activeTubeId\(\)/);
+  assert.match(code,/data-object-action="anchor-end"/);
+  assert.match(code,/⚓ <span>Зафиксировать<\/span>/);
+  assert.match(code,/function endConstraintSelection\(entries=selectionEntries\(\)\)/);
+  assert.match(code,/entry\?\.kind!=="end"/);
+  assert.match(code,/function toggleEndConstraint\(\)/);
+  assert.match(code,/api\.setEndConstraint\(selectedEnd\.tube,makeFixed\)/);
+  assert.match(code,/label\.textContent=endSelection\?\.fixed\?"Освободить":"Зафиксировать"/);
+  assert.match(code,/if\(endSelection\)\{[\s\S]*button\.dataset\.objectAction!=="anchor-end"/);
+  assert.match(code,/object\.userData\?\.tubeEnd===true/);
+});
