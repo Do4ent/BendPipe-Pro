@@ -283,8 +283,8 @@ test("A66: invalid tube element context exposes What is wrong diagnosis only for
   assert.match(code,/entry\?\.kind!=="row"/);
   assert.match(code,/typeof tubeRowValidationIssues==="function"/);
   assert.match(code,/if\(!issues\.length\)return null/);
-  assert.match(code,/diagnose\.hidden=!diagnosis/);
-  assert.match(code,/diagnose\.disabled=!diagnosis/);
+  assert.match(code,/diagnose\.hidden=endSelection\|\|!diagnosis/);
+  assert.match(code,/diagnose\.disabled=endSelection\|\|!diagnosis/);
   assert.match(code,/else if\(action==="diagnose"\)openInvalidElementDiagnosis\(\)/);
   assert.match(code,/tb-object-issues-panel/);
   assert.match(code,/diagnosis\.issues\.forEach/);
