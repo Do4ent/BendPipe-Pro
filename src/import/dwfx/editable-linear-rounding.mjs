@@ -42,7 +42,8 @@ export function roundEditableTubeLinearDimensions(
   tube,
   {
     increment_mm=1,
-    bend_angle_decimal_places=BEND_ANGLE_DECIMAL_PLACES
+    bend_angle_decimal_places=BEND_ANGLE_DECIMAL_PLACES,
+    bend_rotation_decimal_places=bend_angle_decimal_places
   }={}
 ){
   if(!tube||typeof tube!=="object")throw new TypeError("tube is required");
@@ -51,6 +52,7 @@ export function roundEditableTubeLinearDimensions(
   let out=clone(tube);
   const changes=[];
   const angleChanges=[];
+  const rotationChanges=[];
   const exactOrigin={
     x:finite(out?.origin?.x??0,"origin.x"),
     y:finite(out?.origin?.y??0,"origin.y"),
@@ -98,6 +100,24 @@ export function roundEditableTubeLinearDimensions(
           increment_deg:angleNormalization.increment_deg
         }));
       }
+
+      const rotationBefore=finite(next.rot??0,"rows["+index+"].rot");
+      const rotationNormalization=roundBendAngleToDecimals(
+        rotationBefore,
+        {decimal_places:bend_rotation_decimal_places}
+      );
+      next.rot=rotationNormalization.editable_angle_deg;
+      next.rotFormula=next.rot.toFixed(bend_rotation_decimal_places);
+      if(rotationNormalization.changed){
+        rotationChanges.push(Object.freeze({
+          path:"rows["+index+"].rot",
+          source_deg:rotationBefore,
+          editable_deg:next.rot,
+          delta_deg:next.rot-rotationBefore,
+          decimal_places:rotationNormalization.decimal_places,
+          increment_deg:rotationNormalization.increment_deg
+        }));
+      }
     }
     return next;
   });
@@ -133,9 +153,10 @@ export function roundEditableTubeLinearDimensions(
       tube:null,
       normalization:null,
       integrity:continuity?.integrity??null,
-      changed_count:changes.length+angleChanges.length,
+      changed_count:changes.length+angleChanges.length+rotationChanges.length,
       linear_changed_count:changes.length,
       angle_changed_count:angleChanges.length,
+      rotation_changed_count:rotationChanges.length,
       blocker:
         continuity?.blocker??
         "Rounded editable tube failed post-normalization continuity repair.",
@@ -153,7 +174,9 @@ export function roundEditableTubeLinearDimensions(
     bend_angle_decimal_places:Number(bend_angle_decimal_places),
     source_geometry_preserved:true,
     angles_unchanged:angleChanges.length===0,
-    rotations_unchanged:true,
+    bend_rotation_rule:"nearest_0_01_degree",
+    bend_rotation_decimal_places:Number(bend_rotation_decimal_places),
+    rotations_unchanged:rotationChanges.length===0,
     table_diameter_unchanged:true,
     machine_compensation_applied:false,
     source_origin_mm:Object.freeze([
@@ -163,7 +186,8 @@ export function roundEditableTubeLinearDimensions(
       roundedOrigin.x,roundedOrigin.y,roundedOrigin.z
     ]),
     changes:Object.freeze(changes),
-    angle_changes:Object.freeze(angleChanges)
+    angle_changes:Object.freeze(angleChanges),
+    rotation_changes:Object.freeze(rotationChanges)
   });
 
   out.importEvidence={
@@ -177,7 +201,9 @@ export function roundEditableTubeLinearDimensions(
     linearDimensionIncrementMm:Number(increment_mm),
     bendRadiiRoundedToWholeMm:true,
     bendAnglesRoundedToDecimals:true,
-    bendAngleDecimalPlaces:Number(bend_angle_decimal_places)
+    bendAngleDecimalPlaces:Number(bend_angle_decimal_places),
+    bendRotationsRoundedToDecimals:true,
+    bendRotationDecimalPlaces:Number(bend_rotation_decimal_places)
   };
 
   return Object.freeze({
@@ -185,9 +211,10 @@ export function roundEditableTubeLinearDimensions(
     tube:out,
     normalization,
     integrity:continuity.integrity,
-    changed_count:changes.length+angleChanges.length,
+    changed_count:changes.length+angleChanges.length+rotationChanges.length,
     linear_changed_count:changes.length,
     angle_changed_count:angleChanges.length,
+    rotation_changed_count:rotationChanges.length,
     production_ready:false
   });
 }
@@ -196,7 +223,8 @@ export function roundDwfxAssemblyLinearDimensions(
   assembly,
   {
     increment_mm=1,
-    bend_angle_decimal_places=BEND_ANGLE_DECIMAL_PLACES
+    bend_angle_decimal_places=BEND_ANGLE_DECIMAL_PLACES,
+    bend_rotation_decimal_places=bend_angle_decimal_places
   }={}
 ){
   if(!assembly||typeof assembly!=="object")throw new TypeError("assembly is required");
@@ -205,7 +233,8 @@ export function roundDwfxAssemblyLinearDimensions(
   const results=assembly.tubes.map((tube)=>
     roundEditableTubeLinearDimensions(tube,{
       increment_mm,
-      bend_angle_decimal_places
+      bend_angle_decimal_places,
+      bend_rotation_decimal_places
     })
   );
   const blocked=results
@@ -233,6 +262,7 @@ export function roundDwfxAssemblyLinearDimensions(
       status:"rounded",
       increment_mm:Number(increment_mm),
       bend_angle_decimal_places:Number(bend_angle_decimal_places),
+      bend_rotation_decimal_places:Number(bend_rotation_decimal_places),
       tube_count:results.length,
       changed_count:results.reduce((sum,result)=>sum+result.changed_count,0),
       linear_changed_count:results.reduce(
@@ -240,6 +270,9 @@ export function roundDwfxAssemblyLinearDimensions(
       ),
       angle_changed_count:results.reduce(
         (sum,result)=>sum+result.angle_changed_count,0
+      ),
+      rotation_changed_count:results.reduce(
+        (sum,result)=>sum+result.rotation_changed_count,0
       ),
       source_geometry_preserved:true,
       production_ready:false
