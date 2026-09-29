@@ -268,3 +268,25 @@ test("A61: reference deletion prompts only for changed frame dimensions and pres
   assert.match(source,/projectValue\.bbox=\{\.\.\.frame\.bbox\}/);
   assert.match(source,/projectValue\.coordinateOffset=\{\.\.\.nextOffset\}/);
 });
+
+
+test("A66: invalid tube element context exposes What is wrong diagnosis only for bad rows",()=>{
+  const code=fs.readFileSync(
+    path.join(root,"src","ui","object-selection-context-ui.js"),
+    "utf8"
+  );
+
+  assert.match(code,/data-object-action="diagnose"/);
+  assert.match(code,/Что не правильно\?/);
+  assert.match(code,/function invalidElementDiagnosis\(entries=selectionEntries\(\)\)/);
+  assert.match(code,/entries\.length!==1/);
+  assert.match(code,/entry\?\.kind!=="row"/);
+  assert.match(code,/typeof tubeRowValidationIssues==="function"/);
+  assert.match(code,/if\(!issues\.length\)return null/);
+  assert.match(code,/diagnose\.hidden=!diagnosis/);
+  assert.match(code,/diagnose\.disabled=!diagnosis/);
+  assert.match(code,/else if\(action==="diagnose"\)openInvalidElementDiagnosis\(\)/);
+  assert.match(code,/tb-object-issues-panel/);
+  assert.match(code,/diagnosis\.issues\.forEach/);
+  assert.match(code,/tb-object-issue-marker/);
+});
