@@ -9,6 +9,7 @@
     ref:"ref:",
     tube:"tube:",
     row:"row:",
+    end:"end:",
     assembly:"assembly:"
   };
 
@@ -16,6 +17,7 @@
   function dec(value){try{return decodeURIComponent(String(value??""));}catch{return String(value??"");}}
   function refKey(sceneId,nodeId){return PREFIX.ref+enc(sceneId)+":"+enc(nodeId);}
   function tubeKey(tubeId){return PREFIX.tube+enc(tubeId);}
+  function endKey(tubeId){return PREFIX.end+enc(tubeId);}
   function rowKey(tubeId,rowIndex){return PREFIX.row+enc(tubeId)+":"+String(Number(rowIndex));}
   function assemblyKey(tubeId,assemblyId){return PREFIX.assembly+enc(tubeId)+":"+enc(assemblyId);}
 
@@ -35,6 +37,9 @@
       const split=body.indexOf(":");
       if(split<0)return null;
       return {kind:"row",tubeId:dec(body.slice(0,split)),rowIndex:Number(body.slice(split+1))};
+    }
+    if(text.startsWith(PREFIX.end)){
+      return {kind:"end",tubeId:dec(text.slice(PREFIX.end.length))};
     }
     if(text.startsWith(PREFIX.assembly)){
       const body=text.slice(PREFIX.assembly.length);
@@ -135,6 +140,9 @@
     if(row.matches?.("[data-tree-row]")){
       return rowKey(activeTubeId(),Number(row.dataset.treeRow));
     }
+    if(row.matches?.("[data-tree-end]")){
+      return endKey(activeTubeId());
+    }
     if(row.matches?.("[data-tree-assembly]")){
       return assemblyKey(activeTubeId(),row.dataset.treeAssembly);
     }
@@ -152,7 +160,7 @@
 
   function treeRowFromTarget(target){
     return target?.closest?.(
-      "[data-ref-node],[data-tree-tube],[data-tree-row],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
+      "[data-ref-node],[data-tree-tube],[data-tree-row],[data-tree-end],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
     )??null;
   }
 
@@ -196,6 +204,9 @@
           key:refKey(data.referenceSceneId,data.referenceNodeId),
           entry:{kind:"ref",sceneId:String(data.referenceSceneId),nodeId:String(data.referenceNodeId)}
         };
+      }
+      if(data.tubeEnd&&activeTubeId()){
+        return {key:endKey(activeTubeId()),entry:{kind:"end",tubeId:activeTubeId()}};
       }
       if(data.tubeId)passiveTubeId=String(data.tubeId);
       if(data.originPoint)origin=true;
@@ -379,7 +390,7 @@
     const host=document.getElementById("tbProjectTree");
     if(!host||!key)return null;
     for(const row of host.querySelectorAll(
-      "[data-ref-node],[data-tree-tube],[data-tree-row],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
+      "[data-ref-node],[data-tree-tube],[data-tree-row],[data-tree-end],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
     )){
       if(keyForTreeRow(row)===key)return row;
     }
