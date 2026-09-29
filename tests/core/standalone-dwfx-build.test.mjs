@@ -614,3 +614,31 @@ test("A65: short start and end straights use removable technological allowances 
   assert.match(html,/Номинальные размеры готовой детали не изменены/);
   assert.match(html,/Припуски карты гибки/);
 });
+
+
+test("A67: tube end is selectable and can be fixed as a persistent P2 constraint",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+
+  assert.match(html,/data-tree-end="1"/);
+  assert.match(html,/Конец трубы/);
+  assert.match(html,/tubeEnd=true/);
+  assert.match(html,/addStaticLabel\('⚓'/);
+
+  assert.match(html,/name:'P1',locked:true/);
+  assert.match(html,/e\.ports\.P1\.locked=true/);
+  assert.match(html,/Начальная точка всегда зафиксирована/);
+
+  assert.match(html,/function captureFixedEndConstraint\(t=activeTube\(\)\)/);
+  assert.match(html,/function enforceFixedEndConstraint\(guard\)/);
+  assert.match(html,/function setEndConstraint\(tubeOrId,fixed=true\)/);
+  assert.match(html,/fixedEndGuard:window\.TubeBenderEngineering\?\.captureFixedEndConstraint/);
+  assert.match(html,/enforceFixedEndConstraint\?\.\(token\.fixedEndGuard\)/);
+  assert.match(html,/зафиксированный конец трубы должен оставаться неподвижным/);
+  assert.match(html,/нет свободного прямого участка для сохранения зафиксированного конца/);
+  assert.match(html,/недостаточно степеней свободы для сохранения конца/);
+
+  assert.match(html,/geometryForTube,captureFixedEndConstraint,enforceFixedEndConstraint,setEndConstraint/);
+});
