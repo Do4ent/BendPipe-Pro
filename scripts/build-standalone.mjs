@@ -107,7 +107,10 @@ output=output.replace(
   ".tb-invalid-tube-element,.tb-invalid-tube-element .tb-tree-label,.tb-invalid-tube-element .tb-tree-icon,.tb-invalid-tube-element .tb-tree-eye,.label3d.tb-invalid-tube-element,.label3d.tb-invalid-tube-element .direct-display-value,.route-chip.tb-invalid-tube-element{color:#ff4c4c!important}"+
   ".tb-invalid-tube-element .direct-degree-symbol{color:#ff4c4c!important}"+
   ".tb-tree-node.tb-invalid-tube-element{background:rgba(255,76,76,.08)!important}"+
-  ".label3d.tb-invalid-tube-element{box-shadow:0 0 0 1px rgba(255,76,76,.70)!important}"
+  ".label3d.tb-invalid-tube-element{box-shadow:0 0 0 1px rgba(255,76,76,.70)!important}"+
+  ".tb-tube-status-dot{width:9px;height:9px;min-width:9px;border-radius:50%;display:inline-block;margin:0 6px 0 1px;box-sizing:border-box;box-shadow:0 0 0 1px rgba(255,255,255,.18),0 0 5px currentColor;vertical-align:middle;flex:0 0 9px}"+
+  ".tb-tube-status-dot.ok{background:#43d36b;color:#43d36b}"+
+  ".tb-tube-status-dot.problem{background:#ff4c4c;color:#ff4c4c}"
 );
 
 const importedTubeBodyColor=0xc77738;
@@ -205,7 +208,21 @@ output=output.replace(
   "  }catch{}\n"+
   "  return [...new Set(issues)];\n"+
   "}\n"+
-  "function tubeRowIsInvalid(rowIndex,tube=activeTube()){ return tubeRowValidationIssues(tube,rowIndex).length>0; }"
+  "function tubeRowIsInvalid(rowIndex,tube=activeTube()){ return tubeRowValidationIssues(tube,rowIndex).length>0; }\n"+
+  "function tubeValidationSummary(tube){\n"+
+  "  const rows=tube?.rows??(tube?.id===state.activeTubeId?state.rows:[]);\n"+
+  "  if(!Array.isArray(rows)||rows.length===0){\n"+
+  "    return {valid:false,invalidRowCount:0,issueCount:1,issues:['У трубы нет элементов']};\n"+
+  "  }\n"+
+  "  let invalidRowCount=0,issueCount=0;const issues=[];\n"+
+  "  rows.forEach((row,index)=>{\n"+
+  "    const rowIssues=tubeRowValidationIssues(tube,index);\n"+
+  "    if(!rowIssues.length)return;\n"+
+  "    invalidRowCount+=1;issueCount+=rowIssues.length;\n"+
+  "    rowIssues.forEach(issue=>issues.push('Элемент '+(index+1)+': '+issue));\n"+
+  "  });\n"+
+  "  return {valid:invalidRowCount===0,invalidRowCount,issueCount,issues};\n"+
+  "}"
 );
 
 const tubeInvalidAnchor =
@@ -1430,6 +1447,20 @@ if(!output.includes(invalidTreeRowsAnchor)){
 }
 output=output.replace(
   invalidTreeRowsAnchor,
+  "  host.querySelectorAll('[data-tree-tube]').forEach(n=>{\n"+
+  "    const tube=(p?.tubes??[]).find(item=>String(item?.id)===String(n.dataset.treeTube));\n"+
+  "    if(!tube)return;\n"+
+  "    const summary=tubeValidationSummary(tube);\n"+
+  "    const label=n.querySelector('.tb-tree-label');\n"+
+  "    const dot=document.createElement('span');\n"+
+  "    dot.className='tb-tube-status-dot '+(summary.valid?'ok':'problem');\n"+
+  "    dot.dataset.tubeStatus=summary.valid?'ok':'problem';\n"+
+  "    dot.setAttribute('aria-label',summary.valid?'Все элементы трубы корректны':'Есть проблемные элементы трубы');\n"+
+  "    dot.title=summary.valid\n"+
+  "      ?'Все элементы трубы корректны'\n"+
+  "      :'Проблемных элементов: '+summary.invalidRowCount+(summary.issues.length?'\\n'+summary.issues.join('\\n'):'');\n"+
+  "    if(label)n.insertBefore(dot,label);else n.appendChild(dot);\n"+
+  "  });\n"+
   "  host.querySelectorAll('[data-tree-row],[data-tree-assembly-part]').forEach(n=>{\n"+
   "    const rowIndex=Number(n.dataset.treeRow??n.dataset.treeRowRef);\n"+
   "    if(!Number.isInteger(rowIndex)||rowIndex<0)return;\n"+
