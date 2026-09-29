@@ -228,3 +228,22 @@ test("A59: Show All restores all editable and reference visibility from tree or 
   assert.match(code,/source:"3d",allowEmpty:true,selectionAvailable:false/);
   assert.match(code,/source:"tree",allowEmpty:true,selectionAvailable:false/);
 });
+
+
+test("A60: project tree is decorated as a classic TreeView",()=>{
+  const source=fs.readFileSync(
+    path.join(root,"src","ui","object-selection-context-ui.js"),
+    "utf8"
+  );
+
+  assert.match(source,/function decorateProjectTreeAsTreeView\(\)/);
+  assert.match(source,/host\.setAttribute\("role","tree"\)/);
+  assert.match(source,/row\.setAttribute\("role","treeitem"\)/);
+  assert.match(source,/row\.setAttribute\("aria-level",String\(depth\+1\)\)/);
+  assert.match(source,/tb-project-treeview/);
+  assert.match(source,/tb-treeview-row/);
+  assert.match(source,/data-treeview-depth/);
+  assert.match(source,/border-left:1px solid rgba\(128,151,178,.38\)/);
+  assert.match(source,/border-top:1px solid rgba\(128,151,178,.38\)/);
+  assert.match(source,/decorateProjectTreeAsTreeView\(\);[\s\S]*updateTreeSelectionStyles\(\);/);
+});
