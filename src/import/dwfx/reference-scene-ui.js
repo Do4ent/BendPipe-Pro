@@ -606,6 +606,17 @@
     return selectedTop.length;
   }
 
+  function showAll(project){
+    let changed=0;
+    for(const scene of project?.referenceScenes??[]){
+      if(scene?.visible===false)changed+=1;
+      if(Array.isArray(scene?.hiddenNodeIds)&&scene.hiddenNodeIds.length)changed+=scene.hiddenNodeIds.length;
+      scene.visible=true;
+      scene.hiddenNodeIds=[];
+    }
+    return changed;
+  }
+
   function applyBulkTransparency(project){
     const entries=selectedEntries(project);
     if(!entries.length)return;
@@ -1085,6 +1096,7 @@
     moveSelection,
     clearSelection,
     isolateSelection,
+    showAll,
     applyBulkAction,
     applyModifierSelection,
     selectedCount,
