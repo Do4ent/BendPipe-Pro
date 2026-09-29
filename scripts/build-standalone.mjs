@@ -370,6 +370,35 @@ const passiveBendCall = "      const b=makePassiveBend(pos,dir,plane,angle,bendR
 if(!output.includes(passiveBendCall))throw new Error("passive bend call anchor missing");
 output=output.replace(passiveBendCall,"      const b=makePassiveBend(pos,dir,plane,angle,bendR,tubeR,getBendRotationValue(r),PASSIVE_TUBE_OPACITY,tube,rowIndex);");
 
+const p1AlwaysFixedAnchor =
+  "if(!e.ports.P1)e.ports.P1={id:id('port'),name:'P1',locked:false,position:deep(t.origin||{x:0,y:0,z:0}),direction:t.startAxis||'+X',diameter:null,endType:'plain',ownerObjectId:'',externalRefId:''};";
+if(!output.includes(p1AlwaysFixedAnchor)){
+  throw new Error("P1 default anchor was not found");
+}
+output=output.replace(
+  p1AlwaysFixedAnchor,
+  "if(!e.ports.P1)e.ports.P1={id:id('port'),name:'P1',locked:true,position:deep(t.origin||{x:0,y:0,z:0}),direction:t.startAxis||'+X',diameter:null,endType:'plain',ownerObjectId:'',externalRefId:''};e.ports.P1.locked=true;"
+);
+
+const p1RouteSyncAnchor =
+  "if(e.ports?.P1&&!e.ports.P1.locked){e.ports.P1.position=deep(t.origin||state.origin);e.ports.P1.direction=t.startAxis||state.startAxis||'+X';}";
+if(!output.includes(p1RouteSyncAnchor)){
+  throw new Error("P1 route sync anchor was not found");
+}
+output=output.replace(
+  p1RouteSyncAnchor,
+  "if(e.ports?.P1){e.ports.P1.locked=true;e.ports.P1.position=deep(t.origin||state.origin);e.ports.P1.direction=t.startAxis||state.startAxis||'+X';}"
+);
+
+const p1SaveLockAnchor =
+  "q.locked=!!E(`engPort_${k}_locked`)?.checked;";
+if(!output.includes(p1SaveLockAnchor)){
+  throw new Error("port lock save anchor was not found");
+}
+output=output.replace(
+  p1SaveLockAnchor,
+  "q.locked=k==='P1'?true:!!E(`engPort_${k}_locked`)?.checked;"
+);
 const fixedEndCommandAnchor =
   "function tbModelCommand(label,mutate){\n"+
   "  if(typeof mutate!=='function')throw new TypeError('Model command requires a mutator');\n"+
