@@ -1473,6 +1473,282 @@ output=output.replace(
 
 
 
+
+
+/* A65: end straight segments may be shorter than Lmin.
+   Manufacturing/bending-card data adds explicit removable technological
+   allowances without changing the nominal finished-part geometry. */
+const endStraightHelperAnchor =
+  "function minStraight(){\n"+
+  "  const p=pipe();\n"+
+  "  const technologicalLmin=Number(p?.Lmin);\n"+
+  "  return Number.isFinite(technologicalLmin)&&technologicalLmin>=0 ? technologicalLmin : 0;\n"+
+  "}";
+if(!output.includes(endStraightHelperAnchor)){
+  throw new Error("minStraight helper anchor was not found");
+}
+output=output.replace(
+  endStraightHelperAnchor,
+  endStraightHelperAnchor+"\n"+
+  "function straightRowIndexes(rows){\n"+
+  "  const out=[];\n"+
+  "  (Array.isArray(rows)?rows:[]).forEach((row,index)=>{if(row?.type==='LINE')out.push(index);});\n"+
+  "  return out;\n"+
+  "}\n"+
+  "function isEndStraightRowIndex(rows,rowIndex){\n"+
+  "  const indexes=straightRowIndexes(rows);\n"+
+  "  const index=Number(rowIndex);\n"+
+  "  return indexes.length>0&&(index===indexes[0]||index===indexes[indexes.length-1]);\n"+
+  "}\n"+
+  "function technologicalEndAllowancePlan(tube=activeTube(),options={}){\n"+
+  "  const rows=tube?.id===state.activeTubeId?(state.rows||[]):(tube?.rows||[]);\n"+
+  "  const indexes=straightRowIndexes(rows);\n"+
+  "  const firstIndex=indexes[0]??-1,lastIndex=indexes.length?indexes[indexes.length-1]:-1;\n"+
+  "  const firstActual=firstIndex>=0?Math.max(0,Number(rows[firstIndex]?.L)||0):0;\n"+
+  "  const lastActual=lastIndex>=0?Math.max(0,Number(rows[lastIndex]?.L)||0):0;\n"+
+  "  const tool=pipeAt(tube?.diameterIndex)??{};\n"+
+  "  const nonNegative=value=>{const n=Number(value);return Number.isFinite(n)&&n>0?n:0;};\n"+
+  "  const tableLmin=nonNegative(tool?.Lmin);\n"+
+  "  const styleLmin=nonNegative(options?.minimumStraight);\n"+
+  "  const clampMin=nonNegative(options?.clampMin);\n"+
+  "  const hasBends=(rows||[]).some(row=>row?.type==='BEND');\n"+
+  "  const minFeed=hasBends?nonNegative(options?.minFeed):0;\n"+
+  "  const startRequired=Math.max(tableLmin,styleLmin,clampMin,minFeed);\n"+
+  "  const endRequired=Math.max(tableLmin,styleLmin,clampMin);\n"+
+  "  const startAllowance=Math.max(0,startRequired-firstActual);\n"+
+  "  const endAllowance=Math.max(0,endRequired-lastActual);\n"+
+  "  return {\n"+
+  "    firstRowIndex:firstIndex,lastRowIndex:lastIndex,\n"+
+  "    firstActual,lastActual,startRequired,endRequired,\n"+
+  "    startAllowance,endAllowance,totalAllowance:startAllowance+endAllowance,\n"+
+  "    effectiveStart:firstActual+startAllowance,\n"+
+  "    effectiveEnd:lastActual+endAllowance,\n"+
+  "    tableLmin,styleLmin,clampMin,minFeed,\n"+
+  "    hasStartAllowance:startAllowance>1e-6,\n"+
+  "    hasEndAllowance:endAllowance>1e-6,\n"+
+  "    removableAfterBending:true,\n"+
+  "    nominalGeometryChanged:false\n"+
+  "  };\n"+
+  "}"
+);
+
+const firstStraightDraftMinAnchor =
+  "  const min = minStraight();\n"+
+  "  if (value < min) return { ok:false, empty:false, value, formula, message:`Минимальная длина — ${fmt(min,1)} мм` };";
+if(!output.includes(firstStraightDraftMinAnchor)){
+  throw new Error("first segment Lmin validation anchor was not found");
+}
+output=output.replace(firstStraightDraftMinAnchor,"");
+
+const startPointRowsAnchor =
+  "  if(!formula||!Number.isFinite(value)||value<=0||value<minStraight()||value>MAX_STOCK_LENGTH+1e-6) return [];";
+if(!output.includes(startPointRowsAnchor)){
+  throw new Error("start-point draft validation anchor was not found");
+}
+output=output.replace(
+  startPointRowsAnchor,
+  "  if(!formula||!Number.isFinite(value)||value<=0||value>MAX_STOCK_LENGTH+1e-6) return [];"
+);
+
+const firstStraightViolationStart=output.indexOf("function firstStraightTechnologicalViolation(");
+const firstStraightViolationEnd=firstStraightViolationStart>=0
+  ? output.indexOf("\nfunction defaultRows()",firstStraightViolationStart)
+  : -1;
+if(firstStraightViolationStart<0||firstStraightViolationEnd<0){
+  throw new Error("firstStraightTechnologicalViolation function was not found");
+}
+output=
+  output.slice(0,firstStraightViolationStart)+
+  "function firstStraightTechnologicalViolation(){ return null; }"+
+  output.slice(firstStraightViolationEnd);
+
+const validLineAnchor =
+  "function validLineLength(v, rowIndex=-1){\n"+
+  "  if (!(Number.isFinite(v) && v >= minStraight())) return false;";
+if(!output.includes(validLineAnchor)){
+  throw new Error("validLineLength Lmin anchor was not found");
+}
+output=output.replace(
+  validLineAnchor,
+  "function validLineLength(v, rowIndex=-1){\n"+
+  "  if (!(Number.isFinite(v) && v > 0)) return false;\n"+
+  "  const endpoint=rowIndex>=0&&isEndStraightRowIndex(state.rows||[],rowIndex);\n"+
+  "  if(!endpoint&&v<minStraight())return false;"
+);
+
+const candidateLineAnchor =
+  "  for(const row of rows){\n"+
+  "    if(row?.type==='LINE'&&!(Number(row.L)>=minStraight()))return {allowed:false,reason:'line',message:`Прямой участок короче Lmin ${fmt(minStraight(),1)} мм`};";
+if(!output.includes(candidateLineAnchor)){
+  throw new Error("candidate row Lmin validation anchor was not found");
+}
+output=output.replace(
+  candidateLineAnchor,
+  "  for(let rowIndex=0;rowIndex<rows.length;rowIndex+=1){\n"+
+  "    const row=rows[rowIndex];\n"+
+  "    if(row?.type==='LINE'&&!isEndStraightRowIndex(rows,rowIndex)&&!(Number(row.L)>=minStraight()))return {allowed:false,reason:'line',message:`Внутренний прямой участок короче Lmin ${fmt(minStraight(),1)} мм`};"
+);
+
+const tubeValidationLminAnchor =
+  "    else if(Number.isFinite(technologicalLmin)&&length+1e-6<technologicalLmin)issues.push('Прямой участок короче Lmin '+fmt(technologicalLmin,1)+' мм');";
+if(!output.includes(tubeValidationLminAnchor)){
+  throw new Error("red row Lmin validation anchor was not found");
+}
+output=output.replace(
+  tubeValidationLminAnchor,
+  "    else if(!isEndStraightRowIndex(rows,index)&&Number.isFinite(technologicalLmin)&&length+1e-6<technologicalLmin)issues.push('Внутренний прямой участок короче Lmin '+fmt(technologicalLmin,1)+' мм');"
+);
+
+const checksLengthAnchor =
+  "  const rows=state.rows||[],lengths=rows.filter(r=>r.type==='LINE').every(r=>num(r.L)>=minStraight()-1e-6),angles=rows.filter(r=>r.type==='BEND').every(r=>num(r.angle)!==0&&Math.abs(num(r.angle))<=180);";
+if(!output.includes(checksLengthAnchor)){
+  throw new Error("checks segment-length anchor was not found");
+}
+output=output.replace(
+  checksLengthAnchor,
+  "  const rows=state.rows||[],lengths=rows.every((r,index)=>r?.type!=='LINE'||isEndStraightRowIndex(rows,index)||num(r.L)>=minStraight()-1e-6),angles=rows.filter(r=>r.type==='BEND').every(r=>num(r.angle)!==0&&Math.abs(num(r.angle))<=180);"
+);
+
+const sketchLminAnchor =
+  "    const lengths=SR.segments.map(s=>num(s.length)),lmin=Number(pipeDb[toolIndex].Lmin)||0;for(let i=0;i<lengths.length;i++){if(!Number.isFinite(lengths[i])||lengths[i]<=0){setStatus(`Введите линейный размер L${i+1}.`,'error');return;}if(lengths[i]+1e-6<lmin){setStatus(`L${i+1}=${lengths[i]} мм меньше технологического Lmin=${lmin} мм.`,'error');return;}}";
+if(!output.includes(sketchLminAnchor)){
+  throw new Error("sketch-recognition Lmin validation anchor was not found");
+}
+output=output.replace(
+  sketchLminAnchor,
+  "    const lengths=SR.segments.map(s=>num(s.length)),lmin=Number(pipeDb[toolIndex].Lmin)||0;for(let i=0;i<lengths.length;i++){if(!Number.isFinite(lengths[i])||lengths[i]<=0){setStatus(`Введите линейный размер L${i+1}.`,'error');return;}const endpoint=i===0||i===lengths.length-1;if(!endpoint&&lengths[i]+1e-6<lmin){setStatus(`Внутренний L${i+1}=${lengths[i]} мм меньше технологического Lmin=${lmin} мм.`,'error');return;}}"
+);
+
+const openInspectionLminAnchor =
+  "    if(r.type==='LINE'&&poNumeric(r.L,NaN)<min)t._poIssues.push({level:'warn',text:`Участок ${ri+1} меньше Lmin ${min} мм`});";
+if(!output.includes(openInspectionLminAnchor)){
+  throw new Error("project-open Lmin warning anchor was not found");
+}
+output=output.replace(
+  openInspectionLminAnchor,
+  "    if(r.type==='LINE'&&!isEndStraightRowIndex(t.rows||[],ri)&&poNumeric(r.L,NaN)<min)t._poIssues.push({level:'warn',text:`Внутренний участок ${ri+1} меньше Lmin ${min} мм`});"
+);
+
+const autorouteShortsAnchor =
+  "shorts=lengths.filter(x=>x<n(style.minStraight)).length";
+if(!output.includes(autorouteShortsAnchor)){
+  throw new Error("autoroute Lmin scoring anchor was not found");
+}
+output=output.replace(
+  autorouteShortsAnchor,
+  "shorts=lengths.filter((x,index)=>index>0&&index<lengths.length-1&&x<n(style.minStraight)).length"
+);
+
+const diagnoseLineAnchor =
+  "const rows=tubeRows(t),lines=rows.filter(r=>r.type==='LINE'),bends=rows.filter(r=>r.type==='BEND');for(const r of lines){if(n(r.L)<n(style?.minStraight,0)){issues.push(`Прямой участок ${round(n(r.L),1)} мм меньше Lmin ${n(style?.minStraight)} мм`);conflict=true;}}for(const r of bends){";
+if(!output.includes(diagnoseLineAnchor)){
+  throw new Error("diagnoseTube line Lmin anchor was not found");
+}
+output=output.replace(
+  diagnoseLineAnchor,
+  "const rows=tubeRows(t),lines=rows.filter(r=>r.type==='LINE'),bends=rows.filter(r=>r.type==='BEND');for(let rowIndex=0;rowIndex<rows.length;rowIndex++){const r=rows[rowIndex];if(r?.type==='LINE'&&!isEndStraightRowIndex(rows,rowIndex)&&n(r.L)<n(style?.minStraight,0)){issues.push(`Внутренний прямой участок ${round(n(r.L),1)} мм меньше Lmin ${n(style?.minStraight)} мм`);conflict=true;}}for(const r of bends){"
+);
+
+const manufacturingRowsAnchor =
+  "rows=tubeRows(t),steps=[];let lineNo=0,bendNo=0,feed=0,lastRotation=0;";
+if(!output.includes(manufacturingRowsAnchor)){
+  throw new Error("manufacturingData rows anchor was not found");
+}
+output=output.replace(
+  manufacturingRowsAnchor,
+  "rows=tubeRows(t),steps=[],endAllowances=technologicalEndAllowancePlan(t,{minimumStraight:n(style?.minStraight,0),clampMin:n(machine?.clampMin,0),minFeed:n(machine?.minFeed,0)});let lineNo=0,bendNo=0,feed=0,lastRotation=0;"
+);
+
+const manufacturingStepAnchor =
+  "Y:round(feed,3),B:round(rotation-lastRotation,3),C:round(angle,3),L:round(feed,3),R:";
+if(!output.includes(manufacturingStepAnchor)){
+  throw new Error("manufacturing first-feed anchor was not found");
+}
+output=output.replace(
+  manufacturingStepAnchor,
+  "Y:round(feed+(bendNo===1?endAllowances.startAllowance:0),3),B:round(rotation-lastRotation,3),C:round(angle,3),L:round(feed+(bendNo===1?endAllowances.startAllowance:0),3),R:"
+);
+
+const manufacturingProductionAnchor =
+  "production=theoretical+elong+n(style.cutAllowanceStart)+n(style.cutAllowanceEnd),od=";
+if(!output.includes(manufacturingProductionAnchor)){
+  throw new Error("manufacturing production length anchor was not found");
+}
+output=output.replace(
+  manufacturingProductionAnchor,
+  "production=theoretical+elong+n(style.cutAllowanceStart)+n(style.cutAllowanceEnd)+endAllowances.totalAllowance,od="
+);
+
+const manufacturingReturnAnchor =
+  "return {steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,xyz};}";
+if(!output.includes(manufacturingReturnAnchor)){
+  throw new Error("manufacturingData return anchor was not found");
+}
+output=output.replace(
+  manufacturingReturnAnchor,
+  "return {steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,xyz,endAllowances};}"
+);
+
+const sequenceTailAnchor =
+  "const rows=tubeRows(t),first=rows.find(r=>r.type==='LINE'),last=[...rows].reverse().find(r=>r.type==='LINE');if(n(first?.L)<n(d.machine.clampMin))issues.push(`Начальный хвост меньше зоны зажима ${d.machine.clampMin} мм`);if(n(last?.L)<n(d.machine.clampMin))issues.push(`Конечный хвост меньше зоны зажима ${d.machine.clampMin} мм`);";
+if(!output.includes(sequenceTailAnchor)){
+  throw new Error("machine sequence tail anchor was not found");
+}
+output=output.replace(
+  sequenceTailAnchor,
+  "const rows=tubeRows(t),first=rows.find(r=>r.type==='LINE'),last=[...rows].reverse().find(r=>r.type==='LINE'),allow=d.endAllowances||technologicalEndAllowancePlan(t,{minimumStraight:n(d.style?.minStraight,0),clampMin:n(d.machine?.clampMin,0),minFeed:n(d.machine?.minFeed,0)});if(n(allow.effectiveStart)<n(d.machine.clampMin))issues.push(`Начальная технологическая длина меньше зоны зажима ${d.machine.clampMin} мм`);if(n(allow.effectiveEnd)<n(d.machine.clampMin))issues.push(`Конечная технологическая длина меньше зоны зажима ${d.machine.clampMin} мм`);"
+);
+
+const diagnosticStockAnchor =
+  "const dev=developedLengthWithRowsAndPipe(rows,t.diameterIndex);if(dev>n(machine?.maxStockLength,MAX_STOCK_LENGTH)){issues.push(`Заготовка ${round(dev,1)} мм длиннее лимита станка ${n(machine?.maxStockLength)} мм`);conflict=true;}";
+if(!output.includes(diagnosticStockAnchor)){
+  throw new Error("diagnoseTube stock-length anchor was not found");
+}
+output=output.replace(
+  diagnosticStockAnchor,
+  "const dev=manufacturingData(t).production;if(dev>n(machine?.maxStockLength,MAX_STOCK_LENGTH)){issues.push(`Производственная заготовка ${round(dev,1)} мм длиннее лимита станка ${n(machine?.maxStockLength)} мм`);conflict=true;}"
+);
+
+const renderAllowanceAnchor =
+  "  drawTable();E('engManufacturingFormat').addEventListener('change',()=>{activeEng().manufacturing.preferredFormat=E('engManufacturingFormat').value;save();drawTable();});";
+if(!output.includes(renderAllowanceAnchor)){
+  throw new Error("manufacturing-card allowance insertion anchor was not found");
+}
+output=output.replace(
+  renderAllowanceAnchor,
+  "  drawTable();\n"+
+  "  const allowance=d.endAllowances||{};\n"+
+  "  const allowanceBox=document.createElement('div');\n"+
+  "  allowanceBox.id='engTechnologicalAllowance';\n"+
+  "  allowanceBox.className='eng-note'+(allowance.totalAllowance>1e-6?' warn':'');\n"+
+  "  allowanceBox.style.marginTop='8px';\n"+
+  "  allowanceBox.innerHTML=allowance.totalAllowance>1e-6\n"+
+  "    ?'<b>Технологический припуск (удалить после гибки)</b><br>Начало: <b>+'+round(allowance.startAllowance,2)+' мм</b> → рабочая длина '+round(allowance.effectiveStart,2)+' мм; конец: <b>+'+round(allowance.endAllowance,2)+' мм</b> → рабочая длина '+round(allowance.effectiveEnd,2)+' мм. Первый Y/L в карте уже включает начальный припуск. Номинальные размеры готовой детали не изменены.'\n"+
+  "    :'<b>Технологический припуск:</b> не требуется — начальный и конечный участки обеспечивают требуемую технологическую длину.';\n"+
+  "  E('engManufacturingTable')?.insertAdjacentElement('afterend',allowanceBox);\n"+
+  "  E('engManufacturingFormat').addEventListener('change',()=>{activeEng().manufacturing.preferredFormat=E('engManufacturingFormat').value;save();drawTable();});"
+);
+
+const reportAllowanceAnchor =
+  "<div><b>Производственная длина:</b> ${round(d.production,2)} мм</div><div><b>Расчётная масса:</b>";
+if(!output.includes(reportAllowanceAnchor)){
+  throw new Error("print-report allowance summary anchor was not found");
+}
+output=output.replace(
+  reportAllowanceAnchor,
+  "<div><b>Производственная длина:</b> ${round(d.production,2)} мм</div><div><b>Технологический припуск:</b> начало +${round(d.endAllowances?.startAllowance||0,2)} мм; конец +${round(d.endAllowances?.endAllowance||0,2)} мм (удалить после гибки)</div><div><b>Расчётная масса:</b>"
+);
+
+const reportTableAnchor =
+  "</tbody></table><h2>Диагностика</h2>";
+if(!output.includes(reportTableAnchor)){
+  throw new Error("print-report allowance note anchor was not found");
+}
+output=output.replace(
+  reportTableAnchor,
+  "</tbody></table><div style=\"margin:10px 0;padding:8px;border:1px solid #cc9;background:#fff8dd\"><b>Припуски карты гибки:</b> начальный +${round(d.endAllowances?.startAllowance||0,2)} мм; конечный +${round(d.endAllowances?.endAllowance||0,2)} мм. Припуски технологические и удаляются после гибки; геометрия готовой детали остаётся номинальной.</div><h2>Диагностика</h2>"
+);
+
 const dwfxEntryUrl = moduleDataUrl(dwfxEntryPath);
 const bundledDwfx =
   `<script type="application/octet-stream" id="tbDwfxLazyModuleUrl" data-tubebender-bundled="dwfx-import">\n${dwfxEntryUrl}\n</script>
