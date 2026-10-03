@@ -724,6 +724,7 @@ test("Equipment Library and runtime bridge are bundled into standalone",()=>{
   assert.match(html,/machine_profile_id/);
   assert.match(html,/tooling_instance_id/);
   assert.doesNotMatch(html,/__TB_MACHINE_TOOLING_MODULE_URL__/);
+  assert.doesNotMatch(html,/__TB_BEND_SEQUENCE_MODULE_URL__/);
 });
 
 test("assigned Equipment Library data overrides legacy machine limits and adds tooling correction after material springback",()=>{
@@ -742,6 +743,8 @@ test("assigned Equipment Library data overrides legacy machine limits and adds t
   assert.match(html,/Оборудование: \$\{issue\}/);
   assert.match(html,/setupGate=window\.TubeBenderEquipmentRuntime\?\.machineSetupCheck/);
   assert.match(html,/Machine Setup: \$\{issue\}/);
+  assert.match(html,/sequence_analysis_preference\?\.kinematic_rebuild_required===true/);
+  assert.match(html,/требует проверенного kinematic rebuild Y\/B\/C/);
 });
 
 
@@ -783,4 +786,17 @@ test("Trim Cut runtime is bundled and manufacturing data exposes protected trim 
   assert.match(html,/finishedLengthAfterTrim=trimBridge\?\.finishedLength/);
   assert.match(html,/data-tab="trim"/);
   assert.match(html,/Nominal geometry changed: <b>NO<\/b>/);
+});
+
+
+test("Bend Sequence Analysis is bundled into Equipment UI without silent command reordering",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/data-tab="sequence"/);
+  assert.match(html,/Bend Sequence Analysis/);
+  assert.match(html,/kinematic_rebuild_required/);
+  assert.match(html,/TubeBender не меняет порядок гибов автоматически/);
+  assert.doesNotMatch(html,/__TB_BEND_SEQUENCE_MODULE_URL__/);
 });
