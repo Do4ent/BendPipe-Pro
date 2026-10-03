@@ -23,11 +23,18 @@ import {
   evaluateMaterialFormulas,
   exportMaterialProfilesCsv,
   exportMaterialProfilesJson,
+  exportMaterialTemplatesJson,
+  importMaterialProfilesCsv,
   importMaterialProfilesJson,
+  importMaterialTemplatesJson,
   materialForNewTube,
   renameMaterialTemplate,
   requireMaterialForCalculation,
   searchMaterialProfiles,
+  sortMaterialProfiles,
+  compareMaterialTemplates,
+  updateProjectTemplateFromGlobal,
+  updateProjectMaterialInLibrary,
   setProjectDefaultMaterial,
   setProjectDefaultMaterialTemplate,
   updateMaterialProfile,
@@ -345,4 +352,104 @@ test("default material template is independent from default material profile and
   library = deleteMaterialTemplate(library, "tpl-a");
   assert.equal(library.default_material_profile_id, material.id);
   assert.equal(library.default_material_template_id, null);
+});
+
+
+test("CSV import maps standard columns and never reuses exported profile identity", () => {
+  const csv = exportMaterialProfilesCsv([steel()]);
+  const imported = importMaterialProfilesCsv(csv, { target: "project" });
+  assert.equal(imported.length, 1);
+  assert.equal(imported[0].name, "S235");
+  assert.equal(imported[0].yield_strength_mpa, 235);
+  assert.notEqual(imported[0].id, "mat-s235");
+});
+
+test("CSV import supports explicit column mapping", () => {
+  const csv = "Material,YS,UTS\nMapped Steel,250,410";
+  const imported = importMaterialProfilesCsv(csv, {
+    column_map: {
+      Material: "name",
+      YS: "yield_strength_mpa",
+      UTS: "tensile_strength_mpa"
+    }
+  });
+  assert.equal(imported[0].name, "Mapped Steel");
+  assert.equal(imported[0].yield_strength_mpa, 250);
+  assert.equal(imported[0].tensile_strength_mpa, 410);
+});
+
+test("material template JSON exchange preserves structure but creates a new identity", () => {
+  const original = createMaterialTemplate({
+    name: "Copper Tube",
+    category: "Copper",
+    defaults: { name: "Cu-DHP", springback: 1.02, minimum_clr_mm: 18 },
+    custom_fields: [
+      { definition: { id: "kb", name: "K bend", type: "Number" }, value: 1.01 }
+    ]
+  }, { id: "tpl-cu", source: "global" });
+  const json = exportMaterialTemplatesJson([original]);
+  const imported = importMaterialTemplatesJson(json, { target: "project" });
+  assert.equal(imported[0].name, "Copper Tube");
+  assert.equal(imported[0].source, "project");
+  assert.notEqual(imported[0].id, original.id);
+  assert.equal(imported[0].custom_fields[0].definition.name, "K bend");
+});
+
+test("material template import refuses a conflicting name instead of silently overwriting", () => {
+  const json = exportMaterialTemplatesJson([
+    createMaterialTemplate({ name: "Steel Tube" }, { id: "tpl-steel" })
+  ]);
+  assert.throws(
+    () => importMaterialTemplatesJson(json, { existing_names: ["steel tube"] }),
+    /name already exists/
+  );
+});
+
+test("global/project template compare and selective update preserve project name and identity", () => {
+  const globalTemplate = createMaterialTemplate({
+    name: "Global Steel",
+    category: "Steel",
+    defaults: { name: "S235", springback: 1.08, minimum_clr_mm: 30 }
+  }, { id: "tpl-global", source: "global" });
+  const projectTemplate = createMaterialTemplate({
+    name: "Project Steel",
+    category: "Steel",
+    defaults: { name: "Local Steel", springback: 1.02, minimum_clr_mm: 25 }
+  }, { id: "tpl-project", source: "project" });
+
+  const diff = compareMaterialTemplates(projectTemplate, globalTemplate);
+  assert.ok(diff.some((x) => x.field === "defaults"));
+
+  const updated = updateProjectTemplateFromGlobal(projectTemplate, globalTemplate, ["defaults"]);
+  assert.equal(updated.id, "tpl-project");
+  assert.equal(updated.name, "Project Steel");
+  assert.equal(updated.defaults.springback, 1.08);
+});
+
+test("sorting material profiles is deterministic and non-mutating", () => {
+  const profiles = [
+    createMaterialProfile({ name: "Zinc", springback: 1, minimum_clr_mm: 1 }, { id: "z" }),
+    createMaterialProfile({ name: "Aluminium", springback: 1, minimum_clr_mm: 1 }, { id: "a" })
+  ];
+  const sorted = sortMaterialProfiles(profiles, { by: "name" });
+  assert.deepEqual(sorted.map((x) => x.name), ["Aluminium", "Zinc"]);
+  assert.deepEqual(profiles.map((x) => x.name), ["Zinc", "Aluminium"]);
+});
+
+test("editing a project material reports exactly which tube calculations become stale", () => {
+  const profile = steel();
+  const library = createMaterialLibrary({ project_profiles: [profile] });
+  const result = updateProjectMaterialInLibrary(
+    library,
+    profile.id,
+    { springback: 1.12 },
+    [
+      { id: "tube-1", material_profile_id: profile.id },
+      { id: "tube-2", material_profile_id: "other" },
+      { id: "tube-3", material_profile_id: profile.id }
+    ]
+  );
+  assert.equal(result.profile.springback, 1.12);
+  assert.equal(result.calculation_state, "Stale");
+  assert.deepEqual(result.dependent_tube_ids, ["tube-1", "tube-3"]);
 });
