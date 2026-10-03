@@ -2000,6 +2000,24 @@ if(!output.includes(materialReleaseStyleAnchor)){throw new Error("legacy release
 output=output.replace(materialReleaseStyleAnchor,
   "  if(!style)blockers.push('Не выбран технологический стиль');else{\n    if(style.confirmed!==true)blockers.push('Технологический стиль не подтверждён пользователем');\n    if(!(Number(style.wallThickness)>0))blockers.push('Не подтверждена толщина стенки');\n    for(const field of ['elongationPerDegree','cutAllowanceStart','cutAllowanceEnd'])if(style[field]===null||style[field]===undefined||style[field]==='')blockers.push(`Не подтверждён параметр ${field}`);\n  }\n  const materialGate=window.TubeBenderMaterialManufacturing?.materialCheck?.(p,t,{requireSpringback:true,requireDensity:false});\n  if(!materialGate?.ok){for(const issue of materialGate?.errors||['Material Profile не готов к технологическому расчёту'])blockers.push(`Материал: ${issue}`);}");
 
+const genericNcAnchor =
+  "function genericNc(t=activeTube(),format='YBC'){const d=manufacturingData(t),lines=[`; TubeBender CAD ${window.TubeBenderBuildInfo?.appVersion||'VC207R7'}`,`; Tube=${t.name}`,`; Style=${d.style.name}`,`; Machine=${d.machine.name}`,`; Stock=${round(d.production,3)} mm`];for(const s of d.steps){if(format==='LRA')lines.push(`L${s.L.toFixed(3)} R${s.R.toFixed(3)} A${s.commandAngle.toFixed(3)}`);else lines.push(`Y${s.Y.toFixed(3)} B${s.B.toFixed(3)} C${s.commandAngle.toFixed(3)}`);}return lines.join('\\n');}";
+if(!output.includes(genericNcAnchor)){throw new Error("generic NC generator anchor was not found");}
+output=output.replace(genericNcAnchor,
+  "function genericNc(t=activeTube(),format='YBC'){const d=manufacturingData(t);if(d.steps.some(s=>!Number.isFinite(Number(s.commandAngle))))throw new Error('NC export: material springback compensation is unresolved');const lines=[`; TubeBender CAD ${window.TubeBenderBuildInfo?.appVersion||'VC207R7'}`,`; Tube=${t.name}`,`; Material=${d.materialProfile?.name||'UNRESOLVED'}`,`; Style=${d.style.name}`,`; Machine=${d.machine.name}`,`; Stock=${round(d.production,3)} mm`];for(const s of d.steps){if(format==='LRA')lines.push(`L${s.L.toFixed(3)} R${s.R.toFixed(3)} A${s.commandAngle.toFixed(3)}`);else lines.push(`Y${s.Y.toFixed(3)} B${s.B.toFixed(3)} C${s.commandAngle.toFixed(3)}`);}return lines.join('\\n');}");
+
+const genericPostAnchor =
+  "window.TB_NC_POSTPROCESSORS=window.TB_NC_POSTPROCESSORS||{};window.TB_NC_POSTPROCESSORS['generic-ybc']={name:'Generic YBC',generate:t=>genericNc(t,'YBC')};window.TB_NC_POSTPROCESSORS['generic-lra']={name:'Generic LRA',generate:t=>genericNc(t,'LRA')};";
+if(!output.includes(genericPostAnchor)){throw new Error("generic postprocessor registration anchor was not found");}
+output=output.replace(genericPostAnchor,
+  "window.TB_NC_POSTPROCESSORS=window.TB_NC_POSTPROCESSORS||{};window.TB_NC_POSTPROCESSORS['generic-ybc']={name:'Generic YBC',format:'YBC',parser:true,generate:t=>genericNc(t,'YBC')};window.TB_NC_POSTPROCESSORS['generic-lra']={name:'Generic LRA',format:'LRA',parser:true,generate:t=>genericNc(t,'LRA')};");
+
+const ncExportAnchor =
+  "  else if(kind==='nc'){const post=window.TB_NC_POSTPROCESSORS[d.machine.ncPost];if(!post){ptToast('NC-постпроцессор недоступен');return false;}downloadText(base+'.nc',post.generate(t),'text/plain');}";
+if(!output.includes(ncExportAnchor)){throw new Error("NC export anchor was not found");}
+output=output.replace(ncExportAnchor,
+  "  else if(kind==='nc'){const post=window.TB_NC_POSTPROCESSORS[d.machine.ncPost];if(!post){ptToast('NC-постпроцессор недоступен');return false;}const validation=window.TubeBenderMaterialManufacturing?.validateManufacturingData?.({project:activeProject(),tube:t,manufacturing:d,kind:'nc'});if(validation&&!validation.ok){ptToast('NC-экспорт заблокирован: '+validation.errors[0]);console.warn('Postprocessor validation failed',validation);return false;}let ncText;try{ncText=post.generate(t);}catch(error){ptToast('NC-экспорт заблокирован: '+(error?.message||error));return false;}if(post.parser===true){const roundTrip=window.TubeBenderMaterialManufacturing?.roundTripValidate?.({text:ncText,format:post.format,expectedSteps:d.steps});if(roundTrip&&!roundTrip.ok){ptToast('NC round-trip проверка не пройдена');console.warn('NC round-trip failed',roundTrip);return false;}}downloadText(base+'.nc',ncText,'text/plain');}";
+
 const dwfxEntryUrl = moduleDataUrl(dwfxEntryPath);
 const bundledDwfx =
   `<script type="application/octet-stream" id="tbDwfxLazyModuleUrl" data-tubebender-bundled="dwfx-import">\n${dwfxEntryUrl}\n</script>
