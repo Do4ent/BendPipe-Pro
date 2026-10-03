@@ -62,3 +62,21 @@ test("legacy machine remains fallback only when no new Machine Profile is assign
   const api=load(),legacy={name:"Legacy",maxDiameter:22};
   assert.equal(api.effectiveMachine(fixture(),{},legacy),legacy);
 });
+
+
+test("equipment assignment check rejects wall and CLR mismatch",()=>{
+  const api=load(),project=fixture();
+  project.equipmentLibrary.tooling_sets[0].wall_min_mm=0.8;
+  project.equipmentLibrary.tooling_sets[0].wall_max_mm=1.2;
+  project.equipmentLibrary.tooling_sets[0].clr_mm=40;
+  const result=api.assignmentCheck(project,{
+    machine_instance_id:"mi",
+    tooling_instance_id:"ti",
+    od_mm:16,
+    wall_mm:1.5,
+    bend_clr_mm:[40,60]
+  });
+  assert.equal(result.ok,false);
+  assert.match(result.errors.join(" "),/Толщина стенки выше/);
+  assert.match(result.errors.join(" "),/CLR трубы/);
+});
