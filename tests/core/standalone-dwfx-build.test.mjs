@@ -700,6 +700,9 @@ test("generic NC export performs parser-backed round-trip before download",()=>{
   assert.match(html,/validateManufacturingData\?\.\(\{project:activeProject\(\),tube:t,manufacturing:d,kind:'nc'\}\)/);
   assert.match(html,/roundTripValidate\?\.\(\{text:ncText,format:post\.format,expectedSteps:d\.steps\}\)/);
   assert.match(html,/NC round-trip проверка не пройдена/);
+  assert.match(html,/validation\?\.status==='Warning'/);
+  assert.match(html,/NC-экспорт содержит предупреждения/);
+  assert.match(html,/window\.confirm/);
   assert.match(html,/material springback compensation is unresolved/);
 });
 
