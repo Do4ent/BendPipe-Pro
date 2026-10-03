@@ -697,6 +697,146 @@ export function exportMaterialProfilesCsv(profiles) {
   return [keys.join(","), ...profiles.map((profile) => keys.map((key) => csvEscape(profile[key])).join(","))].join("\n");
 }
 
+
+function parseCsvLine(line) {
+  const values = [];
+  let value = "";
+  let quoted = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (quoted) {
+      if (ch === '"' && line[i + 1] === '"') {
+        value += '"';
+        i += 1;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        value += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ",") {
+      values.push(value);
+      value = "";
+    } else {
+      value += ch;
+    }
+  }
+  if (quoted) throw new SyntaxError("unterminated quoted CSV field");
+  values.push(value);
+  return values;
+}
+
+export function importMaterialProfilesCsv(text, { target = "project", column_map = null } = {}) {
+  if (!["global", "project"].includes(target)) throw new RangeError("target must be global or project");
+  const lines = String(text).replace(/\r\n?/g, "\n").split("\n").filter((line) => line.trim() !== "");
+  if (lines.length < 2) return freeze([]);
+  const headers = parseCsvLine(lines[0]).map((x) => x.trim());
+  const mapping = column_map ?? Object.fromEntries(headers.map((header) => [header, header]));
+  const profiles = [];
+  for (const line of lines.slice(1)) {
+    const cells = parseCsvLine(line);
+    const raw = {};
+    headers.forEach((header, index) => {
+      const field = mapping[header];
+      if (!field) return;
+      raw[field] = cells[index] ?? "";
+    });
+    for (const [field, spec] of Object.entries(STANDARD_FIELDS)) {
+      if (spec.kind !== "number" || !(field in raw)) continue;
+      raw[field] = raw[field] === "" ? null : Number(String(raw[field]).trim().replace(",", "."));
+    }
+    if (!raw.name) throw new Error("CSV material row has no mapped name");
+    profiles.push(createMaterialProfile(raw, { source: target }));
+  }
+  return freeze(profiles);
+}
+
+export function exportMaterialTemplatesJson(templates) {
+  if (!Array.isArray(templates)) throw new TypeError("templates must be an array");
+  return JSON.stringify({
+    schema: "tubebender.material-templates",
+    schema_version: 1,
+    exported_at: new Date().toISOString(),
+    templates: clone(templates)
+  }, null, 2);
+}
+
+export function importMaterialTemplatesJson(text, { target = "project", existing_names = [] } = {}) {
+  if (!["global", "project"].includes(target)) throw new RangeError("target must be global or project");
+  const parsed = JSON.parse(text);
+  if (parsed?.schema !== "tubebender.material-templates" || parsed?.schema_version !== 1 || !Array.isArray(parsed.templates)) {
+    throw new Error("unsupported material template JSON");
+  }
+  const names = new Set(existing_names.map((x) => String(x).trim().toLocaleLowerCase()));
+  const imported = [];
+  for (const source of parsed.templates) {
+    const name = requiredString(source.name, "template name");
+    const normalized = name.toLocaleLowerCase();
+    if (names.has(normalized)) throw new RangeError(`material template name already exists: ${name}`);
+    names.add(normalized);
+    const copy = clone(source);
+    delete copy.id;
+    imported.push(createMaterialTemplate(copy, { source: target }));
+  }
+  return freeze(imported);
+}
+
+export function compareMaterialTemplates(left, right) {
+  const ignored = new Set(["id", "source"]);
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  const differences = [];
+  for (const key of keys) {
+    if (ignored.has(key)) continue;
+    const a = JSON.stringify(left[key] ?? null);
+    const b = JSON.stringify(right[key] ?? null);
+    if (a !== b) differences.push(freeze({ field: key, left: clone(left[key] ?? null), right: clone(right[key] ?? null) }));
+  }
+  return freeze(differences);
+}
+
+export function updateProjectTemplateFromGlobal(projectTemplate, globalTemplate, selectedFields) {
+  if (projectTemplate.source !== "project") throw new Error("target template must be project-local");
+  if (globalTemplate.source !== "global") throw new Error("source template must be global");
+  if (!Array.isArray(selectedFields)) throw new TypeError("selectedFields must be an array");
+  const patch = clone(projectTemplate);
+  for (const field of selectedFields) {
+    if (["id", "source", "name"].includes(field)) continue;
+    if (!(field in globalTemplate)) throw new RangeError(`global template field not found: ${field}`);
+    patch[field] = clone(globalTemplate[field]);
+  }
+  return createMaterialTemplate(patch, { id: projectTemplate.id, source: "project" });
+}
+
+export function sortMaterialProfiles(profiles, { by = "name", direction = "asc" } = {}) {
+  if (!["asc", "desc"].includes(direction)) throw new RangeError("direction must be asc or desc");
+  const sign = direction === "asc" ? 1 : -1;
+  return freeze([...profiles].sort((a, b) => {
+    const av = a?.[by] ?? "";
+    const bv = b?.[by] ?? "";
+    if (typeof av === "number" && typeof bv === "number") return (av - bv) * sign;
+    return String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: "base" }) * sign;
+  }));
+}
+
+export function updateProjectMaterialInLibrary(library, materialId, patch, tubes = []) {
+  const current = library.project_profiles.find((x) => x.id === materialId);
+  if (!current) throw new RangeError(`project material not found: ${materialId}`);
+  const updated = updateMaterialProfile(current, patch);
+  const dependent_tube_ids = tubes
+    .filter((tube) => tube?.material_profile_id === materialId)
+    .map((tube) => tube.id ?? null);
+  return freeze({
+    library: freeze({
+      ...clone(library),
+      project_profiles: library.project_profiles.map((profile) => profile.id === materialId ? updated : profile)
+    }),
+    profile: updated,
+    dependent_tube_ids: freeze(dependent_tube_ids),
+    calculation_state: dependent_tube_ids.length ? "Stale" : "Unchanged"
+  });
+}
+
 export function searchMaterialProfiles(profiles, query = "", { category = null, status = null } = {}) {
   const q = String(query).trim().toLocaleLowerCase();
   return freeze(profiles.filter((profile) => {
