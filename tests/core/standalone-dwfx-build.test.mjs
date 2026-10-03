@@ -930,3 +930,17 @@ test("Clearance ValidationLock blocks release on red or unchecked persistent mon
   assert.match(html,/Clearance Monitor: есть Red нарушения минимального зазора/);
   assert.match(html,/Clearance Monitor: не все активные проверки рассчитаны/);
 });
+
+
+test("Clearance focus draws temporary closest-point markers without changing model geometry",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/tbClearanceFocusGroup/);
+  assert.match(html,/clearanceFocusMarker:true/);
+  assert.match(html,/SphereGeometry\(\.12,18,12\)/);
+  assert.match(html,/BufferGeometry\(\)\.setFromPoints\(\[pA,pB\]\)/);
+  assert.match(html,/status==='Red'\?0xff3b30/);
+  assert.match(html,/group\.userData=\{helper:true,clearanceFocusMarker:true\}/);
+});
