@@ -820,13 +820,13 @@ test("Bending Simulation Collision is bundled with per-bend statuses and explici
   assert.doesNotMatch(html,/__TB_SIM_COLLISION_MODULE_URL__/);
 });
 
-test("simulation collision integration keeps nominal bend data separate from status metadata",()=>{
+test("simulation collision integration keeps nominal geometry untouched in the visible runtime bridge",()=>{
   if(!fs.existsSync(output)){
     execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
   }
   const html=fs.readFileSync(output,"utf8");
-  assert.match(html,/simulation_collision_status/);
-  assert.match(html,/simulation_clearance_mm/);
-  assert.match(html,/simulation_collision_checked/);
-  assert.doesNotMatch(html,/simulation_collision_status[^\n]*C\s*=/);
+  assert.match(html,/simulation_collision_observations/);
+  assert.match(html,/simulation_collision_settings/);
+  assert.match(html,/simulation_calculation_state="Stale"/);
+  assert.doesNotMatch(html,/simulation_collision_observations[^\n]*row\.angle\s*=/);
 });
