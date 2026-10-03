@@ -17,6 +17,7 @@ test("equipment library UI remains valid classic JavaScript",()=>{
   assert.match(code,/data-tab="tooling-sets"/);
   assert.match(code,/data-tab="tooling-instances"/);
   assert.match(code,/data-tab="setups"/);
+  assert.match(code,/data-tab="trim"/);
   assert.match(code,/data-tab="tube"/);
 });
 
@@ -77,4 +78,18 @@ test("Machine Setup UI keeps setup changes on the tube and uses history",()=>{
   assert.match(code,/Удалить Machine Setup/);
   assert.match(code,/clamping_extensions/);
   assert.match(code,/offset_method/);
+});
+
+
+test("Trim Cut UI keeps removal length computed and only edits process preferences",()=>{
+  assert.match(code,/function renderTrimCut/);
+  assert.match(code,/снять /);
+  assert.match(code,/Длина снятия рассчитывается автоматически/);
+  assert.match(code,/cut allowance \+ end allowance \+ clamping extension/);
+  assert.match(code,/Nominal geometry changed: <b>NO<\/b>/);
+  assert.match(code,/data-key="tolerance_mm"/);
+  assert.match(code,/data-key="plane_mode"/);
+  assert.match(code,/data-key="normal_x"/);
+  assert.match(code,/Изменить Trim\/Cut/);
+  assert.doesNotMatch(code,/data-key="remove_length_mm"/);
 });
