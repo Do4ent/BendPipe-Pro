@@ -113,6 +113,7 @@
       source_tube_ids:ids,
       parameters:clone(input.parameters??{}),
       suppressed_members:[...new Set((input.suppressed_members??[]).map((x)=>Math.trunc(Number(x))).filter((x)=>Number.isInteger(x)&&x>0))].sort((a,b)=>a-b),
+      member_ids:clone(input.member_ids??{}),
       associative:true,
       status:"NeedsSync"
     };
@@ -157,7 +158,11 @@
             }
             const previous=existing.get(key);
             const member=detachDerivedLinks(result.tube);
-            member.id=previous?.id??makeId("array-member");
+            const stableKey=String(source.id)+":"+String(index);
+            const stableId=def.member_ids?.[stableKey]??previous?.id??makeId("array-member");
+            if(!def.member_ids||typeof def.member_ids!=="object")def.member_ids={};
+            def.member_ids[stableKey]=stableId;
+            member.id=stableId;
             member.name=(source.name??source.id)+" ["+def.name+" "+(index+1)+"]";
             member.array_member={
               array_id:def.id,
