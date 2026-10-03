@@ -170,3 +170,11 @@ test("Clearance Monitor focus uses closest points and binds every table row",()=
   assert.doesNotMatch(code,/(?:^|[^$])\$\("tr\[data-clearance-id\]"/m);
   assert.match(code,/Focus центрирует 3D-камеру/);
 });
+
+
+test("Clearance Monitor exposes Monitor Stop and ValidationLock project edit modes",()=>{
+  assert.match(code,/clearance_edit_mode/);
+  assert.match(code,/\["Monitor","Stop","ValidationLock"\]/);
+  assert.match(code,/Изменить Live Clearance mode/);
+  assert.match(code,/clearanceSummary/);
+});
