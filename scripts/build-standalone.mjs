@@ -1909,13 +1909,14 @@ output=output.replace(
 
 const tubeValidationLminAnchor =
   "    else if(Number.isFinite(technologicalLmin)&&length+1e-6<technologicalLmin)issues.push('Прямой участок короче Lmin '+fmt(technologicalLmin,1)+' мм');";
-if(!output.includes(tubeValidationLminAnchor)){
-  throw new Error("red row Lmin validation anchor was not found");
+if(output.includes(tubeValidationLminAnchor)){
+  output=output.replace(
+    tubeValidationLminAnchor,
+    "    else if(!isEndStraightRowIndex(rows,index)&&Number.isFinite(technologicalLmin)&&length+1e-6<technologicalLmin)issues.push('Внутренний прямой участок короче Lmin '+fmt(technologicalLmin,1)+' мм');"
+  );
+}else if(!output.includes("Сегмент StraightRun ")){
+  throw new Error("red row / StraightRun Lmin validation anchor was not found");
 }
-output=output.replace(
-  tubeValidationLminAnchor,
-  "    else if(!isEndStraightRowIndex(rows,index)&&Number.isFinite(technologicalLmin)&&length+1e-6<technologicalLmin)issues.push('Внутренний прямой участок короче Lmin '+fmt(technologicalLmin,1)+' мм');"
-);
 
 const checksLengthAnchor =
   "  const rows=state.rows||[],lengths=rows.filter(r=>r.type==='LINE').every(r=>num(r.L)>=minStraight()-1e-6),angles=rows.filter(r=>r.type==='BEND').every(r=>num(r.angle)!==0&&Math.abs(num(r.angle))<=180);";
