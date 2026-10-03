@@ -670,6 +670,7 @@ test("material profiles drive machine compensation without mutating nominal bend
   const html=fs.readFileSync(output,"utf8");
   assert.match(html,/data-tubebender-bundled="material-manufacturing-bridge"/);
   assert.match(html,/materialBridge=window\.TubeBenderMaterialManufacturing/);
+  assert.match(html,/materialCheck\?\.\(p,equipmentTubeFacts,\{requireSpringback:true,requireDensity:false,requireWarningAck:true\}\)/);
   assert.match(html,/materialCompensation=materialBridge\?\.compensateBend/);
   assert.match(html,/commandAngle=materialCompensation\.ok\?round\(materialCompensation\.commandAngleDeg,3\):null/);
   assert.match(html,/C:round\(angle,3\)/);
@@ -679,7 +680,7 @@ test("material profiles drive machine compensation without mutating nominal bend
   assert.match(html,/equipmentBridge=window\.TubeBenderEquipmentRuntime/);
   assert.match(html,/machine=equipmentBridge\?\.effectiveMachine/);
   assert.match(html,/toolingCorrectionDeg=equipmentBridge\?\.toolingCorrectionDeg/);
-  assert.match(html,/toolingCorrectionDeg\}\)\|\|\{ok:false/);
+  assert.match(html,/tube:equipmentTubeFacts,nominalAngleDeg:angle,toolingCorrectionDeg\}\)\|\|\{ok:false/);
   assert.doesNotMatch(html,/massKg=areaMm2\*production\*1e-9\*n\(style\.densityKgM3,7850\)/);
 });
 
@@ -688,7 +689,7 @@ test("production release and simulation block unresolved material technology",()
     execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
   }
   const html=fs.readFileSync(output,"utf8");
-  assert.match(html,/materialGate=window\.TubeBenderMaterialManufacturing\?\.materialCheck/);
+  assert.match(html,/materialGate=manufacturingData\(t\)\.materialValidation/);
   assert.match(html,/Материал: \$\{issue\}/);
   assert.match(html,/materialSimulationGate=window\.TubeBenderMaterialManufacturing\?\.validateManufacturingData/);
   assert.match(html,/title:'Материал: '\+materialSimulationGate\.errors\[0\]/);
