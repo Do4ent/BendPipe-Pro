@@ -41,7 +41,7 @@ test("Split Straight preserves one LINE and stores internal StraightRun nodes",(
   assert.match(code,/LINE остаётся одним производственным StraightRun/);
 });
 
-test("Rotate is functional through exact rigid legacy re-encoding while Array stays disabled until associative sync exists",()=>{
+test("Rotate and associative Array are both functional editing commands",()=>{
   assert.match(code,/__TB_RIGID_TRANSFORM_MODULE_URL__/);
   assert.match(code,/data-tool="rotate">Rotate/);
   assert.doesNotMatch(code,/data-tool="rotate" disabled/);
@@ -49,8 +49,12 @@ test("Rotate is functional through exact rigid legacy re-encoding while Array st
   assert.match(code,/wholeObjectCommand/);
   assert.match(code,/reloadActiveTube/);
   assert.match(code,/Rigid-body Rotate сохраняет длины, CLR и углы гибов/);
-  assert.match(code,/data-tool="array" disabled/);
-  assert.match(code,/associative member synchronization/);
+  assert.match(code,/data-tool="array">Array/);
+  assert.doesNotMatch(code,/data-tool="array" disabled/);
+  assert.match(code,/Associative Array/);
+  assert.match(code,/runtime\.addArray/);
+  assert.match(code,/runtime\.suppressMember/);
+  assert.match(code,/runtime\.breakArray/);
 });
 
 test("editing mutations run through readonly-aware model commands",()=>{
@@ -58,4 +62,9 @@ test("editing mutations run through readonly-aware model commands",()=>{
   assert.match(code,/Проект открыт только для просмотра/);
   assert.match(code,/Копировать выбранные трубы/);
   assert.match(code,/Разделить прямой участок/);
+});
+
+
+test("derived associative members are excluded from direct Copy Rotate and Array source selection",()=>{
+  assert.match(code,/array_member\?\.derived_readonly!==true/);
 });
