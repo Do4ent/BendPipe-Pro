@@ -126,3 +126,21 @@ test("manufacturing validation includes equipment assignment blockers",()=>{
   assert.equal(result.ok,false);
   assert.match(result.errors.join(" "),/Equipment: Tooling incompatible/);
 });
+
+
+test("manufacturing validation includes Trim Cut blockers",()=>{
+  const api=load();
+  const p=project({id:"mat-1",name:"Steel",springback:1.04,density_kg_m3:7850});
+  const result=api.validateManufacturingData({
+    project:p,
+    tube:{material_profile_id:"mat-1"},
+    manufacturing:{
+      trimValidation:{ok:false,status:"Error",errors:["P1 plane invalid"],warnings:[]},
+      machine:{ncPost:"generic-ybc"},
+      steps:[{bend:1,Y:100,B:0,C:90,commandAngle:93.6}]
+    },
+    kind:"nc"
+  });
+  assert.equal(result.ok,false);
+  assert.match(result.errors.join(" "),/Trim\/Cut: P1 plane invalid/);
+});
