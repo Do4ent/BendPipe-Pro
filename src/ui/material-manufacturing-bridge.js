@@ -6,12 +6,41 @@
       ? project.materialLibrary.project_profiles
       : [];
   }
+  function materialFingerprint(profile){
+    if(!profile)return null;
+    const payload={
+      id:profile.id??null,
+      density_kg_m3:profile.density_kg_m3??null,
+      elastic_modulus_mpa:profile.elastic_modulus_mpa??null,
+      yield_strength_mpa:profile.yield_strength_mpa??null,
+      tensile_strength_mpa:profile.tensile_strength_mpa??null,
+      poisson_ratio:profile.poisson_ratio??null,
+      thermal_expansion_per_c:profile.thermal_expansion_per_c??null,
+      springback:profile.springback??null,
+      minimum_clr_mm:profile.minimum_clr_mm??null,
+      dt_ratio_min:profile.dt_ratio_min??null,
+      dt_ratio_max:profile.dt_ratio_max??null,
+      custom_fields:profile.custom_fields??[]
+    };
+    let hash=2166136261;
+    const text=JSON.stringify(payload);
+    for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}
+    return "mat-"+(hash>>>0).toString(16).padStart(8,"0");
+  }
+  function tubeFacts(tube){
+    const od=finite(tube?.od_mm??tube?.outer_diameter_mm);
+    const wall=finite(tube?.wall_mm??tube?.wall_thickness_mm);
+    const clrs=Array.isArray(tube?.bend_clr_mm)
+      ? tube.bend_clr_mm.map(finite).filter((x)=>x!==null)
+      : [finite(tube?.clr_mm??tube?.centerline_radius_mm)].filter((x)=>x!==null);
+    return {od,wall,clrs};
+  }
   function resolveProfile(project,tube){
     const id=String(tube?.material_profile_id??"").trim();
     if(!id)return null;
     return projectProfiles(project).find((profile)=>String(profile?.id)===id)??null;
   }
-  function materialCheck(project,tube,{requireSpringback=true,requireDensity=false}={}){
+  function materialCheck(project,tube,{requireSpringback=true,requireDensity=false,requireWarningAck=false}={}){
     const profile=resolveProfile(project,tube);
     const errors=[],warnings=[];
     if(!tube?.material_profile_id)errors.push("Material Profile не назначен трубе");
@@ -27,13 +56,42 @@
       if(requireDensity&&!(density>0))errors.push("В Material Profile не задана положительная плотность");
       const ys=finite(profile.yield_strength_mpa),uts=finite(profile.tensile_strength_mpa);
       if(ys!==null&&uts!==null&&ys>uts)errors.push("Предел текучести материала превышает предел прочности");
-      const clr=finite(profile.minimum_clr_mm);
-      if(clr!==null&&!(clr>0))errors.push("Минимальный CLR материала должен быть больше 0");
+      const minimumClr=finite(profile.minimum_clr_mm);
+      if(minimumClr!==null&&!(minimumClr>0))errors.push("Минимальный CLR материала должен быть больше 0");
+
+      const facts=tubeFacts(tube);
+      if(facts.od!==null&&facts.wall!==null){
+        if(!(facts.wall>0))errors.push("Толщина стенки трубы должна быть больше 0 для проверки D/t");
+        else{
+          const ratio=facts.od/facts.wall;
+          const min=finite(profile.dt_ratio_min),max=finite(profile.dt_ratio_max);
+          if(min!==null&&ratio<min-EPS)errors.push(`D/t ${ratio.toFixed(3)} ниже допустимого минимума ${min}`);
+          if(max!==null&&ratio>max+EPS)errors.push(`D/t ${ratio.toFixed(3)} выше допустимого максимума ${max}`);
+        }
+      }else if(profile.dt_ratio_min!=null||profile.dt_ratio_max!=null){
+        warnings.push("OD или толщина стенки не определены — диапазон D/t не проверен");
+      }
+
+      if(minimumClr!==null&&facts.clrs.length){
+        const below=facts.clrs.filter((clr)=>clr+EPS<minimumClr);
+        if(below.length)warnings.push(`CLR ${Math.min(...below)} мм меньше рекомендуемого для материала ${minimumClr} мм`);
+      }else if(minimumClr!==null&&!facts.clrs.length){
+        warnings.push("CLR трубы не определён — минимальный рекомендуемый CLR материала не проверен");
+      }
     }
+
+    const signature=profile?materialFingerprint(profile):null;
+    const acknowledged=!!signature&&String(tube?.material_warning_ack_signature??"")===signature;
+    const warningAckRequired=warnings.length>0&&!acknowledged;
+    if(requireWarningAck&&warningAckRequired)errors.push("Предупреждения Material Profile требуют явного подтверждения");
+
     return Object.freeze({
       ok:errors.length===0,
       status:errors.length?"Error":warnings.length?"Warning":"Valid",
       profile,
+      material_signature:signature,
+      warning_acknowledged:acknowledged,
+      warning_ack_required:warningAckRequired,
       errors:Object.freeze(errors),
       warnings:Object.freeze(warnings)
     });
@@ -59,6 +117,9 @@
       materialDeltaDeg:materialCommand-nominal,
       toolingCorrectionDeg:tooling,
       commandAngleDeg:command,
+      materialSignature:check.material_signature,
+      warningAcknowledged:check.warning_acknowledged,
+      warningAckRequired:check.warning_ack_required,
       errors:Object.freeze([]),warnings:check.warnings
     });
   }
@@ -69,7 +130,7 @@
   }
   function validateManufacturingData({project,tube,manufacturing,kind="manufacturing"}={}){
     const errors=[],warnings=[];
-    const material=materialCheck(project,tube,{requireSpringback:true,requireDensity:false});
+    const material=materialCheck(project,tube,{requireSpringback:true,requireDensity:false,requireWarningAck:true});
     errors.push(...material.errors);warnings.push(...material.warnings);
     const equipment=manufacturing?.equipmentValidation;
     if(equipment){
@@ -164,6 +225,7 @@
 
   window.TubeBenderMaterialManufacturing=Object.freeze({
     resolveProfile,
+    materialFingerprint,
     materialCheck,
     compensateBend,
     densityKgM3,
