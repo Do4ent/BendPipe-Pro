@@ -984,3 +984,27 @@ test("Editing panel is bundled with Copy Move and StraightRun Split",()=>{
   assert.match(html,/LINE остаётся одним производственным StraightRun/);
   assert.doesNotMatch(html,/__TB_STRAIGHT_RUN_MODULE_URL__/);
 });
+
+
+test("Editing Rotate uses whole-object command and exact legacy rigid re-encoding",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/wholeObjectCommand:tbWholeObjectCommand/);
+  assert.match(html,/tbWholeObjectTransformDepth/);
+  assert.match(html,/if\(tbWholeObjectTransformDepth>0\)return null/);
+  assert.match(html,/rotateLegacyTubeRigid/);
+  assert.match(html,/reloadActiveTube/);
+  assert.doesNotMatch(html,/__TB_RIGID_TRANSFORM_MODULE_URL__/);
+});
+
+test("whole-object Move bypasses fixed-end shape guard but remains a model history command",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/wholeObjectCommand=window\.TubeBenderEngineering\?\.wholeObjectCommand/);
+  assert.match(html,/wholeObjectCommand\("Переместить выбранные объекты",mutate\)/);
+  assert.match(html,/return tbModelCommand\(label,mutate\)/);
+});
