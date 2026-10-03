@@ -178,3 +178,12 @@ test("Clearance Monitor exposes Monitor Stop and ValidationLock project edit mod
   assert.match(code,/Изменить Live Clearance mode/);
   assert.match(code,/clearanceSummary/);
 });
+
+
+test("Clearance Monitor renders Green Yellow Red status badges",()=>{
+  assert.match(code,/tb-clearance-status\.Green/);
+  assert.match(code,/tb-clearance-status\.Yellow/);
+  assert.match(code,/tb-clearance-status\.Red/);
+  assert.match(code,/tb-clearance-status\.NotChecked/);
+  assert.match(code,/class="tb-clearance-status /);
+});
