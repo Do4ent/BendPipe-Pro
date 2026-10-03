@@ -1994,6 +1994,12 @@ const materialReturnAnchor = "return {steps,theoretical,elongation:elong,product
 if(!output.includes(materialReturnAnchor)){throw new Error("material manufacturingData return anchor was not found");}
 output=output.replace(materialReturnAnchor,"return {steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,xyz,endAllowances,materialProfile,materialValidation,materialDensityKgM3};}");
 
+const materialReleaseStyleAnchor =
+  "  if(!style)blockers.push('Не выбран технологический стиль');else{\n    if(style.confirmed!==true)blockers.push('Технологический стиль не подтверждён пользователем');\n    if(!String(style.material||'').trim())blockers.push('Не указан материал');\n    if(!(Number(style.wallThickness)>0))blockers.push('Не подтверждена толщина стенки');\n    if(!(Number(style.densityKgM3)>0))blockers.push('Не подтверждена плотность материала');\n    for(const field of ['springbackDeg','elongationPerDegree','cutAllowanceStart','cutAllowanceEnd'])if(style[field]===null||style[field]===undefined||style[field]==='')blockers.push(`Не подтверждён параметр ${field}`);\n  }";
+if(!output.includes(materialReleaseStyleAnchor)){throw new Error("legacy release material/style anchor was not found");}
+output=output.replace(materialReleaseStyleAnchor,
+  "  if(!style)blockers.push('Не выбран технологический стиль');else{\n    if(style.confirmed!==true)blockers.push('Технологический стиль не подтверждён пользователем');\n    if(!(Number(style.wallThickness)>0))blockers.push('Не подтверждена толщина стенки');\n    for(const field of ['elongationPerDegree','cutAllowanceStart','cutAllowanceEnd'])if(style[field]===null||style[field]===undefined||style[field]==='')blockers.push(`Не подтверждён параметр ${field}`);\n  }\n  const materialGate=window.TubeBenderMaterialManufacturing?.materialCheck?.(p,t,{requireSpringback:true,requireDensity:false});\n  if(!materialGate?.ok){for(const issue of materialGate?.errors||['Material Profile не готов к технологическому расчёту'])blockers.push(`Материал: ${issue}`);}");
+
 const dwfxEntryUrl = moduleDataUrl(dwfxEntryPath);
 const bundledDwfx =
   `<script type="application/octet-stream" id="tbDwfxLazyModuleUrl" data-tubebender-bundled="dwfx-import">\n${dwfxEntryUrl}\n</script>
