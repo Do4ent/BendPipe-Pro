@@ -18,6 +18,7 @@ const projectTubeBarLayoutFixPath = path.join(root, "src", "ui", "project-tube-b
 const materialLibraryUiPath = path.join(root, "src", "ui", "material-library-ui.js");
 const materialManufacturingBridgePath = path.join(root, "src", "ui", "material-manufacturing-bridge.js");
 const equipmentRuntimeBridgePath = path.join(root, "src", "ui", "equipment-runtime-bridge.js");
+const trimCutRuntimeBridgePath = path.join(root, "src", "ui", "trim-cut-runtime-bridge.js");
 const materialDomainPath = path.join(root, "src", "domain", "materials", "material-profiles.mjs");
 const machineToolingDomainPath = path.join(root, "src", "domain", "machines", "machine-tooling.mjs");
 const machineSetupDomainPath = path.join(root, "src", "domain", "machines", "machine-setup.mjs");
@@ -2114,6 +2115,10 @@ const equipmentRuntimeBridge = fs.readFileSync(equipmentRuntimeBridgePath, "utf8
 const bundledEquipmentRuntimeBridge =
   `<script data-tubebender-bundled="equipment-runtime-bridge">\n${equipmentRuntimeBridge}\n</script>`;
 
+const trimCutRuntimeBridge = fs.readFileSync(trimCutRuntimeBridgePath, "utf8").replace(/<\/script/gi, "<\\/script");
+const bundledTrimCutRuntimeBridge =
+  `<script data-tubebender-bundled="trim-cut-runtime-bridge">\n${trimCutRuntimeBridge}\n</script>`;
+
 const machineToolingDomainUrl = moduleDataUrl(machineToolingDomainPath);
 const machineSetupDomainUrl = moduleDataUrl(machineSetupDomainPath);
 const equipmentLibraryUi = fs.readFileSync(equipmentLibraryUiPath, "utf8")
@@ -2141,6 +2146,8 @@ output =
   bundledProjectTubeBarLayoutFix +
   "\n" +
   bundledEquipmentRuntimeBridge +
+  "\n" +
+  bundledTrimCutRuntimeBridge +
   "\n" +
   bundledEquipmentLibraryUi +
   "\n" +
@@ -2325,6 +2332,9 @@ if (!output.includes('data-tubebender-bundled="material-manufacturing-bridge"'))
 }
 if (!output.includes('data-tubebender-bundled="equipment-runtime-bridge"')) {
   throw new Error("Standalone build is missing the equipment runtime bridge");
+}
+if (!output.includes('data-tubebender-bundled="trim-cut-runtime-bridge"')) {
+  throw new Error("Standalone build is missing Trim/Cut runtime bridge");
 }
 if (!output.includes('data-tubebender-bundled="equipment-library-ui"')) {
   throw new Error("Standalone build is missing the Equipment Library UI");
