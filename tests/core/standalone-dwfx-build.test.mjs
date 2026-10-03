@@ -733,7 +733,9 @@ test("assigned Equipment Library data overrides legacy machine limits and adds t
   const html=fs.readFileSync(output,"utf8");
   assert.match(html,/equipmentBridge=window\.TubeBenderEquipmentRuntime/);
   assert.match(html,/machine=equipmentBridge\?\.effectiveMachine\?\.\(p,t,legacyMachine\)\|\|legacyMachine/);
-  assert.match(html,/equipmentValidation=equipmentBridge\?\.assignmentCheck/);
+  assert.match(html,/equipmentAssignment=equipmentBridge\?\.assignmentCheck/);
+  assert.match(html,/setupValidation=equipmentBridge\?\.machineSetupCheck/);
+  assert.match(html,/equipmentValidation=\{ok:equipmentAssignment\.ok!==false&&setupValidation\.ok!==false/);
   assert.match(html,/toolingCorrectionDeg=equipmentBridge\?\.toolingCorrectionDeg/);
   assert.match(html,/nominalAngleDeg:angle,toolingCorrectionDeg/);
   assert.match(html,/equipmentGate=window\.TubeBenderEquipmentRuntime\?\.assignmentCheck/);
