@@ -57,6 +57,45 @@
     };
     return Object.freeze(out);
   }
+  function activeMachineSetup(tube){
+    const setups=Array.isArray(tube?.machine_setups)?tube.machine_setups:[];
+    const id=String(tube?.active_machine_setup_id??"").trim();
+    return id?setups.find((setup)=>String(setup?.id)===id)??null:null;
+  }
+  function machineSetupOffsetMm(tube){
+    const setup=activeMachineSetup(tube);if(!setup)return 0;
+    if(setup.offset_method==="clamp_point"){
+      const n=Number(setup.clamp_point_mm);return Number.isFinite(n)?n:0;
+    }
+    if(setup.offset_method==="feed_zero"){
+      const n=Number(setup.feed_zero_mm);return Number.isFinite(n)?n:0;
+    }
+    const n=Number(setup.offset_mm);return Number.isFinite(n)?n:0;
+  }
+  function machineSetupExtensions(tube){
+    const setup=activeMachineSetup(tube);
+    if(!setup)return Object.freeze({start_mm:0,end_mm:0});
+    const start=Number(setup?.clamping_extensions?.start_mm),end=Number(setup?.clamping_extensions?.end_mm);
+    return Object.freeze({
+      start_mm:Number.isFinite(start)&&start>0?start:0,
+      end_mm:Number.isFinite(end)&&end>0?end:0
+    });
+  }
+  function machineSetupCheck(project,tube){
+    const setup=activeMachineSetup(tube);
+    if(!setup)return Object.freeze({ok:true,status:"NotConfigured",errors:Object.freeze([]),warnings:Object.freeze([]),setup:null});
+    const errors=[],warnings=[];
+    if(setup.machine_profile_id&&tube?.machine_profile_id&&String(setup.machine_profile_id)!==String(tube.machine_profile_id))errors.push("Machine Setup references another Machine Profile");
+    if(setup.machine_instance_id&&tube?.machine_instance_id&&String(setup.machine_instance_id)!==String(tube.machine_instance_id))errors.push("Machine Setup references another Machine Instance");
+    if(setup.tooling_set_id&&tube?.tooling_set_id&&String(setup.tooling_set_id)!==String(tube.tooling_set_id))errors.push("Machine Setup references another Tooling Set");
+    if(setup.tooling_instance_id&&tube?.tooling_instance_id&&String(setup.tooling_instance_id)!==String(tube.tooling_instance_id))errors.push("Machine Setup references another Tooling Instance");
+    if(!setup.datum?.type)errors.push("Machine Setup datum is missing");
+    if(setup.offset_method==="clamp_point"&&!Number.isFinite(Number(setup.clamp_point_mm)))errors.push("Machine Setup clamp point is unresolved");
+    if(setup.offset_method==="feed_zero"&&!Number.isFinite(Number(setup.feed_zero_mm)))errors.push("Machine Setup feed zero is unresolved");
+    if(!setup.machine_profile_id&&!setup.machine_instance_id)warnings.push("Machine Setup has no explicit machine assignment");
+    return Object.freeze({ok:errors.length===0,status:errors.length?"Error":warnings.length?"Warning":"Valid",errors:Object.freeze(errors),warnings:Object.freeze(warnings),setup});
+  }
+
   function assignmentCheck(project,tube){
     const errors=[],warnings=[];
     const mp=resolveMachineProfile(project,tube),mi=resolveMachineInstance(project,tube);
@@ -101,6 +140,7 @@
   }
   window.TubeBenderEquipmentRuntime=Object.freeze({
     resolveMachineProfile,resolveMachineInstance,resolveToolingSet,resolveToolingInstance,
-    toolingCorrectionDeg,effectiveMachine,assignmentCheck
+    toolingCorrectionDeg,effectiveMachine,assignmentCheck,
+    activeMachineSetup,machineSetupOffsetMm,machineSetupExtensions,machineSetupCheck
   });
 })();
