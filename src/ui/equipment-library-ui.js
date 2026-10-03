@@ -2,7 +2,8 @@
   const MODULE_URL="__TB_MACHINE_TOOLING_MODULE_URL__";
   const SETUP_MODULE_URL="__TB_MACHINE_SETUP_MODULE_URL__";
   const SEQUENCE_MODULE_URL="__TB_BEND_SEQUENCE_MODULE_URL__";
-  let domain=null,setupDomain=null,sequenceDomain=null,installed=false,panel=null,tab="machine-profiles";
+  const SIM_COLLISION_MODULE_URL="__TB_SIM_COLLISION_MODULE_URL__";
+  let domain=null,setupDomain=null,sequenceDomain=null,simCollisionDomain=null,installed=false,panel=null,tab="machine-profiles";
   const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
   const clone=(v)=>v==null?v:structuredClone(v);
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,(ch)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -78,6 +79,7 @@
     else if(tab==="setups")renderMachineSetups();
     else if(tab==="trim")renderTrimCut();
     else if(tab==="sequence")renderSequenceAnalysis();
+    else if(tab==="simulation")renderSimulationCollision();
     else renderTubeAssignment();
   }
 
@@ -438,6 +440,83 @@
     };
   }
 
+  function simulationCollisionReport(t=tube(),manufacturing=null){
+    if(!t||!simCollisionDomain)return null;
+    let data=manufacturing;
+    if(!data){try{data=api()?.manufacturingData?.(t)??null;}catch{}}
+    const settings=t.simulation_collision_settings??{};
+    const observations=Array.isArray(t.simulation_collision_observations)?t.simulation_collision_observations:[];
+    const report=simCollisionDomain.analyzeBendingSimulation(data?.steps??[],observations,{
+      warning_clearance_mm:Number.isFinite(Number(settings.warning_clearance_mm))?Number(settings.warning_clearance_mm):5,
+      contact_tolerance_mm:Number.isFinite(Number(settings.contact_tolerance_mm))?Number(settings.contact_tolerance_mm):0.1,
+      contact_rule:["allow","warn","forbid"].includes(settings.contact_rule)?settings.contact_rule:"warn"
+    });
+    const mode=Object.values(simCollisionDomain.SimulationCollisionMode).includes(settings.mode)
+      ?settings.mode
+      :simCollisionDomain.SimulationCollisionMode.MONITOR;
+    const decision=simCollisionDomain.simulationModeDecision(report,mode);
+    return Object.freeze({report,decision,mode});
+  }
+
+  function renderSimulationCollision(){
+    const body=$(".tb-eq-body",panel),t=tube();
+    if(!t){body.innerHTML='<div class="tb-eq-note">Нет активной трубы.</div>';return;}
+    let manufacturing=null;try{manufacturing=api()?.manufacturingData?.(t)??null;}catch{}
+    const steps=manufacturing?.steps??[];
+    if(!steps.length){body.innerHTML='<div class="tb-eq-note">Для трубы нет рассчитанных гибов.</div>';return;}
+    const settings=t.simulation_collision_settings??{};
+    const result=simulationCollisionReport(t,manufacturing);
+    const report=result?.report;
+    body.innerHTML=
+      '<div class="tb-eq-section"><h3>Bending Simulation Collision</h3>'+
+      '<div class="tb-eq-grid">'+
+      '<label>Mode</label><select data-sim-mode>'+
+      ['Monitor','Stop','ValidationLock'].map((x)=>option(x,x,x===(result?.mode??"Monitor"))).join("")+
+      '</select>'+
+      '<label>Warning clearance, mm</label><input data-sim-warning value="'+esc(settings.warning_clearance_mm??5)+'">'+
+      '<label>Contact tolerance, mm</label><input data-sim-contact value="'+esc(settings.contact_tolerance_mm??0.1)+'">'+
+      '<label>Contact rule</label><select data-sim-contact-rule>'+
+      ['allow','warn','forbid'].map((x)=>option(x,x,x===(settings.contact_rule??"warn"))).join("")+
+      '</select></div>'+
+      '<div class="tb-eq-actions"><button data-sim-save>Сохранить режим</button></div>'+
+      '<div class="tb-eq-note">Monitor only — только показывает результат. Stop on Collision — блокирует playback при Collision/Impossible. Validation Lock — дополнительно блокирует production release при Collision/Impossible или неполной проверке.</div></div>'+
+      '<div class="tb-eq-section"><h3>Per-bend status</h3>'+
+      '<div class="tb-eq-note">Overall: <b>'+esc(report?.status??"NotChecked")+'</b> · checked '+esc(report?.checked_bend_count??0)+' / '+esc(report?.bend_count??steps.length)+' · min clearance '+esc(report?.min_clearance_mm??"—")+' mm</div>'+
+      '<table class="tb-eq-table"><thead><tr><th>Bend</th><th>Status</th><th>Checked</th><th>Min clearance</th><th>Messages</th></tr></thead><tbody>'+
+      (report?.per_bend??[]).map((item)=>'<tr><td>'+esc(item.bend??item.bend_id)+'</td><td>'+esc(item.status)+'</td><td>'+(item.checked?'yes':'no')+'</td><td>'+esc(item.min_clearance_mm??"—")+'</td><td>'+esc([...(item.errors??[]),...(item.warnings??[])].join(" · ")||"—")+'</td></tr>').join("")+
+      '</tbody></table></div>'+
+      '<div class="tb-eq-section"><h3>Collision observations</h3>'+
+      '<textarea class="tb-eq-wide" data-sim-observations style="min-height:150px">'+esc(JSON.stringify(t.simulation_collision_observations??[],null,2))+'</textarea>'+
+      '<div class="tb-eq-note">Observation fields: bend_id, kind (machine/tooling/self/fixture/other), checked, clearance_mm, collision, impossible, contact, message. Отсутствие checked evidence никогда не считается OK.</div>'+
+      '<div class="tb-eq-actions"><button data-sim-observations-save>Сохранить observations</button></div></div>';
+    $("[data-sim-save]",body).onclick=()=>{
+      if(readonly()){toast("Проект открыт только для просмотра");return;}
+      const mode=$("[data-sim-mode]",body).value;
+      const warning=parseNum($("[data-sim-warning]",body).value);
+      const contact=parseNum($("[data-sim-contact]",body).value);
+      const contactRule=$("[data-sim-contact-rule]",body).value;
+      const mutate=()=>{t.simulation_collision_settings={
+        mode,
+        warning_clearance_mm:warning??5,
+        contact_tolerance_mm:contact??0.1,
+        contact_rule:contactRule
+      };t.simulation_calculation_state="Stale";return true;};
+      const ok=api()?.modelCommand?api().modelCommand("Изменить режим collision simulation",mutate):mutate();
+      if(ok!==false){api()?.save?.();renderSimulationCollision();}
+    };
+    $("[data-sim-observations-save]",body).onclick=()=>{
+      if(readonly()){toast("Проект открыт только для просмотра");return;}
+      try{
+        const parsed=JSON.parse($("[data-sim-observations]",body).value||"[]");
+        if(!Array.isArray(parsed))throw new Error("Observations must be an array");
+        parsed.forEach((item)=>simCollisionDomain.normalizeCollisionObservation(item));
+        const mutate=()=>{t.simulation_collision_observations=clone(parsed);t.simulation_calculation_state="Stale";return true;};
+        const ok=api()?.modelCommand?api().modelCommand("Обновить collision observations",mutate):mutate();
+        if(ok!==false){api()?.save?.();renderSimulationCollision();}
+      }catch(error){toast(error.message);}
+    };
+  }
+
   function renderTubeAssignment(){
     const body=$(".tb-eq-body",panel),lib=store(),t=tube();
     if(!t){body.innerHTML='<div class="tb-eq-note">Нет активной трубы.</div>';return;}
@@ -505,9 +584,9 @@
 
   async function install(){
     if(installed)return;installed=true;
-    try{[domain,setupDomain,sequenceDomain]=await Promise.all([import(MODULE_URL),import(SETUP_MODULE_URL),import(SEQUENCE_MODULE_URL)]);}catch(error){console.error("Equipment Library failed to load",error);return;}
+    try{[domain,setupDomain,sequenceDomain,simCollisionDomain]=await Promise.all([import(MODULE_URL),import(SETUP_MODULE_URL),import(SEQUENCE_MODULE_URL),import(SIM_COLLISION_MODULE_URL)]);}catch(error){console.error("Equipment Library failed to load",error);return;}
     shell();
-    window.TubeBenderEquipmentLibrary=Object.freeze({open,close,store,refresh:render});
+    window.TubeBenderEquipmentLibrary=Object.freeze({open,close,store,refresh:render,simulationCollisionReport});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
 })();
