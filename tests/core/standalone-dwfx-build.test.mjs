@@ -1008,3 +1008,31 @@ test("whole-object Move bypasses fixed-end shape guard but remains a model histo
   assert.match(html,/wholeObjectCommand\("Переместить выбранные объекты",mutate\)/);
   assert.match(html,/return tbModelCommand\(label,mutate\)/);
 });
+
+
+test("Associative Array runtime is bundled and Editing panel exposes Linear Matrix Circular arrays",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/data-tubebender-bundled="associative-array-runtime"/);
+  assert.match(html,/TubeBenderAssociativeArrays/);
+  assert.match(html,/associative_arrays/);
+  assert.match(html,/data-tool="array">Array/);
+  assert.match(html,/Linear/);
+  assert.match(html,/Matrix/);
+  assert.match(html,/Circular/);
+  assert.match(html,/Suppress/);
+  assert.match(html,/Restore/);
+  assert.match(html,/Break Array/);
+  assert.doesNotMatch(html,/__TB_TRANSFORM_COMMANDS_MODULE_URL__/);
+});
+
+test("derived associative array members are protected from direct Move and Delete",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/array_member\?\.derived_readonly!==true/);
+  assert.match(html,/Элемент ассоциативного массива нельзя удалить напрямую/);
+});
