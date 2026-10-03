@@ -5,6 +5,7 @@ import {
 } from "../../recognition/legacy-row-kinematics.mjs";
 import { centerlineArcLength } from "../../domain/geometry/centerline.mjs";
 import { AXIS_PARALLEL_TOLERANCE_DEG } from "./editable-geometry-normalization.mjs";
+import { straightRunFromLegacy, straightRunSnapNodes } from "../../domain/editing/straight-run.mjs";
 
 function clone(value){
   return value==null ? value : JSON.parse(JSON.stringify(value));
@@ -195,13 +196,31 @@ export function repairRoundedTubeContinuity(
             });
           }
         }
+        let straightRun=null,splitNodes=[];
+        if(row.straightRun){
+          straightRun=straightRunFromLegacy(row);
+          if(Math.abs(straightRun.total_length_mm-lineLength)>1e-9){
+            throw new RangeError("StraightRun total length must equal parent LINE length");
+          }
+          splitNodes=straightRunSnapNodes(straightRun,{
+            origin:{x:elementStart[0],y:elementStart[1],z:elementStart[2]},
+            direction:{x:tangentIn[0],y:tangentIn[1],z:tangentIn[2]}
+          }).map((node)=>Object.freeze({
+            id:node.id,
+            type:node.type,
+            distance_mm:node.distance_mm,
+            point:freeze3([node.point.x,node.point.y,node.point.z])
+          }));
+        }
         elements.push(Object.freeze({
           row_index:index,
           type:"LINE",
           start:freeze3(elementStart),
           end:freeze3(end),
           direction:freeze3(tangentIn),
-          length_mm:lineLength
+          length_mm:lineLength,
+          straight_run:straightRun,
+          split_nodes:Object.freeze(splitNodes)
         }));
         totalLength+=lineLength;
         currentPoint=end;
