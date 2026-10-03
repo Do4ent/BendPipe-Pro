@@ -154,10 +154,10 @@ test("Clearance Monitor UI stores persistent project monitors and ignores displa
 });
 
 
-test("Clearance Monitor derives Red from real project tube collisions without guessing safe clearance",()=>{
-  assert.match(code,/projectCollisionAnalysis\?\.\(p\)/);
-  assert.match(code,/source:"project-collision"/);
-  assert.match(code,/Intersection detected by project collision engine/);
-  assert.match(code,/distance_mm:Number\.isFinite\(penetration\)\?-Math\.abs\(penetration\):0/);
-  assert.match(code,/absence|отсутствие collision не считается Green/i);
+test("Clearance Monitor derives actual tube-to-tube minimum surface clearance from the shared geometry engine",()=>{
+  assert.match(code,/measureTubeClearance\?\.\(p,tubeIds\[0\],tubeIds\[1\]\)/);
+  assert.match(code,/measured\?\.checked===true/);
+  assert.match(code,/Number\.isFinite\(Number\(measured\.distance_mm\)\)/);
+  assert.match(code,/minimum surface clearance/);
+  assert.match(code,/Другие типы пар остаются NotChecked/);
 });
