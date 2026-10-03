@@ -199,7 +199,15 @@ output=output.replace(
   "  if(row.type==='LINE'){\n"+
   "    const length=Number(row.L);\n"+
   "    if(!Number.isFinite(length)||length<0)issues.push('Некорректная длина прямого участка');\n"+
-  "    else if(Number.isFinite(technologicalLmin)&&length+1e-6<technologicalLmin)issues.push('Прямой участок короче Lmin '+fmt(technologicalLmin,1)+' мм');\n"+
+  "    else if(Number.isFinite(technologicalLmin)&&!isEndStraightRowIndex(rows,index)&&length+1e-6<technologicalLmin)issues.push('Внутренний прямой участок короче Lmin '+fmt(technologicalLmin,1)+' мм');\n"+
+  "    const splitNodes=Array.isArray(row?.straightRun?.nodes_mm)?row.straightRun.nodes_mm.map(Number).filter(Number.isFinite).filter(v=>v>0&&v<length).sort((a,b)=>a-b):[];\n"+
+  "    if(splitNodes.length&&Number.isFinite(technologicalLmin)){\n"+
+  "      const splitPoints=[0,...splitNodes,length];\n"+
+  "      for(let splitIndex=0;splitIndex<splitPoints.length-1;splitIndex++){\n"+
+  "        const segmentLength=splitPoints[splitIndex+1]-splitPoints[splitIndex];\n"+
+  "        if(segmentLength+1e-6<technologicalLmin)issues.push('Сегмент StraightRun '+(splitIndex+1)+' ('+fmt(segmentLength,1)+' мм) короче Lmin '+fmt(technologicalLmin,1)+' мм');\n"+
+  "      }\n"+
+  "    }\n"+
   "  }else if(row.type==='BEND'){\n"+
   "    const angle=Number(row.angle);\n"+
   "    if(!Number.isFinite(angle)||Math.abs(angle)<1e-9||Math.abs(angle)>180+1e-6)issues.push('Некорректный угол гиба');\n"+
