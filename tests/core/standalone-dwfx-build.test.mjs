@@ -657,3 +657,44 @@ test("material library UI is bundled into standalone with domain module payload"
   assert.match(html,/data:text\/javascript;base64,/);
   assert.doesNotMatch(html,/__TB_MATERIAL_MODULE_URL__/);
 });
+
+
+test("material profiles drive machine compensation without mutating nominal bend angles",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/data-tubebender-bundled="material-manufacturing-bridge"/);
+  assert.match(html,/materialBridge=window\.TubeBenderMaterialManufacturing/);
+  assert.match(html,/materialCompensation=materialBridge\?\.compensateBend/);
+  assert.match(html,/commandAngle=materialCompensation\.ok\?round\(materialCompensation\.commandAngleDeg,3\):null/);
+  assert.match(html,/C:round\(angle,3\)/);
+  assert.match(html,/materialCompensation/);
+  assert.doesNotMatch(html,/commandAngle=round\(angle\+Math\.sign\(angle\|\|1\)\*n\(style\.springbackDeg\),3\)/);
+  assert.match(html,/materialDensityKgM3=materialBridge\?\.densityKgM3/);
+  assert.doesNotMatch(html,/massKg=areaMm2\*production\*1e-9\*n\(style\.densityKgM3,7850\)/);
+});
+
+test("production release and simulation block unresolved material technology",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/materialGate=window\.TubeBenderMaterialManufacturing\?\.materialCheck/);
+  assert.match(html,/Материал: \$\{issue\}/);
+  assert.match(html,/materialSimulationGate=window\.TubeBenderMaterialManufacturing\?\.validateManufacturingData/);
+  assert.match(html,/title:'Материал: '\+materialSimulationGate\.errors\[0\]/);
+});
+
+test("generic NC export performs parser-backed round-trip before download",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/generic-ybc'\]=\{name:'Generic YBC',format:'YBC',parser:true/);
+  assert.match(html,/generic-lra'\]=\{name:'Generic LRA',format:'LRA',parser:true/);
+  assert.match(html,/validateManufacturingData\?\.\(\{project:activeProject\(\),tube:t,manufacturing:d,kind:'nc'\}\)/);
+  assert.match(html,/roundTripValidate\?\.\(\{text:ncText,format:post\.format,expectedSteps:d\.steps\}\)/);
+  assert.match(html,/NC round-trip проверка не пройдена/);
+  assert.match(html,/material springback compensation is unresolved/);
+});
