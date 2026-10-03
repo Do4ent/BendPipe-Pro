@@ -437,6 +437,7 @@ const fixedEndEngineeringHelpers =
   "  return JSON.stringify({key:String(row.elementId||('#'+index)),type:String(row.type||''),L:row.type==='LINE'?round(n(row.L),6):null,angle:row.type==='BEND'?round(n(row.angle),6):null,clr:row.type==='BEND'?round(n(row.clr),6):null,plane:row.type==='BEND'?String(row.plane||''):null,rot:row.type==='BEND'?round(n(getBendRotationValue(row)),6):null,assemblyId:String(row.assemblyId||''),standardDependent:row.standardDependent===true});\n"+
   "}\n"+
   "function captureFixedEndConstraint(t=activeTube()){\n"+
+  "  if(tbWholeObjectTransformDepth>0)return null;\n"+
   "  if(!t)return null;\n"+
   "  const p2=t?.engineering?.ports?.P2;\n"+
   "  if(!p2?.locked||!p2.position)return null;\n"+
@@ -486,7 +487,7 @@ const fixedEndEngineeringHelpers =
 output=output.replace(
   fixedEndEngineeringExportAnchor,
   clearanceFocusHelpers+fixedEndEngineeringHelpers+"\n"+
-  "window.TubeBenderEngineering={getState:()=>state,activeProject:()=>activeProject(),activeTube:()=>activeTube(),save:()=>save(),renderAll:()=>renderAll(),modelCommand:tbModelCommand,toast:(message)=>ptToast(String(message??'')),readonly:()=>typeof poReadOnly==='function'&&poReadOnly(),projectCollisionAnalysis:(projectValue)=>getProjectCollisionAnalysis(projectValue||activeProject()),measureTubeClearance:(projectValue,tubeAId,tubeBId)=>measureTubePairClearance(projectValue||activeProject(),tubeAId,tubeBId),focusClearanceMeasurement:(measurement)=>focusClearanceMeasurement(measurement),open:openCenter,ensure:ensureIndustrialState,diagnoseTube,diagnoseProject,rebuildRouteGraph,geometryForTube,captureFixedEndConstraint,enforceFixedEndConstraint,setEndConstraint,manufacturingData,productionReleaseDecision,generateAutoroutes,captureRevision,compareRevision,exportManufacturing,simulation:"
+  "window.TubeBenderEngineering={getState:()=>state,activeProject:()=>activeProject(),activeTube:()=>activeTube(),save:()=>save(),renderAll:()=>renderAll(),reloadActiveTube:()=>loadActiveTubeToState(),modelCommand:tbModelCommand,wholeObjectCommand:tbWholeObjectCommand,toast:(message)=>ptToast(String(message??'')),readonly:()=>typeof poReadOnly==='function'&&poReadOnly(),projectCollisionAnalysis:(projectValue)=>getProjectCollisionAnalysis(projectValue||activeProject()),measureTubeClearance:(projectValue,tubeAId,tubeBId)=>measureTubePairClearance(projectValue||activeProject(),tubeAId,tubeBId),focusClearanceMeasurement:(measurement)=>focusClearanceMeasurement(measurement),open:openCenter,ensure:ensureIndustrialState,diagnoseTube,diagnoseProject,rebuildRouteGraph,geometryForTube,captureFixedEndConstraint,enforceFixedEndConstraint,setEndConstraint,manufacturingData,productionReleaseDecision,generateAutoroutes,captureRevision,compareRevision,exportManufacturing,simulation:"
 );
 const terminalTubeEndNodeAnchor =
   "    if ((state.rows || []).length) addNode(pipeGroup,pos,0x43d36b,.105, Math.max(0,(state.rows||[]).length-1), state.rows?.[(state.rows||[]).length-1]?.type || 'LINE');";
@@ -661,6 +662,21 @@ output=output.replace(
   "  }\n"+
   "}"
 );
+
+const wholeObjectCommandRuntime =
+  "let tbWholeObjectTransformDepth=0;\n"+
+  "function tbWholeObjectCommand(label,mutate){\n"+
+  "  tbWholeObjectTransformDepth+=1;\n"+
+  "  try{return tbModelCommand(label,mutate);}\n"+
+  "  finally{tbWholeObjectTransformDepth=Math.max(0,tbWholeObjectTransformDepth-1);}\n"+
+  "}\n";
+const wholeObjectCommandInsertAnchor =
+  "function tbModelCommand(label,mutate){";
+if(!output.includes(wholeObjectCommandInsertAnchor)){
+  throw new Error("tbModelCommand runtime anchor missing");
+}
+output=output.replace(wholeObjectCommandInsertAnchor,wholeObjectCommandRuntime+wholeObjectCommandInsertAnchor);
+
 const bendRotationCommitAnchor =
   "function commitBendRotationInput(input){\n"+
   "  if (!input) return false;\n"+
