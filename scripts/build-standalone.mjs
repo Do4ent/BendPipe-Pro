@@ -18,6 +18,8 @@ const projectTubeBarLayoutFixPath = path.join(root, "src", "ui", "project-tube-b
 const materialLibraryUiPath = path.join(root, "src", "ui", "material-library-ui.js");
 const materialManufacturingBridgePath = path.join(root, "src", "ui", "material-manufacturing-bridge.js");
 const measurementsUiPath = path.join(root, "src", "ui", "measurements-ui.js");
+const editingUiPath = path.join(root, "src", "ui", "editing-ui.js");
+const straightRunDomainPath = path.join(root, "src", "domain", "editing", "straight-run.mjs");
 const geometryMeasurementsDomainPath = path.join(root, "src", "domain", "measurements", "geometry-measurements.mjs");
 const dimensionsDomainPath = path.join(root, "src", "domain", "measurements", "dimensions.mjs");
 const equipmentRuntimeBridgePath = path.join(root, "src", "ui", "equipment-runtime-bridge.js");
@@ -2200,6 +2202,13 @@ const measurementsUi = fs.readFileSync(measurementsUiPath, "utf8")
 const bundledMeasurementsUi =
   `<script data-tubebender-bundled="measurements-ui">\n${measurementsUi}\n</script>`;
 
+const straightRunDomainUrl = moduleDataUrl(straightRunDomainPath);
+const editingUi = fs.readFileSync(editingUiPath, "utf8")
+  .replace("__TB_STRAIGHT_RUN_MODULE_URL__", straightRunDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledEditingUi =
+  `<script data-tubebender-bundled="editing-ui">\n${editingUi}\n</script>`;
+
 const equipmentRuntimeBridge = fs.readFileSync(equipmentRuntimeBridgePath, "utf8").replace(/<\/script/gi, "<\\/script");
 const bundledEquipmentRuntimeBridge =
   `<script data-tubebender-bundled="equipment-runtime-bridge">\n${equipmentRuntimeBridge}\n</script>`;
@@ -2249,6 +2258,8 @@ output =
   bundledMaterialManufacturingBridge +
   "\n" +
   bundledMeasurementsUi +
+  "\n" +
+  bundledEditingUi +
   "\n" +
   bundledMaterialLibraryUi +
   "\n" +
@@ -2427,6 +2438,12 @@ if (!output.includes('data-tubebender-bundled="material-library-ui"')) {
 if (!output.includes('data-tubebender-bundled="measurements-ui"')) {
   throw new Error("Standalone build is missing the Measurements UI marker");
 }
+if (!output.includes('data-tubebender-bundled="editing-ui"')) {
+  throw new Error("Standalone build is missing the Editing UI marker");
+}
+if (!output.includes("TubeBenderEditing") || !output.includes("straightRun")) {
+  throw new Error("Standalone build is missing Editing integration hooks");
+}
 if (!output.includes("TubeBenderMeasurements") || !output.includes("engineering_dimensions")) {
   throw new Error("Standalone build is missing Measurements integration hooks");
 }
@@ -2502,6 +2519,7 @@ process.stdout.write(
       currentProjectDwfxImport: true,
       bundledMaterialLibrary: true,
       bundledMeasurementsUi: true,
+      bundledEditingUi: true,
       materialManufacturingCompensation: true,
       equipmentRuntimeBridge: true,
       bundledEquipmentLibrary: true,
