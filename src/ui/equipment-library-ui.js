@@ -552,8 +552,9 @@
   function renderClearanceMonitors(){
     const body=$(".tb-eq-body",panel),monitors=projectClearanceMonitors(),measurements=projectClearanceMeasurements();
     const summary=clearanceDomain.evaluateClearanceMonitors(monitors,measurements);
+    const editMode=String(project()?.clearance_edit_mode||"Monitor");
     body.innerHTML=
-      '<div class="tb-eq-toolbar"><button data-clearance-new>+ Clearance Monitor</button></div>'+
+      '<div class="tb-eq-toolbar"><button data-clearance-new>+ Clearance Monitor</button><label>Live edit mode <select data-clearance-edit-mode>'+["Monitor","Stop","ValidationLock"].map((x)=>option(x,x,x===editMode)).join("")+'</select></label><button data-clearance-mode-save>Сохранить режим</button></div>'+
       '<div class="tb-eq-section"><h3>Persistent Clearance Monitor</h3>'+
       '<div class="tb-eq-note">Overall: <b>'+esc(summary.status)+'</b> · Red '+summary.red_count+' · Yellow '+summary.yellow_count+' · Green '+summary.green_count+' · Not checked '+summary.not_checked_count+'. Видимость объектов не влияет на расчёт.</div>'+
       '<table class="tb-eq-table"><thead><tr><th>Name</th><th>Members</th><th>Min</th><th>Warn</th><th>Distance</th><th>Status</th><th>Enabled</th><th></th></tr></thead><tbody>'+
@@ -564,6 +565,13 @@
       }).join("")+
       '</tbody></table><div class="tb-eq-note" style="margin-top:8px">Double click — edit. Right click — delete. Focus центрирует 3D-камеру на ближайшей паре точек без изменения zoom/orientation. Tube↔tube пары автоматически используют ту же centerline/segment geometry, что и project collision engine, и получают фактический minimum surface clearance. Другие типы пар остаются NotChecked до появления precise measurement source.</div></div>';
     $("[data-clearance-new]",body).onclick=()=>editClearanceMonitor(null);
+    $("[data-clearance-mode-save]",body).onclick=()=>{
+      if(readonly()){toast("Проект открыт только для просмотра");return;}
+      const p=project(),mode=$("[data-clearance-edit-mode]",body).value;
+      const mutate=()=>{p.clearance_edit_mode=mode;return true;};
+      const ok=api()?.modelCommand?api().modelCommand("Изменить Live Clearance mode",mutate):mutate();
+      if(ok!==false){api()?.save?.();renderClearanceMonitors();}
+    };
     $("tr[data-clearance-id]",body).forEach((tr)=>{
       tr.ondblclick=()=>editClearanceMonitor(tr.dataset.clearanceId);
       tr.oncontextmenu=(e)=>{e.preventDefault();if(!window.confirm("Удалить Clearance Monitor?"))return;const next=clearanceDomain.deleteClearanceMonitor(projectClearanceMonitors(),tr.dataset.clearanceId);if(saveClearanceMonitors(next,"Удалить Clearance Monitor"))renderClearanceMonitors();};
@@ -677,7 +685,13 @@
     if(installed)return;installed=true;
     try{[domain,setupDomain,sequenceDomain,simCollisionDomain,clearanceDomain]=await Promise.all([import(MODULE_URL),import(SETUP_MODULE_URL),import(SEQUENCE_MODULE_URL),import(SIM_COLLISION_MODULE_URL),import(CLEARANCE_MODULE_URL)]);}catch(error){console.error("Equipment Library failed to load",error);return;}
     shell();
-    window.TubeBenderEquipmentLibrary=Object.freeze({open,close,store,refresh:render,simulationCollisionReport});
+    window.TubeBenderEquipmentLibrary=Object.freeze({
+      open,close,store,refresh:render,simulationCollisionReport,
+      clearanceSummary:()=>{
+        const monitors=projectClearanceMonitors(),measurements=projectClearanceMeasurements();
+        return clearanceDomain.evaluateClearanceMonitors(monitors,measurements);
+      }
+    });
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
 })();
