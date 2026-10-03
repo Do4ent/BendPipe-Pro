@@ -19,6 +19,8 @@ const materialLibraryUiPath = path.join(root, "src", "ui", "material-library-ui.
 const materialManufacturingBridgePath = path.join(root, "src", "ui", "material-manufacturing-bridge.js");
 const equipmentRuntimeBridgePath = path.join(root, "src", "ui", "equipment-runtime-bridge.js");
 const materialDomainPath = path.join(root, "src", "domain", "materials", "material-profiles.mjs");
+const machineToolingDomainPath = path.join(root, "src", "domain", "machines", "machine-tooling.mjs");
+const equipmentLibraryUiPath = path.join(root, "src", "ui", "equipment-library-ui.js");
 const distDir = path.join(root, "dist");
 const outputPath = path.join(distDir, "TubeBender_CAD_VC207R7_M1_Standalone.html");
 
@@ -2099,6 +2101,13 @@ const equipmentRuntimeBridge = fs.readFileSync(equipmentRuntimeBridgePath, "utf8
 const bundledEquipmentRuntimeBridge =
   `<script data-tubebender-bundled="equipment-runtime-bridge">\n${equipmentRuntimeBridge}\n</script>`;
 
+const machineToolingDomainUrl = moduleDataUrl(machineToolingDomainPath);
+const equipmentLibraryUi = fs.readFileSync(equipmentLibraryUiPath, "utf8")
+  .replace("__TB_MACHINE_TOOLING_MODULE_URL__", machineToolingDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledEquipmentLibraryUi =
+  `<script data-tubebender-bundled="equipment-library-ui">\n${equipmentLibraryUi}\n</script>`;
+
 if (!output.includes("</body>")) {
   throw new Error("Standalone source HTML is missing </body>");
 }
@@ -2117,6 +2126,8 @@ output =
   bundledProjectTubeBarLayoutFix +
   "\n" +
   bundledEquipmentRuntimeBridge +
+  "\n" +
+  bundledEquipmentLibraryUi +
   "\n" +
   bundledMaterialManufacturingBridge +
   "\n" +
@@ -2300,6 +2311,9 @@ if (!output.includes('data-tubebender-bundled="material-manufacturing-bridge"'))
 if (!output.includes('data-tubebender-bundled="equipment-runtime-bridge"')) {
   throw new Error("Standalone build is missing the equipment runtime bridge");
 }
+if (!output.includes('data-tubebender-bundled="equipment-library-ui"')) {
+  throw new Error("Standalone build is missing the Equipment Library UI");
+}
 if (!output.includes("TubeBenderMaterials") || !output.includes("material_profile_id")) {
   throw new Error("Standalone build is missing Material Library integration hooks");
 }
@@ -2337,6 +2351,7 @@ process.stdout.write(
       bundledMaterialLibrary: true,
       materialManufacturingCompensation: true,
       equipmentRuntimeBridge: true,
+      bundledEquipmentLibrary: true,
       injectedAtFinalBodyClose: true,
       lazyDwfxRuntime: true,
       optionalExternalModules: ["tesseract"]
