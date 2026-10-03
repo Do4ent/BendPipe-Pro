@@ -2024,6 +2024,22 @@ if(!output.includes(simulationMaterialAnchor)){throw new Error("simulation mater
 output=output.replace(simulationMaterialAnchor,
   "function simBuildTimeline(t=activeTube()){\n  const s=simEnsureState(),d=manufacturingData(t),rows=tubeRows(t),timeline=[],technology=simTechnologyForTube(t,d),materialSimulationGate=window.TubeBenderMaterialManufacturing?.validateManufacturingData?.({project:projectForTube(t)||activeProject(),tube:t,manufacturing:d,kind:'simulation'});\n  s.technology=technology.kind;s.technologySource=technology.source;s.technologyConfirmed=technology.confirmed;\n  if(materialSimulationGate&&!materialSimulationGate.ok){timeline.push({type:'blocked',duration:1,title:'Материал: '+materialSimulationGate.errors[0],bend:0,rowIndex:-1,bendRowIndex:-1,step:null});s.steps=d.steps;s.timeline=timeline;s.phaseIndex=0;s.phaseProgress=0;s.index=0;return timeline;}";
 
+const materialReportAnchor = "<div><b>Материал:</b> ${esc(d.style.material)}</div>";
+if(!output.includes(materialReportAnchor)){throw new Error("report material anchor was not found");}
+output=output.replace(materialReportAnchor,"<div><b>Material Profile:</b> ${esc(d.materialProfile?.name||'НЕ НАЗНАЧЕН')}</div>");
+
+const materialManufacturingNoteAnchor = "<div class=\"eng-note\">Технология: ${esc(technology.label)}${technology.source==='diameter_default'?' · требуется подтверждение профиля':''}</div>";
+if(!output.includes(materialManufacturingNoteAnchor)){throw new Error("manufacturing technology note anchor was not found");}
+output=output.replace(materialManufacturingNoteAnchor,"<div class=\"eng-note\">Технология: ${esc(technology.label)}${technology.source==='diameter_default'?' · требуется подтверждение профиля':''}<br>Материал: ${esc(d.materialProfile?.name||'не назначен')} · springback factor: ${d.materialProfile?.springback??'—'}${d.materialValidation?.ok?'':' · технологический расчёт заблокирован'}</div>");
+
+const materialMassKpiAnchor = "${kpi('Масса',`${round(d.massKg,3)} кг`)}";
+if(!output.includes(materialMassKpiAnchor)){throw new Error("manufacturing mass KPI anchor was not found");}
+output=output.replace(materialMassKpiAnchor,"${kpi('Масса',d.massKg==null?'—':`${round(d.massKg,3)} кг`)}");
+
+const materialCommandCellAnchor = "<td>${x.commandAngle}°</td>";
+if(!output.includes(materialCommandCellAnchor)){throw new Error("manufacturing command display anchor was not found");}
+output=output.replaceAll(materialCommandCellAnchor,"<td>${x.commandAngle==null?'—':x.commandAngle+'°'}</td>");
+
 const dwfxEntryUrl = moduleDataUrl(dwfxEntryPath);
 const bundledDwfx =
   `<script type="application/octet-stream" id="tbDwfxLazyModuleUrl" data-tubebender-bundled="dwfx-import">\n${dwfxEntryUrl}\n</script>
