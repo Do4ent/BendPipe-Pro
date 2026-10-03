@@ -725,6 +725,7 @@ test("Equipment Library and runtime bridge are bundled into standalone",()=>{
   assert.match(html,/tooling_instance_id/);
   assert.doesNotMatch(html,/__TB_MACHINE_TOOLING_MODULE_URL__/);
   assert.doesNotMatch(html,/__TB_BEND_SEQUENCE_MODULE_URL__/);
+  assert.doesNotMatch(html,/__TB_SIM_COLLISION_MODULE_URL__/);
 });
 
 test("assigned Equipment Library data overrides legacy machine limits and adds tooling correction after material springback",()=>{
@@ -799,4 +800,33 @@ test("Bend Sequence Analysis is bundled into Equipment UI without silent command
   assert.match(html,/kinematic_rebuild_required/);
   assert.match(html,/TubeBender не меняет порядок гибов автоматически/);
   assert.doesNotMatch(html,/__TB_BEND_SEQUENCE_MODULE_URL__/);
+});
+
+
+test("Bending Simulation Collision is bundled with per-bend statuses and explicit runtime modes",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/data-tab="simulation"/);
+  assert.match(html,/Bending Simulation Collision/);
+  assert.match(html,/simulationCollisionReport/);
+  assert.match(html,/ValidationLock/);
+  assert.match(html,/collisionReport=simulationCollision\?\.report/);
+  assert.match(html,/collisionDecision=simulationCollision\?\.decision/);
+  assert.match(html,/title:'Collision: '/);
+  assert.match(html,/simulationCollisionGate=window\.TubeBenderEquipmentLibrary\?\.simulationCollisionReport/);
+  assert.match(html,/Bending Simulation: /);
+  assert.doesNotMatch(html,/__TB_SIM_COLLISION_MODULE_URL__/);
+});
+
+test("simulation collision integration keeps nominal bend data separate from status metadata",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/simulation_collision_status/);
+  assert.match(html,/simulation_clearance_mm/);
+  assert.match(html,/simulation_collision_checked/);
+  assert.doesNotMatch(html,/simulation_collision_status[^\n]*C\s*=/);
 });
