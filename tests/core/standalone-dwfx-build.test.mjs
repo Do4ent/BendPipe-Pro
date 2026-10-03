@@ -830,3 +830,19 @@ test("simulation collision integration keeps nominal geometry untouched in the v
   assert.match(html,/simulation_calculation_state="Stale"/);
   assert.doesNotMatch(html,/simulation_collision_observations[^\n]*row\.angle\s*=/);
 });
+
+
+test("legacy per-frame simCollisionChecks feed transient per-bend evidence without replacing the collision engine",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/const tbOriginalSimCollisionChecks=simCollisionChecks/);
+  assert.match(html,/simCollisionChecks=function\(\.\.\.args\)/);
+  assert.match(html,/tbOriginalSimCollisionChecks\.apply\(this,args\)/);
+  assert.match(html,/tbSimulationCollisionCapture\(result\)/);
+  assert.match(html,/TubeBenderSimulationCollisionLive/);
+  assert.match(html,/observationsForTube/);
+  assert.match(html,/source:'simCollisionChecks'/);
+  assert.match(html,/clearTube\?\.\(t\?\.id\)/);
+});
