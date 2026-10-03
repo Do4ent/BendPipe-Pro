@@ -41,11 +41,16 @@ test("Split Straight preserves one LINE and stores internal StraightRun nodes",(
   assert.match(code,/LINE остаётся одним производственным StraightRun/);
 });
 
-test("Rotate and Array are not falsely exposed as functional before renderer integration",()=>{
-  assert.match(code,/data-tool="rotate" disabled/);
+test("Rotate is functional through exact rigid legacy re-encoding while Array stays disabled until associative sync exists",()=>{
+  assert.match(code,/__TB_RIGID_TRANSFORM_MODULE_URL__/);
+  assert.match(code,/data-tool="rotate">Rotate/);
+  assert.doesNotMatch(code,/data-tool="rotate" disabled/);
+  assert.match(code,/rotateLegacyTubeRigid/);
+  assert.match(code,/wholeObjectCommand/);
+  assert.match(code,/reloadActiveTube/);
+  assert.match(code,/Rigid-body Rotate сохраняет длины, CLR и углы гибов/);
   assert.match(code,/data-tool="array" disabled/);
-  assert.match(code,/rigid transform stack/);
-  assert.match(code,/Array domain готов/);
+  assert.match(code,/associative member synchronization/);
 });
 
 test("editing mutations run through readonly-aware model commands",()=>{
