@@ -162,7 +162,9 @@ export function evaluateToolingCompatibility({machineProfile,machineInstance=nul
   const reasons=[],warnings=[];
   if(!machineProfile||!toolingSet)return freeze({status:"Incompatible",reasons:["Machine Profile and Tooling Set are required"],warnings:[]});
   const limits=effectiveMachineLimits(machineProfile,machineInstance);
-  if(toolingSet.compatible_machine_profile_ids.length&&!toolingSet.compatible_machine_profile_ids.includes(machineProfile.id)){
+  if(!toolingSet.compatible_machine_profile_ids.length){
+    warnings.push("Tooling Set has no declared Machine Profile compatibility");
+  }else if(!toolingSet.compatible_machine_profile_ids.includes(machineProfile.id)){
     reasons.push("Tooling Set is not declared compatible with this Machine Profile");
   }
   const od=Number(tube?.od_mm??tube?.outer_diameter_mm);
