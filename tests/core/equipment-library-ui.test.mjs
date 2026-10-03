@@ -18,6 +18,7 @@ test("equipment library UI remains valid classic JavaScript",()=>{
   assert.match(code,/data-tab="tooling-instances"/);
   assert.match(code,/data-tab="setups"/);
   assert.match(code,/data-tab="trim"/);
+  assert.match(code,/data-tab="sequence"/);
   assert.match(code,/data-tab="tube"/);
 });
 
@@ -92,4 +93,15 @@ test("Trim Cut UI keeps removal length computed and only edits process preferenc
   assert.match(code,/data-key="normal_x"/);
   assert.match(code,/Изменить Trim\/Cut/);
   assert.doesNotMatch(code,/data-key="remove_length_mm"/);
+});
+
+
+test("Bend Sequence UI ranks candidates but never auto-applies them",()=>{
+  assert.match(code,/function renderSequenceAnalysis/);
+  assert.match(code,/analyzeSequenceCandidates/);
+  assert.match(code,/suggestion_rank/);
+  assert.match(code,/kinematic_rebuild_required/);
+  assert.match(code,/TubeBender не меняет порядок гибов автоматически/);
+  assert.match(code,/Выбрать предпочтительную последовательность/);
+  assert.doesNotMatch(code,/manufacturing\.steps=.*analysis\.order/);
 });
