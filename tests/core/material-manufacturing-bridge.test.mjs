@@ -108,3 +108,21 @@ test("unknown postprocessor format is explicitly not checked, not falsely valid"
   assert.equal(result.status,"NotChecked");
   assert.equal(result.ok,true);
 });
+
+
+test("manufacturing validation includes equipment assignment blockers",()=>{
+  const api=load();
+  const p=project({id:"mat-1",name:"Steel",springback:1.04,density_kg_m3:7850});
+  const result=api.validateManufacturingData({
+    project:p,
+    tube:{material_profile_id:"mat-1"},
+    manufacturing:{
+      equipmentValidation:{ok:false,status:"Error",errors:["Tooling incompatible"],warnings:[]},
+      machine:{ncPost:"generic-ybc"},
+      steps:[{bend:1,Y:100,B:0,C:90,commandAngle:93.6}]
+    },
+    kind:"nc"
+  });
+  assert.equal(result.ok,false);
+  assert.match(result.errors.join(" "),/Equipment: Tooling incompatible/);
+});
