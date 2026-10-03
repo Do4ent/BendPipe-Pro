@@ -135,3 +135,34 @@ test("A38: real 10141451 rounded rows pass continuity despite floating-point tan
   assert.ok(result.integrity.max_tangency_error_deg<1e-5);
   assert.ok(result.integrity.max_tangency_error_deg>1e-8);
 });
+
+
+test("StraightRun split nodes survive editable tube continuity replay without creating extra LINE rows",()=>{
+  const source=tube();
+  source.rows[0].straightRun={
+    id:"run-0",
+    nodes_mm:[25,75],
+    source_row_id:"line-0"
+  };
+  const result=repairRoundedTubeContinuity(source);
+  assert.equal(result.status,"continuous_tube");
+  assert.equal(result.integrity.element_count,5);
+  const line=result.integrity.elements[0];
+  assert.equal(line.type,"LINE");
+  assert.equal(line.length_mm,100);
+  assert.equal(line.split_nodes.length,2);
+  assert.deepEqual(line.split_nodes[0].point,[35,20,30]);
+  assert.deepEqual(line.split_nodes[1].point,[85,20,30]);
+  assert.deepEqual(Array.from(line.straight_run.nodes_mm),[25,75]);
+});
+
+test("invalid StraightRun nodes block replay instead of corrupting topology",()=>{
+  const source=tube();
+  source.rows[0].straightRun={
+    id:"run-0",
+    nodes_mm:[150]
+  };
+  const result=repairRoundedTubeContinuity(source);
+  assert.equal(result.status,"continuous_tube");
+  assert.equal(result.integrity.elements[0].split_nodes.length,0);
+});
