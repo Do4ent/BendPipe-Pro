@@ -969,3 +969,18 @@ test("object selection emits changes for live Measurements refresh",()=>{
   assert.match(html,/tubebender-selection-change/);
   assert.match(html,/new CustomEvent\("tubebender-selection-change"/);
 });
+
+
+test("Editing panel is bundled with Copy Move and StraightRun Split",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/data-tubebender-bundled="editing-ui"/);
+  assert.match(html,/TubeBenderEditing/);
+  assert.match(html,/Копировать выбранные трубы/);
+  assert.match(html,/context\(\)\?\.applyMove/);
+  assert.match(html,/splitStraightAtDistance/);
+  assert.match(html,/LINE остаётся одним производственным StraightRun/);
+  assert.doesNotMatch(html,/__TB_STRAIGHT_RUN_MODULE_URL__/);
+});
