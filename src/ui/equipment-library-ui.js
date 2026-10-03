@@ -1,7 +1,8 @@
 (()=>{
   const MODULE_URL="__TB_MACHINE_TOOLING_MODULE_URL__";
   const SETUP_MODULE_URL="__TB_MACHINE_SETUP_MODULE_URL__";
-  let domain=null,setupDomain=null,installed=false,panel=null,tab="machine-profiles";
+  const SEQUENCE_MODULE_URL="__TB_BEND_SEQUENCE_MODULE_URL__";
+  let domain=null,setupDomain=null,sequenceDomain=null,installed=false,panel=null,tab="machine-profiles";
   const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
   const clone=(v)=>v==null?v:structuredClone(v);
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,(ch)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -59,6 +60,7 @@
       '<button data-tab="tooling-instances">Tooling Instances</button>'+
       '<button data-tab="setups">Machine Setups</button>'+
       '<button data-tab="trim">Trim / Cut</button>'+
+      '<button data-tab="sequence">Bend Sequence</button>'+
       '<button data-tab="tube">Труба</button></div><div class="tb-eq-body"></div>';
     document.body.appendChild(panel);
     $("[data-eq-close]",panel).onclick=close;
@@ -75,6 +77,7 @@
     else if(tab==="tooling-instances")renderToolingInstances();
     else if(tab==="setups")renderMachineSetups();
     else if(tab==="trim")renderTrimCut();
+    else if(tab==="sequence")renderSequenceAnalysis();
     else renderTubeAssignment();
   }
 
@@ -376,6 +379,65 @@
     };
   }
 
+  function renderSequenceAnalysis(){
+    const body=$(".tb-eq-body",panel),t=tube();
+    if(!t){body.innerHTML='<div class="tb-eq-note">Нет активной трубы.</div>';return;}
+    let manufacturing=null;try{manufacturing=api()?.manufacturingData?.(t)??null;}catch{}
+    const steps=manufacturing?.steps??[];
+    if(!steps.length){body.innerHTML='<div class="tb-eq-note">Для трубы нет рассчитанных гибов.</div>';return;}
+    const allowReverse=manufacturing?.machine?.supportsReverse===true;
+    const priorities=t.sequence_analysis_priorities??{regrips:10,flips:8,rotation:0.01,feed:0.0001,clearance:5,warnings:2};
+    let analyses=[];
+    try{
+      analyses=sequenceDomain.analyzeSequenceCandidates(steps,{
+        allow_reverse:allowReverse,
+        machine_limits:{
+          max_bend_angle_deg:manufacturing?.machine?.maxBendAngle,
+          rotation_limit_deg:manufacturing?.machine?.rotationLimit,
+          min_feed_mm:manufacturing?.machine?.minFeed
+        },
+        priorities
+      });
+    }catch(error){
+      body.innerHTML='<div class="tb-eq-error">'+esc(error.message)+'</div>';return;
+    }
+    const pref=t.sequence_analysis_preference??null;
+    const forwardOrder=steps.map((step,index)=>String(step?.elementId??step?.bend_id??step?.bend??index+1));
+    body.innerHTML=
+      '<div class="tb-eq-section"><h3>Bend Sequence Analysis</h3><div class="tb-eq-note">Результаты — предложения. TubeBender не меняет порядок гибов автоматически. Reverse/нестандартный порядок требует отдельного kinematic rebuild Y/B/C перед Machine Export.</div>'+
+      '<table class="tb-eq-table"><thead><tr><th>Rank</th><th>Candidate</th><th>Status</th><th>Order</th><th>Regrips</th><th>Flips</th><th>Rotation</th><th>Feed</th><th>Clearance</th><th>Preferred</th></tr></thead><tbody>'+
+      analyses.map((a)=>'<tr data-sequence-id="'+esc(a.candidate_id)+'"><td>'+esc(a.suggestion_rank)+'</td><td>'+esc(a.name)+'</td><td>'+esc(a.status)+'</td><td>'+esc(a.order.join(" → "))+'</td><td>'+esc(a.metrics.regrips)+'</td><td>'+esc(a.metrics.flips)+'</td><td>'+esc(a.metrics.total_rotation_deg)+'</td><td>'+esc(a.metrics.total_feed_mm)+'</td><td>'+esc(a.metrics.min_clearance_mm??"—")+'</td><td>'+(pref?.candidate_id===a.candidate_id?"●":"")+'</td></tr>').join("")+
+      '</tbody></table></div>'+
+      '<div class="tb-eq-section"><h3>Priorities</h3><div class="tb-eq-grid">'+
+      ['regrips','flips','rotation','feed','clearance','warnings'].map((key)=>'<label>'+key+'</label><input data-seq-weight="'+key+'" value="'+esc(priorities[key])+'">').join("")+
+      '</div><div class="tb-eq-actions"><button data-seq-weights>Сохранить приоритеты</button><button data-seq-clear>Сбросить preferred</button></div></div>';
+    $("tr[data-sequence-id]",body).forEach((tr)=>{
+      tr.onclick=()=>{
+        const analysis=analyses.find((x)=>x.candidate_id===tr.dataset.sequenceId);if(!analysis)return;
+        if(!analysis.valid){toast("Недопустимую последовательность выбрать нельзя");return;}
+        const sameAsForward=analysis.order.length===forwardOrder.length&&analysis.order.every((id,index)=>String(id)===String(forwardOrder[index]));
+        const mutate=()=>{t.sequence_analysis_preference={
+          candidate_id:analysis.candidate_id,name:analysis.name,order:[...analysis.order],
+          chosen_explicitly:true,kinematic_rebuild_required:!sameAsForward,
+          analysis_status:analysis.status,metrics:clone(analysis.metrics)
+        };t.manufacturing_calculation_state="Stale";return true;};
+        const ok=api()?.modelCommand?api().modelCommand("Выбрать предпочтительную последовательность",mutate):mutate();
+        if(ok!==false){api()?.save?.();renderSequenceAnalysis();}
+      };
+    });
+    $("[data-seq-weights]",body).onclick=()=>{
+      const next={};$("[data-seq-weight]",body).forEach((el)=>next[el.dataset.seqWeight]=parseNum(el.value)??0);
+      const mutate=()=>{t.sequence_analysis_priorities=next;t.manufacturing_calculation_state="Stale";return true;};
+      const ok=api()?.modelCommand?api().modelCommand("Изменить приоритеты последовательности",mutate):mutate();
+      if(ok!==false){api()?.save?.();renderSequenceAnalysis();}
+    };
+    $("[data-seq-clear]",body).onclick=()=>{
+      const mutate=()=>{t.sequence_analysis_preference=null;t.manufacturing_calculation_state="Stale";return true;};
+      const ok=api()?.modelCommand?api().modelCommand("Сбросить предпочтительную последовательность",mutate):mutate();
+      if(ok!==false){api()?.save?.();renderSequenceAnalysis();}
+    };
+  }
+
   function renderTubeAssignment(){
     const body=$(".tb-eq-body",panel),lib=store(),t=tube();
     if(!t){body.innerHTML='<div class="tb-eq-note">Нет активной трубы.</div>';return;}
@@ -443,7 +505,7 @@
 
   async function install(){
     if(installed)return;installed=true;
-    try{[domain,setupDomain]=await Promise.all([import(MODULE_URL),import(SETUP_MODULE_URL)]);}catch(error){console.error("Equipment Library failed to load",error);return;}
+    try{[domain,setupDomain,sequenceDomain]=await Promise.all([import(MODULE_URL),import(SETUP_MODULE_URL),import(SEQUENCE_MODULE_URL)]);}catch(error){console.error("Equipment Library failed to load",error);return;}
     shell();
     window.TubeBenderEquipmentLibrary=Object.freeze({open,close,store,refresh:render});
   }
