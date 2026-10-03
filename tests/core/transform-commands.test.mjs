@@ -26,6 +26,12 @@ function near(a,b,tol=1e-9){
   for(const k of ["x","y","z"])assert.ok(Math.abs(a[k]-b[k])<=tol,`${k}: ${a[k]} vs ${b[k]}`);
 }
 
+test("transform stack identity is a complete 4x4 matrix",()=>{
+  const combined=composeTransformStack([]);
+  assert.equal(combined.length,16);
+  near(transformPoint(combined,{x:1,y:2,z:3}),{x:1,y:2,z:3});
+});
+
 test("move by snapped base and target points creates exact XYZ translation",()=>{
   const op=moveByPoints({x:1,y:2,z:3},{x:11,y:-3,z:8});
   assert.deepEqual(op.delta,{x:10,y:-5,z:5});
