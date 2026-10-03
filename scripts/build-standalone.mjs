@@ -403,6 +403,18 @@ const tubeClearanceMeasureHelpers =
   "}\n";
 output=output.replace(tubeClearanceMeasureAnchor,tubeClearanceMeasureHelpers+tubeClearanceMeasureAnchor);
 
+
+const clearanceFocusHelpers =
+  "function focusClearanceMeasurement(measurement){\n"+
+  "  const a=measurement?.closest_points?.a,b=measurement?.closest_points?.b;\n"+
+  "  if(!a||!b||!camera||!controls||!window.THREE)return false;\n"+
+  "  const scale=Number(GEOM_SCALE)||1,target=new THREE.Vector3((Number(a.x)+Number(b.x))*0.5*scale,(Number(a.y)+Number(b.y))*0.5*scale,(Number(a.z)+Number(b.z))*0.5*scale);\n"+
+  "  if(!Number.isFinite(target.x)||!Number.isFinite(target.y)||!Number.isFinite(target.z))return false;\n"+
+  "  const offset=camera.position.clone().sub(controls.target);\n"+
+  "  controls.target.copy(target);camera.position.copy(target.clone().add(offset));camera.lookAt(target);controls.update();\n"+
+  "  try{markViewerDirty();}catch{}\n"+
+  "  return true;\n"+
+  "}\n";
 const fixedEndEngineeringExportAnchor =
   "window.TubeBenderEngineering={open:openCenter,ensure:ensureIndustrialState,diagnoseTube,diagnoseProject,rebuildRouteGraph,manufacturingData,productionReleaseDecision,generateAutoroutes,captureRevision,compareRevision,exportManufacturing,simulation:";
 if(!output.includes(fixedEndEngineeringExportAnchor)){
@@ -467,7 +479,7 @@ const fixedEndEngineeringHelpers =
 output=output.replace(
   fixedEndEngineeringExportAnchor,
   fixedEndEngineeringHelpers+"\n"+
-  "window.TubeBenderEngineering={getState:()=>state,activeProject:()=>activeProject(),activeTube:()=>activeTube(),save:()=>save(),renderAll:()=>renderAll(),modelCommand:tbModelCommand,toast:(message)=>ptToast(String(message??'')),readonly:()=>typeof poReadOnly==='function'&&poReadOnly(),projectCollisionAnalysis:(projectValue)=>getProjectCollisionAnalysis(projectValue||activeProject()),measureTubeClearance:(projectValue,tubeAId,tubeBId)=>measureTubePairClearance(projectValue||activeProject(),tubeAId,tubeBId),open:openCenter,ensure:ensureIndustrialState,diagnoseTube,diagnoseProject,rebuildRouteGraph,geometryForTube,captureFixedEndConstraint,enforceFixedEndConstraint,setEndConstraint,manufacturingData,productionReleaseDecision,generateAutoroutes,captureRevision,compareRevision,exportManufacturing,simulation:"
+  "window.TubeBenderEngineering={getState:()=>state,activeProject:()=>activeProject(),activeTube:()=>activeTube(),save:()=>save(),renderAll:()=>renderAll(),modelCommand:tbModelCommand,toast:(message)=>ptToast(String(message??'')),readonly:()=>typeof poReadOnly==='function'&&poReadOnly(),projectCollisionAnalysis:(projectValue)=>getProjectCollisionAnalysis(projectValue||activeProject()),measureTubeClearance:(projectValue,tubeAId,tubeBId)=>measureTubePairClearance(projectValue||activeProject(),tubeAId,tubeBId),focusClearanceMeasurement:(measurement)=>focusClearanceMeasurement(measurement),open:openCenter,ensure:ensureIndustrialState,diagnoseTube,diagnoseProject,rebuildRouteGraph,geometryForTube,captureFixedEndConstraint,enforceFixedEndConstraint,setEndConstraint,manufacturingData,productionReleaseDecision,generateAutoroutes,captureRevision,compareRevision,exportManufacturing,simulation:"
 );
 const terminalTubeEndNodeAnchor =
   "    if ((state.rows || []).length) addNode(pipeGroup,pos,0x43d36b,.105, Math.max(0,(state.rows||[]).length-1), state.rows?.[(state.rows||[]).length-1]?.type || 'LINE');";
@@ -2386,6 +2398,9 @@ if (!output.includes("Persistent Clearance Monitor") || !output.includes("cleara
 }
 if (!output.includes("measureTubePairClearance") || !output.includes("project-clearance-geometry")) {
   throw new Error("Standalone build is missing minimum tube clearance measurement");
+}
+if (!output.includes("focusClearanceMeasurement") || !output.includes("controls.target.copy(target)")) {
+  throw new Error("Standalone build is missing clearance focus helper");
 }
 if (!output.includes("simulationCollisionReport") || !output.includes("ValidationLock")) {
   throw new Error("Standalone build is missing bending simulation collision integration");
