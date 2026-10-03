@@ -53,7 +53,7 @@
     return copy;
   }
   function selectedWholeTubes(){
-    return entries().filter((e)=>e.kind==="tube").map((e)=>tubeById(e.tubeId)).filter(Boolean);
+    return entries().filter((e)=>e.kind==="tube").map((e)=>tubeById(e.tubeId)).filter((tube)=>tube&&tube?.array_member?.derived_readonly!==true);
   }
   function selectedSingleLine(){
     const list=entries();
@@ -190,6 +190,83 @@
     return true;
   }
 
+  function arrayRuntime(){return window.TubeBenderAssociativeArrays??null;}
+  function createArrayFromSelection(body){
+    const tubes=selectedWholeTubes();
+    if(!tubes.length){toast("Для Array выберите одну или несколько исходных целых труб");return false;}
+    const runtime=arrayRuntime();
+    if(!runtime?.addArray){toast("Associative Array runtime ещё не загружен");return false;}
+    const type=$("[data-array-type]",body).value;
+    let parameters;
+    try{
+      if(type==="Linear"){
+        const count=Math.trunc(Number($("[data-array-count]",body).value));
+        const step=Number($("[data-array-step]",body).value.replace(",","."));
+        const axis=$("[data-array-axis]",body).value;
+        const direction=axis==="X"?{x:1,y:0,z:0}:axis==="Y"?{x:0,y:1,z:0}:{x:0,y:0,z:1};
+        parameters={count,step,direction};
+      }else if(type==="Matrix"){
+        const counts=["x","y","z"].map((a)=>Math.trunc(Number($("[data-array-n"+a+"]",body).value)));
+        const steps=["x","y","z"].map((a)=>Number($("[data-array-s"+a+"]",body).value.replace(",",".")));
+        parameters={counts,steps,directions:[{x:1,y:0,z:0},{x:0,y:1,z:0},{x:0,y:0,z:1}]};
+      }else{
+        const count=Math.trunc(Number($("[data-array-count]",body).value));
+        const total_angle_deg=Number($("[data-array-total]",body).value.replace(",","."));
+        const axisName=$("[data-array-axis]",body).value;
+        const axis=axisName==="X"?{x:1,y:0,z:0}:axisName==="Y"?{x:0,y:1,z:0}:{x:0,y:0,z:1};
+        const center={
+          x:Number($("[data-array-cx]",body).value.replace(",",".")),
+          y:Number($("[data-array-cy]",body).value.replace(",",".")),
+          z:Number($("[data-array-cz]",body).value.replace(",","."))
+        };
+        const rotate_elements=$("[data-array-rotate]",body).checked;
+        parameters={count,total_angle_deg,axis,center,rotate_elements};
+      }
+      const name=$("[data-array-name]",body).value.trim()||type+" Array";
+      return commit("Создать ассоциативный массив",()=>{
+        runtime.addArray({
+          type,
+          name,
+          source_tube_ids:tubes.map((t)=>String(t.id)),
+          parameters
+        },project());
+        return true;
+      });
+    }catch(error){toast(error.message);return false;}
+  }
+  function arrayAction(body,action){
+    const runtime=arrayRuntime(),id=$("[data-array-existing]",body)?.value;
+    if(!runtime||!id){toast("Выберите существующий Array");return false;}
+    if(action==="break"){
+      return commit("Разорвать ассоциативный массив",()=>{runtime.breakArray(id,project());return true;});
+    }
+    const index=Math.trunc(Number($("[data-array-member-index]",body)?.value));
+    if(!(index>0)){toast("Member index должен быть больше 0; source member имеет индекс 0");return false;}
+    return commit(action==="suppress"?"Suppress Array member":"Restore Array member",()=>{
+      runtime.suppressMember(id,index,action==="suppress",project());
+      return true;
+    });
+  }
+  function arrayPanelHtml(){
+    const defs=arrayRuntime()?.definitions?.()??[];
+    const existing='<option value="">—</option>'+defs.map((d)=>'<option value="'+esc(d.id)+'">'+esc(d.name)+" · "+esc(d.type)+" · "+esc(d.status??"")+'</option>').join("");
+    return '<div class="tb-edit-card"><b>Associative Array</b><div class="tb-edit-grid" style="margin-top:8px">'+
+      '<label>Name</label><input data-array-name value="Array">'+
+      '<label>Type</label><select data-array-type><option>Linear</option><option>Matrix</option><option>Circular</option></select>'+
+      '<label>Count</label><input data-array-count value="3">'+
+      '<label>Step, mm</label><input data-array-step value="100">'+
+      '<label>Axis</label><select data-array-axis><option>X</option><option>Y</option><option>Z</option></select>'+
+      '<label>Matrix Nx</label><input data-array-nx value="2"><label>Matrix Ny</label><input data-array-ny value="2"><label>Matrix Nz</label><input data-array-nz value="1">'+
+      '<label>Matrix Sx, mm</label><input data-array-sx value="100"><label>Matrix Sy, mm</label><input data-array-sy value="100"><label>Matrix Sz, mm</label><input data-array-sz value="100">'+
+      '<label>Total angle, °</label><input data-array-total value="360">'+
+      '<label>Center X</label><input data-array-cx value="0"><label>Center Y</label><input data-array-cy value="0"><label>Center Z</label><input data-array-cz value="0">'+
+      '<label>Rotate elements</label><input data-array-rotate type="checkbox" checked>'+
+      '</div><div class="tb-edit-note" style="margin-top:8px">Source member остаётся исходной трубой. Производные members пересобираются из source перед renderAll и защищены от прямого редактирования.</div>'+
+      '<div class="tb-edit-actions"><button data-array-create>Создать Array</button></div></div>'+
+      '<div class="tb-edit-card" style="margin-top:8px"><b>Управление массивом</b><div class="tb-edit-grid" style="margin-top:8px"><label>Array</label><select data-array-existing>'+existing+'</select><label>Member index</label><input data-array-member-index value="1"></div>'+
+      '<div class="tb-edit-actions"><button data-array-suppress>Suppress</button><button data-array-restore>Restore</button><button data-array-break>Break Array</button></div></div>';
+  }
+
   function injectStyles(){
     if(document.getElementById("tbEditingUiStyles"))return;
     const s=document.createElement("style");s.id="tbEditingUiStyles";s.textContent=`
@@ -212,7 +289,7 @@
       '<div class="tb-edit-tools">'+
       '<button data-tool="copy">Copy</button><button data-tool="move">Move</button><button data-tool="split">Split</button>'+
       '<button data-tool="rotate">Rotate</button>'+
-      '<button data-tool="array" disabled title="Array domain готов; associative member synchronization подключается следующим этапом">Array</button>'+
+      '<button data-tool="array">Array</button>'+
       '</div><div class="tb-edit-body"></div>';
     document.body.appendChild(panel);
     $("[data-edit-close]",panel).onclick=close;
@@ -245,6 +322,12 @@
         '</div><div class="tb-edit-note" style="margin-top:8px">Rigid-body Rotate сохраняет длины, CLR и углы гибов; TubeBender пересчитывает только origin/startVector и legacy plane/rot.</div>'+
         '<div class="tb-edit-actions"><button data-rotate-run>Повернуть</button></div></div>';
       $("[data-rotate-run]",body).onclick=()=>rotateSelection(body);
+    }else if(activeTool==="array"){
+      body.innerHTML=arrayPanelHtml();
+      $("[data-array-create]",body).onclick=()=>createArrayFromSelection(body);
+      $("[data-array-suppress]",body).onclick=()=>arrayAction(body,"suppress");
+      $("[data-array-restore]",body).onclick=()=>arrayAction(body,"restore");
+      $("[data-array-break]",body).onclick=()=>arrayAction(body,"break");
     }
   }
   async function install(){
@@ -252,7 +335,7 @@
     try{[straightRun,rigidTransform]=await Promise.all([import(STRAIGHT_RUN_URL),import(RIGID_TRANSFORM_URL)]);}catch(error){console.error("Editing UI failed to load",error);return;}
     ensureShell();
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
-    window.TubeBenderEditing=Object.freeze({open,close,copySelection,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,refresh:render});
+    window.TubeBenderEditing=Object.freeze({open,close,copySelection,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createArrayFromSelection,arrayAction,refresh:render});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
 })();
