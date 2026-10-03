@@ -405,11 +405,13 @@ output=output.replace(tubeClearanceMeasureAnchor,tubeClearanceMeasureHelpers+tub
 
 
 const clearanceFocusHelpers =
+  "let tbClearanceFocusGroup=null;\n"+
   "function focusClearanceMeasurement(measurement){\n"+
   "  const a=measurement?.closest_points?.a,b=measurement?.closest_points?.b;\n"+
   "  if(!a||!b||!camera||!controls||!window.THREE)return false;\n"+
-  "  const scale=Number(GEOM_SCALE)||1,target=new THREE.Vector3((Number(a.x)+Number(b.x))*0.5*scale,(Number(a.y)+Number(b.y))*0.5*scale,(Number(a.z)+Number(b.z))*0.5*scale);\n"+
+  "  const scale=Number(GEOM_SCALE)||1,pA=new THREE.Vector3(Number(a.x)*scale,Number(a.y)*scale,Number(a.z)*scale),pB=new THREE.Vector3(Number(b.x)*scale,Number(b.y)*scale,Number(b.z)*scale),target=pA.clone().add(pB).multiplyScalar(.5);\n"+
   "  if(!Number.isFinite(target.x)||!Number.isFinite(target.y)||!Number.isFinite(target.z))return false;\n"+
+  "  if(pipeGroup){if(tbClearanceFocusGroup?.parent)tbClearanceFocusGroup.parent.remove(tbClearanceFocusGroup);const status=String(measurement?.status||'NotChecked'),color=status==='Red'?0xff3b30:status==='Yellow'?0xffd54a:status==='Green'?0x43d36b:0x4da3ff;const group=new THREE.Group();group.userData={helper:true,clearanceFocusMarker:true};const sphereGeo=new THREE.SphereGeometry(.12,18,12),sphereMat=new THREE.MeshBasicMaterial({color,depthTest:false,depthWrite:false});for(const p of [pA,pB]){const marker=new THREE.Mesh(sphereGeo,sphereMat);marker.position.copy(p);marker.renderOrder=9800;marker.userData={helper:true,clearanceFocusMarker:true};group.add(marker);}const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([pA,pB]),new THREE.LineBasicMaterial({color,depthTest:false,depthWrite:false}));line.renderOrder=9799;line.userData={helper:true,clearanceFocusMarker:true};group.add(line);pipeGroup.add(group);tbClearanceFocusGroup=group;}\n"+
   "  const offset=camera.position.clone().sub(controls.target);\n"+
   "  controls.target.copy(target);camera.position.copy(target.clone().add(offset));camera.lookAt(target);controls.update();\n"+
   "  try{markViewerDirty();}catch{}\n"+
