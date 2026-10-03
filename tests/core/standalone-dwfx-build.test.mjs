@@ -877,13 +877,15 @@ test("Persistent Clearance Monitor is bundled and remains project-scoped",()=>{
 });
 
 
-test("Clearance Monitor consumes project collision truth for tube-to-tube red states",()=>{
+test("Clearance Monitor measures tube-to-tube minimum surface clearance using shared collision geometry",()=>{
   if(!fs.existsSync(output)){
     execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
   }
   const html=fs.readFileSync(output,"utf8");
-  assert.match(html,/projectCollisionAnalysis:\(projectValue\)=>getProjectCollisionAnalysis/);
-  assert.match(html,/projectCollisionAnalysis\?\.\(p\)/);
-  assert.match(html,/source:"project-collision"/);
-  assert.match(html,/absence|отсутствие collision не считается Green/i);
+  assert.match(html,/function measureTubePairClearance\(project,tubeAId,tubeBId\)/);
+  assert.match(html,/buildTubeCollisionGeometry\(a,project\)/);
+  assert.match(html,/closestSegmentData\(sa\.a,sa\.b,sb\.a,sb\.b\)/);
+  assert.match(html,/surface=closest\.distance-\(sa\.radius\+sb\.radius\)/);
+  assert.match(html,/measureTubeClearance:\(projectValue,tubeAId,tubeBId\)=>measureTubePairClearance/);
+  assert.match(html,/source:'project-clearance-geometry'/);
 });
