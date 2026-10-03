@@ -579,6 +579,19 @@ output=output.replace(
   "  token.fixedEndAdjustedRows=fixedEndResult?.adjustedRows||[];\n"+
   "  const after=tbHistorySnapshot();"
 );
+
+const liveEditCollisionAnchor =
+  "function tbModelCommand(label,mutate){";
+if(!output.includes(liveEditCollisionAnchor)){
+  throw new Error("tbModelCommand anchor missing for live collision guard");
+}
+const liveEditCollisionHelpers =
+  "function tbCollisionGuardKey(item){const a=String(item?.tubeAId??''),b=String(item?.tubeBId??''),ra=Number(item?.rowA??-1),rb=Number(item?.rowB??-1);if(a===b){const lo=Math.min(ra,rb),hi=Math.max(ra,rb);return 'self:'+a+':'+lo+':'+hi;}if(a<b)return a+':'+ra+'|'+b+':'+rb;return b+':'+rb+'|'+a+':'+ra;}\n"+
+  "function tbCollisionGuardSnapshot(project){const map=new Map();for(const item of getProjectCollisionAnalysis(project,true)?.collisions||[]){const key=tbCollisionGuardKey(item),penetration=Math.max(0,Number(item?.penetrationMm??item?.penetration_mm??0)||0);map.set(key,Math.max(map.get(key)||0,penetration));}return map;}\n"+
+  "function tbCaptureLiveCollisionGuard(){const project=activeProject(),mode=String(project?.clearance_edit_mode||'Monitor');if(!project||!(mode==='Stop'||mode==='ValidationLock'))return null;return {projectId:project.id,mode,before:tbCollisionGuardSnapshot(project)};}\n"+
+  "function tbEnforceLiveCollisionGuard(guard){if(!guard)return {ok:true};const project=(state.projects||[]).find(p=>String(p?.id)===String(guard.projectId))||activeProject();if(!project)return {ok:true};const after=tbCollisionGuardSnapshot(project),violations=[];for(const [key,penetration] of after){const previous=guard.before.get(key);if(previous===undefined||penetration>previous+0.01)violations.push({key,penetration,previous:previous??null});}return violations.length?{ok:false,mode:guard.mode,violations,message:'Изменение отменено: обнаружена новая или увеличенная коллизия'}:{ok:true,mode:guard.mode};}\n";
+output=output.replace(liveEditCollisionAnchor,liveEditCollisionHelpers+liveEditCollisionAnchor);
+
 const fixedEndCommandAnchor =
   "function tbModelCommand(label,mutate){\n"+
   "  if(typeof mutate!=='function')throw new TypeError('Model command requires a mutator');\n"+
@@ -614,6 +627,7 @@ output=output.replace(
   "  if(tbHistory.applying||tbHistory.transaction)return mutate();\n"+
   "  const token=tbHistoryBegin(label);\n"+
   "  const fixedEndGuard=window.TubeBenderEngineering?.captureFixedEndConstraint?.()??null;\n"+
+  "  const liveCollisionGuard=tbCaptureLiveCollisionGuard();\n"+
   "  try{\n"+
   "    const result=mutate();\n"+
   "    if(result===false){tbHistoryCancel(token);return false;}\n"+
@@ -622,6 +636,13 @@ output=output.replace(
   "      tbHistoryCancel(token);\n"+
   "      if(token?.before)tbHistoryRestore(token.before);\n"+
   "      ptToast(fixedEndResult.message||'Изменение отменено: зафиксированный конец трубы должен оставаться неподвижным');\n"+
+  "      return false;\n"+
+  "    }\n"+
+  "    const liveCollisionResult=tbEnforceLiveCollisionGuard(liveCollisionGuard);\n"+
+  "    if(liveCollisionResult?.ok===false){\n"+
+  "      tbHistoryCancel(token);\n"+
+  "      if(token?.before)tbHistoryRestore(token.before);\n"+
+  "      ptToast(liveCollisionResult.message||'Изменение отменено из-за коллизии');\n"+
   "      return false;\n"+
   "    }\n"+
   "    tbHistoryCommit(token);\n"+
