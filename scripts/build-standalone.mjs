@@ -24,6 +24,7 @@ const machineToolingDomainPath = path.join(root, "src", "domain", "machines", "m
 const machineSetupDomainPath = path.join(root, "src", "domain", "machines", "machine-setup.mjs");
 const bendSequenceDomainPath = path.join(root, "src", "domain", "manufacturing", "bend-sequence-analysis.mjs");
 const simulationCollisionDomainPath = path.join(root, "src", "domain", "manufacturing", "bending-simulation-collision.mjs");
+const clearanceMonitorDomainPath = path.join(root, "src", "domain", "validation", "clearance-monitor.mjs");
 const equipmentLibraryUiPath = path.join(root, "src", "ui", "equipment-library-ui.js");
 const distDir = path.join(root, "dist");
 const outputPath = path.join(distDir, "TubeBender_CAD_VC207R7_M1_Standalone.html");
@@ -2142,11 +2143,13 @@ const machineToolingDomainUrl = moduleDataUrl(machineToolingDomainPath);
 const machineSetupDomainUrl = moduleDataUrl(machineSetupDomainPath);
 const bendSequenceDomainUrl = moduleDataUrl(bendSequenceDomainPath);
 const simulationCollisionDomainUrl = moduleDataUrl(simulationCollisionDomainPath);
+const clearanceMonitorDomainUrl = moduleDataUrl(clearanceMonitorDomainPath);
 const equipmentLibraryUi = fs.readFileSync(equipmentLibraryUiPath, "utf8")
   .replace("__TB_MACHINE_TOOLING_MODULE_URL__", machineToolingDomainUrl)
   .replace("__TB_MACHINE_SETUP_MODULE_URL__", machineSetupDomainUrl)
   .replace("__TB_BEND_SEQUENCE_MODULE_URL__", bendSequenceDomainUrl)
   .replace("__TB_SIM_COLLISION_MODULE_URL__", simulationCollisionDomainUrl)
+  .replace("__TB_CLEARANCE_MODULE_URL__", clearanceMonitorDomainUrl)
   .replace(/<\/script/gi, "<\\/script");
 const bundledEquipmentLibraryUi =
   `<script data-tubebender-bundled="equipment-library-ui">\n${equipmentLibraryUi}\n</script>`;
@@ -2352,6 +2355,12 @@ if (!output.includes('data-tubebender-bundled="material-library-ui"')) {
 }
 if (output.includes("__TB_SIM_COLLISION_MODULE_URL__")) {
   throw new Error("Standalone build still contains unresolved simulation collision module URL");
+}
+if (output.includes("__TB_CLEARANCE_MODULE_URL__")) {
+  throw new Error("Standalone build still contains unresolved clearance monitor module URL");
+}
+if (!output.includes("Persistent Clearance Monitor") || !output.includes("clearance_monitors")) {
+  throw new Error("Standalone build is missing clearance monitor integration");
 }
 if (!output.includes("simulationCollisionReport") || !output.includes("ValidationLock")) {
   throw new Error("Standalone build is missing bending simulation collision integration");
