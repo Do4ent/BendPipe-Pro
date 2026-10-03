@@ -606,7 +606,7 @@ test("A65: short start and end straights use removable technological allowances 
   assert.match(html,/endAllowances=technologicalEndAllowancePlan/);
   assert.match(html,/bendNo===1\?endAllowances\.startAllowance:0/);
   assert.match(html,/endAllowances\.totalAllowance/);
-  assert.match(html,/return \{steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,xyz,endAllowances\}/);
+  assert.match(html,/return \{steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,xyz,endAllowances,materialProfile,materialValidation,materialDensityKgM3\}/);
 
   assert.match(html,/id='engTechnologicalAllowance'/);
   assert.match(html,/Технологический припуск \(удалить после гибки\)/);
