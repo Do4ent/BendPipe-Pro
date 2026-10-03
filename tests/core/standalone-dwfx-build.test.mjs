@@ -846,3 +846,18 @@ test("legacy per-frame simCollisionChecks feed transient per-bend evidence witho
   assert.match(html,/source:'simCollisionChecks'/);
   assert.match(html,/clearTube\?\.\(t\?\.id\)/);
 });
+
+
+test("Stop and ValidationLock halt live simulation playback while Monitor remains observational",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/text==='tube'\|\|text\.includes\('self'\)/);
+  assert.match(html,/mode==='Stop'\|\|mode==='ValidationLock'/);
+  assert.match(html,/sim\.running=false/);
+  assert.match(html,/sim\.collisionStopped=true/);
+  assert.match(html,/sim\.collisionStoppedAtBend=bendId/);
+  assert.match(html,/sim\.collisionStopReason='Collision detected at bend '/);
+  assert.doesNotMatch(html,/mode==='Monitor'[^\n]*sim\.running=false/);
+});
