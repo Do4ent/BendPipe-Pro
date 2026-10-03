@@ -1,6 +1,7 @@
 (()=>{
   const MODULE_URL="__TB_MACHINE_TOOLING_MODULE_URL__";
-  let domain=null,installed=false,panel=null,tab="machine-profiles";
+  const SETUP_MODULE_URL="__TB_MACHINE_SETUP_MODULE_URL__";
+  let domain=null,setupDomain=null,installed=false,panel=null,tab="machine-profiles";
   const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
   const clone=(v)=>v==null?v:structuredClone(v);
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,(ch)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -56,6 +57,7 @@
       '<button data-tab="machine-instances">Machine Instances</button>'+
       '<button data-tab="tooling-sets">Tooling Sets</button>'+
       '<button data-tab="tooling-instances">Tooling Instances</button>'+
+      '<button data-tab="setups">Machine Setups</button>'+
       '<button data-tab="tube">Труба</button></div><div class="tb-eq-body"></div>';
     document.body.appendChild(panel);
     $("[data-eq-close]",panel).onclick=close;
@@ -70,6 +72,7 @@
     else if(tab==="machine-instances")renderMachineInstances();
     else if(tab==="tooling-sets")renderToolingSets();
     else if(tab==="tooling-instances")renderToolingInstances();
+    else if(tab==="setups")renderMachineSetups();
     else renderTubeAssignment();
   }
 
@@ -241,6 +244,94 @@
     });
   }
 
+  function renderMachineSetups(){
+    const body=$(".tb-eq-body",panel),t=tube();
+    if(!t){body.innerHTML='<div class="tb-eq-note">Нет активной трубы.</div>';return;}
+    const list=Array.isArray(t.machine_setups)?t.machine_setups:[];
+    body.innerHTML='<div class="tb-eq-toolbar"><button data-setup-new>+ Machine Setup</button></div>'+
+      '<div class="tb-eq-section"><h3>Machine Setups · '+esc(t.name??t.id??"")+'</h3><table class="tb-eq-table"><thead><tr><th>Active</th><th>Name</th><th>Datum</th><th>Offset method</th><th>Offset</th><th>Extensions P1/P2</th><th>Status</th></tr></thead><tbody>'+
+      list.map((s)=>{const v=setupDomain.validateMachineSetup(s);return '<tr data-setup-id="'+esc(s.id)+'"><td>'+(String(t.active_machine_setup_id??"")===String(s.id)?"●":"")+'</td><td>'+esc(s.name)+'</td><td>'+esc(s.datum?.type??"—")+'</td><td>'+esc(s.offset_method)+'</td><td>'+esc(setupDomain.resolvedSetupOffsetMm(s))+'</td><td>'+esc((s.clamping_extensions?.start_mm??0)+" / "+(s.clamping_extensions?.end_mm??0))+'</td><td>'+esc(v.status)+'</td></tr>';}).join("")+
+      '</tbody></table><div class="tb-eq-note" style="margin-top:8px">Двойной клик — редактировать. Один клик — сделать активным. Правый клик — удалить.</div></div>';
+    $("[data-setup-new]",body).onclick=()=>editMachineSetup(null);
+    $("tr[data-setup-id]",body).forEach((tr)=>{
+      tr.onclick=()=>selectSetup(tr.dataset.setupId);
+      tr.ondblclick=(e)=>{e.stopPropagation();editMachineSetup(tr.dataset.setupId);};
+      tr.oncontextmenu=(e)=>{e.preventDefault();deleteSetup(tr.dataset.setupId);};
+    });
+  }
+
+  function editMachineSetup(id){
+    if(readonly()){toast("Проект открыт только для просмотра");return;}
+    const t=tube();if(!t)return;
+    const list=Array.isArray(t.machine_setups)?t.machine_setups:[];
+    const x=id?list.find((s)=>String(s.id)===String(id))??null:null;
+    const body=form(x?"Edit Machine Setup":"New Machine Setup",[
+      {key:"name",label:"Name *",value:x?.name??"Setup"},
+      {key:"datum_type",label:"Datum",value:x?.datum?.type??"P1",type:"select",options:["P1","P2","point","plane","coordinate_system"].map((v)=>({value:v,label:v}))},
+      {key:"offset_method",label:"Offset method",value:x?.offset_method??"physical_end",type:"select",options:[
+        {value:"physical_end",label:"Physical end"},{value:"clamp_point",label:"Clamp point"},{value:"feed_zero",label:"Feed zero"},{value:"custom",label:"Custom"}
+      ]},
+      {key:"offset_mm",label:"Offset, mm",value:number(x?.offset_mm),type:"number"},
+      {key:"clamp_point_mm",label:"Clamp point, mm",value:number(x?.clamp_point_mm),type:"number"},
+      {key:"feed_zero_mm",label:"Feed zero, mm",value:number(x?.feed_zero_mm),type:"number"},
+      {key:"start_extension_mm",label:"Clamping extension P1, mm",value:number(x?.clamping_extensions?.start_mm),type:"number"},
+      {key:"end_extension_mm",label:"Clamping extension P2, mm",value:number(x?.clamping_extensions?.end_mm),type:"number"},
+      {key:"origin_x",label:"Setup origin X, mm",value:number(x?.transform?.origin_mm?.x),type:"number"},
+      {key:"origin_y",label:"Setup origin Y, mm",value:number(x?.transform?.origin_mm?.y),type:"number"},
+      {key:"origin_z",label:"Setup origin Z, mm",value:number(x?.transform?.origin_mm?.z),type:"number"}
+    ],(root)=>{
+      const v=values(root);
+      const raw={
+        ...(x??{}),name:v.name,datum:{...(x?.datum??{}),type:v.datum_type},
+        offset_method:v.offset_method,offset_mm:parseNum(v.offset_mm),
+        clamp_point_mm:parseNum(v.clamp_point_mm),feed_zero_mm:parseNum(v.feed_zero_mm),
+        clamping_extensions:{start_mm:parseNum(v.start_extension_mm)??0,end_mm:parseNum(v.end_extension_mm)??0},
+        transform:{
+          origin_mm:{x:parseNum(v.origin_x)??0,y:parseNum(v.origin_y)??0,z:parseNum(v.origin_z)??0},
+          x_axis:x?.transform?.x_axis??{x:1,y:0,z:0},
+          y_axis:x?.transform?.y_axis??{x:0,y:1,z:0}
+        },
+        machine_profile_id:t.machine_profile_id??x?.machine_profile_id??null,
+        machine_instance_id:t.machine_instance_id??x?.machine_instance_id??null,
+        tooling_set_id:t.tooling_set_id??x?.tooling_set_id??null,
+        tooling_instance_id:t.tooling_instance_id??x?.tooling_instance_id??null
+      };
+      const setup=setupDomain.createMachineSetup(raw,{setupId:x?.id});
+      const valid=setupDomain.validateMachineSetup(setup);if(!valid.ok)throw new Error(valid.errors.join("; "));
+      const mutate=()=>{
+        const current=Array.isArray(t.machine_setups)?t.machine_setups:[];
+        if(x)t.machine_setups=current.map((s)=>s.id===x.id?clone(setup):s);
+        else{t.machine_setups=[...current,clone(setup)];if(!t.active_machine_setup_id)t.active_machine_setup_id=setup.id;}
+        t.equipment_calculation_state="Stale";
+        return true;
+      };
+      const ok=api()?.modelCommand?api().modelCommand(x?"Изменить Machine Setup":"Создать Machine Setup",mutate):mutate();
+      if(ok!==false){api()?.save?.();api()?.renderAll?.();renderMachineSetups();}
+    });
+  }
+
+  function selectSetup(id){
+    if(readonly())return;
+    const t=tube();if(!t)return;
+    const exists=(t.machine_setups??[]).some((s)=>String(s.id)===String(id));if(!exists)return;
+    const mutate=()=>{t.active_machine_setup_id=id;t.equipment_calculation_state="Stale";return true;};
+    const ok=api()?.modelCommand?api().modelCommand("Выбрать Machine Setup",mutate):mutate();
+    if(ok!==false){api()?.save?.();renderMachineSetups();}
+  }
+
+  function deleteSetup(id){
+    if(readonly()){toast("Проект открыт только для просмотра");return;}
+    if(!window.confirm("Удалить Machine Setup?"))return;
+    const t=tube();if(!t)return;
+    const mutate=()=>{
+      t.machine_setups=(t.machine_setups??[]).filter((s)=>String(s.id)!==String(id));
+      if(String(t.active_machine_setup_id??"")===String(id))t.active_machine_setup_id=t.machine_setups[0]?.id??null;
+      t.equipment_calculation_state="Stale";return true;
+    };
+    const ok=api()?.modelCommand?api().modelCommand("Удалить Machine Setup",mutate):mutate();
+    if(ok!==false){api()?.save?.();api()?.renderAll?.();renderMachineSetups();}
+  }
+
   function renderTubeAssignment(){
     const body=$(".tb-eq-body",panel),lib=store(),t=tube();
     if(!t){body.innerHTML='<div class="tb-eq-note">Нет активной трубы.</div>';return;}
@@ -308,7 +399,7 @@
 
   async function install(){
     if(installed)return;installed=true;
-    try{domain=await import(MODULE_URL);}catch(error){console.error("Equipment Library failed to load",error);return;}
+    try{[domain,setupDomain]=await Promise.all([import(MODULE_URL),import(SETUP_MODULE_URL)]);}catch(error){console.error("Equipment Library failed to load",error);return;}
     shell();
     window.TubeBenderEquipmentLibrary=Object.freeze({open,close,store,refresh:render});
   }
