@@ -642,3 +642,18 @@ test("A67: tube end is selectable and can be fixed as a persistent P2 constraint
 
   assert.match(html,/geometryForTube,captureFixedEndConstraint,enforceFixedEndConstraint,setEndConstraint/);
 });
+
+
+test("material library UI is bundled into standalone with domain module payload",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/data-tubebender-bundled="material-library-ui"/);
+  assert.match(html,/TubeBenderMaterials/);
+  assert.match(html,/Material Library/);
+  assert.match(html,/material_profile_id/);
+  assert.match(html,/default_material_profile_id/);
+  assert.match(html,/data:text\/javascript;base64,/);
+  assert.doesNotMatch(html,/__TB_MATERIAL_MODULE_URL__/);
+});
