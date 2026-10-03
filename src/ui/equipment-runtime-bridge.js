@@ -78,6 +78,19 @@
       const od=Number(tube?.outer_diameter_mm??tube?.od_mm);
       const toolOd=Number(ts.diameter_mm);
       if(Number.isFinite(od)&&Number.isFinite(toolOd)&&Math.abs(od-toolOd)>0.02)errors.push("Диаметр трубы не соответствует Tooling Set");
+      const wall=Number(tube?.wall_thickness_mm??tube?.wall_mm);
+      const wallMin=Number(ts.wall_min_mm),wallMax=Number(ts.wall_max_mm);
+      if(Number.isFinite(wall)){
+        if(Number.isFinite(wallMin)&&wall<wallMin-1e-9)errors.push("Толщина стенки ниже диапазона Tooling Set");
+        if(Number.isFinite(wallMax)&&wall>wallMax+1e-9)errors.push("Толщина стенки выше диапазона Tooling Set");
+      }else if(ts.wall_min_mm!=null||ts.wall_max_mm!=null)warnings.push("Толщина стенки трубы не определена для проверки Tooling Set");
+      const clrs=Array.isArray(tube?.bend_clr_mm)
+        ? tube.bend_clr_mm.map(Number).filter(Number.isFinite)
+        : [Number(tube?.clr_mm??tube?.centerline_radius_mm)].filter(Number.isFinite);
+      const toolingClr=Number(ts.clr_mm);
+      if(Number.isFinite(toolingClr)&&clrs.some((clr)=>Math.abs(clr-toolingClr)>0.05)){
+        errors.push("CLR трубы не соответствует Tooling Set");
+      }
     }
     return Object.freeze({
       ok:errors.length===0,
