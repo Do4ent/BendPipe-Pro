@@ -1,0 +1,287 @@
+(()=>{
+  const GEOMETRY_URL="__TB_GEOMETRY_MEASUREMENTS_MODULE_URL__";
+  const DIMENSIONS_URL="__TB_DIMENSIONS_MODULE_URL__";
+  let geometry=null,dimensions=null,installed=false,panel=null,button=null,lastResult=null,lastSelectionKey="",poll=null;
+
+  const $=(s,r=document)=>r.querySelector(s);
+  const clone=(v)=>v==null?v:structuredClone(v);
+  const esc=(v)=>String(v??"").replace(/[&<>"']/g,(ch)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+  const api=()=>window.TubeBenderEngineering??null;
+  const context=()=>window.TubeBenderObjectContext??null;
+  const project=()=>{try{return api()?.activeProject?.()??null;}catch{return null;}};
+  const readonly=()=>{try{return api()?.readonly?.()===true;}catch{return false;}};
+  const toast=(m)=>{try{api()?.toast?.(String(m??""));}catch{}};
+
+  function tubeById(id){
+    return (project()?.tubes??[]).find((tube)=>String(tube?.id)===String(id))??null;
+  }
+  function rowFor(entry){
+    const tube=tubeById(entry?.tubeId);
+    if(!tube)return null;
+    try{
+      const s=api()?.getState?.();
+      if(String(s?.activeTubeId??"")===String(tube.id))return s?.rows?.[entry.rowIndex]??tube.rows?.[entry.rowIndex]??null;
+    }catch{}
+    return tube.rows?.[entry.rowIndex]??null;
+  }
+  function elementFor(entry){
+    const tube=tubeById(entry?.tubeId);if(!tube)return null;
+    try{
+      const g=api()?.geometryForTube?.(tube);
+      return (g?.elements??[]).find((el)=>Number(el?.rowIndex??el?.row_index)===Number(entry.rowIndex))??null;
+    }catch{return null;}
+  }
+  function point(v){
+    if(!v)return null;
+    const x=Number(v.x??v[0]),y=Number(v.y??v[1]),z=Number(v.z??v[2]);
+    return [x,y,z].every(Number.isFinite)?{x,y,z}:null;
+  }
+  function directionFromEntry(entry){
+    const el=elementFor(entry);
+    return point(el?.direction??el?.tangent_in??null);
+  }
+  function totalCenterline(tube){
+    let total=0;
+    for(const row of tube?.rows??[]){
+      if(row?.type==="LINE"){
+        const L=Number(row.L);if(!Number.isFinite(L))return null;total+=L;
+      }else if(row?.type==="BEND"){
+        const R=Number(row.clr),A=Number(row.angle);
+        if(!Number.isFinite(R)||!Number.isFinite(A))return null;
+        total+=geometry.measureArc({radius_mm:R,sweep_deg:A}).arc_length_mm;
+      }
+    }
+    return total;
+  }
+  function selectionEntries(){return context()?.selectionEntries?.()??[];}
+  function selectionSignature(entries=selectionEntries()){
+    return JSON.stringify(entries.map((e)=>({kind:e.kind,tubeId:e.tubeId,rowIndex:e.rowIndex,assemblyId:e.assemblyId})));
+  }
+  function refFromEntry(entry){
+    if(entry.kind==="row"){
+      const row=rowFor(entry);
+      return {
+        object_id:String(entry.tubeId),
+        subentity_id:String(row?.elementId??("row:"+entry.rowIndex)),
+        snap_type:row?.type==="LINE"?"Line/Axis":"Tangent",
+        role:"measurement"
+      };
+    }
+    if(entry.kind==="tube"){
+      return {object_id:String(entry.tubeId),subentity_id:null,snap_type:null,role:"measurement"};
+    }
+    return {object_id:String(entry.tubeId??entry.sceneId??"unknown"),subentity_id:null,snap_type:null,role:"measurement"};
+  }
+
+  function buildMeasurement(entries=selectionEntries()){
+    if(entries.length===1&&entries[0].kind==="row"){
+      const entry=entries[0],row=rowFor(entry);
+      if(!row)return {ok:false,message:"Выбранный элемент не найден"};
+      if(row.type==="LINE"){
+        const L=Number(row.L);
+        if(!Number.isFinite(L))return {ok:false,message:"Длина LINE не определена"};
+        return {
+          ok:true,
+          kind:"row-length",
+          primary_value:L,
+          primary_unit:"mm",
+          title:"Длина прямого участка",
+          details:[["Length",L,"mm"]],
+          references:[refFromEntry(entry)],
+          entries:clone(entries)
+        };
+      }
+      if(row.type==="BEND"){
+        try{
+          const m=geometry.measureArc({radius_mm:Number(row.clr),sweep_deg:Number(row.angle)});
+          return {
+            ok:true,
+            kind:"bend-arc-length",
+            primary_value:m.arc_length_mm,
+            primary_unit:"mm",
+            title:"Гиб",
+            details:[
+              ["Arc length",m.arc_length_mm,"mm"],
+              ["Chord",m.chord_length_mm,"mm"],
+              ["Radius",m.radius_mm,"mm"],
+              ["Diameter",m.diameter_mm,"mm"],
+              ["Angle",m.sweep_deg,"deg"]
+            ],
+            references:[refFromEntry(entry)],
+            entries:clone(entries)
+          };
+        }catch(error){return {ok:false,message:error.message};}
+      }
+      return {ok:false,message:"Тип элемента не поддерживается"};
+    }
+
+    if(entries.length===1&&entries[0].kind==="tube"){
+      const tube=tubeById(entries[0].tubeId),total=totalCenterline(tube);
+      if(!Number.isFinite(total))return {ok:false,message:"Не удалось вычислить centerline length"};
+      return {
+        ok:true,
+        kind:"tube-total-centerline",
+        primary_value:total,
+        primary_unit:"mm",
+        title:"Общая длина осевой линии",
+        details:[["Centerline",total,"mm"]],
+        references:[refFromEntry(entries[0])],
+        entries:clone(entries)
+      };
+    }
+
+    if(entries.length===2&&entries.every((e)=>e.kind==="row")){
+      const rows=entries.map(rowFor);
+      if(rows.every((row)=>row?.type==="LINE")){
+        const dirs=entries.map(directionFromEntry);
+        if(dirs.every(Boolean)){
+          try{
+            const m=geometry.measureAngleBetweenLines(
+              {point:{x:0,y:0,z:0},direction:dirs[0]},
+              {point:{x:0,y:0,z:0},direction:dirs[1]},
+              {mode:"acute"}
+            );
+            return {
+              ok:true,
+              kind:"line-line-angle",
+              primary_value:m.angle_deg,
+              primary_unit:"deg",
+              title:"Угол между прямыми",
+              details:[["Angle",m.angle_deg,"deg"]],
+              references:entries.map(refFromEntry),
+              entries:clone(entries)
+            };
+          }catch(error){return {ok:false,message:error.message};}
+        }
+        return {ok:false,message:"Направления выбранных LINE не определены"};
+      }
+    }
+    return {ok:false,message:"Выберите одну трубу, один LINE/BEND или две прямые LINE"};
+  }
+
+  function settings(){
+    const p=project();
+    return {
+      length_decimals:Number.isInteger(Number(p?.measurement_settings?.length_decimals))?Number(p.measurement_settings.length_decimals):1,
+      angle_decimals:Number.isInteger(Number(p?.measurement_settings?.angle_decimals))?Number(p.measurement_settings.angle_decimals):2,
+      trailing_zeros:p?.measurement_settings?.trailing_zeros!==false
+    };
+  }
+  function formatted(value,unit){
+    const s=settings();
+    return geometry.formatMeasurement(value,{
+      decimals:unit==="deg"?s.angle_decimals:s.length_decimals,
+      trailingZeros:s.trailing_zeros,
+      suffix:unit==="deg"?"°":" mm"
+    });
+  }
+
+  function injectStyles(){
+    if(document.getElementById("tbMeasurementsUiStyles"))return;
+    const style=document.createElement("style");style.id="tbMeasurementsUiStyles";
+    style.textContent=`
+#tbMeasurementsButton{border:1px solid rgba(255,255,255,.14);border-radius:6px;background:#233244;color:#eef5ff;padding:6px 9px;cursor:pointer;font:600 12px system-ui}
+#tbMeasurementsButton.tb-fixed{position:fixed;right:16px;bottom:100px;z-index:120240}
+#tbMeasurementsPanel{position:fixed;z-index:120320;right:16px;top:86px;width:min(430px,calc(100vw - 32px));max-height:calc(100vh - 110px);display:none;flex-direction:column;background:#101923;color:#edf4fb;border:1px solid #43546a;border-radius:9px;box-shadow:0 16px 45px rgba(0,0,0,.55);font:12px system-ui}
+#tbMeasurementsPanel.open{display:flex}.tb-measure-head{display:flex;align-items:center;padding:9px 10px;border-bottom:1px solid #2c3948}.tb-measure-head b{font-size:13px}.tb-measure-head .sp{flex:1}.tb-measure-head button,.tb-measure-actions button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:5px;padding:5px 8px;cursor:pointer}
+.tb-measure-body{padding:10px;overflow:auto}.tb-measure-result{border:1px solid #304154;border-radius:7px;padding:9px}.tb-measure-title{font-weight:700;margin-bottom:7px}.tb-measure-value{font-size:20px;color:#ffe46b;margin:6px 0 10px}.tb-measure-table{width:100%;border-collapse:collapse}.tb-measure-table td{padding:4px 5px;border-bottom:1px solid rgba(128,151,178,.18)}.tb-measure-note{color:#9fafbf;line-height:1.45}.tb-measure-error{color:#ff7979}.tb-measure-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:9px}.tb-measure-settings{display:grid;grid-template-columns:1fr 90px;gap:6px 8px;margin-top:10px}.tb-measure-settings input{background:#0b131c;color:#fff;border:1px solid #40536a;border-radius:5px;padding:5px}
+`;
+    document.head.appendChild(style);
+  }
+
+  function ensureShell(){
+    if(panel)return panel;
+    injectStyles();
+    button=document.createElement("button");button.id="tbMeasurementsButton";button.type="button";button.textContent="Измерения";button.onclick=()=>open();
+    const host=document.querySelector(".tb-head-actions");
+    if(host)host.appendChild(button);else{button.classList.add("tb-fixed");document.body.appendChild(button);}
+    panel=document.createElement("section");panel.id="tbMeasurementsPanel";
+    panel.innerHTML='<div class="tb-measure-head"><b>Измерения</b><span class="sp"></span><button data-measure-close>×</button></div><div class="tb-measure-body"></div>';
+    document.body.appendChild(panel);
+    $("[data-measure-close]",panel).onclick=close;
+    return panel;
+  }
+  function open(){ensureShell().classList.add("open");render();}
+  function close(){panel?.classList.remove("open");}
+
+  function saveSettings(body){
+    if(readonly()){toast("Проект открыт только для просмотра");return;}
+    const p=project();if(!p)return;
+    const length=Math.max(0,Math.min(6,Math.trunc(Number($("[data-length-decimals]",body).value)||0)));
+    const angle=Math.max(0,Math.min(6,Math.trunc(Number($("[data-angle-decimals]",body).value)||0)));
+    const trailing=$("[data-trailing-zeros]",body).checked;
+    const mutate=()=>{p.measurement_settings={length_decimals:length,angle_decimals:angle,trailing_zeros:trailing};return true;};
+    const ok=api()?.modelCommand?api().modelCommand("Изменить настройки измерений",mutate):mutate();
+    if(ok!==false){api()?.save?.();render();}
+  }
+
+  function savedDimensions(){
+    const p=project();return Array.isArray(p?.engineering_dimensions)?p.engineering_dimensions:[];
+  }
+  function saveCurrentDimension(){
+    if(readonly()){toast("Проект открыт только для просмотра");return;}
+    if(!lastResult?.ok)return;
+    const p=project();if(!p)return;
+    const s=settings();
+    const kind=lastResult.kind;
+    const d=dimensions.createDimension({
+      kind,
+      mode:"Reference",
+      references:lastResult.references,
+      value:lastResult.primary_value,
+      status:"Valid",
+      format:{
+        length_decimals:s.length_decimals,
+        angle_decimals:s.angle_decimals,
+        trailing_zeros:s.trailing_zeros
+      },
+      note:lastResult.title
+    });
+    const mutate=()=>{
+      p.engineering_dimensions=[...savedDimensions(),clone(d)];
+      return true;
+    };
+    const ok=api()?.modelCommand?api().modelCommand("Сохранить Reference Dimension",mutate):mutate();
+    if(ok!==false){api()?.save?.();toast("Размер сохранён в проект");render();}
+  }
+
+  function render(){
+    if(!panel||!geometry||!dimensions)return;
+    const body=$(".tb-measure-body",panel),entries=selectionEntries(),result=buildMeasurement(entries);
+    lastResult=result;
+    const s=settings();
+    const count=savedDimensions().length;
+    if(!result.ok){
+      body.innerHTML='<div class="tb-measure-result"><div class="tb-measure-error">'+esc(result.message)+'</div><div class="tb-measure-note" style="margin-top:7px">Quick Measure использует текущий выбор TreeView/3D.</div></div>'+
+        settingsHtml(s,count);
+    }else{
+      const rows=result.details.map(([name,value,unit])=>'<tr><td>'+esc(name)+'</td><td><b>'+esc(formatted(value,unit))+'</b></td></tr>').join("");
+      body.innerHTML='<div class="tb-measure-result"><div class="tb-measure-title">'+esc(result.title)+'</div><div class="tb-measure-value">'+esc(formatted(result.primary_value,result.primary_unit))+'</div><table class="tb-measure-table">'+rows+'</table>'+
+        '<div class="tb-measure-actions"><button data-save-dimension>Сохранить как размер</button></div></div>'+settingsHtml(s,count);
+      $("[data-save-dimension]",body).onclick=saveCurrentDimension;
+    }
+    $("[data-save-measure-settings]",body).onclick=()=>saveSettings(body);
+  }
+  function settingsHtml(s,count){
+    return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Настройки</div><div class="tb-measure-settings">'+
+      '<label>Length decimals</label><input data-length-decimals type="number" min="0" max="6" value="'+esc(s.length_decimals)+'">'+
+      '<label>Angle decimals</label><input data-angle-decimals type="number" min="0" max="6" value="'+esc(s.angle_decimals)+'">'+
+      '<label>Trailing zeros</label><input data-trailing-zeros type="checkbox" '+(s.trailing_zeros?"checked":"")+'>'+
+      '</div><div class="tb-measure-actions"><span class="tb-measure-note">Сохранено размеров: '+count+'</span><button data-save-measure-settings>Сохранить настройки</button></div></div>';
+  }
+
+  async function install(){
+    if(installed)return;installed=true;
+    try{[geometry,dimensions]=await Promise.all([import(GEOMETRY_URL),import(DIMENSIONS_URL)]);}
+    catch(error){console.error("Measurements UI failed to load",error);return;}
+    ensureShell();
+    const update=()=>{
+      const next=selectionSignature();
+      if(next!==lastSelectionKey){lastSelectionKey=next;if(panel?.classList.contains("open"))render();}
+    };
+    window.addEventListener("tubebender-selection-change",update);
+    poll=setInterval(update,500);
+    window.TubeBenderMeasurements=Object.freeze({open,close,refresh:render,buildMeasurement,savedDimensions});
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
+})();
