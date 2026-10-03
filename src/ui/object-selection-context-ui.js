@@ -805,9 +805,12 @@
       return true;
     };
 
-    const ok=typeof tbModelCommand==="function"
-      ? tbModelCommand("Переместить выбранные объекты",mutate)
-      : mutate();
+    const wholeObjectCommand=window.TubeBenderEngineering?.wholeObjectCommand;
+    const ok=typeof wholeObjectCommand==="function"
+      ? wholeObjectCommand("Переместить выбранные объекты",mutate)
+      : typeof tbModelCommand==="function"
+        ? tbModelCommand("Переместить выбранные объекты",mutate)
+        : mutate();
     if(ok===false)return false;
     try{if(typeof save==="function")save();}catch{}
     try{if(typeof renderAll==="function")renderAll();}catch{}
