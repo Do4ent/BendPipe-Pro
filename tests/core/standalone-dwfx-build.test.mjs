@@ -903,3 +903,30 @@ test("Clearance Monitor can focus the 3D view on the closest-point midpoint with
   assert.match(html,/focusClearanceMeasurement:\(measurement\)=>focusClearanceMeasurement\(measurement\)/);
   assert.match(html,/data-clearance-focus/);
 });
+
+
+test("Live Clearance Stop mode rejects new or worsening collisions atomically",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/function tbCaptureLiveCollisionGuard\(\)/);
+  assert.match(html,/mode==='Stop'\|\|mode==='ValidationLock'/);
+  assert.match(html,/function tbCollisionGuardSnapshot\(project\)/);
+  assert.match(html,/penetration>previous\+0\.01/);
+  assert.match(html,/const liveCollisionGuard=tbCaptureLiveCollisionGuard\(\)/);
+  assert.match(html,/const liveCollisionResult=tbEnforceLiveCollisionGuard\(liveCollisionGuard\)/);
+  assert.match(html,/Изменение отменено: обнаружена новая или увеличенная коллизия/);
+  assert.match(html,/tbHistoryRestore\(token\.before\)/);
+});
+
+test("Clearance ValidationLock blocks release on red or unchecked persistent monitors",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/clearance_edit_mode\|\|'Monitor'/);
+  assert.match(html,/clearanceSummary\?\.\(\)/);
+  assert.match(html,/Clearance Monitor: есть Red нарушения минимального зазора/);
+  assert.match(html,/Clearance Monitor: не все активные проверки рассчитаны/);
+});
