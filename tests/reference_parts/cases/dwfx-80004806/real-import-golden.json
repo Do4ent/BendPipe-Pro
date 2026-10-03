@@ -1,0 +1,190 @@
+{
+  "suite": "DWFx 80004806 real-source golden",
+  "source": {
+    "file": "ITEM[80004806(-)]-DOC[80004806(-)]-Components WTB, CoolMaster, K-008.9, start pressure regulator.dwfx",
+    "size_bytes": 8538354,
+    "sha256": "4a37c381b4d5234b98cf7b77e78271c52a1fcbfa237849a76abdd09d609ff4f7",
+    "committed_binary": false
+  },
+  "import_result": {
+    "status": "dwfx_project_candidate",
+    "editable_ready": true,
+    "production_ready": false,
+    "active_parts": [
+      "10100407",
+      "10102202",
+      "10102201",
+      "10102217"
+    ],
+    "uninstantiated_metadata_parts": [
+      "10102473"
+    ]
+  },
+  "hsf_linkage": [
+    {
+      "part_number": "10100407",
+      "graphics_node": 119734,
+      "anchor_kind": "graphics_node_successor_no_variation",
+      "anchor_segment": "119735",
+      "include_library": "?Include Library/12928"
+    },
+    {
+      "part_number": "10102202",
+      "graphics_node": 119735,
+      "anchor_kind": "graphics_node_successor_no_variation",
+      "anchor_segment": "119736",
+      "include_library": "?Include Library/12937"
+    },
+    {
+      "part_number": "10102201",
+      "graphics_node": 119736,
+      "anchor_kind": "graphics_node_successor_no_variation",
+      "anchor_segment": "119737",
+      "include_library": "?Include Library/12950"
+    },
+    {
+      "part_number": "10102217",
+      "graphics_node": 119775,
+      "anchor_kind": "graphics_node_successor_no_variation",
+      "anchor_segment": "119776",
+      "include_library": "?Include Library/19228"
+    }
+  ],
+  "tubes": [
+    {
+      "part_number": "10100407",
+      "metadata": {
+        "outer_diameter_mm": 19.05,
+        "wall_thickness_mm": 1.7,
+        "developed_length_mm": 37
+      },
+      "geometry": {
+        "derived_outer_diameter_mm": 19.050000155660367,
+        "derived_wall_thickness_mm": 1.0600000063429977,
+        "reconstructed_developed_length_mm": 37.00000047683716
+      },
+      "metadata_conflict": {
+        "dimensions": true,
+        "developed_length": false,
+        "blocks_production": true
+      },
+      "editable_rows": [
+        {
+          "type": "LINE",
+          "length_mm": 37.00000047683716
+        }
+      ]
+    },
+    {
+      "part_number": "10102202",
+      "metadata": {
+        "outer_diameter_mm": 15.875,
+        "wall_thickness_mm": 0.9,
+        "developed_length_mm": 490
+      },
+      "geometry": {
+        "derived_outer_diameter_mm": 14.83499926108594,
+        "derived_wall_thickness_mm": 0.8174996289007552,
+        "reconstructed_developed_length_mm": 494.9998153703744
+      },
+      "metadata_conflict": {
+        "dimensions": true,
+        "developed_length": true,
+        "blocks_production": true
+      },
+      "editable_rows": [
+        {
+          "type": "LINE",
+          "length_mm": 286.45999908447266
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90,
+          "clr_mm": 50.00000355720564,
+          "plane": "XY",
+          "rotation_deg": 0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 130
+        }
+      ]
+    },
+    {
+      "part_number": "10102201",
+      "metadata": {
+        "outer_diameter_mm": 19.05,
+        "wall_thickness_mm": 1.7,
+        "developed_length_mm": 145
+      },
+      "geometry": {
+        "derived_outer_diameter_mm": 19.049999993583505,
+        "derived_wall_thickness_mm": 1.0600000076874156,
+        "reconstructed_developed_length_mm": 145
+      },
+      "metadata_conflict": {
+        "dimensions": true,
+        "developed_length": false,
+        "blocks_production": true
+      },
+      "editable_rows": [
+        {
+          "type": "LINE",
+          "length_mm": 145
+        }
+      ]
+    },
+    {
+      "part_number": "10102217",
+      "metadata": {
+        "outer_diameter_mm": 9.525,
+        "wall_thickness_mm": 0.76,
+        "developed_length_mm": 730
+      },
+      "geometry": {
+        "derived_outer_diameter_mm": 9.700000225028342,
+        "derived_wall_thickness_mm": 0.7600001110192149,
+        "reconstructed_developed_length_mm": 774.9025934790602
+      },
+      "metadata_conflict": {
+        "dimensions": true,
+        "developed_length": true,
+        "blocks_production": true
+      },
+      "editable_rows": [
+        {
+          "type": "LINE",
+          "length_mm": 10
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90,
+          "clr_mm": 34.999999750254474,
+          "plane": "XY",
+          "rotation_deg": 0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 113.41737747192383
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 15,
+          "clr_mm": 50.00004630782671,
+          "plane": "XZ",
+          "rotation_deg": 0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 583.4173748876601
+        }
+      ]
+    }
+  ],
+  "invariants": {
+    "machine_compensation_applied": false,
+    "tooling_must_remain_unresolved": true,
+    "metadata_conflicts_are_editing_advisories_but_production_blockers": true,
+    "straight_only_tubes_must_not_invent_a_bend_plane": true
+  }
+}

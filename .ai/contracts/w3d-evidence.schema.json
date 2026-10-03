@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bendpipe-pro.local/schema/w3d-evidence.schema.json",
+  "title": "W3D resource evidence",
+  "description": "Traceable evidence extracted from a DWFx W3D resource before canonical tube geometry is accepted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["resource_id", "source", "byte_length", "decode_status", "production_ready", "entities", "diagnostics"],
+  "properties": {
+    "resource_id": {"type": "string", "minLength": 1},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dwfx_file", "package_path"],
+      "properties": {
+        "dwfx_file": {"type": "string", "minLength": 1},
+        "package_path": {"type": "string", "minLength": 1}
+      }
+    },
+    "byte_length": {"type": "integer", "minimum": 0},
+    "header_hex": {"type": "string"},
+    "decode_status": {"enum": ["binary_unparsed", "decoded_partial", "decoded"]},
+    "production_ready": {"const": false},
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["entity_id", "kind", "source_offset", "transform", "confidence", "reason"],
+        "properties": {
+          "entity_id": {"type": "string", "minLength": 1},
+          "kind": {
+            "enum": [
+              "transform",
+              "segment",
+              "bounds",
+              "view",
+              "tag",
+              "light",
+              "pause",
+              "color",
+              "geometry_scope",
+              "user_options",
+              "heuristics",
+              "hw3d_image",
+              "texture",
+              "visibility",
+              "rendering_options",
+              "texture_matrix",
+              "line_weight",
+              "polygon",
+              "polyline",
+              "triangle_mesh",
+              "curve_candidate",
+              "unknown_chunk"
+            ]
+          },
+          "source_offset": {"type": ["integer", "null"], "minimum": 0},
+          "transform": {
+            "type": ["array", "null"],
+            "minItems": 16,
+            "maxItems": 16,
+            "items": {"type": "number"}
+          },
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "reason": {"type": ["string", "null"]},
+          "payload": {}
+        }
+      }
+    },
+    "diagnostics": {"type": "array", "items": {"type": "string"}}
+  }
+}

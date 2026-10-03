@@ -1,0 +1,377 @@
+{
+  "type": "TubeBenderProject",
+  "name": "80003043(A) Components WTB CoolMaster - recognized DWFx",
+  "project": {
+    "id": "dwfx-304d1b70c95a",
+    "name": "80003043(A) Components WTB CoolMaster",
+    "bboxAnchor": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "coordinateOffset": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "tubes": [
+      {
+        "id": "tube-10160780",
+        "name": "10160780 — Cu Ø9.53x0.76 — Lz 776.3 mm",
+        "diameterIndex": 1,
+        "rows": [
+          {
+            "type": "LINE",
+            "L": 776.3,
+            "elementId": "recognized-placeholder-line"
+          }
+        ],
+        "dimensions": {},
+        "baseDimensions": {},
+        "origin": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "startDir": {
+          "az": 0,
+          "el": 0
+        },
+        "startAxis": "X",
+        "startPlane": "XY",
+        "startAngle": 0,
+        "firstSegmentDraft": "",
+        "visible": true,
+        "partNumber": "10160780",
+        "revision": "-",
+        "quantityInAssembly": 1,
+        "material": "Copper EN 12735-1",
+        "outerDiameterMm": 9.53,
+        "wallThicknessMm": 0.76,
+        "developedLengthMm": 776.3,
+        "geometryRecognition": {
+          "status": "metadata_only",
+          "bendGeometryTrusted": false
+        },
+        "sourceObjectLink": {
+          "referenceNodeId": "TD4C6rYJ0Ui8vPcd0hGi6w",
+          "contentElementRef": "C++tg4ZCQ0+2QU4Qi13JRg",
+          "entityRef": "Cu+tg4ZCQ0+2QU4Qi13JRg",
+          "source": "DWFx content/presentation/content-definition XML",
+          "instanceId": "DO+tg4ZCQ0+2QU4Qi13JRg",
+          "node": 121136,
+          "geometricVariation": 121137
+        },
+        "w3dCrossReference": {
+          "geometricVariationSegment": "121137",
+          "variationSourceOffset": 20744227,
+          "librarySegment": "?Include Library/34001",
+          "librarySourceOffset": 10390333,
+          "status": "exact",
+          "offsetSpace": "decompressed_hsf",
+          "productionReady": false
+        }
+      },
+      {
+        "id": "tube-10157546",
+        "name": "10157546/B — Cu Ø12.7x0.89 — Lz 1214.6 mm",
+        "diameterIndex": 2,
+        "rows": [
+          {
+            "type": "LINE",
+            "L": 1214.6,
+            "elementId": "recognized-placeholder-line"
+          }
+        ],
+        "dimensions": {},
+        "baseDimensions": {},
+        "origin": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "startDir": {
+          "az": 0,
+          "el": 0
+        },
+        "startAxis": "X",
+        "startPlane": "XY",
+        "startAngle": 0,
+        "firstSegmentDraft": "",
+        "visible": true,
+        "partNumber": "10157546",
+        "revision": "B",
+        "quantityInAssembly": 1,
+        "material": "Copper EN 12735-1",
+        "outerDiameterMm": 12.7,
+        "wallThicknessMm": 0.89,
+        "developedLengthMm": 1214.6,
+        "geometryRecognition": {
+          "status": "metadata_only",
+          "bendGeometryTrusted": false
+        },
+        "sourceObjectLink": {
+          "referenceNodeId": "gT4C6rYJ0Ui8vPcd0hGi6w",
+          "contentElementRef": "e++tg4ZCQ0+2QU4Qi13JRg",
+          "entityRef": "eu+tg4ZCQ0+2QU4Qi13JRg",
+          "source": "DWFx content/presentation/content-definition XML",
+          "instanceId": "fO+tg4ZCQ0+2QU4Qi13JRg",
+          "node": 121190,
+          "geometricVariation": 121191
+        },
+        "w3dCrossReference": {
+          "geometricVariationSegment": "121191",
+          "variationSourceOffset": 20748672,
+          "librarySegment": "?Include Library/46910",
+          "librarySourceOffset": 12793026,
+          "status": "exact",
+          "offsetSpace": "decompressed_hsf",
+          "productionReady": false
+        }
+      },
+      {
+        "id": "tube-10157555",
+        "name": "10157555/B — Cu Ø12.7x0.89 — Lz 773.6 mm",
+        "diameterIndex": 2,
+        "rows": [
+          {
+            "type": "LINE",
+            "L": 773.6,
+            "elementId": "recognized-placeholder-line"
+          }
+        ],
+        "dimensions": {},
+        "baseDimensions": {},
+        "origin": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "startDir": {
+          "az": 0,
+          "el": 0
+        },
+        "startAxis": "X",
+        "startPlane": "XY",
+        "startAngle": 0,
+        "firstSegmentDraft": "",
+        "visible": true,
+        "partNumber": "10157555",
+        "revision": "B",
+        "quantityInAssembly": 1,
+        "material": "Copper EN 12735-1",
+        "outerDiameterMm": 12.7,
+        "wallThicknessMm": 0.89,
+        "developedLengthMm": 773.6,
+        "geometryRecognition": {
+          "status": "metadata_only",
+          "bendGeometryTrusted": false
+        },
+        "sourceObjectLink": {
+          "referenceNodeId": "hj4C6rYJ0Ui8vPcd0hGi6w",
+          "contentElementRef": "hu+tg4ZCQ0+2QU4Qi13JRg",
+          "entityRef": "he+tg4ZCQ0+2QU4Qi13JRg",
+          "source": "DWFx content/presentation/content-definition XML",
+          "instanceId": "h++tg4ZCQ0+2QU4Qi13JRg",
+          "node": 121196,
+          "geometricVariation": 121197
+        },
+        "w3dCrossReference": {
+          "geometricVariationSegment": "121197",
+          "variationSourceOffset": 20749175,
+          "librarySegment": "?Include Library/47012",
+          "librarySourceOffset": 12876042,
+          "status": "exact",
+          "offsetSpace": "decompressed_hsf",
+          "productionReady": false
+        }
+      },
+      {
+        "id": "tube-10157683",
+        "name": "10157683/B — Cu Ø19.05x1.7 — Lz 1701.0 mm",
+        "diameterIndex": 5,
+        "rows": [
+          {
+            "type": "LINE",
+            "L": 1701,
+            "elementId": "recognized-placeholder-line"
+          }
+        ],
+        "dimensions": {},
+        "baseDimensions": {},
+        "origin": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "startDir": {
+          "az": 0,
+          "el": 0
+        },
+        "startAxis": "X",
+        "startPlane": "XY",
+        "startAngle": 0,
+        "firstSegmentDraft": "",
+        "visible": true,
+        "partNumber": "10157683",
+        "revision": "B",
+        "quantityInAssembly": 1,
+        "material": "Copper EN 12735-1",
+        "outerDiameterMm": 19.05,
+        "wallThicknessMm": 1.7,
+        "developedLengthMm": 1701,
+        "geometryRecognition": {
+          "status": "metadata_only",
+          "bendGeometryTrusted": false
+        },
+        "sourceObjectLink": {
+          "referenceNodeId": "hz4C6rYJ0Ui8vPcd0hGi6w",
+          "contentElementRef": "ie+tg4ZCQ0+2QU4Qi13JRg",
+          "entityRef": "iO+tg4ZCQ0+2QU4Qi13JRg",
+          "source": "DWFx content/presentation/content-definition XML",
+          "instanceId": "iu+tg4ZCQ0+2QU4Qi13JRg",
+          "node": 121198,
+          "geometricVariation": 121199
+        },
+        "w3dCrossReference": {
+          "geometricVariationSegment": "121199",
+          "variationSourceOffset": 20749318,
+          "librarySegment": "?Include Library/47033",
+          "librarySourceOffset": 12883275,
+          "status": "exact",
+          "offsetSpace": "decompressed_hsf",
+          "productionReady": false
+        }
+      },
+      {
+        "id": "tube-10157549",
+        "name": "10157549/B — Cu Ø9.53x0.76 — Lz 512.3 mm",
+        "diameterIndex": 1,
+        "rows": [
+          {
+            "type": "LINE",
+            "L": 512.3,
+            "elementId": "recognized-placeholder-line"
+          }
+        ],
+        "dimensions": {},
+        "baseDimensions": {},
+        "origin": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "startDir": {
+          "az": 0,
+          "el": 0
+        },
+        "startAxis": "X",
+        "startPlane": "XY",
+        "startAngle": 0,
+        "firstSegmentDraft": "",
+        "visible": true,
+        "partNumber": "10157549",
+        "revision": "B",
+        "quantityInAssembly": 4,
+        "material": "Copper EN 12735-1",
+        "outerDiameterMm": 9.53,
+        "wallThicknessMm": 0.76,
+        "developedLengthMm": 512.3,
+        "geometryRecognition": {
+          "status": "metadata_only",
+          "bendGeometryTrusted": false
+        },
+        "sourceObjectLink": {
+          "referenceNodeId": "xT4C6rYJ0Ui8vPcd0hGi6w",
+          "contentElementRef": "FPCtg4ZCQ0+2QU4Qi13JRg",
+          "entityRef": "E_Ctg4ZCQ0+2QU4Qi13JRg",
+          "source": "DWFx content/presentation/content-definition XML",
+          "instanceId": "FfCtg4ZCQ0+2QU4Qi13JRg",
+          "node": 121270,
+          "geometricVariation": 121271
+        },
+        "w3dCrossReference": {
+          "geometricVariationSegment": "121271",
+          "variationSourceOffset": 20755052,
+          "librarySegment": "?Include Library/69646",
+          "librarySourceOffset": 15611644,
+          "status": "exact",
+          "offsetSpace": "decompressed_hsf",
+          "productionReady": false
+        }
+      },
+      {
+        "id": "tube-10157552",
+        "name": "10157552/B — Cu Ø9.53x0.76 — Lz 1248.0 mm",
+        "diameterIndex": 1,
+        "rows": [
+          {
+            "type": "LINE",
+            "L": 1248,
+            "elementId": "recognized-placeholder-line"
+          }
+        ],
+        "dimensions": {},
+        "baseDimensions": {},
+        "origin": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "startDir": {
+          "az": 0,
+          "el": 0
+        },
+        "startAxis": "X",
+        "startPlane": "XY",
+        "startAngle": 0,
+        "firstSegmentDraft": "",
+        "visible": true,
+        "partNumber": "10157552",
+        "revision": "B",
+        "quantityInAssembly": 3,
+        "material": "Copper EN 12735-1",
+        "outerDiameterMm": 9.53,
+        "wallThicknessMm": 0.76,
+        "developedLengthMm": 1248,
+        "geometryRecognition": {
+          "status": "metadata_only",
+          "bendGeometryTrusted": false
+        },
+        "sourceObjectLink": {
+          "referenceNodeId": "xj4C6rYJ0Ui8vPcd0hGi6w",
+          "contentElementRef": "F_Ctg4ZCQ0+2QU4Qi13JRg",
+          "entityRef": "FvCtg4ZCQ0+2QU4Qi13JRg",
+          "source": "DWFx content/presentation/content-definition XML",
+          "instanceId": "GPCtg4ZCQ0+2QU4Qi13JRg",
+          "node": 121272,
+          "geometricVariation": 121273
+        },
+        "w3dCrossReference": {
+          "geometricVariationSegment": "121273",
+          "variationSourceOffset": 20755195,
+          "librarySegment": "?Include Library/69667",
+          "librarySourceOffset": 15622313,
+          "status": "exact",
+          "offsetSpace": "decompressed_hsf",
+          "productionReady": false
+        }
+      }
+    ]
+  },
+  "source": {
+    "format": "DWFx",
+    "file": "ITEM[80003043(A)]-DOC[80003043(A)]-Components WTB, CoolMaster, NO-014.5.dwfx",
+    "recognizedAt": "2026-09-02T14:26:28.312899+00:00",
+    "recognition": "Autodesk Inventor properties + DWFx content tree"
+  },
+  "recognitionStatus": {
+    "tubeIdentification": "exact",
+    "diameter": "exact_from_properties",
+    "wallThickness": "exact_from_properties",
+    "developedLength": "exact_from_properties",
+    "bendSequence": "not_extracted_from_binary_W3D",
+    "productionReady": false,
+    "note": "Rows contain temporary full-length straight geometry so the project imports into TubeBender CAD. Do not use bend geometry for manufacturing until W3D centerlines are extracted."
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "source_file": "ITEM[80003043(A)]-DOC[80003043(A)]-Components WTB, CoolMaster, NO-014.5.dwfx",
+  "descriptor_package_path": "dwf/documents/D492C1C0-C853-479F-948D-2EF82213214F/sections/com.autodesk.dwf.eModel_B397CB9F-AFD9-49E2-B574-1E95FC7F3AEA/descriptor.xml",
+  "model_unit": "mm",
+  "w3d_href": "/dwf/documents/D492C1C0-C853-479F-948D-2EF82213214F/sections/com.autodesk.dwf.eModel_B397CB9F-AFD9-49E2-B574-1E95FC7F3AEA/19D23681-07EF-4A95-8CB7-0AC1F404CFE5.w3d",
+  "w3d_size_bytes": 7546162,
+  "graphic_resource_transform": [10,0,0,0,0,10,0,0,0,0,10,0,0,0,0,1],
+  "scale_mm_per_source_unit": 10,
+  "polygon_handedness": "left",
+  "status": "exact",
+  "production_ready": false
+}
