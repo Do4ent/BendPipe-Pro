@@ -16,6 +16,7 @@ const dwfxReferenceSceneUiPath = path.join(root, "src", "import", "dwfx", "refer
 const objectSelectionContextUiPath = path.join(root, "src", "ui", "object-selection-context-ui.js");
 const projectTubeBarLayoutFixPath = path.join(root, "src", "ui", "project-tube-bar-layout-fix.js");
 const materialLibraryUiPath = path.join(root, "src", "ui", "material-library-ui.js");
+const materialManufacturingBridgePath = path.join(root, "src", "ui", "material-manufacturing-bridge.js");
 const materialDomainPath = path.join(root, "src", "domain", "materials", "material-profiles.mjs");
 const distDir = path.join(root, "dist");
 const outputPath = path.join(distDir, "TubeBender_CAD_VC207R7_M1_Standalone.html");
@@ -2019,6 +2020,10 @@ const materialLibraryUi = fs.readFileSync(materialLibraryUiPath, "utf8")
 const bundledMaterialLibraryUi =
   `<script data-tubebender-bundled="material-library-ui">\n${materialLibraryUi}\n</script>`;
 
+const materialManufacturingBridge = fs.readFileSync(materialManufacturingBridgePath, "utf8").replace(/<\/script/gi, "<\\/script");
+const bundledMaterialManufacturingBridge =
+  `<script data-tubebender-bundled="material-manufacturing-bridge">\n${materialManufacturingBridge}\n</script>`;
+
 if (!output.includes("</body>")) {
   throw new Error("Standalone source HTML is missing </body>");
 }
@@ -2035,6 +2040,8 @@ output =
   bundledObjectSelectionContextUi +
   "\n" +
   bundledProjectTubeBarLayoutFix +
+  "\n" +
+  bundledMaterialManufacturingBridge +
   "\n" +
   bundledMaterialLibraryUi +
   "\n" +
@@ -2210,6 +2217,9 @@ if (!output.includes('data-tubebender-bundled="dwfx-reference-scene-ui"')) {
 if (!output.includes('data-tubebender-bundled="material-library-ui"')) {
   throw new Error("Standalone build is missing the Material Library UI marker");
 }
+if (!output.includes('data-tubebender-bundled="material-manufacturing-bridge"')) {
+  throw new Error("Standalone build is missing the material manufacturing bridge");
+}
 if (!output.includes("TubeBenderMaterials") || !output.includes("material_profile_id")) {
   throw new Error("Standalone build is missing Material Library integration hooks");
 }
@@ -2245,6 +2255,7 @@ process.stdout.write(
       bundledDwfxImporter: true,
       currentProjectDwfxImport: true,
       bundledMaterialLibrary: true,
+      materialManufacturingCompensation: true,
       injectedAtFinalBodyClose: true,
       lazyDwfxRuntime: true,
       optionalExternalModules: ["tesseract"]
