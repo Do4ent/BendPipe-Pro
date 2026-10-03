@@ -255,9 +255,38 @@
       '<label>Tooling Instance</label><select data-a="tooling_instance_id">'+ti.map((o)=>option(o.value,o.label,String(o.value)===String(t.tooling_instance_id??""))).join("")+'</select>'+
       '</div><div data-check class="tb-eq-note" style="margin-top:10px"></div><div class="tb-eq-actions"><button data-clear>Снять новые назначения</button><button data-apply>Применить</button></div></div>'+
       '<div class="tb-eq-note">Без явного назначения TubeBender использует существующие legacy machine/tooling данные. После назначения новая модель имеет приоритет в технологическом расчёте.</div>';
-    const candidate=()=>{const x={...t};$$("[data-a]",body).forEach((el)=>x[el.dataset.a]=el.value||null);return x;};
-    const check=()=>{const result=window.TubeBenderEquipmentRuntime?.assignmentCheck?.(project(),candidate());const host=$("[data-check]",body);if(!result){host.textContent="Runtime bridge недоступен";return;}host.className="tb-eq-note "+(result.status==="Error"?"tb-eq-error":result.status==="Warning"?"tb-eq-warning":"tb-eq-ok");host.textContent=result.status+(result.errors.length?" · "+result.errors.join(" · "):result.warnings.length?" · "+result.warnings.join(" · "):"");};
-    $$("[data-a]",body).forEach((el)=>el.onchange=check);
+    const tubeFacts=()=>{
+      let manufacturing=null;try{manufacturing=api()?.manufacturingData?.(t)??null;}catch{}
+      return {
+        ...t,
+        od_mm:Number(manufacturing?.style?.outerDiameter),
+        wall_mm:Number(manufacturing?.style?.wallThickness),
+        bend_clr_mm:(manufacturing?.steps??[]).map((step)=>Number(step?.radius)).filter(Number.isFinite)
+      };
+    };
+    const candidate=()=>{const x=tubeFacts();$("[data-a]",body).forEach((el)=>x[el.dataset.a]=el.value||null);return x;};
+    const selectedMachineProfile=()=>{
+      const direct=$('[data-a="machine_profile_id"]',body)?.value;
+      if(direct)return selected(direct,lib.machine_profiles);
+      const instance=selected($('[data-a="machine_instance_id"]',body)?.value,lib.machine_instances);
+      return instance?selected(instance.machine_profile_id,lib.machine_profiles):null;
+    };
+    const selectedMachineInstance=()=>selected($('[data-a="machine_instance_id"]',body)?.value,lib.machine_instances);
+    const refreshToolingSuggestions=()=>{
+      const profile=selectedMachineProfile();
+      const selectEl=$('[data-a="tooling_set_id"]',body);
+      if(!selectEl)return;
+      const previous=selectEl.value;
+      const suggestions=profile
+        ?domain.suggestToolingSets({machineProfile:profile,machineInstance:selectedMachineInstance(),toolingSets:lib.tooling_sets,tube:tubeFacts()})
+        :lib.tooling_sets.map((tooling_set)=>({tooling_set,compatibility:{status:"Conditional"}}));
+      selectEl.innerHTML=option("","Legacy / не назначен",!previous)+suggestions.map((item)=>{
+        const prefix=item.compatibility.status==="Compatible"?"✓":item.compatibility.status==="Conditional"?"△":"✕";
+        return option(item.tooling_set.id,prefix+" "+item.compatibility.status+" · "+item.tooling_set.name,item.tooling_set.id===previous);
+      }).join("");
+    };
+    const check=()=>{refreshToolingSuggestions();const result=window.TubeBenderEquipmentRuntime?.assignmentCheck?.(project(),candidate());const host=$("[data-check]",body);if(!result){host.textContent="Runtime bridge недоступен";return;}host.className="tb-eq-note "+(result.status==="Error"?"tb-eq-error":result.status==="Warning"?"tb-eq-warning":"tb-eq-ok");host.textContent=result.status+(result.errors.length?" · "+result.errors.join(" · "):result.warnings.length?" · "+result.warnings.join(" · "):"");};
+    $("[data-a]",body).forEach((el)=>el.onchange=check);
     $("[data-apply]",body).onclick=()=>{
       if(readonly()){toast("Проект открыт только для просмотра");return;}
       const x=candidate(),result=window.TubeBenderEquipmentRuntime?.assignmentCheck?.(project(),x);
@@ -272,6 +301,7 @@
       const ok=api()?.modelCommand?api().modelCommand("Снять назначения оборудования",mutate):mutate();
       if(ok!==false){api()?.save?.();api()?.renderAll?.();renderTubeAssignment();}
     };
+    refreshToolingSuggestions();
     check();
   }
 
