@@ -75,6 +75,7 @@ export function createTrimOperation({end,remove_length_mm,preference=null,source
 
 export function buildRequiredEndTrimPlan({
   end_allowances={startAllowance:0,endAllowance:0},
+  cut_allowances={start_mm:0,end_mm:0},
   setup_extensions={start_mm:0,end_mm:0},
   preferences={}
 }={}){
@@ -82,12 +83,14 @@ export function buildRequiredEndTrimPlan({
   const p2Auto=Math.max(0,finite(end_allowances.endAllowance,"endAllowance",0));
   const p1Setup=Math.max(0,finite(setup_extensions.start_mm,"setup_extensions.start_mm",0));
   const p2Setup=Math.max(0,finite(setup_extensions.end_mm,"setup_extensions.end_mm",0));
+  const p1Cut=Math.max(0,finite(cut_allowances.start_mm,"cut_allowances.start_mm",0));
+  const p2Cut=Math.max(0,finite(cut_allowances.end_mm,"cut_allowances.end_mm",0));
   const p1=createTrimOperation({
-    end:"P1",remove_length_mm:p1Auto+p1Setup,
+    end:"P1",remove_length_mm:p1Auto+p1Setup+p1Cut,
     preference:preferences.P1??{end:"P1"},source:"end_allowance+setup_extension"
   });
   const p2=createTrimOperation({
-    end:"P2",remove_length_mm:p2Auto+p2Setup,
+    end:"P2",remove_length_mm:p2Auto+p2Setup+p2Cut,
     preference:preferences.P2??{end:"P2"},source:"end_allowance+setup_extension"
   });
   return freeze({
@@ -97,6 +100,8 @@ export function buildRequiredEndTrimPlan({
     p2_auto_allowance_mm:p2Auto,
     p1_setup_extension_mm:p1Setup,
     p2_setup_extension_mm:p2Setup,
+    p1_cut_allowance_mm:p1Cut,
+    p2_cut_allowance_mm:p2Cut,
     nominal_geometry_changed:false
   });
 }
