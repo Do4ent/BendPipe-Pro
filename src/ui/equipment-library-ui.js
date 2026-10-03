@@ -62,6 +62,7 @@
       '<button data-tab="setups">Machine Setups</button>'+
       '<button data-tab="trim">Trim / Cut</button>'+
       '<button data-tab="sequence">Bend Sequence</button>'+
+      '<button data-tab="simulation">Simulation</button>'+
       '<button data-tab="tube">Труба</button></div><div class="tb-eq-body"></div>';
     document.body.appendChild(panel);
     $("[data-eq-close]",panel).onclick=close;
