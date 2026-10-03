@@ -478,7 +478,7 @@ const fixedEndEngineeringHelpers =
   "}\n";
 output=output.replace(
   fixedEndEngineeringExportAnchor,
-  fixedEndEngineeringHelpers+"\n"+
+  clearanceFocusHelpers+fixedEndEngineeringHelpers+"\n"+
   "window.TubeBenderEngineering={getState:()=>state,activeProject:()=>activeProject(),activeTube:()=>activeTube(),save:()=>save(),renderAll:()=>renderAll(),modelCommand:tbModelCommand,toast:(message)=>ptToast(String(message??'')),readonly:()=>typeof poReadOnly==='function'&&poReadOnly(),projectCollisionAnalysis:(projectValue)=>getProjectCollisionAnalysis(projectValue||activeProject()),measureTubeClearance:(projectValue,tubeAId,tubeBId)=>measureTubePairClearance(projectValue||activeProject(),tubeAId,tubeBId),focusClearanceMeasurement:(measurement)=>focusClearanceMeasurement(measurement),open:openCenter,ensure:ensureIndustrialState,diagnoseTube,diagnoseProject,rebuildRouteGraph,geometryForTube,captureFixedEndConstraint,enforceFixedEndConstraint,setEndConstraint,manufacturingData,productionReleaseDecision,generateAutoroutes,captureRevision,compareRevision,exportManufacturing,simulation:"
 );
 const terminalTubeEndNodeAnchor =
