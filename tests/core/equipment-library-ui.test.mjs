@@ -130,3 +130,10 @@ test("simulation collision settings and observations use model history and do no
   assert.doesNotMatch(code,/row\.C\s*=/);
   assert.doesNotMatch(code,/row\.angle\s*=/);
 });
+
+
+test("simulation report merges transient live collision evidence with persisted diagnostic observations",()=>{
+  assert.match(code,/TubeBenderSimulationCollisionLive\?\.observationsForTube/);
+  assert.match(code,/const observations=\[\.\.\.persisted,\.\.\.live\]/);
+  assert.match(code,/Live observations автоматически собираются из simCollisionChecks/);
+});
