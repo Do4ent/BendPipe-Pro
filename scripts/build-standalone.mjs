@@ -15,6 +15,8 @@ const dwfxCurrentProjectUiPath = path.join(root, "src", "import", "dwfx", "curre
 const dwfxReferenceSceneUiPath = path.join(root, "src", "import", "dwfx", "reference-scene-ui.js");
 const objectSelectionContextUiPath = path.join(root, "src", "ui", "object-selection-context-ui.js");
 const projectTubeBarLayoutFixPath = path.join(root, "src", "ui", "project-tube-bar-layout-fix.js");
+const materialLibraryUiPath = path.join(root, "src", "ui", "material-library-ui.js");
+const materialDomainPath = path.join(root, "src", "domain", "materials", "material-profiles.mjs");
 const distDir = path.join(root, "dist");
 const outputPath = path.join(distDir, "TubeBender_CAD_VC207R7_M1_Standalone.html");
 
@@ -434,7 +436,7 @@ const fixedEndEngineeringHelpers =
 output=output.replace(
   fixedEndEngineeringExportAnchor,
   fixedEndEngineeringHelpers+"\n"+
-  "window.TubeBenderEngineering={open:openCenter,ensure:ensureIndustrialState,diagnoseTube,diagnoseProject,rebuildRouteGraph,geometryForTube,captureFixedEndConstraint,enforceFixedEndConstraint,setEndConstraint,manufacturingData,productionReleaseDecision,generateAutoroutes,captureRevision,compareRevision,exportManufacturing,simulation:"
+  "window.TubeBenderEngineering={getState:()=>state,activeProject:()=>activeProject(),activeTube:()=>activeTube(),save:()=>save(),renderAll:()=>renderAll(),modelCommand:tbModelCommand,toast:(message)=>ptToast(String(message??'')),readonly:()=>typeof poReadOnly==='function'&&poReadOnly(),open:openCenter,ensure:ensureIndustrialState,diagnoseTube,diagnoseProject,rebuildRouteGraph,geometryForTube,captureFixedEndConstraint,enforceFixedEndConstraint,setEndConstraint,manufacturingData,productionReleaseDecision,generateAutoroutes,captureRevision,compareRevision,exportManufacturing,simulation:"
 );
 const terminalTubeEndNodeAnchor =
   "    if ((state.rows || []).length) addNode(pipeGroup,pos,0x43d36b,.105, Math.max(0,(state.rows||[]).length-1), state.rows?.[(state.rows||[]).length-1]?.type || 'LINE');";
@@ -2010,6 +2012,13 @@ const projectTubeBarLayoutFix = fs.readFileSync(projectTubeBarLayoutFixPath, "ut
 const bundledProjectTubeBarLayoutFix =
   `<script data-tubebender-bundled="project-tube-bar-layout-fix">\n${projectTubeBarLayoutFix}\n</script>`;
 
+const materialDomainUrl = moduleDataUrl(materialDomainPath);
+const materialLibraryUi = fs.readFileSync(materialLibraryUiPath, "utf8")
+  .replace("__TB_MATERIAL_MODULE_URL__", materialDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledMaterialLibraryUi =
+  `<script data-tubebender-bundled="material-library-ui">\n${materialLibraryUi}\n</script>`;
+
 if (!output.includes("</body>")) {
   throw new Error("Standalone source HTML is missing </body>");
 }
@@ -2026,6 +2035,8 @@ output =
   bundledObjectSelectionContextUi +
   "\n" +
   bundledProjectTubeBarLayoutFix +
+  "\n" +
+  bundledMaterialLibraryUi +
   "\n" +
   bundledDwfxCurrentProjectUi +
   "\n" +
@@ -2196,6 +2207,12 @@ if (!output.includes('data-tubebender-bundled="dwfx-current-project-ui"')) {
 if (!output.includes('data-tubebender-bundled="dwfx-reference-scene-ui"')) {
   throw new Error("Standalone build is missing the DWFx reference-scene UI marker");
 }
+if (!output.includes('data-tubebender-bundled="material-library-ui"')) {
+  throw new Error("Standalone build is missing the Material Library UI marker");
+}
+if (!output.includes("TubeBenderMaterials") || !output.includes("material_profile_id")) {
+  throw new Error("Standalone build is missing Material Library integration hooks");
+}
 if (!output.includes("TubeBenderReferenceSceneUi") || !output.includes("referenceShared")) {
   throw new Error("Standalone build is missing read-only DWFx reference rendering hooks");
 }
@@ -2227,6 +2244,7 @@ process.stdout.write(
       offlineCoreReady: true,
       bundledDwfxImporter: true,
       currentProjectDwfxImport: true,
+      bundledMaterialLibrary: true,
       injectedAtFinalBodyClose: true,
       lazyDwfxRuntime: true,
       optionalExternalModules: ["tesseract"]
