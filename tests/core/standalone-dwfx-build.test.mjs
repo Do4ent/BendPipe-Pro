@@ -740,6 +740,8 @@ test("assigned Equipment Library data overrides legacy machine limits and adds t
   assert.match(html,/nominalAngleDeg:angle,toolingCorrectionDeg/);
   assert.match(html,/equipmentGate=window\.TubeBenderEquipmentRuntime\?\.assignmentCheck/);
   assert.match(html,/Оборудование: \$\{issue\}/);
+  assert.match(html,/setupGate=window\.TubeBenderEquipmentRuntime\?\.machineSetupCheck/);
+  assert.match(html,/Machine Setup: \$\{issue\}/);
 });
 
 
@@ -756,4 +758,14 @@ test("Machine Setup UI is bundled and remains separate from nominal geometry",()
   assert.match(html,/machineSetupOffsetMm/);
   assert.match(html,/setupExtensions\.start_mm/);
   assert.match(html,/setupExtensions\.end_mm/);
+});
+
+
+test("NC export traces active Machine Setup and project report names it",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/; Setup=\$\{d\.machineSetup\?\.name\|\|'NONE'\}/);
+  assert.match(html,/<b>Machine Setup:<\/b>/);
 });
