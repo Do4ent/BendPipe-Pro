@@ -71,6 +71,11 @@
     const errors=[],warnings=[];
     const material=materialCheck(project,tube,{requireSpringback:true,requireDensity:false});
     errors.push(...material.errors);warnings.push(...material.warnings);
+    const equipment=manufacturing?.equipmentValidation;
+    if(equipment){
+      errors.push(...(equipment.errors??[]).map((x)=>"Equipment: "+x));
+      warnings.push(...(equipment.warnings??[]).map((x)=>"Equipment: "+x));
+    }
     const steps=manufacturing?.steps;
     if(!Array.isArray(steps))errors.push("Производственные шаги отсутствуют");
     else{
@@ -97,6 +102,7 @@
       ok:errors.length===0,
       status:errors.length?"Error":warnings.length?"Warning":"Valid",
       material,
+      equipment:equipment??null,
       errors:Object.freeze([...new Set(errors)]),
       warnings:Object.freeze([...new Set(warnings)])
     });
