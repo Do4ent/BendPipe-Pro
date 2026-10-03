@@ -1,6 +1,6 @@
 (()=>{
   const EPS=1e-9;
-  function finite(value){const n=Number(value);return Number.isFinite(n)?n:null;}
+  function finite(value){if(value===null||value===undefined||value==="")return null;const n=Number(value);return Number.isFinite(n)?n:null;}
   function projectProfiles(project){
     return Array.isArray(project?.materialLibrary?.project_profiles)
       ? project.materialLibrary.project_profiles
