@@ -446,7 +446,9 @@
     let data=manufacturing;
     if(!data){try{data=api()?.manufacturingData?.(t)??null;}catch{}}
     const settings=t.simulation_collision_settings??{};
-    const observations=Array.isArray(t.simulation_collision_observations)?t.simulation_collision_observations:[];
+    const persisted=Array.isArray(t.simulation_collision_observations)?t.simulation_collision_observations:[];
+    const live=window.TubeBenderSimulationCollisionLive?.observationsForTube?.(t.id)??[];
+    const observations=[...persisted,...live];
     const report=simCollisionDomain.analyzeBendingSimulation(data?.steps??[],observations,{
       warning_clearance_mm:Number.isFinite(Number(settings.warning_clearance_mm))?Number(settings.warning_clearance_mm):5,
       contact_tolerance_mm:Number.isFinite(Number(settings.contact_tolerance_mm))?Number(settings.contact_tolerance_mm):0.1,
@@ -488,7 +490,7 @@
       '</tbody></table></div>'+
       '<div class="tb-eq-section"><h3>Collision observations</h3>'+
       '<textarea class="tb-eq-wide" data-sim-observations style="min-height:150px">'+esc(JSON.stringify(t.simulation_collision_observations??[],null,2))+'</textarea>'+
-      '<div class="tb-eq-note">Observation fields: bend_id, kind (machine/tooling/self/fixture/other), checked, clearance_mm, collision, impossible, contact, message. Отсутствие checked evidence никогда не считается OK.</div>'+
+      '<div class="tb-eq-note">Live observations автоматически собираются из simCollisionChecks и хранятся только в runtime. JSON ниже — диагностические/ручные observations, сохраняемые в проекте. Отсутствие checked evidence никогда не считается OK.</div>'+
       '<div class="tb-eq-actions"><button data-sim-observations-save>Сохранить observations</button></div></div>';
     $("[data-sim-save]",body).onclick=()=>{
       if(readonly()){toast("Проект открыт только для просмотра");return;}
