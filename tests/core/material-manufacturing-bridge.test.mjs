@@ -144,3 +144,66 @@ test("manufacturing validation includes Trim Cut blockers",()=>{
   assert.equal(result.ok,false);
   assert.match(result.errors.join(" "),/Trim\/Cut: P1 plane invalid/);
 });
+
+
+test("material check enforces configured D/t range for the actual tube",()=>{
+  const api=load();
+  const p=project({
+    id:"mat-1",name:"Steel",springback:1.04,
+    dt_ratio_min:10,dt_ratio_max:20,minimum_clr_mm:30
+  });
+  const result=api.materialCheck(p,{
+    material_profile_id:"mat-1",
+    od_mm:30,
+    wall_mm:1,
+    bend_clr_mm:[40]
+  },{requireSpringback:true});
+  assert.equal(result.ok,false);
+  assert.match(result.errors.join(" "),/D\/t .* выше допустимого максимума/);
+});
+
+test("material minimum CLR is a warning and requires explicit acknowledgement before manufacturing release",()=>{
+  const api=load();
+  const profile={
+    id:"mat-1",name:"Steel",springback:1.04,
+    dt_ratio_min:10,dt_ratio_max:40,minimum_clr_mm:50
+  };
+  const p=project(profile);
+  const tube={
+    material_profile_id:"mat-1",
+    od_mm:20,
+    wall_mm:1,
+    bend_clr_mm:[40]
+  };
+  const preview=api.materialCheck(p,tube,{requireSpringback:true});
+  assert.equal(preview.ok,true);
+  assert.equal(preview.status,"Warning");
+  assert.equal(preview.warning_ack_required,true);
+  assert.match(preview.warnings.join(" "),/меньше рекомендуемого/);
+
+  const release=api.materialCheck(p,tube,{requireSpringback:true,requireWarningAck:true});
+  assert.equal(release.ok,false);
+  assert.match(release.errors.join(" "),/требуют явного подтверждения/);
+
+  const acknowledged={...tube,material_warning_ack_signature:api.materialFingerprint(profile)};
+  const accepted=api.materialCheck(p,acknowledged,{requireSpringback:true,requireWarningAck:true});
+  assert.equal(accepted.ok,true);
+  assert.equal(accepted.warning_acknowledged,true);
+  assert.equal(accepted.warning_ack_required,false);
+});
+
+test("material warning acknowledgement is invalidated by any relevant profile change",()=>{
+  const api=load();
+  const profile={id:"mat-1",name:"Steel",springback:1.04,minimum_clr_mm:50};
+  const tube={
+    material_profile_id:"mat-1",
+    bend_clr_mm:[40],
+    material_warning_ack_signature:api.materialFingerprint(profile)
+  };
+  assert.equal(api.materialCheck(project(profile),tube,{requireWarningAck:true}).ok,true);
+
+  const changed={...profile,springback:1.05};
+  const result=api.materialCheck(project(changed),tube,{requireWarningAck:true});
+  assert.equal(result.ok,false);
+  assert.equal(result.warning_ack_required,true);
+});
