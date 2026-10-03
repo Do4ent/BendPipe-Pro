@@ -412,7 +412,7 @@
       '<span>Material Profile</span><select data-tube-material>'+option("","Не назначен",!selected)+list.map((p)=>option(p.id,p.name,p.id===selected)).join("")+'</select>'+
       '<span>Статус расчёта</span><span>'+esc(current.material_calculation_state??"—")+'</span>'+
       '<span>Валидация</span><span data-tube-validation></span>'+
-      '</div><div class="tb-mat-actions"><button data-tube-clear>Снять материал</button><button data-tube-apply>Применить</button></div></div>'+
+      '</div><div class="tb-mat-actions"><button data-tube-ack-warning style="display:none">Подтвердить предупреждения</button><button data-tube-clear>Снять материал</button><button data-tube-apply>Применить</button></div></div>'+
       '<div class="tb-mat-note">OD / wall thickness / ID остаются геометрическими параметрами трубы и не переопределяются материалом.</div>';
     const renderValidation=()=>{
       const id=$("[data-tube-material]",body).value;
@@ -420,19 +420,51 @@
       const host=$("[data-tube-validation]",body);
       if(!p){host.textContent="Материал не назначен";return;}
       const result=domain.validateMaterialProfile(p);
-      host.innerHTML='<span class="tb-mat-badge '+esc(result.status)+'">'+esc(result.status)+'</span> '+esc(result.issues.map((x)=>x.message).join(" · "));
+      let manufacturingCheck=null;
+      try{
+        if(String(current.material_profile_id??"")===String(id)){
+          manufacturingCheck=api()?.manufacturingData?.(current)?.materialValidation??null;
+        }
+      }catch{}
+      const warnings=manufacturingCheck?.warnings??result.issues.filter((x)=>x.level==="Warning").map((x)=>x.message);
+      const errors=manufacturingCheck?.errors??result.issues.filter((x)=>x.level==="Error").map((x)=>x.message);
+      const status=manufacturingCheck?.status??result.status;
+      host.innerHTML='<span class="tb-mat-badge '+esc(status)+'">'+esc(status)+'</span> '+esc([...errors,...warnings].join(" · "));
+      const ack=$("[data-tube-ack-warning]",body);
+      if(ack){
+        const needed=manufacturingCheck?.warning_ack_required===true;
+        ack.style.display=needed?"":"none";
+        ack.disabled=!needed;
+        ack.title=needed?"Подтвердить текущие предупреждения именно для этой редакции Material Profile":"";
+      }
     };
     $("[data-tube-material]",body).addEventListener("change",renderValidation);
     $("[data-tube-apply]",body).addEventListener("click",()=>{
       if(readonly()){toast("Проект открыт только для просмотра");return;}
       const id=$("[data-tube-material]",body).value;if(!id){toast("Выберите Material Profile");return;}
-      const mutate=()=>{current.material_profile_id=id;current.material_calculation_state="Stale";return true;};
+      const mutate=()=>{current.material_profile_id=id;current.material_warning_ack_signature=null;current.material_calculation_state="Stale";return true;};
       const ok=api()?.modelCommand?api().modelCommand("Назначить материал трубе",mutate):mutate();
       if(ok!==false){api()?.save?.();api()?.renderAll?.();toast("Материал назначен");renderTube();}
     });
+    $("[data-tube-ack-warning]",body).addEventListener("click",()=>{
+      if(readonly()){toast("Проект открыт только для просмотра");return;}
+      const id=$("[data-tube-material]",body).value;
+      const p=list.find((x)=>x.id===id);
+      const bridge=window.TubeBenderMaterialManufacturing;
+      if(!p||!bridge?.materialFingerprint){toast("Material Profile недоступен");return;}
+      let check=null;
+      try{check=api()?.manufacturingData?.(current)?.materialValidation??null;}catch{}
+      if(!check?.warnings?.length){toast("Нет предупреждений для подтверждения");renderValidation();return;}
+      const message="Подтвердить использование Material Profile с предупреждениями?\n\n"+check.warnings.join("\n");
+      if(!window.confirm(message))return;
+      const signature=bridge.materialFingerprint(p);
+      const mutate=()=>{current.material_warning_ack_signature=signature;current.material_calculation_state="Stale";return true;};
+      const ok=api()?.modelCommand?api().modelCommand("Подтвердить предупреждения Material Profile",mutate):mutate();
+      if(ok!==false){api()?.save?.();toast("Предупреждения Material Profile подтверждены");renderTube();}
+    });
     $("[data-tube-clear]",body).addEventListener("click",()=>{
       if(readonly()){toast("Проект открыт только для просмотра");return;}
-      const mutate=()=>{current.material_profile_id=null;current.material_calculation_state="Missing Material";return true;};
+      const mutate=()=>{current.material_profile_id=null;current.material_warning_ack_signature=null;current.material_calculation_state="Missing Material";return true;};
       const ok=api()?.modelCommand?api().modelCommand("Снять материал трубы",mutate):mutate();
       if(ok!==false){api()?.save?.();api()?.renderAll?.();renderTube();}
     });
