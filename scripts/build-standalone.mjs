@@ -22,6 +22,7 @@ const trimCutRuntimeBridgePath = path.join(root, "src", "ui", "trim-cut-runtime-
 const materialDomainPath = path.join(root, "src", "domain", "materials", "material-profiles.mjs");
 const machineToolingDomainPath = path.join(root, "src", "domain", "machines", "machine-tooling.mjs");
 const machineSetupDomainPath = path.join(root, "src", "domain", "machines", "machine-setup.mjs");
+const bendSequenceDomainPath = path.join(root, "src", "domain", "manufacturing", "bend-sequence-analysis.mjs");
 const equipmentLibraryUiPath = path.join(root, "src", "ui", "equipment-library-ui.js");
 const distDir = path.join(root, "dist");
 const outputPath = path.join(distDir, "TubeBender_CAD_VC207R7_M1_Standalone.html");
@@ -2121,9 +2122,11 @@ const bundledTrimCutRuntimeBridge =
 
 const machineToolingDomainUrl = moduleDataUrl(machineToolingDomainPath);
 const machineSetupDomainUrl = moduleDataUrl(machineSetupDomainPath);
+const bendSequenceDomainUrl = moduleDataUrl(bendSequenceDomainPath);
 const equipmentLibraryUi = fs.readFileSync(equipmentLibraryUiPath, "utf8")
   .replace("__TB_MACHINE_TOOLING_MODULE_URL__", machineToolingDomainUrl)
   .replace("__TB_MACHINE_SETUP_MODULE_URL__", machineSetupDomainUrl)
+  .replace("__TB_BEND_SEQUENCE_MODULE_URL__", bendSequenceDomainUrl)
   .replace(/<\/script/gi, "<\\/script");
 const bundledEquipmentLibraryUi =
   `<script data-tubebender-bundled="equipment-library-ui">\n${equipmentLibraryUi}\n</script>`;
