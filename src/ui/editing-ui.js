@@ -1,6 +1,7 @@
 (()=>{
   const STRAIGHT_RUN_URL="__TB_STRAIGHT_RUN_MODULE_URL__";
-  let straightRun=null,installed=false,panel=null,button=null,activeTool="copy";
+  const RIGID_TRANSFORM_URL="__TB_RIGID_TRANSFORM_MODULE_URL__";
+  let straightRun=null,rigidTransform=null,installed=false,panel=null,button=null,activeTool="copy";
   const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
   const clone=(v)=>v==null?v:structuredClone(v);
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,(ch)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -134,6 +135,61 @@
     }catch(error){toast(error.message);return false;}
   }
 
+  function rotateSelection(body){
+    const tubes=selectedWholeTubes();
+    if(!tubes.length){toast("Для Rotate выберите одну или несколько целых труб");return false;}
+    const axisName=$("[data-rotate-axis]",body).value;
+    const axis=axisName==="X"?{x:1,y:0,z:0}:axisName==="Y"?{x:0,y:1,z:0}:{x:0,y:0,z:1};
+    const angle=Number($("[data-rotate-angle]",body).value.replace(",","."));
+    if(!Number.isFinite(angle)){toast("Угол Rotate должен быть числом");return false;}
+    const centerMode=$("[data-rotate-center-mode]",body).value;
+    let explicitCenter=null;
+    if(centerMode==="custom"){
+      explicitCenter={
+        x:Number($("[data-rotate-cx]",body).value.replace(",",".")),
+        y:Number($("[data-rotate-cy]",body).value.replace(",",".")),
+        z:Number($("[data-rotate-cz]",body).value.replace(",","."))
+      };
+      if(![explicitCenter.x,explicitCenter.y,explicitCenter.z].every(Number.isFinite)){
+        toast("Координаты центра Rotate должны быть числами");return false;
+      }
+    }
+    const plans=[];
+    try{
+      for(const source of tubes){
+        const center=centerMode==="own"
+          ?clone(source.origin??{x:0,y:0,z:0})
+          :centerMode==="custom"
+            ?explicitCenter
+            :{x:0,y:0,z:0};
+        const result=rigidTransform.rotateLegacyTubeRigid(source,{axis,center,angle_deg:angle});
+        if(result.status!=="exact")throw new Error(result.reason||"Rotate не может быть точно закодирован");
+        const rotated=clone(result.tube);
+        if(rotated.importEvidence?.spatialPlacement){
+          rotated.importEvidence.spatialPlacement.user_origin_override=true;
+          rotated.importEvidence.spatialPlacement.rigid_rotation_override=true;
+        }
+        plans.push({source,rotated});
+      }
+    }catch(error){toast(error.message);return false;}
+
+    if(readonly()){toast("Проект открыт только для просмотра");return false;}
+    const command=api()?.wholeObjectCommand??api()?.modelCommand;
+    const mutate=()=>{
+      for(const plan of plans){
+        for(const key of Object.keys(plan.source))delete plan.source[key];
+        Object.assign(plan.source,clone(plan.rotated));
+      }
+      return true;
+    };
+    const ok=typeof command==="function"?command("Повернуть выбранные трубы",mutate):mutate();
+    if(ok===false)return false;
+    try{api()?.reloadActiveTube?.();}catch{}
+    try{api()?.save?.();api()?.renderAll?.();context()?.refresh?.();}catch{}
+    render();
+    return true;
+  }
+
   function injectStyles(){
     if(document.getElementById("tbEditingUiStyles"))return;
     const s=document.createElement("style");s.id="tbEditingUiStyles";s.textContent=`
@@ -155,8 +211,8 @@
     panel.innerHTML='<div class="tb-edit-head"><b>Редактирование</b><span class="sp"></span><button data-edit-close>×</button></div>'+
       '<div class="tb-edit-tools">'+
       '<button data-tool="copy">Copy</button><button data-tool="move">Move</button><button data-tool="split">Split</button>'+
-      '<button data-tool="rotate" disabled title="Подключение rigid transform stack к legacy renderer ещё не завершено">Rotate</button>'+
-      '<button data-tool="array" disabled title="Array domain готов; визуальное создание экземпляров будет подключено следующим этапом">Array</button>'+
+      '<button data-tool="rotate">Rotate</button>'+
+      '<button data-tool="array" disabled title="Array domain готов; associative member synchronization подключается следующим этапом">Array</button>'+
       '</div><div class="tb-edit-body"></div>';
     document.body.appendChild(panel);
     $("[data-edit-close]",panel).onclick=close;
@@ -180,14 +236,23 @@
       const selected=selectedSingleLine(),nodes=selected?.row?.straightRun?.nodes_mm??[];
       body.innerHTML='<div class="tb-edit-card"><b>Split Straight</b><div class="tb-edit-grid" style="margin-top:8px"><label>Режим</label><select data-split-mode><option value="start">Расстояние от начала</option><option value="end">Расстояние от конца</option><option value="equal">N равных частей</option><option value="percent">Позиция, %</option></select><label>Значение</label><input data-split-value value="50"></div><div class="tb-edit-note" style="margin-top:8px">Внутренние узлы: '+esc(nodes.length?nodes.join(", ")+" мм":"нет")+'. LINE остаётся одним производственным StraightRun.</div><div class="tb-edit-actions"><button data-split-run>Разделить</button></div></div>';
       $("[data-split-run]",body).onclick=()=>splitSelected(body);
+    }else if(activeTool==="rotate"){
+      body.innerHTML='<div class="tb-edit-card"><b>Rotate</b><div class="tb-edit-grid" style="margin-top:8px">'+
+        '<label>Ось</label><select data-rotate-axis><option>X</option><option>Y</option><option>Z</option></select>'+
+        '<label>Угол, °</label><input data-rotate-angle value="90">'+
+        '<label>Центр</label><select data-rotate-center-mode><option value="global">Global 0,0,0</option><option value="own">Origin каждой трубы</option><option value="custom">Заданный XYZ</option></select>'+
+        '<label>Center X</label><input data-rotate-cx value="0"><label>Center Y</label><input data-rotate-cy value="0"><label>Center Z</label><input data-rotate-cz value="0">'+
+        '</div><div class="tb-edit-note" style="margin-top:8px">Rigid-body Rotate сохраняет длины, CLR и углы гибов; TubeBender пересчитывает только origin/startVector и legacy plane/rot.</div>'+
+        '<div class="tb-edit-actions"><button data-rotate-run>Повернуть</button></div></div>';
+      $("[data-rotate-run]",body).onclick=()=>rotateSelection(body);
     }
   }
   async function install(){
     if(installed)return;installed=true;
-    try{straightRun=await import(STRAIGHT_RUN_URL);}catch(error){console.error("Editing UI failed to load",error);return;}
+    try{[straightRun,rigidTransform]=await Promise.all([import(STRAIGHT_RUN_URL),import(RIGID_TRANSFORM_URL)]);}catch(error){console.error("Editing UI failed to load",error);return;}
     ensureShell();
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
-    window.TubeBenderEditing=Object.freeze({open,close,copySelection,moveSelection:()=>context()?.applyMove,splitSelected,refresh:render});
+    window.TubeBenderEditing=Object.freeze({open,close,copySelection,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,refresh:render});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
 })();
