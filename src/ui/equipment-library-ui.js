@@ -257,10 +257,11 @@
       '<div class="tb-eq-note">Без явного назначения TubeBender использует существующие legacy machine/tooling данные. После назначения новая модель имеет приоритет в технологическом расчёте.</div>';
     const tubeFacts=()=>{
       let manufacturing=null;try{manufacturing=api()?.manufacturingData?.(t)??null;}catch{}
+      const odRaw=manufacturing?.style?.outerDiameter,wallRaw=manufacturing?.style?.wallThickness;
       return {
         ...t,
-        od_mm:Number(manufacturing?.style?.outerDiameter),
-        wall_mm:Number(manufacturing?.style?.wallThickness),
+        od_mm:odRaw===null||odRaw===undefined||odRaw===""?NaN:Number(odRaw),
+        wall_mm:wallRaw===null||wallRaw===undefined||wallRaw===""?NaN:Number(wallRaw),
         bend_clr_mm:(manufacturing?.steps??[]).map((step)=>Number(step?.radius)).filter(Number.isFinite)
       };
     };
