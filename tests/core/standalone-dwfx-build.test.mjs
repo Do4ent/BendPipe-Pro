@@ -606,7 +606,7 @@ test("A65: short start and end straights use removable technological allowances 
   assert.match(html,/endAllowances=technologicalEndAllowancePlan/);
   assert.match(html,/bendNo===1\?endAllowances\.startAllowance:0/);
   assert.match(html,/endAllowances\.totalAllowance/);
-  assert.match(html,/return \{steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,xyz,endAllowances,materialProfile,materialValidation,materialDensityKgM3\}/);
+  assert.match(html,/return \{steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,legacyMachine,xyz,endAllowances,materialProfile,materialValidation,materialDensityKgM3,equipmentValidation,toolingCorrectionDeg\}/);
 
   assert.match(html,/id='engTechnologicalAllowance'/);
   assert.match(html,/Технологический припуск \(удалить после гибки\)/);
@@ -672,6 +672,10 @@ test("material profiles drive machine compensation without mutating nominal bend
   assert.match(html,/materialCompensation/);
   assert.doesNotMatch(html,/commandAngle=round\(angle\+Math\.sign\(angle\|\|1\)\*n\(style\.springbackDeg\),3\)/);
   assert.match(html,/materialDensityKgM3=materialBridge\?\.densityKgM3/);
+  assert.match(html,/equipmentBridge=window\.TubeBenderEquipmentRuntime/);
+  assert.match(html,/machine=equipmentBridge\?\.effectiveMachine/);
+  assert.match(html,/toolingCorrectionDeg=equipmentBridge\?\.toolingCorrectionDeg/);
+  assert.match(html,/toolingCorrectionDeg\}\)\|\|\{ok:false/);
   assert.doesNotMatch(html,/massKg=areaMm2\*production\*1e-9\*n\(style\.densityKgM3,7850\)/);
 });
 
