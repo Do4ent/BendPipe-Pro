@@ -17,6 +17,9 @@ const objectSelectionContextUiPath = path.join(root, "src", "ui", "object-select
 const projectTubeBarLayoutFixPath = path.join(root, "src", "ui", "project-tube-bar-layout-fix.js");
 const materialLibraryUiPath = path.join(root, "src", "ui", "material-library-ui.js");
 const materialManufacturingBridgePath = path.join(root, "src", "ui", "material-manufacturing-bridge.js");
+const measurementsUiPath = path.join(root, "src", "ui", "measurements-ui.js");
+const geometryMeasurementsDomainPath = path.join(root, "src", "domain", "measurements", "geometry-measurements.mjs");
+const dimensionsDomainPath = path.join(root, "src", "domain", "measurements", "dimensions.mjs");
 const equipmentRuntimeBridgePath = path.join(root, "src", "ui", "equipment-runtime-bridge.js");
 const trimCutRuntimeBridgePath = path.join(root, "src", "ui", "trim-cut-runtime-bridge.js");
 const materialDomainPath = path.join(root, "src", "domain", "materials", "material-profiles.mjs");
@@ -2188,6 +2191,15 @@ const materialManufacturingBridge = fs.readFileSync(materialManufacturingBridgeP
 const bundledMaterialManufacturingBridge =
   `<script data-tubebender-bundled="material-manufacturing-bridge">\n${materialManufacturingBridge}\n</script>`;
 
+const geometryMeasurementsDomainUrl = moduleDataUrl(geometryMeasurementsDomainPath);
+const dimensionsDomainUrl = moduleDataUrl(dimensionsDomainPath);
+const measurementsUi = fs.readFileSync(measurementsUiPath, "utf8")
+  .replace("__TB_GEOMETRY_MEASUREMENTS_MODULE_URL__", geometryMeasurementsDomainUrl)
+  .replace("__TB_DIMENSIONS_MODULE_URL__", dimensionsDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledMeasurementsUi =
+  `<script data-tubebender-bundled="measurements-ui">\n${measurementsUi}\n</script>`;
+
 const equipmentRuntimeBridge = fs.readFileSync(equipmentRuntimeBridgePath, "utf8").replace(/<\/script/gi, "<\\/script");
 const bundledEquipmentRuntimeBridge =
   `<script data-tubebender-bundled="equipment-runtime-bridge">\n${equipmentRuntimeBridge}\n</script>`;
@@ -2235,6 +2247,8 @@ output =
   bundledEquipmentLibraryUi +
   "\n" +
   bundledMaterialManufacturingBridge +
+  "\n" +
+  bundledMeasurementsUi +
   "\n" +
   bundledMaterialLibraryUi +
   "\n" +
@@ -2410,6 +2424,12 @@ if (!output.includes('data-tubebender-bundled="dwfx-reference-scene-ui"')) {
 if (!output.includes('data-tubebender-bundled="material-library-ui"')) {
   throw new Error("Standalone build is missing the Material Library UI marker");
 }
+if (!output.includes('data-tubebender-bundled="measurements-ui"')) {
+  throw new Error("Standalone build is missing the Measurements UI marker");
+}
+if (!output.includes("TubeBenderMeasurements") || !output.includes("engineering_dimensions")) {
+  throw new Error("Standalone build is missing Measurements integration hooks");
+}
 if (output.includes("__TB_SIM_COLLISION_MODULE_URL__")) {
   throw new Error("Standalone build still contains unresolved simulation collision module URL");
 }
@@ -2481,6 +2501,7 @@ process.stdout.write(
       bundledDwfxImporter: true,
       currentProjectDwfxImport: true,
       bundledMaterialLibrary: true,
+      bundledMeasurementsUi: true,
       materialManufacturingCompensation: true,
       equipmentRuntimeBridge: true,
       bundledEquipmentLibrary: true,
