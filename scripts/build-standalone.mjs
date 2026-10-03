@@ -1993,11 +1993,11 @@ output=output.replace(materialStepAnchor,"commandAngle,materialCompensation,plan
 
 const materialMassAnchor = "massKg=areaMm2*production*1e-9*n(style.densityKgM3,7850);";
 if(!output.includes(materialMassAnchor)){throw new Error("legacy style density mass anchor was not found");}
-output=output.replace(materialMassAnchor,"materialDensityKgM3=materialBridge?.densityKgM3?.(p,t)??null,massKg=Number.isFinite(materialDensityKgM3)?areaMm2*production*1e-9*materialDensityKgM3:null;");
+output=output.replace(materialMassAnchor,"materialDensityKgM3=materialBridge?.densityKgM3?.(p,t)??null,massKg=Number.isFinite(materialDensityKgM3)?areaMm2*production*1e-9*materialDensityKgM3:null,trimBridge=window.TubeBenderTrimCutRuntime||null,trimPlan=trimBridge?.buildPlan?.({tube:t,endAllowances,setupExtensions,style})||{operations:[],required_removal_mm:0,nominal_geometry_changed:false},trimValidation=trimBridge?.validate?.(trimPlan)||{ok:true,status:'NotChecked',errors:[],warnings:[]},finishedLengthAfterTrim=trimBridge?.finishedLength?.(production,trimPlan)??null;");
 
 const materialReturnAnchor = "return {steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,xyz,endAllowances};}";
 if(!output.includes(materialReturnAnchor)){throw new Error("material manufacturingData return anchor was not found");}
-output=output.replace(materialReturnAnchor,"return {steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,legacyMachine,xyz,endAllowances,materialProfile,materialValidation,materialDensityKgM3,equipmentValidation,toolingCorrectionDeg,machineSetup,setupValidation,setupOffsetMm,setupExtensions};}");
+output=output.replace(materialReturnAnchor,"return {steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,legacyMachine,xyz,endAllowances,materialProfile,materialValidation,materialDensityKgM3,equipmentValidation,toolingCorrectionDeg,machineSetup,setupValidation,setupOffsetMm,setupExtensions,trimPlan,trimValidation,finishedLengthAfterTrim};}");
 
 const machineSetupFeedAnchor =
   "Y:round(feed+(bendNo===1?endAllowances.startAllowance:0),3),B:round(rotation-lastRotation,3),C:round(angle,3),L:round(feed+(bendNo===1?endAllowances.startAllowance:0),3),R:";
