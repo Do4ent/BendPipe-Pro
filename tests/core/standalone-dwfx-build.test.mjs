@@ -889,3 +889,17 @@ test("Clearance Monitor measures tube-to-tube minimum surface clearance using sh
   assert.match(html,/measureTubeClearance:\(projectValue,tubeAId,tubeBId\)=>measureTubePairClearance/);
   assert.match(html,/source:'project-clearance-geometry'/);
 });
+
+
+test("Clearance Monitor can focus the 3D view on the closest-point midpoint without changing zoom",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/function focusClearanceMeasurement\(measurement\)/);
+  assert.match(html,/const offset=camera\.position\.clone\(\)\.sub\(controls\.target\)/);
+  assert.match(html,/controls\.target\.copy\(target\)/);
+  assert.match(html,/camera\.position\.copy\(target\.clone\(\)\.add\(offset\)\)/);
+  assert.match(html,/focusClearanceMeasurement:\(measurement\)=>focusClearanceMeasurement\(measurement\)/);
+  assert.match(html,/data-clearance-focus/);
+});
