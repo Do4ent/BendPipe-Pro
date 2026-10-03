@@ -945,3 +945,27 @@ test("Clearance focus draws temporary closest-point markers without changing mod
   assert.match(html,/status==='Red'\?0xff3b30/);
   assert.match(html,/group\.userData=\{helper:true,clearanceFocusMarker:true\}/);
 });
+
+
+test("Measurements panel and measurement domains are bundled into standalone",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/data-tubebender-bundled="measurements-ui"/);
+  assert.match(html,/TubeBenderMeasurements/);
+  assert.match(html,/engineering_dimensions/);
+  assert.match(html,/Сохранить как размер/);
+  assert.match(html,/measureAngleBetweenLines/);
+  assert.doesNotMatch(html,/__TB_GEOMETRY_MEASUREMENTS_MODULE_URL__/);
+  assert.doesNotMatch(html,/__TB_DIMENSIONS_MODULE_URL__/);
+});
+
+test("object selection emits changes for live Measurements refresh",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/tubebender-selection-change/);
+  assert.match(html,/new CustomEvent\("tubebender-selection-change"/);
+});
