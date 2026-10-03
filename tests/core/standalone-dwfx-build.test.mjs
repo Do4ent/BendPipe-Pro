@@ -610,7 +610,7 @@ test("A65: short start and end straights use removable technological allowances 
   assert.match(html,/machineSetup=equipmentBridge\?\.activeMachineSetup/);
   assert.match(html,/setupOffsetMm=equipmentBridge\?\.machineSetupOffsetMm/);
   assert.match(html,/setupExtensions=equipmentBridge\?\.machineSetupExtensions/);
-  assert.match(html,/return \{steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,legacyMachine,xyz,endAllowances,materialProfile,materialValidation,materialDensityKgM3,equipmentValidation,toolingCorrectionDeg,machineSetup,setupValidation,setupOffsetMm,setupExtensions\}/);
+  assert.match(html,/return \{steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,legacyMachine,xyz,endAllowances,materialProfile,materialValidation,materialDensityKgM3,equipmentValidation,toolingCorrectionDeg,machineSetup,setupValidation,setupOffsetMm,setupExtensions,trimPlan,trimValidation,finishedLengthAfterTrim\}/);
 
   assert.match(html,/id='engTechnologicalAllowance'/);
   assert.match(html,/Технологический припуск \(удалить после гибки\)/);
@@ -768,4 +768,19 @@ test("NC export traces active Machine Setup and project report names it",()=>{
   const html=fs.readFileSync(output,"utf8");
   assert.match(html,/; Setup=\$\{d\.machineSetup\?\.name\|\|'NONE'\}/);
   assert.match(html,/<b>Machine Setup:<\/b>/);
+});
+
+
+test("Trim Cut runtime is bundled and manufacturing data exposes protected trim plan",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/data-tubebender-bundled="trim-cut-runtime-bridge"/);
+  assert.match(html,/TubeBenderTrimCutRuntime/);
+  assert.match(html,/trimPlan=trimBridge\?\.buildPlan/);
+  assert.match(html,/trimValidation=trimBridge\?\.validate/);
+  assert.match(html,/finishedLengthAfterTrim=trimBridge\?\.finishedLength/);
+  assert.match(html,/data-tab="trim"/);
+  assert.match(html,/Nominal geometry changed: <b>NO<\/b>/);
 });
