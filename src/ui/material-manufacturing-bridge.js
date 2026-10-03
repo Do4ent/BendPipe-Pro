@@ -76,6 +76,11 @@
       errors.push(...(equipment.errors??[]).map((x)=>"Equipment: "+x));
       warnings.push(...(equipment.warnings??[]).map((x)=>"Equipment: "+x));
     }
+    const trim=manufacturing?.trimValidation;
+    if(trim){
+      errors.push(...(trim.errors??[]).map((x)=>"Trim/Cut: "+x));
+      warnings.push(...(trim.warnings??[]).map((x)=>"Trim/Cut: "+x));
+    }
     const steps=manufacturing?.steps;
     if(!Array.isArray(steps))errors.push("Производственные шаги отсутствуют");
     else{
@@ -103,6 +108,7 @@
       status:errors.length?"Error":warnings.length?"Warning":"Valid",
       material,
       equipment:equipment??null,
+      trim:trim??null,
       errors:Object.freeze([...new Set(errors)]),
       warnings:Object.freeze([...new Set(warnings)])
     });
