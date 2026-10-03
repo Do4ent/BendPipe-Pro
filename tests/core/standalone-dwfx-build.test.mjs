@@ -875,3 +875,15 @@ test("Persistent Clearance Monitor is bundled and remains project-scoped",()=>{
   assert.match(html,/Видимость объектов не влияет на расчёт/);
   assert.doesNotMatch(html,/__TB_CLEARANCE_MODULE_URL__/);
 });
+
+
+test("Clearance Monitor consumes project collision truth for tube-to-tube red states",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/projectCollisionAnalysis:\(projectValue\)=>getProjectCollisionAnalysis/);
+  assert.match(html,/projectCollisionAnalysis\?\.\(p\)/);
+  assert.match(html,/source:"project-collision"/);
+  assert.match(html,/absence|отсутствие collision не считается Green/i);
+});
