@@ -53,3 +53,13 @@ test("legacy equipment is only a fallback until explicit assignment",()=>{
   assert.match(code,/Без явного назначения TubeBender использует существующие legacy machine\/tooling данные/);
   assert.match(code,/После назначения новая модель имеет приоритет/);
 });
+
+
+test("equipment assignment UI labels tooling compatibility without auto-assigning",()=>{
+  assert.match(code,/domain\.suggestToolingSets/);
+  assert.match(code,/Compatible/);
+  assert.match(code,/Conditional/);
+  assert.match(code,/Incompatible/);
+  assert.match(code,/refreshToolingSuggestions/);
+  assert.doesNotMatch(code,/tooling_set_id=.*Compatible/);
+});
