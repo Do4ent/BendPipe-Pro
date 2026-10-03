@@ -87,10 +87,12 @@ export function classifyBendSimulationStep(step,observations=[],{
     }
     const contact=item.contact===true||
       (Number.isFinite(item.clearance_mm)&&Math.abs(item.clearance_mm)<=contact_tolerance_mm);
-    if(contact&&contact_rule==="forbid"){
-      errors.push(item.message||`${item.kind}: contact is forbidden`);
-    }else if(contact&&contact_rule==="warn"){
-      warnings.push(item.message||`${item.kind}: contact`);
+    if(contact){
+      if(contact_rule==="forbid"){
+        errors.push(item.message||`${item.kind}: contact is forbidden`);
+      }else if(contact_rule==="warn"){
+        warnings.push(item.message||`${item.kind}: contact`);
+      }
     }else if(Number.isFinite(item.clearance_mm)&&item.clearance_mm<warning_clearance_mm){
       warnings.push(item.message||`${item.kind}: clearance ${item.clearance_mm} mm below warning threshold ${warning_clearance_mm} mm`);
     }
