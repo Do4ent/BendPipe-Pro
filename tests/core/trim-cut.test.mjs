@@ -74,3 +74,17 @@ test("explicit trim plane requires non-zero normal",()=>{
     end:"P1",plane:{mode:"explicit",normal:{x:0,y:0,z:0}}
   }),/non-zero/);
 });
+
+
+test("trim plan includes explicit cut allowances",()=>{
+  const plan=buildRequiredEndTrimPlan({
+    end_allowances:{startAllowance:10,endAllowance:5},
+    cut_allowances:{start_mm:3,end_mm:2},
+    setup_extensions:{start_mm:20,end_mm:15}
+  });
+  assert.equal(plan.operations.find((x)=>x.end==="P1").remove_length_mm,33);
+  assert.equal(plan.operations.find((x)=>x.end==="P2").remove_length_mm,22);
+  assert.equal(plan.required_removal_mm,55);
+  assert.equal(plan.p1_cut_allowance_mm,3);
+  assert.equal(plan.p2_cut_allowance_mm,2);
+});
