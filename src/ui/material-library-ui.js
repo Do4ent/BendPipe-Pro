@@ -249,7 +249,7 @@
     ["density_kg_m3","Плотность, kg/m³"],["elastic_modulus_mpa","Модуль E, MPa"],
     ["yield_strength_mpa","Предел текучести, MPa"],["tensile_strength_mpa","Предел прочности, MPa"],
     ["poisson_ratio","Коэф. Пуассона"],["thermal_expansion_per_c","Лин. расширение, 1/°C"],
-    ["springback","Springback"],["minimum_clr_mm","Минимальный CLR, мм"],
+    ["springback","Springback factor"],["minimum_clr_mm","Минимальный CLR, мм"],
     ["dt_ratio_min","D/t min"],["dt_ratio_max","D/t max"]
   ];
 
