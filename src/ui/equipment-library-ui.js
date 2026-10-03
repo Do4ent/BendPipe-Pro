@@ -556,16 +556,25 @@
       '<div class="tb-eq-toolbar"><button data-clearance-new>+ Clearance Monitor</button></div>'+
       '<div class="tb-eq-section"><h3>Persistent Clearance Monitor</h3>'+
       '<div class="tb-eq-note">Overall: <b>'+esc(summary.status)+'</b> · Red '+summary.red_count+' · Yellow '+summary.yellow_count+' · Green '+summary.green_count+' · Not checked '+summary.not_checked_count+'. Видимость объектов не влияет на расчёт.</div>'+
-      '<table class="tb-eq-table"><thead><tr><th>Name</th><th>Members</th><th>Min</th><th>Warn</th><th>Distance</th><th>Status</th><th>Enabled</th></tr></thead><tbody>'+
+      '<table class="tb-eq-table"><thead><tr><th>Name</th><th>Members</th><th>Min</th><th>Warn</th><th>Distance</th><th>Status</th><th>Enabled</th><th></th></tr></thead><tbody>'+
       summary.results.map((r)=>{
-        const m=monitors.find((x)=>x.id===r.monitor_id);
-        return '<tr data-clearance-id="'+esc(r.monitor_id)+'"><td>'+esc(r.name)+'</td><td>'+esc((m?.members??[]).map((x)=>x.kind+":"+x.id).join(" ↔ "))+'</td><td>'+esc(m?.minimum_clearance_mm??"—")+'</td><td>'+esc(m?.warning_clearance_mm??"—")+'</td><td>'+esc(r.distance_mm??"—")+'</td><td>'+esc(r.status)+'</td><td>'+(m?.enabled!==false?"yes":"no")+'</td></tr>';
+        const m=monitors.find((x)=>x.id===r.monitor_id),measurement=measurements?.[r.monitor_id];
+        const focus=measurement?.closest_points?'<button data-clearance-focus="'+esc(r.monitor_id)+'">Focus</button>':'';
+        return '<tr data-clearance-id="'+esc(r.monitor_id)+'"><td>'+esc(r.name)+'</td><td>'+esc((m?.members??[]).map((x)=>x.kind+":"+x.id).join(" ↔ "))+'</td><td>'+esc(m?.minimum_clearance_mm??"—")+'</td><td>'+esc(m?.warning_clearance_mm??"—")+'</td><td>'+esc(r.distance_mm??"—")+'</td><td>'+esc(r.status)+'</td><td>'+(m?.enabled!==false?"yes":"no")+'</td><td>'+focus+'</td></tr>';
       }).join("")+
-      '</tbody></table><div class="tb-eq-note" style="margin-top:8px">Double click — edit. Right click — delete. Tube↔tube пары автоматически используют ту же centerline/segment geometry, что и project collision engine, и получают фактический minimum surface clearance. Другие типы пар остаются NotChecked до появления precise measurement source.</div></div>';
+      '</tbody></table><div class="tb-eq-note" style="margin-top:8px">Double click — edit. Right click — delete. Focus центрирует 3D-камеру на ближайшей паре точек без изменения zoom/orientation. Tube↔tube пары автоматически используют ту же centerline/segment geometry, что и project collision engine, и получают фактический minimum surface clearance. Другие типы пар остаются NotChecked до появления precise measurement source.</div></div>';
     $("[data-clearance-new]",body).onclick=()=>editClearanceMonitor(null);
     $("tr[data-clearance-id]",body).forEach((tr)=>{
       tr.ondblclick=()=>editClearanceMonitor(tr.dataset.clearanceId);
       tr.oncontextmenu=(e)=>{e.preventDefault();if(!window.confirm("Удалить Clearance Monitor?"))return;const next=clearanceDomain.deleteClearanceMonitor(projectClearanceMonitors(),tr.dataset.clearanceId);if(saveClearanceMonitors(next,"Удалить Clearance Monitor"))renderClearanceMonitors();};
+    });
+    $("[data-clearance-focus]",body).forEach((button)=>{
+      button.onclick=(event)=>{
+        event.stopPropagation();
+        const measurement=measurements?.[button.dataset.clearanceFocus];
+        const ok=api()?.focusClearanceMeasurement?.(measurement)===true;
+        if(!ok)toast("Не удалось сфокусировать 3D-вид на минимальном зазоре");
+      };
     });
   }
   function editClearanceMonitor(id){
