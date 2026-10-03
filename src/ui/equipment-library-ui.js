@@ -561,7 +561,7 @@
       summary.results.map((r)=>{
         const m=monitors.find((x)=>x.id===r.monitor_id),measurement=measurements?.[r.monitor_id];
         const focus=measurement?.closest_points?'<button data-clearance-focus="'+esc(r.monitor_id)+'">Focus</button>':'';
-        return '<tr data-clearance-id="'+esc(r.monitor_id)+'"><td>'+esc(r.name)+'</td><td>'+esc((m?.members??[]).map((x)=>x.kind+":"+x.id).join(" ↔ "))+'</td><td>'+esc(m?.minimum_clearance_mm??"—")+'</td><td>'+esc(m?.warning_clearance_mm??"—")+'</td><td>'+esc(r.distance_mm??"—")+'</td><td>'+esc(r.status)+'</td><td>'+(m?.enabled!==false?"yes":"no")+'</td><td>'+focus+'</td></tr>';
+        return '<tr data-clearance-id="'+esc(r.monitor_id)+'"><td>'+esc(r.name)+'</td><td>'+esc((m?.members??[]).map((x)=>x.kind+":"+x.id).join(" ↔ "))+'</td><td>'+esc(m?.minimum_clearance_mm??"—")+'</td><td>'+esc(m?.warning_clearance_mm??"—")+'</td><td>'+esc(r.distance_mm??"—")+'</td><td><span class="tb-clearance-status '+esc(r.status)+'">'+esc(r.status)+'</span></td><td>'+(m?.enabled!==false?"yes":"no")+'</td><td>'+focus+'</td></tr>';
       }).join("")+
       '</tbody></table><div class="tb-eq-note" style="margin-top:8px">Double click — edit. Right click — delete. Focus центрирует 3D-камеру на ближайшей паре точек без изменения zoom/orientation. Tube↔tube пары автоматически используют ту же centerline/segment geometry, что и project collision engine, и получают фактический minimum surface clearance. Другие типы пар остаются NotChecked до появления precise measurement source.</div></div>';
     $("[data-clearance-new]",body).onclick=()=>editClearanceMonitor(null);
