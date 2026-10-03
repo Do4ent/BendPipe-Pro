@@ -12,6 +12,7 @@ test("equipment library UI remains valid classic JavaScript",()=>{
   assert.doesNotThrow(()=>new vm.Script(code,{filename:"equipment-library-ui.js"}));
   assert.match(code,/__TB_MACHINE_TOOLING_MODULE_URL__/);
   assert.match(code,/__TB_MACHINE_SETUP_MODULE_URL__/);
+  assert.match(code,/__TB_SIM_COLLISION_MODULE_URL__/);
   assert.match(code,/data-tab="machine-profiles"/);
   assert.match(code,/data-tab="machine-instances"/);
   assert.match(code,/data-tab="tooling-sets"/);
@@ -19,6 +20,7 @@ test("equipment library UI remains valid classic JavaScript",()=>{
   assert.match(code,/data-tab="setups"/);
   assert.match(code,/data-tab="trim"/);
   assert.match(code,/data-tab="sequence"/);
+  assert.match(code,/data-tab="simulation"/);
   assert.match(code,/data-tab="tube"/);
 });
 
@@ -104,4 +106,27 @@ test("Bend Sequence UI ranks candidates but never auto-applies them",()=>{
   assert.match(code,/TubeBender не меняет порядок гибов автоматически/);
   assert.match(code,/Выбрать предпочтительную последовательность/);
   assert.doesNotMatch(code,/manufacturing\.steps=.*analysis\.order/);
+});
+
+
+test("Bending Simulation Collision UI exposes per-bend states and explicit modes",()=>{
+  assert.match(code,/function renderSimulationCollision/);
+  assert.match(code,/function simulationCollisionReport/);
+  assert.match(code,/analyzeBendingSimulation/);
+  assert.match(code,/simulationModeDecision/);
+  assert.match(code,/Monitor/);
+  assert.match(code,/Stop/);
+  assert.match(code,/ValidationLock/);
+  assert.match(code,/Per-bend status/);
+  assert.match(code,/Отсутствие checked evidence никогда не считается OK/);
+  assert.match(code,/simulation_collision_observations/);
+  assert.match(code,/simulation_collision_settings/);
+});
+
+test("simulation collision settings and observations use model history and do not alter nominal geometry",()=>{
+  assert.match(code,/Изменить режим collision simulation/);
+  assert.match(code,/Обновить collision observations/);
+  assert.match(code,/simulation_calculation_state="Stale"/);
+  assert.doesNotMatch(code,/row\.C\s*=/);
+  assert.doesNotMatch(code,/row\.angle\s*=/);
 });
