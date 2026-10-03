@@ -61,3 +61,20 @@ test("project material edits participate in model command history",()=>{
   assert.match(code,/Назначить материал трубе/);
   assert.match(code,/Изменить настройки материалов проекта/);
 });
+
+
+test("tube material UI requires explicit acknowledgement of current profile warnings",()=>{
+  const code=fs.readFileSync(uiPath,"utf8");
+  assert.match(code,/data-tube-ack-warning/);
+  assert.match(code,/material_warning_ack_signature/);
+  assert.match(code,/materialFingerprint/);
+  assert.match(code,/warning_ack_required/);
+  assert.match(code,/Подтвердить предупреждения Material Profile/);
+  assert.match(code,/window\.confirm\(message\)/);
+});
+
+test("changing or clearing tube material invalidates previous warning acknowledgement",()=>{
+  const code=fs.readFileSync(uiPath,"utf8");
+  const resets=code.match(/material_warning_ack_signature=null/g)??[];
+  assert.ok(resets.length>=2);
+});
