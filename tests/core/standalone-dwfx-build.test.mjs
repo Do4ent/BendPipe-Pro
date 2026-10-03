@@ -604,9 +604,13 @@ test("A65: short start and end straights use removable technological allowances 
   assert.match(html,/const endpoint=i===0\|\|i===lengths\.length-1/);
 
   assert.match(html,/endAllowances=technologicalEndAllowancePlan/);
-  assert.match(html,/bendNo===1\?endAllowances\.startAllowance:0/);
+  assert.match(html,/bendNo===1\?endAllowances\.startAllowance\+setupExtensions\.start_mm\+setupOffsetMm:0/);
   assert.match(html,/endAllowances\.totalAllowance/);
-  assert.match(html,/return \{steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,legacyMachine,xyz,endAllowances,materialProfile,materialValidation,materialDensityKgM3,equipmentValidation,toolingCorrectionDeg\}/);
+  assert.match(html,/endAllowances\.totalAllowance\+setupExtensions\.start_mm\+setupExtensions\.end_mm/);
+  assert.match(html,/machineSetup=equipmentBridge\?\.activeMachineSetup/);
+  assert.match(html,/setupOffsetMm=equipmentBridge\?\.machineSetupOffsetMm/);
+  assert.match(html,/setupExtensions=equipmentBridge\?\.machineSetupExtensions/);
+  assert.match(html,/return \{steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,legacyMachine,xyz,endAllowances,materialProfile,materialValidation,materialDensityKgM3,equipmentValidation,toolingCorrectionDeg,machineSetup,setupValidation,setupOffsetMm,setupExtensions\}/);
 
   assert.match(html,/id='engTechnologicalAllowance'/);
   assert.match(html,/Технологический припуск \(удалить после гибки\)/);
@@ -734,4 +738,20 @@ test("assigned Equipment Library data overrides legacy machine limits and adds t
   assert.match(html,/nominalAngleDeg:angle,toolingCorrectionDeg/);
   assert.match(html,/equipmentGate=window\.TubeBenderEquipmentRuntime\?\.assignmentCheck/);
   assert.match(html,/Оборудование: \$\{issue\}/);
+});
+
+
+test("Machine Setup UI is bundled and remains separate from nominal geometry",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/data-tab="setups"/);
+  assert.match(html,/Machine Setups/);
+  assert.match(html,/active_machine_setup_id/);
+  assert.match(html,/Clamping extension P1/);
+  assert.match(html,/Clamping extension P2/);
+  assert.match(html,/machineSetupOffsetMm/);
+  assert.match(html,/setupExtensions\.start_mm/);
+  assert.match(html,/setupExtensions\.end_mm/);
 });
