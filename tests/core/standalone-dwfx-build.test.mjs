@@ -702,3 +702,33 @@ test("generic NC export performs parser-backed round-trip before download",()=>{
   assert.match(html,/NC round-trip проверка не пройдена/);
   assert.match(html,/material springback compensation is unresolved/);
 });
+
+
+test("Equipment Library and runtime bridge are bundled into standalone",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/data-tubebender-bundled="equipment-runtime-bridge"/);
+  assert.match(html,/data-tubebender-bundled="equipment-library-ui"/);
+  assert.match(html,/TubeBenderEquipmentRuntime/);
+  assert.match(html,/TubeBenderEquipmentLibrary/);
+  assert.match(html,/equipmentLibrary/);
+  assert.match(html,/machine_profile_id/);
+  assert.match(html,/tooling_instance_id/);
+  assert.doesNotMatch(html,/__TB_MACHINE_TOOLING_MODULE_URL__/);
+});
+
+test("assigned Equipment Library data overrides legacy machine limits and adds tooling correction after material springback",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/equipmentBridge=window\.TubeBenderEquipmentRuntime/);
+  assert.match(html,/machine=equipmentBridge\?\.effectiveMachine\?\.\(p,t,legacyMachine\)\|\|legacyMachine/);
+  assert.match(html,/equipmentValidation=equipmentBridge\?\.assignmentCheck/);
+  assert.match(html,/toolingCorrectionDeg=equipmentBridge\?\.toolingCorrectionDeg/);
+  assert.match(html,/nominalAngleDeg:angle,toolingCorrectionDeg/);
+  assert.match(html,/equipmentGate=window\.TubeBenderEquipmentRuntime\?\.assignmentCheck/);
+  assert.match(html,/Оборудование: \$\{issue\}/);
+});
