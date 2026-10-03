@@ -349,6 +349,9 @@
         '<label>Method</label><select data-trim="'+end+'" data-key="method">'+methods.map((m)=>option(m,m,m===(p.method??"saw"))).join("")+'</select>'+
         '<label>Tolerance, mm</label><input data-trim="'+end+'" data-key="tolerance_mm" value="'+esc(p.tolerance_mm??0.5)+'">'+
         '<label>Plane</label><select data-trim="'+end+'" data-key="plane_mode">'+option("perpendicular_to_centerline","Perpendicular to centerline",(p.plane?.mode??"perpendicular_to_centerline")==="perpendicular_to_centerline")+option("explicit","Explicit",p.plane?.mode==="explicit")+'</select>'+
+        '<label>Normal X</label><input data-trim="'+end+'" data-key="normal_x" value="'+esc(p.plane?.normal?.x??1)+'">'+
+        '<label>Normal Y</label><input data-trim="'+end+'" data-key="normal_y" value="'+esc(p.plane?.normal?.y??0)+'">'+
+        '<label>Normal Z</label><input data-trim="'+end+'" data-key="normal_z" value="'+esc(p.plane?.normal?.z??0)+'">'+
         '<label>Notes</label><input data-trim="'+end+'" data-key="notes" value="'+esc(p.notes??"")+'">'+
         '</div><div class="tb-eq-note">Длина снятия рассчитывается автоматически из cut allowance + end allowance + clamping extension и недоступна для ручного редактирования.</div></div>';
     };
@@ -363,7 +366,7 @@
         const mode=get("plane_mode")||"perpendicular_to_centerline";
         next[end]={
           end,method:get("method")||"saw",tolerance_mm:parseNum(get("tolerance_mm"))??0.5,
-          plane:{mode,point_mm:prefs[end]?.plane?.point_mm??null,normal:mode==="explicit"?(prefs[end]?.plane?.normal??{x:1,y:0,z:0}):null},
+          plane:{mode,point_mm:null,normal:mode==="explicit"?{x:parseNum(get("normal_x"))??1,y:parseNum(get("normal_y"))??0,z:parseNum(get("normal_z"))??0}:null},
           notes:get("notes")||""
         };
       }
