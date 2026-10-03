@@ -152,3 +152,12 @@ test("Clearance Monitor UI stores persistent project monitors and ignores displa
   assert.match(code,/deleteClearanceMonitor/);
   assert.match(code,/clearance_monitor_measurements/);
 });
+
+
+test("Clearance Monitor derives Red from real project tube collisions without guessing safe clearance",()=>{
+  assert.match(code,/projectCollisionAnalysis\?\.\(p\)/);
+  assert.match(code,/source:"project-collision"/);
+  assert.match(code,/Intersection detected by project collision engine/);
+  assert.match(code,/distance_mm:Number\.isFinite\(penetration\)\?-Math\.abs\(penetration\):0/);
+  assert.match(code,/absence|отсутствие collision не считается Green/i);
+});
