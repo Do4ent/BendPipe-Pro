@@ -381,6 +381,28 @@ const passiveBendCall = "      const b=makePassiveBend(pos,dir,plane,angle,bendR
 if(!output.includes(passiveBendCall))throw new Error("passive bend call anchor missing");
 output=output.replace(passiveBendCall,"      const b=makePassiveBend(pos,dir,plane,angle,bendR,tubeR,getBendRotationValue(r),PASSIVE_TUBE_OPACITY,tube,rowIndex);");
 
+
+const tubeClearanceMeasureAnchor =
+  "function collisionCountForTube(tube,project=null){";
+if(!output.includes(tubeClearanceMeasureAnchor)){
+  throw new Error("collisionCountForTube anchor was not found for clearance measurement");
+}
+const tubeClearanceMeasureHelpers =
+  "function measureTubePairClearance(project,tubeAId,tubeBId){\n"+
+  "  if(!project||!window.THREE)return {checked:false,distance_mm:null,source:'project-clearance-geometry',message:'Project or THREE unavailable'};\n"+
+  "  const a=(project.tubes||[]).find(t=>String(t?.id)===String(tubeAId));\n"+
+  "  const b=(project.tubes||[]).find(t=>String(t?.id)===String(tubeBId));\n"+
+  "  if(!a||!b||String(a.id)===String(b.id))return {checked:false,distance_mm:null,source:'project-clearance-geometry',message:'Two distinct tubes are required'};\n"+
+  "  const ga=buildTubeCollisionGeometry(a,project),gb=buildTubeCollisionGeometry(b,project);\n"+
+  "  if(!ga?.segments?.length||!gb?.segments?.length)return {checked:false,distance_mm:null,source:'project-clearance-geometry',message:'Tube collision geometry unavailable'};\n"+
+  "  let best=null;\n"+
+  "  for(const sa of ga.segments)for(const sb of gb.segments){const closest=closestSegmentData(sa.a,sa.b,sb.a,sb.b),surface=closest.distance-(sa.radius+sb.radius);if(!best||surface<best.surface)best={surface,closest,sa,sb};}\n"+
+  "  if(!best)return {checked:false,distance_mm:null,source:'project-clearance-geometry',message:'No segment pair available'};\n"+
+  "  const scale=Number(GEOM_SCALE)||1;\n"+
+  "  return {checked:true,distance_mm:best.surface/scale,centerline_distance_mm:best.closest.distance/scale,closest_points:{a:{x:best.closest.c1.x/scale,y:best.closest.c1.y/scale,z:best.closest.c1.z/scale},b:{x:best.closest.c2.x/scale,y:best.closest.c2.y/scale,z:best.closest.c2.z/scale}},rowA:best.sa.rowIndex,rowB:best.sb.rowIndex,source:'project-clearance-geometry',checked_at:new Date().toISOString()};\n"+
+  "}\n";
+output=output.replace(tubeClearanceMeasureAnchor,tubeClearanceMeasureHelpers+tubeClearanceMeasureAnchor);
+
 const fixedEndEngineeringExportAnchor =
   "window.TubeBenderEngineering={open:openCenter,ensure:ensureIndustrialState,diagnoseTube,diagnoseProject,rebuildRouteGraph,manufacturingData,productionReleaseDecision,generateAutoroutes,captureRevision,compareRevision,exportManufacturing,simulation:";
 if(!output.includes(fixedEndEngineeringExportAnchor)){
@@ -445,7 +467,7 @@ const fixedEndEngineeringHelpers =
 output=output.replace(
   fixedEndEngineeringExportAnchor,
   fixedEndEngineeringHelpers+"\n"+
-  "window.TubeBenderEngineering={getState:()=>state,activeProject:()=>activeProject(),activeTube:()=>activeTube(),save:()=>save(),renderAll:()=>renderAll(),modelCommand:tbModelCommand,toast:(message)=>ptToast(String(message??'')),readonly:()=>typeof poReadOnly==='function'&&poReadOnly(),projectCollisionAnalysis:(projectValue)=>getProjectCollisionAnalysis(projectValue||activeProject()),open:openCenter,ensure:ensureIndustrialState,diagnoseTube,diagnoseProject,rebuildRouteGraph,geometryForTube,captureFixedEndConstraint,enforceFixedEndConstraint,setEndConstraint,manufacturingData,productionReleaseDecision,generateAutoroutes,captureRevision,compareRevision,exportManufacturing,simulation:"
+  "window.TubeBenderEngineering={getState:()=>state,activeProject:()=>activeProject(),activeTube:()=>activeTube(),save:()=>save(),renderAll:()=>renderAll(),modelCommand:tbModelCommand,toast:(message)=>ptToast(String(message??'')),readonly:()=>typeof poReadOnly==='function'&&poReadOnly(),projectCollisionAnalysis:(projectValue)=>getProjectCollisionAnalysis(projectValue||activeProject()),measureTubeClearance:(projectValue,tubeAId,tubeBId)=>measureTubePairClearance(projectValue||activeProject(),tubeAId,tubeBId),open:openCenter,ensure:ensureIndustrialState,diagnoseTube,diagnoseProject,rebuildRouteGraph,geometryForTube,captureFixedEndConstraint,enforceFixedEndConstraint,setEndConstraint,manufacturingData,productionReleaseDecision,generateAutoroutes,captureRevision,compareRevision,exportManufacturing,simulation:"
 );
 const terminalTubeEndNodeAnchor =
   "    if ((state.rows || []).length) addNode(pipeGroup,pos,0x43d36b,.105, Math.max(0,(state.rows||[]).length-1), state.rows?.[(state.rows||[]).length-1]?.type || 'LINE');";
@@ -2361,6 +2383,9 @@ if (output.includes("__TB_CLEARANCE_MODULE_URL__")) {
 }
 if (!output.includes("Persistent Clearance Monitor") || !output.includes("clearance_monitors")) {
   throw new Error("Standalone build is missing clearance monitor integration");
+}
+if (!output.includes("measureTubePairClearance") || !output.includes("project-clearance-geometry")) {
+  throw new Error("Standalone build is missing minimum tube clearance measurement");
 }
 if (!output.includes("simulationCollisionReport") || !output.includes("ValidationLock")) {
   throw new Error("Standalone build is missing bending simulation collision integration");
