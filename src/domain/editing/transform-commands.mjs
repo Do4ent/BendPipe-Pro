@@ -20,7 +20,7 @@ function cross(a,b){return {x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.
 function length(a){return Math.hypot(a.x,a.y,a.z);}
 function unit(a,name="vector"){const l=length(a);if(!(l>EPS))throw new RangeError(`${name} must be non-zero`);return scale(a,1/l);}
 function identity(){
-  return freeze([1,0,0,0,0,1,0,0,0,1,0,0,0,1]);
+  return freeze([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
 }
 function rawMatrix(values){
   if(!Array.isArray(values)||values.length!==16)throw new TypeError("matrix must contain 16 values");
