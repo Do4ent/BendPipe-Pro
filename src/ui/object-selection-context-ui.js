@@ -456,6 +456,11 @@
       if(typeof update3D==="function")update3D();
       if(typeof markViewerDirty==="function")markViewerDirty();
     }catch{}
+    try{
+      window.dispatchEvent(new CustomEvent("tubebender-selection-change",{
+        detail:{entries:selectionEntries()}
+      }));
+    }catch{}
   }
 
   function updateTreeSelectionStyles(){
