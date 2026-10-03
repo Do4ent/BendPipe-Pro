@@ -161,3 +161,12 @@ test("Clearance Monitor derives actual tube-to-tube minimum surface clearance fr
   assert.match(code,/minimum surface clearance/);
   assert.match(code,/Другие типы пар остаются NotChecked/);
 });
+
+
+test("Clearance Monitor focus uses closest points and binds every table row",()=>{
+  assert.match(code,/data-clearance-focus/);
+  assert.match(code,/focusClearanceMeasurement\?\.\(measurement\)/);
+  assert.match(code,/\$\$\("tr\[data-clearance-id\]"/);
+  assert.doesNotMatch(code,/\$\("tr\[data-clearance-id\]"/);
+  assert.match(code,/Focus центрирует 3D-камеру/);
+});
