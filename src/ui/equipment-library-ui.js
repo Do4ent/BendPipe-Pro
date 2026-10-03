@@ -531,24 +531,14 @@
     const p=project();
     const stored=p?.clearance_monitor_measurements&&typeof p.clearance_monitor_measurements==="object"
       ?clone(p.clearance_monitor_measurements):{};
-    let collisionResult=null;
-    try{collisionResult=api()?.projectCollisionAnalysis?.(p)??null;}catch{}
-    const collisions=Array.isArray(collisionResult?.collisions)?collisionResult.collisions:[];
     for(const monitor of projectClearanceMonitors()){
       const tubeIds=(monitor?.members??[]).filter((x)=>x?.kind==="tube").map((x)=>String(x.id));
       if(tubeIds.length!==2)continue;
-      const hit=collisions.find((item)=>{
-        const a=String(item?.tubeAId??""),b=String(item?.tubeBId??"");
-        return (a===tubeIds[0]&&b===tubeIds[1])||(a===tubeIds[1]&&b===tubeIds[0]);
-      });
-      if(!hit)continue;
-      const penetration=Number(hit?.penetration??hit?.penetration_mm);
-      stored[monitor.id]={
-        distance_mm:Number.isFinite(penetration)?-Math.abs(penetration):0,
-        source:"project-collision",
-        checked_at:new Date().toISOString(),
-        message:"Intersection detected by project collision engine"
-      };
+      let measured=null;
+      try{measured=api()?.measureTubeClearance?.(p,tubeIds[0],tubeIds[1])??null;}catch{}
+      if(measured?.checked===true&&Number.isFinite(Number(measured.distance_mm))){
+        stored[monitor.id]=measured;
+      }
     }
     return stored;
   }
@@ -571,7 +561,7 @@
         const m=monitors.find((x)=>x.id===r.monitor_id);
         return '<tr data-clearance-id="'+esc(r.monitor_id)+'"><td>'+esc(r.name)+'</td><td>'+esc((m?.members??[]).map((x)=>x.kind+":"+x.id).join(" ↔ "))+'</td><td>'+esc(m?.minimum_clearance_mm??"—")+'</td><td>'+esc(m?.warning_clearance_mm??"—")+'</td><td>'+esc(r.distance_mm??"—")+'</td><td>'+esc(r.status)+'</td><td>'+(m?.enabled!==false?"yes":"no")+'</td></tr>';
       }).join("")+
-      '</tbody></table><div class="tb-eq-note" style="margin-top:8px">Double click — edit. Right click — delete. Project collision engine автоматически даёт Red для пересекающихся tube↔tube пар. Green/Yellow требуют фактического minimum-distance измерения; отсутствие collision не считается Green автоматически.</div></div>';
+      '</tbody></table><div class="tb-eq-note" style="margin-top:8px">Double click — edit. Right click — delete. Tube↔tube пары автоматически используют ту же centerline/segment geometry, что и project collision engine, и получают фактический minimum surface clearance. Другие типы пар остаются NotChecked до появления precise measurement source.</div></div>';
     $("[data-clearance-new]",body).onclick=()=>editClearanceMonitor(null);
     $("tr[data-clearance-id]",body).forEach((tr)=>{
       tr.ondblclick=()=>editClearanceMonitor(tr.dataset.clearanceId);
