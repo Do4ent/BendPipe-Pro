@@ -282,7 +282,7 @@
         ?domain.suggestToolingSets({machineProfile:profile,machineInstance:selectedMachineInstance(),toolingSets:lib.tooling_sets,tube:tubeFacts()})
         :lib.tooling_sets.map((tooling_set)=>({tooling_set,compatibility:{status:"Conditional"}}));
       selectEl.innerHTML=option("","Legacy / не назначен",!previous)+suggestions.map((item)=>{
-        const prefix=item.compatibility.status==="Compatible"?"✓":item.compatibility.status==="Conditional"?"△":"✕";
+        const prefix=item.compatibility.status==="Compatible"?"✓":item.compatibility.status==="Conditional"?"△":item.compatibility.status==="Incompatible"?"✕":"?";
         return option(item.tooling_set.id,prefix+" "+item.compatibility.status+" · "+item.tooling_set.name,item.tooling_set.id===previous);
       }).join("");
     };
