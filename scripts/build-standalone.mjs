@@ -1970,6 +1970,30 @@ output=output.replace(
   "</tbody></table><div style=\"margin:10px 0;padding:8px;border:1px solid #cc9;background:#fff8dd\"><b>Припуски карты гибки:</b> начальный +${round(d.endAllowances?.startAllowance||0,2)} мм; конечный +${round(d.endAllowances?.endAllowance||0,2)} мм. Припуски технологические и удаляются после гибки; геометрия готовой детали остаётся номинальной.</div><h2>Диагностика</h2>"
 );
 
+const materialManufacturingDataStartAnchor =
+  "function manufacturingData(t=activeTube()){if(!t)return {steps:[]};const p=activeProject(),e=t.engineering,style=p.engineering.styles.find(x=>x.id===e.styleId)||p.engineering.styles[0],machine=p.engineering.machines.find(x=>x.id===e.machineId)||p.engineering.machines[0],rows=tubeRows(t),steps=[],endAllowances=technologicalEndAllowancePlan(t,{minimumStraight:n(style?.minStraight,0),clampMin:n(machine?.clampMin,0),minFeed:n(machine?.minFeed,0)});let lineNo=0,bendNo=0,feed=0,lastRotation=0;";
+if(!output.includes(materialManufacturingDataStartAnchor)){throw new Error("material-aware manufacturingData start anchor was not found");}
+output=output.replace(materialManufacturingDataStartAnchor,
+  "function manufacturingData(t=activeTube()){if(!t)return {steps:[]};const p=projectForTube(t)||activeProject(),e=t.engineering,style=p.engineering.styles.find(x=>x.id===e.styleId)||p.engineering.styles[0],machine=p.engineering.machines.find(x=>x.id===e.machineId)||p.engineering.machines[0],materialBridge=window.TubeBenderMaterialManufacturing||null,materialProfile=materialBridge?.resolveProfile?.(p,t)||null,materialValidation=materialBridge?.materialCheck?.(p,t,{requireSpringback:true,requireDensity:false})||{ok:false,status:'Error',errors:['Material manufacturing bridge unavailable'],warnings:[]},rows=tubeRows(t),steps=[],endAllowances=technologicalEndAllowancePlan(t,{minimumStraight:n(style?.minStraight,0),clampMin:n(machine?.clampMin,0),minFeed:n(machine?.minFeed,0)});let lineNo=0,bendNo=0,feed=0,lastRotation=0;");
+
+const materialCommandAngleAnchor =
+  "bendNo++;const rotation=round(getBendRotationValue(r),3),angle=n(r.angle),commandAngle=round(angle+Math.sign(angle||1)*n(style.springbackDeg),3);steps.push({";
+if(!output.includes(materialCommandAngleAnchor)){throw new Error("legacy style springback command anchor was not found");}
+output=output.replace(materialCommandAngleAnchor,
+  "bendNo++;const rotation=round(getBendRotationValue(r),3),angle=n(r.angle),materialCompensation=materialBridge?.compensateBend?.({project:p,tube:t,nominalAngleDeg:angle,toolingCorrectionDeg:0})||{ok:false,commandAngleDeg:null,errors:['Material compensation unavailable'],warnings:[]},commandAngle=materialCompensation.ok?round(materialCompensation.commandAngleDeg,3):null;steps.push({");
+
+const materialStepAnchor = "commandAngle,plane:r.plane||'',radius:";
+if(!output.includes(materialStepAnchor)){throw new Error("manufacturing step command-angle anchor was not found");}
+output=output.replace(materialStepAnchor,"commandAngle,materialCompensation,plane:r.plane||'',radius:");
+
+const materialMassAnchor = "massKg=areaMm2*production*1e-9*n(style.densityKgM3,7850);";
+if(!output.includes(materialMassAnchor)){throw new Error("legacy style density mass anchor was not found");}
+output=output.replace(materialMassAnchor,"materialDensityKgM3=materialBridge?.densityKgM3?.(p,t)??null,massKg=Number.isFinite(materialDensityKgM3)?areaMm2*production*1e-9*materialDensityKgM3:null;");
+
+const materialReturnAnchor = "return {steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,xyz,endAllowances};}";
+if(!output.includes(materialReturnAnchor)){throw new Error("material manufacturingData return anchor was not found");}
+output=output.replace(materialReturnAnchor,"return {steps,theoretical,elongation:elong,production,massKg,areaMm2,style,machine,xyz,endAllowances,materialProfile,materialValidation,materialDensityKgM3};}");
+
 const dwfxEntryUrl = moduleDataUrl(dwfxEntryPath);
 const bundledDwfx =
   `<script type="application/octet-stream" id="tbDwfxLazyModuleUrl" data-tubebender-bundled="dwfx-import">\n${dwfxEntryUrl}\n</script>
