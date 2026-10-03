@@ -13,6 +13,7 @@ test("equipment library UI remains valid classic JavaScript",()=>{
   assert.match(code,/__TB_MACHINE_TOOLING_MODULE_URL__/);
   assert.match(code,/__TB_MACHINE_SETUP_MODULE_URL__/);
   assert.match(code,/__TB_SIM_COLLISION_MODULE_URL__/);
+  assert.match(code,/__TB_CLEARANCE_MODULE_URL__/);
   assert.match(code,/data-tab="machine-profiles"/);
   assert.match(code,/data-tab="machine-instances"/);
   assert.match(code,/data-tab="tooling-sets"/);
@@ -21,6 +22,7 @@ test("equipment library UI remains valid classic JavaScript",()=>{
   assert.match(code,/data-tab="trim"/);
   assert.match(code,/data-tab="sequence"/);
   assert.match(code,/data-tab="simulation"/);
+  assert.match(code,/data-tab="clearance"/);
   assert.match(code,/data-tab="tube"/);
 });
 
@@ -136,4 +138,17 @@ test("simulation report merges transient live collision evidence with persisted 
   assert.match(code,/TubeBenderSimulationCollisionLive\?\.observationsForTube/);
   assert.match(code,/const observations=\[\.\.\.persisted,\.\.\.live\]/);
   assert.match(code,/Live observations автоматически собираются из simCollisionChecks/);
+});
+
+
+test("Clearance Monitor UI stores persistent project monitors and ignores display visibility",()=>{
+  assert.match(code,/function renderClearanceMonitors/);
+  assert.match(code,/projectClearanceMonitors/);
+  assert.match(code,/p\.clearance_monitors=clone\(monitors\)/);
+  assert.match(code,/Persistent Clearance Monitor/);
+  assert.match(code,/Видимость объектов не влияет на расчёт/);
+  assert.match(code,/createClearanceMonitor/);
+  assert.match(code,/updateClearanceMonitor/);
+  assert.match(code,/deleteClearanceMonitor/);
+  assert.match(code,/clearance_monitor_measurements/);
 });
