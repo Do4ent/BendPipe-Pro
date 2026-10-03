@@ -861,3 +861,17 @@ test("Stop and ValidationLock halt live simulation playback while Monitor remain
   assert.match(html,/sim\.collisionStopReason='Collision detected at bend '/);
   assert.doesNotMatch(html,/mode==='Monitor'[^\n]*sim\.running=false/);
 });
+
+
+test("Persistent Clearance Monitor is bundled and remains project-scoped",()=>{
+  if(!fs.existsSync(output)){
+    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
+  }
+  const html=fs.readFileSync(output,"utf8");
+  assert.match(html,/data-tab="clearance"/);
+  assert.match(html,/Persistent Clearance Monitor/);
+  assert.match(html,/clearance_monitors/);
+  assert.match(html,/clearance_monitor_measurements/);
+  assert.match(html,/Видимость объектов не влияет на расчёт/);
+  assert.doesNotMatch(html,/__TB_CLEARANCE_MODULE_URL__/);
+});
