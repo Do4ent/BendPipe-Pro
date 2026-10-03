@@ -3,7 +3,8 @@
   const SETUP_MODULE_URL="__TB_MACHINE_SETUP_MODULE_URL__";
   const SEQUENCE_MODULE_URL="__TB_BEND_SEQUENCE_MODULE_URL__";
   const SIM_COLLISION_MODULE_URL="__TB_SIM_COLLISION_MODULE_URL__";
-  let domain=null,setupDomain=null,sequenceDomain=null,simCollisionDomain=null,installed=false,panel=null,tab="machine-profiles";
+  const CLEARANCE_MODULE_URL="__TB_CLEARANCE_MODULE_URL__";
+  let domain=null,setupDomain=null,sequenceDomain=null,simCollisionDomain=null,clearanceDomain=null,installed=false,panel=null,tab="machine-profiles";
   const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
   const clone=(v)=>v==null?v:structuredClone(v);
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,(ch)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -63,6 +64,7 @@
       '<button data-tab="trim">Trim / Cut</button>'+
       '<button data-tab="sequence">Bend Sequence</button>'+
       '<button data-tab="simulation">Simulation</button>'+
+      '<button data-tab="clearance">Clearance Monitor</button>'+
       '<button data-tab="tube">Труба</button></div><div class="tb-eq-body"></div>';
     document.body.appendChild(panel);
     $("[data-eq-close]",panel).onclick=close;
@@ -81,6 +83,7 @@
     else if(tab==="trim")renderTrimCut();
     else if(tab==="sequence")renderSequenceAnalysis();
     else if(tab==="simulation")renderSimulationCollision();
+    else if(tab==="clearance")renderClearanceMonitors();
     else renderTubeAssignment();
   }
 
@@ -520,6 +523,72 @@
     };
   }
 
+  function projectClearanceMonitors(){
+    const p=project();
+    return Array.isArray(p?.clearance_monitors)?p.clearance_monitors:[];
+  }
+  function projectClearanceMeasurements(){
+    const p=project();
+    return p?.clearance_monitor_measurements&&typeof p.clearance_monitor_measurements==="object"
+      ?p.clearance_monitor_measurements:{};
+  }
+  function saveClearanceMonitors(monitors,label){
+    const p=project();if(!p)return false;
+    const mutate=()=>{p.clearance_monitors=clone(monitors);return true;};
+    const ok=api()?.modelCommand?api().modelCommand(label,mutate):mutate();
+    if(ok===false)return false;
+    api()?.save?.();return true;
+  }
+  function renderClearanceMonitors(){
+    const body=$(".tb-eq-body",panel),monitors=projectClearanceMonitors(),measurements=projectClearanceMeasurements();
+    const summary=clearanceDomain.evaluateClearanceMonitors(monitors,measurements);
+    body.innerHTML=
+      '<div class="tb-eq-toolbar"><button data-clearance-new>+ Clearance Monitor</button></div>'+
+      '<div class="tb-eq-section"><h3>Persistent Clearance Monitor</h3>'+
+      '<div class="tb-eq-note">Overall: <b>'+esc(summary.status)+'</b> · Red '+summary.red_count+' · Yellow '+summary.yellow_count+' · Green '+summary.green_count+' · Not checked '+summary.not_checked_count+'. Видимость объектов не влияет на расчёт.</div>'+
+      '<table class="tb-eq-table"><thead><tr><th>Name</th><th>Members</th><th>Min</th><th>Warn</th><th>Distance</th><th>Status</th><th>Enabled</th></tr></thead><tbody>'+
+      summary.results.map((r)=>{
+        const m=monitors.find((x)=>x.id===r.monitor_id);
+        return '<tr data-clearance-id="'+esc(r.monitor_id)+'"><td>'+esc(r.name)+'</td><td>'+esc((m?.members??[]).map((x)=>x.kind+":"+x.id).join(" ↔ "))+'</td><td>'+esc(m?.minimum_clearance_mm??"—")+'</td><td>'+esc(m?.warning_clearance_mm??"—")+'</td><td>'+esc(r.distance_mm??"—")+'</td><td>'+esc(r.status)+'</td><td>'+(m?.enabled!==false?"yes":"no")+'</td></tr>';
+      }).join("")+
+      '</tbody></table><div class="tb-eq-note" style="margin-top:8px">Double click — edit. Right click — delete. Измерения могут обновляться внешним precise collision/clearance runtime через clearance_monitor_measurements.</div></div>';
+    $("[data-clearance-new]",body).onclick=()=>editClearanceMonitor(null);
+    $("tr[data-clearance-id]",body).forEach((tr)=>{
+      tr.ondblclick=()=>editClearanceMonitor(tr.dataset.clearanceId);
+      tr.oncontextmenu=(e)=>{e.preventDefault();if(!window.confirm("Удалить Clearance Monitor?"))return;const next=clearanceDomain.deleteClearanceMonitor(projectClearanceMonitors(),tr.dataset.clearanceId);if(saveClearanceMonitors(next,"Удалить Clearance Monitor"))renderClearanceMonitors();};
+    });
+  }
+  function editClearanceMonitor(id){
+    if(readonly()){toast("Проект открыт только для просмотра");return;}
+    const current=id?projectClearanceMonitors().find((x)=>x.id===id):null;
+    const body=$(".tb-eq-body",panel);
+    body.innerHTML='<div class="tb-eq-section"><h3>'+(current?"Edit":"New")+' Clearance Monitor</h3><div class="tb-eq-grid">'+
+      '<label>Name</label><input data-cm="name" value="'+esc(current?.name??"Clearance Monitor")+'">'+
+      '<label>Minimum clearance, mm</label><input data-cm="minimum" value="'+esc(current?.minimum_clearance_mm??0)+'">'+
+      '<label>Warning clearance, mm</label><input data-cm="warning" value="'+esc(current?.warning_clearance_mm??5)+'">'+
+      '<label>Enabled</label><select data-cm="enabled">'+option("true","yes",current?.enabled!==false)+option("false","no",current?.enabled===false)+'</select>'+
+      '<label>Members JSON</label><textarea class="tb-eq-wide" data-cm="members">'+esc(JSON.stringify(current?.members??[{kind:"tube",id:tube()?.id??""},{kind:"object",id:""}],null,2))+'</textarea>'+
+      '<label>Notes</label><textarea class="tb-eq-wide" data-cm="notes">'+esc(current?.notes??"")+'</textarea>'+
+      '</div><div class="tb-eq-actions"><button data-cm-cancel>Отмена</button><button data-cm-save>Сохранить</button></div></div>';
+    $("[data-cm-cancel]",body).onclick=renderClearanceMonitors;
+    $("[data-cm-save]",body).onclick=()=>{
+      try{
+        const input={
+          name:$('[data-cm="name"]',body).value,
+          minimum_clearance_mm:parseNum($('[data-cm="minimum"]',body).value),
+          warning_clearance_mm:parseNum($('[data-cm="warning"]',body).value),
+          enabled:$('[data-cm="enabled"]',body).value==="true",
+          members:JSON.parse($('[data-cm="members"]',body).value||"[]"),
+          notes:$('[data-cm="notes"]',body).value
+        };
+        let next=projectClearanceMonitors();
+        if(current)next=clearanceDomain.updateClearanceMonitor(next,current.id,input);
+        else next=[...next,clearanceDomain.createClearanceMonitor(input)];
+        if(saveClearanceMonitors(next,current?"Изменить Clearance Monitor":"Создать Clearance Monitor"))renderClearanceMonitors();
+      }catch(error){toast(error.message);}
+    };
+  }
+
   function renderTubeAssignment(){
     const body=$(".tb-eq-body",panel),lib=store(),t=tube();
     if(!t){body.innerHTML='<div class="tb-eq-note">Нет активной трубы.</div>';return;}
@@ -587,7 +656,7 @@
 
   async function install(){
     if(installed)return;installed=true;
-    try{[domain,setupDomain,sequenceDomain,simCollisionDomain]=await Promise.all([import(MODULE_URL),import(SETUP_MODULE_URL),import(SEQUENCE_MODULE_URL),import(SIM_COLLISION_MODULE_URL)]);}catch(error){console.error("Equipment Library failed to load",error);return;}
+    try{[domain,setupDomain,sequenceDomain,simCollisionDomain,clearanceDomain]=await Promise.all([import(MODULE_URL),import(SETUP_MODULE_URL),import(SEQUENCE_MODULE_URL),import(SIM_COLLISION_MODULE_URL),import(CLEARANCE_MODULE_URL)]);}catch(error){console.error("Equipment Library failed to load",error);return;}
     shell();
     window.TubeBenderEquipmentLibrary=Object.freeze({open,close,store,refresh:render,simulationCollisionReport});
   }
