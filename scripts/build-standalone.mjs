@@ -23,6 +23,7 @@ const materialDomainPath = path.join(root, "src", "domain", "materials", "materi
 const machineToolingDomainPath = path.join(root, "src", "domain", "machines", "machine-tooling.mjs");
 const machineSetupDomainPath = path.join(root, "src", "domain", "machines", "machine-setup.mjs");
 const bendSequenceDomainPath = path.join(root, "src", "domain", "manufacturing", "bend-sequence-analysis.mjs");
+const simulationCollisionDomainPath = path.join(root, "src", "domain", "manufacturing", "bending-simulation-collision.mjs");
 const equipmentLibraryUiPath = path.join(root, "src", "ui", "equipment-library-ui.js");
 const distDir = path.join(root, "dist");
 const outputPath = path.join(distDir, "TubeBender_CAD_VC207R7_M1_Standalone.html");
@@ -2016,7 +2017,7 @@ const materialReleaseStyleAnchor =
   "  if(!style)blockers.push('Не выбран технологический стиль');else{\n    if(style.confirmed!==true)blockers.push('Технологический стиль не подтверждён пользователем');\n    if(!String(style.material||'').trim())blockers.push('Не указан материал');\n    if(!(Number(style.wallThickness)>0))blockers.push('Не подтверждена толщина стенки');\n    if(!(Number(style.densityKgM3)>0))blockers.push('Не подтверждена плотность материала');\n    for(const field of ['springbackDeg','elongationPerDegree','cutAllowanceStart','cutAllowanceEnd'])if(style[field]===null||style[field]===undefined||style[field]==='')blockers.push(`Не подтверждён параметр ${field}`);\n  }";
 if(!output.includes(materialReleaseStyleAnchor)){throw new Error("legacy release material/style anchor was not found");}
 output=output.replace(materialReleaseStyleAnchor,
-  "  if(!style)blockers.push('Не выбран технологический стиль');else{\n    if(style.confirmed!==true)blockers.push('Технологический стиль не подтверждён пользователем');\n    if(!(Number(style.wallThickness)>0))blockers.push('Не подтверждена толщина стенки');\n    for(const field of ['elongationPerDegree','cutAllowanceStart','cutAllowanceEnd'])if(style[field]===null||style[field]===undefined||style[field]==='')blockers.push(`Не подтверждён параметр ${field}`);\n  }\n  const materialGate=window.TubeBenderMaterialManufacturing?.materialCheck?.(p,t,{requireSpringback:true,requireDensity:false});\n  if(!materialGate?.ok){for(const issue of materialGate?.errors||['Material Profile не готов к технологическому расчёту'])blockers.push(`Материал: ${issue}`);}\n  const equipmentGate=window.TubeBenderEquipmentRuntime?.assignmentCheck?.(p,t);\n  if(equipmentGate&&!equipmentGate.ok){for(const issue of equipmentGate.errors||[])blockers.push(`Оборудование: ${issue}`);}\n  const setupGate=window.TubeBenderEquipmentRuntime?.machineSetupCheck?.(p,t);\n  if(setupGate&&!setupGate.ok){for(const issue of setupGate.errors||[])blockers.push(`Machine Setup: ${issue}`);}\n  if(t.sequence_analysis_preference?.kinematic_rebuild_required===true)blockers.push('Выбранная последовательность гибов требует проверенного kinematic rebuild Y/B/C перед экспортом');");
+  "  if(!style)blockers.push('Не выбран технологический стиль');else{\n    if(style.confirmed!==true)blockers.push('Технологический стиль не подтверждён пользователем');\n    if(!(Number(style.wallThickness)>0))blockers.push('Не подтверждена толщина стенки');\n    for(const field of ['elongationPerDegree','cutAllowanceStart','cutAllowanceEnd'])if(style[field]===null||style[field]===undefined||style[field]==='')blockers.push(`Не подтверждён параметр ${field}`);\n  }\n  const materialGate=window.TubeBenderMaterialManufacturing?.materialCheck?.(p,t,{requireSpringback:true,requireDensity:false});\n  if(!materialGate?.ok){for(const issue of materialGate?.errors||['Material Profile не готов к технологическому расчёту'])blockers.push(`Материал: ${issue}`);}\n  const equipmentGate=window.TubeBenderEquipmentRuntime?.assignmentCheck?.(p,t);\n  if(equipmentGate&&!equipmentGate.ok){for(const issue of equipmentGate.errors||[])blockers.push(`Оборудование: ${issue}`);}\n  const setupGate=window.TubeBenderEquipmentRuntime?.machineSetupCheck?.(p,t);\n  if(setupGate&&!setupGate.ok){for(const issue of setupGate.errors||[])blockers.push(`Machine Setup: ${issue}`);}\n  if(t.sequence_analysis_preference?.kinematic_rebuild_required===true)blockers.push('Выбранная последовательность гибов требует проверенного kinematic rebuild Y/B/C перед экспортом');\n  const simulationCollisionGate=window.TubeBenderEquipmentLibrary?.simulationCollisionReport?.(t,manufacturingData(t));\n  if(simulationCollisionGate?.decision?.release_blocked===true)blockers.push('Bending Simulation: '+(simulationCollisionGate.decision.reason||simulationCollisionGate.report?.status||'collision validation failed'));");
 
 const genericNcAnchor =
   "function genericNc(t=activeTube(),format='YBC'){const d=manufacturingData(t),lines=[`; TubeBender CAD ${window.TubeBenderBuildInfo?.appVersion||'VC207R7'}`,`; Tube=${t.name}`,`; Style=${d.style.name}`,`; Machine=${d.machine.name}`,`; Stock=${round(d.production,3)} mm`];for(const s of d.steps){if(format==='LRA')lines.push(`L${s.L.toFixed(3)} R${s.R.toFixed(3)} A${s.commandAngle.toFixed(3)}`);else lines.push(`Y${s.Y.toFixed(3)} B${s.B.toFixed(3)} C${s.commandAngle.toFixed(3)}`);}return lines.join('\\n');}";
@@ -2040,7 +2041,7 @@ const simulationMaterialAnchor =
   "function simBuildTimeline(t=activeTube()){\n  const s=simEnsureState(),d=manufacturingData(t),rows=tubeRows(t),timeline=[],technology=simTechnologyForTube(t,d);\n  s.technology=technology.kind;s.technologySource=technology.source;s.technologyConfirmed=technology.confirmed;";
 if(!output.includes(simulationMaterialAnchor)){throw new Error("simulation material gate anchor was not found");}
 output=output.replace(simulationMaterialAnchor,
-  "function simBuildTimeline(t=activeTube()){\n  const s=simEnsureState(),d=manufacturingData(t),rows=tubeRows(t),timeline=[],technology=simTechnologyForTube(t,d),materialSimulationGate=window.TubeBenderMaterialManufacturing?.validateManufacturingData?.({project:projectForTube(t)||activeProject(),tube:t,manufacturing:d,kind:'simulation'});\n  s.technology=technology.kind;s.technologySource=technology.source;s.technologyConfirmed=technology.confirmed;\n  if(materialSimulationGate&&!materialSimulationGate.ok){timeline.push({type:'blocked',duration:1,title:'Материал: '+materialSimulationGate.errors[0],bend:0,rowIndex:-1,bendRowIndex:-1,step:null});s.steps=d.steps;s.timeline=timeline;s.phaseIndex=0;s.phaseProgress=0;s.index=0;return timeline;}");
+  "function simBuildTimeline(t=activeTube()){\n  const s=simEnsureState(),d=manufacturingData(t),rows=tubeRows(t),timeline=[],technology=simTechnologyForTube(t,d),materialSimulationGate=window.TubeBenderMaterialManufacturing?.validateManufacturingData?.({project:projectForTube(t)||activeProject(),tube:t,manufacturing:d,kind:'simulation'}),simulationCollision=window.TubeBenderEquipmentLibrary?.simulationCollisionReport?.(t,d);\n  s.technology=technology.kind;s.technologySource=technology.source;s.technologyConfirmed=technology.confirmed;s.collisionReport=simulationCollision?.report||null;s.collisionDecision=simulationCollision?.decision||null;\n  if(materialSimulationGate&&!materialSimulationGate.ok){timeline.push({type:'blocked',duration:1,title:'Материал: '+materialSimulationGate.errors[0],bend:0,rowIndex:-1,bendRowIndex:-1,step:null});s.steps=d.steps;s.timeline=timeline;s.phaseIndex=0;s.phaseProgress=0;s.index=0;return timeline;}\n  if(simulationCollision?.decision?.can_continue===false){timeline.push({type:'blocked',duration:1,title:'Collision: '+(simulationCollision.decision.reason||simulationCollision.report?.status||'blocked'),bend:0,rowIndex:-1,bendRowIndex:-1,step:null,collisionReport:simulationCollision.report});s.steps=d.steps;s.timeline=timeline;s.phaseIndex=0;s.phaseProgress=0;s.index=0;return timeline;}");
 
 const materialReportAnchor = "<div><b>Материал:</b> ${esc(d.style.material)}</div>";
 if(!output.includes(materialReportAnchor)){throw new Error("report material anchor was not found");}
@@ -2123,10 +2124,12 @@ const bundledTrimCutRuntimeBridge =
 const machineToolingDomainUrl = moduleDataUrl(machineToolingDomainPath);
 const machineSetupDomainUrl = moduleDataUrl(machineSetupDomainPath);
 const bendSequenceDomainUrl = moduleDataUrl(bendSequenceDomainPath);
+const simulationCollisionDomainUrl = moduleDataUrl(simulationCollisionDomainPath);
 const equipmentLibraryUi = fs.readFileSync(equipmentLibraryUiPath, "utf8")
   .replace("__TB_MACHINE_TOOLING_MODULE_URL__", machineToolingDomainUrl)
   .replace("__TB_MACHINE_SETUP_MODULE_URL__", machineSetupDomainUrl)
   .replace("__TB_BEND_SEQUENCE_MODULE_URL__", bendSequenceDomainUrl)
+  .replace("__TB_SIM_COLLISION_MODULE_URL__", simulationCollisionDomainUrl)
   .replace(/<\/script/gi, "<\\/script");
 const bundledEquipmentLibraryUi =
   `<script data-tubebender-bundled="equipment-library-ui">\n${equipmentLibraryUi}\n</script>`;
@@ -2329,6 +2332,12 @@ if (!output.includes('data-tubebender-bundled="dwfx-reference-scene-ui"')) {
 }
 if (!output.includes('data-tubebender-bundled="material-library-ui"')) {
   throw new Error("Standalone build is missing the Material Library UI marker");
+}
+if (output.includes("__TB_SIM_COLLISION_MODULE_URL__")) {
+  throw new Error("Standalone build still contains unresolved simulation collision module URL");
+}
+if (!output.includes("simulationCollisionReport") || !output.includes("ValidationLock")) {
+  throw new Error("Standalone build is missing bending simulation collision integration");
 }
 if (!output.includes('data-tubebender-bundled="material-manufacturing-bridge"')) {
   throw new Error("Standalone build is missing the material manufacturing bridge");
