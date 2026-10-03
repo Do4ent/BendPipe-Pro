@@ -484,7 +484,11 @@
 
   function canMoveSelection(){
     const entries=selectionEntries();
-    return entries.length>0&&entries.every((entry)=>entry.kind==="ref"||entry.kind==="tube");
+    return entries.length>0&&entries.every((entry)=>{
+      if(entry.kind==="ref")return true;
+      if(entry.kind!=="tube")return false;
+      return tubeById(entry.tubeId)?.array_member?.derived_readonly!==true;
+    });
   }
 
   function endConstraintSelection(entries=selectionEntries()){
@@ -995,7 +999,12 @@
   function deleteTubes(entries){
     const p=project();
     if(!p)return;
-    const ids=new Set(entries.filter((entry)=>entry.kind==="tube").map((entry)=>String(entry.tubeId)));
+    const requested=entries.filter((entry)=>entry.kind==="tube");
+    const derived=requested.filter((entry)=>tubeById(entry.tubeId)?.array_member?.derived_readonly===true);
+    if(derived.length){
+      if(typeof ptToast==="function")ptToast("Элемент ассоциативного массива нельзя удалить напрямую — используйте Suppress / Detach / Break Array");
+    }
+    const ids=new Set(requested.filter((entry)=>tubeById(entry.tubeId)?.array_member?.derived_readonly!==true).map((entry)=>String(entry.tubeId)));
     if(!ids.size)return;
     p.tubes=(p.tubes??[]).filter((tube)=>!ids.has(String(tube.id)));
     if(!p.tubes.length&&typeof newTubeData==="function"){
