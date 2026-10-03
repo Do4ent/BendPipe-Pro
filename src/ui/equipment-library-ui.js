@@ -58,6 +58,7 @@
       '<button data-tab="tooling-sets">Tooling Sets</button>'+
       '<button data-tab="tooling-instances">Tooling Instances</button>'+
       '<button data-tab="setups">Machine Setups</button>'+
+      '<button data-tab="trim">Trim / Cut</button>'+
       '<button data-tab="tube">Труба</button></div><div class="tb-eq-body"></div>';
     document.body.appendChild(panel);
     $("[data-eq-close]",panel).onclick=close;
@@ -73,6 +74,7 @@
     else if(tab==="tooling-sets")renderToolingSets();
     else if(tab==="tooling-instances")renderToolingInstances();
     else if(tab==="setups")renderMachineSetups();
+    else if(tab==="trim")renderTrimCut();
     else renderTubeAssignment();
   }
 
@@ -330,6 +332,45 @@
     };
     const ok=api()?.modelCommand?api().modelCommand("Удалить Machine Setup",mutate):mutate();
     if(ok!==false){api()?.save?.();api()?.renderAll?.();renderMachineSetups();}
+  }
+
+  function renderTrimCut(){
+    const body=$(".tb-eq-body",panel),t=tube();
+    if(!t){body.innerHTML='<div class="tb-eq-note">Нет активной трубы.</div>';return;}
+    let manufacturing=null;try{manufacturing=api()?.manufacturingData?.(t)??null;}catch{}
+    const plan=manufacturing?.trimPlan??window.TubeBenderTrimCutRuntime?.buildPlan?.({
+      tube:t,endAllowances:manufacturing?.endAllowances??{},setupExtensions:manufacturing?.setupExtensions??{},style:manufacturing?.style??{}
+    });
+    const prefs=t.trim_preferences??{};
+    const methods=["saw","tube_cutter","laser","manual","other"];
+    const block=(end)=>{
+      const p=prefs[end]??{},op=plan?.operations?.find((x)=>x.end===end);
+      return '<div class="tb-eq-section"><h3>'+end+' · снять '+esc(op?.remove_length_mm??0)+' мм</h3><div class="tb-eq-grid">'+
+        '<label>Method</label><select data-trim="'+end+'" data-key="method">'+methods.map((m)=>option(m,m,m===(p.method??"saw"))).join("")+'</select>'+
+        '<label>Tolerance, mm</label><input data-trim="'+end+'" data-key="tolerance_mm" value="'+esc(p.tolerance_mm??0.5)+'">'+
+        '<label>Plane</label><select data-trim="'+end+'" data-key="plane_mode">'+option("perpendicular_to_centerline","Perpendicular to centerline",(p.plane?.mode??"perpendicular_to_centerline")==="perpendicular_to_centerline")+option("explicit","Explicit",p.plane?.mode==="explicit")+'</select>'+
+        '<label>Notes</label><input data-trim="'+end+'" data-key="notes" value="'+esc(p.notes??"")+'">'+
+        '</div><div class="tb-eq-note">Длина снятия рассчитывается автоматически из cut allowance + end allowance + clamping extension и недоступна для ручного редактирования.</div></div>';
+    };
+    body.innerHTML=block("P1")+block("P2")+
+      '<div class="tb-eq-section"><h3>Итог</h3><div class="tb-eq-note">Заготовка: <b>'+esc(manufacturing?.production??"—")+' мм</b> · снять: <b>'+esc(plan?.required_removal_mm??0)+' мм</b> · после Trim/Cut: <b>'+esc(manufacturing?.finishedLengthAfterTrim??"—")+' мм</b><br>Nominal geometry changed: <b>NO</b></div></div>'+
+      '<div class="tb-eq-actions"><button data-trim-save>Сохранить параметры Trim/Cut</button></div>';
+    $("[data-trim-save]",body).onclick=()=>{
+      if(readonly()){toast("Проект открыт только для просмотра");return;}
+      const next={};
+      for(const end of ["P1","P2"]){
+        const get=(key)=>$('[data-trim="'+end+'"][data-key="'+key+'"]',body)?.value;
+        const mode=get("plane_mode")||"perpendicular_to_centerline";
+        next[end]={
+          end,method:get("method")||"saw",tolerance_mm:parseNum(get("tolerance_mm"))??0.5,
+          plane:{mode,point_mm:prefs[end]?.plane?.point_mm??null,normal:mode==="explicit"?(prefs[end]?.plane?.normal??{x:1,y:0,z:0}):null},
+          notes:get("notes")||""
+        };
+      }
+      const mutate=()=>{t.trim_preferences=next;t.manufacturing_calculation_state="Stale";return true;};
+      const ok=api()?.modelCommand?api().modelCommand("Изменить Trim/Cut",mutate):mutate();
+      if(ok!==false){api()?.save?.();api()?.renderAll?.();toast("Trim/Cut сохранён");renderTrimCut();}
+    };
   }
 
   function renderTubeAssignment(){
