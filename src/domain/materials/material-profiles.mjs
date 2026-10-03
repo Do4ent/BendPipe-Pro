@@ -14,7 +14,7 @@ const STANDARD_FIELDS = Object.freeze({
   tensile_strength_mpa: { kind: "number", unit: "MPa", minExclusive: 0 },
   poisson_ratio: { kind: "number", min: -1, maxExclusive: 0.5 },
   thermal_expansion_per_c: { kind: "number", unit: "1/C", min: 0 },
-  springback: { kind: "number", min: 0 },
+  springback: { kind: "number", minExclusive: 0 },
   minimum_clr_mm: { kind: "number", unit: "mm", minExclusive: 0 },
   dt_ratio_min: { kind: "number", minExclusive: 0 },
   dt_ratio_max: { kind: "number", minExclusive: 0 },
@@ -322,6 +322,9 @@ export function validateMaterialProfile(profile, { required_fields = [] } = {}) 
 
   if (profile.springback === null || profile.springback === undefined) {
     issues.push(issue("Warning", "SPRINGBACK_UNDEFINED", "springback", "Springback is not defined"));
+  }
+  else if (Number(profile.springback) < 1) {
+    issues.push(issue("Warning", "SPRINGBACK_BELOW_ONE", "springback", "Springback factor is below 1; verify compensation direction"));
   }
   if (profile.minimum_clr_mm === null || profile.minimum_clr_mm === undefined) {
     issues.push(issue("Warning", "MINIMUM_CLR_UNDEFINED", "minimum_clr_mm", "Minimum CLR is not defined"));
