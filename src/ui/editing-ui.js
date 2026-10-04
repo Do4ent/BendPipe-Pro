@@ -106,6 +106,43 @@
       return true;
     });
   }
+  function multipleCopySelection(body){
+    const tubes=selectedWholeTubes();
+    if(!tubes.length){toast("Для Copy выберите одну или несколько целых труб");return false;}
+    const p=project();if(!p)return false;
+    const count=Math.max(1,Math.trunc(Number($("[data-copy-count]",body)?.value)||1));
+    const step={
+      x:Number($("[data-copy-step-x]",body)?.value.replace(",",".")||0),
+      y:Number($("[data-copy-step-y]",body)?.value.replace(",",".")||0),
+      z:Number($("[data-copy-step-z]",body)?.value.replace(",",".")||0)
+    };
+    if(![step.x,step.y,step.z].every(Number.isFinite)){toast("Шаг Copy XYZ должен быть числом");return false;}
+    if(count===1&&step.x===0&&step.y===0&&step.z===0)return copySelection();
+    return commit("Множественное копирование труб",()=>{
+      const created=[];
+      for(const source of tubes){
+        for(let i=1;i<=count;i++){
+          let copy=detachExternalGeometryLinks(source);
+          if(step.x||step.y||step.z){
+            const moved=rigidTransform.translateLegacyTubeRigid(copy,{x:step.x*i,y:step.y*i,z:step.z*i});
+            if(moved.status!=="exact")throw new Error(moved.reason||"Copy offset failed");
+            copy=clone(moved.tube);
+          }
+          copy.id=makeId("tube");
+          copy.name=uniqueTubeName(source.name);
+          copy.partNumber="";
+          copy.material_warning_ack_signature=null;
+          copy.equipment_calculation_state="Stale";
+          copy.material_calculation_state=copy.material_profile_id?"Stale":"Missing Material";
+          if(Array.isArray(copy.rows))copy.rows=copy.rows.map((row)=>({...row,elementId:row?.elementId?makeId("element"):row?.elementId}));
+          created.push(copy);
+        }
+      }
+      p.tubes=[...(p.tubes??[]),...created];
+      return true;
+    });
+  }
+
   function moveSelection(body){
     const expression=$("[data-edit-vector]",body)?.value.trim();
     let delta;
@@ -488,8 +525,8 @@
     const body=$(".tb-edit-body",panel);
     if(activeTool==="copy"){
       const count=selectedWholeTubes().length;
-      body.innerHTML='<div class="tb-edit-card"><b>Copy</b><div class="tb-edit-note" style="margin-top:7px">Выбрано целых труб: '+count+'. Копия получает независимый ID, новый набор element IDs, снимает внешние geometry links и освобождает P2.</div><div class="tb-edit-actions"><button data-copy-run>Копировать</button></div></div>';
-      $("[data-copy-run]",body).onclick=copySelection;
+      body.innerHTML='<div class="tb-edit-card"><b>Copy</b><div class="tb-edit-note" style="margin-top:7px">Выбрано целых труб: '+count+'. Копии независимы; step XYZ создаёт серию одной атомарной командой.</div><div class="tb-edit-grid" style="margin-top:8px"><label>Copies</label><input data-copy-count value="1"><label>Step X, mm</label><input data-copy-step-x value="0"><label>Step Y, mm</label><input data-copy-step-y value="0"><label>Step Z, mm</label><input data-copy-step-z value="0"></div><div class="tb-edit-actions"><button data-copy-run>Копировать</button></div></div>';
+      $("[data-copy-run]",body).onclick=()=>multipleCopySelection(body);
     }else if(activeTool==="move"){
       body.innerHTML='<div class="tb-edit-card"><b>Move</b><div class="tb-edit-grid" style="margin-top:8px"><label>ΔX, мм</label><input data-edit-dx value="0"><label>ΔY, мм</label><input data-edit-dy value="0"><label>ΔZ, мм</label><input data-edit-dz value="0"><label>Dynamic input</label><input data-edit-vector placeholder="@10;0;0 / 100;200;0 / @100<45"><label>Ortho</label><input data-edit-ortho type="checkbox"><label>Polar Tracking</label><input data-edit-polar type="checkbox"><label>Polar step, °</label><input data-edit-polar-step value="15"></div><div class="tb-edit-note" data-edit-preview style="margin-top:8px"></div><div class="tb-edit-actions"><button data-move-run>Переместить</button></div></div>';
       $("[data-move-run]",body).onclick=()=>moveSelection(body);
@@ -539,7 +576,7 @@
     try{[straightRun,rigidTransform,dynamicInput]=await Promise.all([import(STRAIGHT_RUN_URL),import(RIGID_TRANSFORM_URL),import(DYNAMIC_INPUT_URL)]);}catch(error){console.error("Editing UI failed to load",error);return;}
     ensureShell();
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
-    window.TubeBenderEditing=Object.freeze({open,close,copySelection,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,createTransformStackFromSelection,stackAddOperation,stackOperationAction,refresh:render});
+    window.TubeBenderEditing=Object.freeze({open,close,copySelection,multipleCopySelection,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,createTransformStackFromSelection,stackAddOperation,stackOperationAction,refresh:render});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
 })();
