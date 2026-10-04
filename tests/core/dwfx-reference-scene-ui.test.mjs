@@ -110,3 +110,37 @@ test("question 61: Restore uses saved geometry snapshot without replacing toolin
     /toolingId|machine_profile|tooling/
   );
 });
+
+
+test("question 67: Source Mesh editing is implemented through lightweight instances",()=>{
+  assert.match(code,/function createEditableMeshInstance\(/);
+  assert.match(code,/function ensureEditableMeshInstanceByRef\(/);
+  assert.match(code,/function moveEditableMeshInstance\(/);
+  assert.match(code,/function rotateEditableMeshInstanceAxis\(/);
+  assert.match(code,/function copyEditableMeshInstance\(/);
+  assert.match(code,/function arrayEditableMeshInstance\(/);
+  assert.match(code,/function breakEditableMeshInstanceLink\(/);
+  assert.match(code,/referenceEditableInstanceId/);
+  assert.match(code,/Editable Mesh Instance/);
+});
+
+test("question 67: Source Move never writes Source node translation_mm",()=>{
+  const api=runtime();
+  const project={
+    referenceScenes:[{id:"scene",tree:[{id:"mesh",label:"Mesh",geometry_instances:[],children:[]}]}]
+  };
+  api.replaceSelection(project,["scene|mesh"]);
+  const before=JSON.stringify(project.referenceScenes);
+  const result=api.moveSelection(project,{x:25,y:0,z:0});
+  assert.equal(result.count,1);
+  assert.equal(JSON.stringify(project.referenceScenes),before);
+  const instance=api.meshInstanceById(project,result.instance_ids[0]);
+  assert.equal(instance.transform.position_mm.x,25);
+});
+
+test("question 67: Break Link snapshots referenced heavy assets only when requested",()=>{
+  assert.match(code,/function collectDetachedAssets\(/);
+  assert.match(code,/schema:"detached_mesh_instance_v1"/);
+  assert.match(code,/instance\.detached_payload=snapshotMeshInstanceSource/);
+  assert.match(code,/instance\.link_status="detached"/);
+});
