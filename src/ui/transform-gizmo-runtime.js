@@ -37,8 +37,9 @@
   const scale=()=>typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
   const canvas=()=>document.getElementById("threeCanvas");
   const entries=()=>context()?.selectionEntries?.()??[];
-  const wholeEntries=()=>entries().filter((entry)=>entry.kind==="tube"||entry.kind==="ref");
+  const wholeEntries=()=>entries().filter((entry)=>entry.kind==="tube"||entry.kind==="ref"||entry.kind==="mesh-instance");
   const project=()=>{try{return engineering()?.activeProject?.()??null;}catch{return null;}};
+  const referenceApi=()=>window.TubeBenderReferenceSceneUi??null;
   const tubeById=(id)=>(project()?.tubes??[]).find((tube)=>String(tube?.id)===String(id))??null;
   const activeTubeId=()=>String(engineering()?.activeTube?.()?.id??"");
   const toast=(message)=>{try{engineering()?.toast?.(String(message??""));}catch{}};
@@ -99,12 +100,13 @@
     return new THREE.Quaternion().setFromRotationMatrix(matrix);
   }
   function entrySets(){
-    const tubes=new Set(),refs=new Set();
+    const tubes=new Set(),refs=new Set(),meshes=new Set();
     for(const entry of wholeEntries()){
       if(entry.kind==="tube")tubes.add(String(entry.tubeId));
       if(entry.kind==="ref")refs.add(String(entry.sceneId)+"|"+String(entry.nodeId));
+      if(entry.kind==="mesh-instance")meshes.add(String(entry.instanceId));
     }
-    return {tubes,refs};
+    return {tubes,refs,meshes};
   }
   function objectMatchesSelection(object,sets){
     let item=object;
@@ -112,6 +114,7 @@
     while(item){
       const data=item.userData??{};
       if(data.helper||data.objectSelectionHelper||data.referenceSelectionHelper||data.transformGizmo)return false;
+      if(data.referenceEditableInstanceId&&sets.meshes.has(String(data.referenceEditableInstanceId)))return true;
       const refKey=data.referenceSceneId&&data.referenceNodeId
         ?String(data.referenceSceneId)+"|"+String(data.referenceNodeId)
         :null;
@@ -207,7 +210,10 @@
   }
   function canRotate(){
     const list=wholeEntries();
-    return list.length>0&&list.every((entry)=>entry.kind==="tube");
+    if(!list.length)return false;
+    const tubes=list.every((entry)=>entry.kind==="tube");
+    const meshes=list.every((entry)=>entry.kind==="ref"||entry.kind==="mesh-instance");
+    return tubes||meshes;
   }
 
   function handleData(object){
@@ -498,13 +504,47 @@
   }
   function commitRotate(axis,pivot,angleRad){
     if(Math.abs(angleRad)<1e-10)return true;
-    const s=scale();
-    return editing()?.rotateSelectedDirect?.({
-      axis:{x:axis.x,y:axis.y,z:axis.z},
-      center:{x:pivot.x/s,y:pivot.y/s,z:pivot.z/s},
-      angle_deg:THREE.MathUtils.radToDeg(angleRad),
-      label:"Gizmo Rotate"
-    })!==false;
+    const selected=wholeEntries();
+    const angleDeg=THREE.MathUtils.radToDeg(angleRad);
+    if(selected.every((entry)=>entry.kind==="tube")){
+      const s=scale();
+      return editing()?.rotateSelectedDirect?.({
+        axis:{x:axis.x,y:axis.y,z:axis.z},
+        center:{x:pivot.x/s,y:pivot.y/s,z:pivot.z/s},
+        angle_deg:angleDeg,
+        label:"Gizmo Rotate"
+      })!==false;
+    }
+    if(!selected.every((entry)=>entry.kind==="ref"||entry.kind==="mesh-instance")){
+      toast("Rotate нельзя смешивать для труб и mesh instances в одной операции");
+      return false;
+    }
+    const p=project(),api=referenceApi();
+    if(!p||!api)return false;
+    const instanceIds=[];
+    const mutate=()=>{
+      for(const entry of selected){
+        let instance;
+        if(entry.kind==="ref"){
+          instance=api.ensureEditableMeshInstanceByRef?.(p,entry.sceneId,entry.nodeId);
+        }else{
+          instance=api.meshInstanceById?.(p,entry.instanceId);
+        }
+        if(!instance)throw new Error("Editable Mesh Instance недоступен");
+        api.rotateEditableMeshInstanceAxis?.(p,instance.id,{
+          axis:{x:axis.x,y:axis.y,z:axis.z},
+          angle_deg:angleDeg
+        });
+        instanceIds.push(String(instance.id));
+      }
+      return true;
+    };
+    const command=engineering()?.wholeObjectCommand;
+    const ok=typeof command==="function"?command("Gizmo Rotate mesh instance",mutate):mutate();
+    if(ok===false)return false;
+    try{engineering()?.save?.();engineering()?.renderAll?.();}catch{}
+    try{window.TubeBenderObjectContext?.replaceSelectionKeys?.(instanceIds.map((id)=>"mesh:"+encodeURIComponent(id)));}catch{}
+    return true;
   }
   function finishDrag(event,{cancel=false}={}){
     if(!drag)return false;
