@@ -183,3 +183,19 @@ test("default constants are immutable",()=>{
   assert.equal(Object.isFrozen(DEFAULT_SNAP_SETTINGS),true);
   assert.equal(Object.isFrozen(DEFAULT_SNAP_SETTINGS.enabled),true);
 });
+
+
+test("Object Snap Tracking creates virtual rays and real tracking intersections",async()=>{
+  const mod=await import("../../src/domain/snapping/snap-engine.mjs");
+  const a=mod.createObjectSnapTrackingRay({anchor:{x:0,y:0,z:0},direction:{x:1,y:0,z:0},source_candidate_id:"A"});
+  const b=mod.createObjectSnapTrackingRay({anchor:{x:10,y:-5,z:0},direction:{x:0,y:1,z:0},source_candidate_id:"B"});
+  const hit=mod.intersectObjectSnapTrackingRays(a,b,{tolerance_mm:0.001});
+  assert.equal(hit.type,"Intersection");
+  assert.equal(hit.virtual,true);
+  assert.equal(hit.metadata.tracking,true);
+  assert.ok(Math.abs(hit.point.x-10)<1e-9);
+  assert.ok(Math.abs(hit.point.y)<1e-9);
+  const projected=mod.objectSnapTrackingCandidate({cursor:{x:5,y:3,z:0},ray:a});
+  assert.equal(projected.metadata.tracking,true);
+  assert.ok(Math.abs(projected.point.y)<1e-9);
+});
