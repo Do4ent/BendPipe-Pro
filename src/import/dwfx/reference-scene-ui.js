@@ -212,6 +212,34 @@
     }
   }
 
+  function meshInstancesForSource(project,sceneId,nodeId){
+    return editableMeshInstanceList(project,{create:false}).filter((instance)=>
+      instance?.link_status!=="detached"&&
+      String(instance?.source?.scene_id??"")===String(sceneId??"")&&
+      String(instance?.source?.node_id??"")===String(nodeId??"")
+    );
+  }
+
+  function meshSourceDisplayState(project,scene,node){
+    const instances=meshInstancesForSource(project,scene?.id,node?.id);
+    if(!instances.length)return null;
+    const selectedInstanceIds=new Set(
+      (window.TubeBenderObjectContext?.selectionEntries?.()??[])
+        .filter((entry)=>entry?.kind==="mesh-instance")
+        .map((entry)=>String(entry.instanceId))
+    );
+    const selectedInstance=instances.find((instance)=>selectedInstanceIds.has(String(instance.id)))??null;
+    const compare=instances.some((instance)=>instance.compare_source===true);
+    const explicit=instances.some((instance)=>instance.source_visible===true);
+    return {
+      instances,
+      visible:compare||explicit||!!selectedInstance,
+      transparent:compare||!!selectedInstance,
+      compare,
+      selectedInstance
+    };
+  }
+
   function sourceDisplayState(project,scene,node){
     const linked=linkedTubeForSource(project,scene?.id,node?.id);
     if(!linked)return null;
@@ -710,13 +738,16 @@
 
       const recognizedPart=String(node.editable_part_number??"");
       const linkedState=sourceDisplayState(project,sceneMeta,node);
+      const meshState=meshSourceDisplayState(project,sceneMeta,node);
       const sourceTube=anyEditableTubeForSource(project,sceneMeta.id,node.id);
       const detachedSource=sourceLink(sourceTube)?.detached===true;
-      const suppressEditable=linkedState
-        ? !linkedState.visible
-        : detachedSource
-          ? false
-          : !!(recognizedPart&&editable.has(recognizedPart));
+      const suppressEditable=meshState
+        ? !meshState.visible
+        : linkedState
+          ? !linkedState.visible
+          : detachedSource
+            ? false
+            : !!(recognizedPart&&editable.has(recognizedPart));
 
       if(!suppressEditable){
         const nodeGroup=new THREE.Group();
@@ -743,7 +774,7 @@
             runtime,
             asset,
             THREE,
-            (nodeTransparent||linkedState?.transparent)?"transparent":"normal"
+            (nodeTransparent||linkedState?.transparent||meshState?.transparent)?"transparent":"normal"
           );
           const placed=template.clone(true);
           placed.userData.referenceShared=true;
