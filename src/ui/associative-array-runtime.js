@@ -219,6 +219,29 @@
     synchronize(p);
     return def;
   }
+  function detachMember(arrayId,index,{source_tube_id=null}={},p=project()){
+    if(!p)throw new Error("No active project");
+    const def=definitions(p).find((x)=>String(x.id)===String(arrayId));
+    if(!def)throw new Error("Associative Array not found");
+    const i=Math.trunc(Number(index));if(!(i>0))throw new Error("Source member cannot be detached");
+    const matches=(p.tubes??[]).filter((tube)=>{
+      const m=tube?.array_member;
+      if(String(m?.array_id??"")!==String(arrayId)||Number(m?.member_index)!==i)return false;
+      return source_tube_id==null||String(m?.source_tube_id)===String(source_tube_id);
+    });
+    if(!matches.length)throw new Error("Array member not found");
+    for(const tube of matches){
+      delete tube.array_member;
+      tube.source_link_detached=true;
+      tube.array_detached_from={array_id:String(arrayId),member_index:i,source_tube_id:String(source_tube_id??"")||null};
+    }
+    const suppressed=new Set(def.suppressed_members??[]);suppressed.add(i);
+    def.suppressed_members=[...suppressed].sort((a,b)=>a-b);
+    def.status="NeedsSync";
+    synchronize(p);
+    return matches.map((tube)=>String(tube.id));
+  }
+
   function breakArray(arrayId,p=project()){
     if(!p)throw new Error("No active project");
     const index=definitions(p).findIndex((x)=>String(x.id)===String(arrayId));
@@ -257,7 +280,7 @@
       renderAll._tbAssociativeArrays=true;
     }
     window.TubeBenderAssociativeArrays=Object.freeze({
-      createDefinition,addArray,synchronize,suppressMember,breakArray,deleteArray,definitions:()=>definitions(),isDerivedTube
+      createDefinition,addArray,synchronize,suppressMember,detachMember,breakArray,deleteArray,definitions:()=>definitions(),isDerivedTube
     });
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});
