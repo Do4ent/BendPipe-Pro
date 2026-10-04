@@ -1,5 +1,6 @@
 (()=>{
   let installed=false,panel=null,toggle=null,lastSignature="";
+  const MIXED=Symbol("mixed");
   const ctx=()=>window.TubeBenderObjectContext??null;
   const eng=()=>window.TubeBenderEngineering??null;
   const refApi=()=>window.TubeBenderReferenceSceneUi??null;
@@ -27,6 +28,118 @@
     }
     return null;
   }
+  function editableTarget(entry){
+    if(!entry)return null;
+    if(entry.kind==="tube"){
+      const tube=findTube(entry.tubeId);
+      return tube?{
+        key:"tube:"+String(tube.id),
+        entry,
+        object:tube,
+        fields:{
+          name:{label:"Имя",type:"text",get:()=>String(tube.name??""),set:(value)=>{tube.name=String(value??"").trim();}},
+          partNumber:{label:"Part number",type:"text",get:()=>String(tube.partNumber??tube.part_number??""),set:(value)=>{tube.partNumber=String(value??"").trim();}}
+        }
+      }:null;
+    }
+    if(entry.kind==="mesh-instance"){
+      const instance=refApi()?.meshInstanceById?.(project(),entry.instanceId);
+      return instance?{
+        key:"mesh:"+String(instance.id),
+        entry,
+        object:instance,
+        fields:{
+          name:{label:"Имя",type:"text",get:()=>String(instance.name??""),set:(value)=>{instance.name=String(value??"").trim();}},
+          visible:{label:"Видимый",type:"boolean",get:()=>instance.visible!==false,set:(value)=>{instance.visible=value===true;}},
+          compare_source:{label:"Compare Source",type:"boolean",get:()=>instance.compare_source===true,set:(value)=>{
+            if(instance.link_status==="detached"&&value===true)throw new Error("Detached mesh instance has no Source link");
+            instance.compare_source=value===true;
+            if(value===true)instance.source_visible=true;
+          }}
+        }
+      }:null;
+    }
+    return null;
+  }
+  function editableTargets(){
+    const out=[],seen=new Set();
+    for(const entry of entries()){
+      const target=editableTarget(entry);
+      if(target&&!seen.has(target.key)){seen.add(target.key);out.push(target);}
+    }
+    return out;
+  }
+  function commonEditableFields(){
+    const targets=editableTargets();
+    if(!targets.length)return {targets,fields:[]};
+    const names=Object.keys(targets[0].fields).filter(name=>targets.every(target=>!!target.fields[name]));
+    return {targets,fields:names.map(name=>{
+      const specs=targets.map(target=>target.fields[name]),values=specs.map(spec=>spec.get());
+      const first=values[0],mixed=values.some(value=>value!==first);
+      return {name,label:specs[0].label,type:specs[0].type,value:mixed?MIXED:first,mixed};
+    })};
+  }
+  function parsePropertyInput(field,input){
+    if(field.type==="boolean")return input.checked===true;
+    return String(input.value??"");
+  }
+  function applyCommonProperty(fieldName,input){
+    const {targets,fields}=commonEditableFields();
+    const field=fields.find(item=>item.name===fieldName);
+    if(!field||!targets.length)return false;
+    const next=parsePropertyInput(field,input);
+    if(field.type==="text"&&fieldName==="name"&&!String(next).trim()){
+      eng()?.toast?.("Имя не может быть пустым");return false;
+    }
+    const mutate=()=>{
+      for(const target of targets)target.fields[fieldName].set(next);
+      return true;
+    };
+    const label="Свойства: "+field.label+" ("+targets.length+")";
+    const command=eng()?.modelCommand;
+    let ok;
+    try{ok=typeof command==="function"?command(label,mutate):mutate();}
+    catch(error){eng()?.toast?.(String(error?.message??error));return false;}
+    if(ok===false)return false;
+    try{eng()?.save?.();eng()?.renderAll?.();}catch{}
+    try{window.refreshProjectTree?.();}catch{}
+    render(true);
+    return true;
+  }
+  function editableFieldsHtml(){
+    const {targets,fields}=commonEditableFields();
+    if(!targets.length)return '<div class="tb-prop-empty">Для этого типа свойства доступны только для просмотра.</div>';
+    if(!fields.length)return '<div class="tb-prop-empty">У выбранных объектов нет общих редактируемых свойств.</div>';
+    const count=targets.length;
+    return '<div class="tb-prop-edit-card"><div class="tb-prop-edit-title">Редактирование'+(count>1?' · '+count+' объектов':'')+'</div>'+
+      fields.map(field=>{
+        if(field.type==="boolean"){
+          return '<div class="tb-prop-edit-row"><label>'+esc(field.label)+'</label><span><input type="checkbox" data-property-field="'+esc(field.name)+'" data-property-type="boolean" '+(field.value===true?'checked ':'')+'data-property-mixed="'+(field.mixed?'1':'0')+'"><button data-property-apply="'+esc(field.name)+'">Применить</button></span></div>';
+        }
+        return '<div class="tb-prop-edit-row"><label>'+esc(field.label)+'</label><span><input data-property-field="'+esc(field.name)+'" data-property-type="text" value="'+(field.mixed?'':esc(field.value))+'" placeholder="'+(field.mixed?'— разные значения —':'')+'"><button data-property-apply="'+esc(field.name)+'">Применить</button></span></div>';
+      }).join("")+
+      '<div class="tb-prop-edit-note">'+(count>1?'Изменение применяется ко всем совместимым выбранным объектам одной операцией Undo.':'Изменение записывается одной операцией Undo.')+'</div></div>';
+  }
+  function bindEditableFields(){
+    if(!panel)return;
+    panel.querySelectorAll('[data-property-field][data-property-type="boolean"]').forEach(input=>{
+      input.indeterminate=input.dataset.propertyMixed==="1";
+      input.addEventListener("change",()=>{input.indeterminate=false;input.dataset.propertyMixed="0";});
+    });
+    panel.querySelectorAll("[data-property-apply]").forEach(button=>{
+      button.onclick=()=>{
+        const name=button.dataset.propertyApply;
+        const input=panel.querySelector('[data-property-field="'+CSS.escape(name)+'"]');
+        if(input)applyCommonProperty(name,input);
+      };
+    });
+    panel.querySelectorAll('[data-property-field][data-property-type="text"]').forEach(input=>{
+      input.addEventListener("keydown",event=>{
+        if(event.key==="Enter"){event.preventDefault();applyCommonProperty(input.dataset.propertyField,input);}
+      });
+    });
+  }
+
   function commonTubeProps(tube){
     if(!tube)return [];
     return [
@@ -134,7 +247,10 @@
     if(!force&&signature===lastSignature&&!root.classList.contains("open"))return;
     lastSignature=signature;
     root.querySelector("[data-prop-count]").textContent=data.items.length?String(data.items.length):"";
-    body.innerHTML=data.items.length?data.items.map(cardHtml).join(""):'<div class="tb-prop-empty">Выберите объект в 3D или TreeView.</div>';
+    body.innerHTML=data.items.length
+      ?editableFieldsHtml()+data.items.map(cardHtml).join("")
+      :'<div class="tb-prop-empty">Выберите объект в 3D или TreeView.</div>';
+    bindEditableFields();
   }
   function open(){ensurePanel().classList.add("open");render(true);}
   function close(){panel?.classList.remove("open");}
@@ -142,7 +258,7 @@
     if(installed)return;installed=true;ensurePanel();render(true);
     window.addEventListener("tubebender-selection-change",()=>render(true));
     window.addEventListener("tubebender-snap-change",()=>{if(panel?.classList.contains("open"))render(false);});
-    window.TubeBenderProperties=Object.freeze({open,close,refresh:()=>render(true),snapshot,describe});
+    window.TubeBenderProperties=Object.freeze({open,close,refresh:()=>render(true),snapshot,describe,editableTargets,commonEditableFields,applyCommonProperty});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
 })();
