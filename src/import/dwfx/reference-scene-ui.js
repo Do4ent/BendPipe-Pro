@@ -1013,7 +1013,8 @@
     const q=String(query??"").trim().toLowerCase();
     const scenes=(project?.referenceScenes??[]).filter(Boolean);
     const editableTubes=linkedEditableTubes(project);
-    if(!scenes.length&&!editableTubes.length)return rows;
+    const editableMeshes=editableMeshInstanceList(project,{create:false});
+    if(!scenes.length&&!editableTubes.length&&!editableMeshes.length)return rows;
 
     pruneBulkSelection(project);
     const bulkCount=bulkSelected.size;
@@ -1038,7 +1039,7 @@
       '<button class="tb-tree-icon" data-ref-root-toggle="1" title="Свернуть/развернуть импортированную геометрию">'+
       (rootCollapsed?'▸':'▾')+
       '</button>'+
-      '<span class="tb-tree-label">🌐 Импортированная геометрия <small>· Source: '+scenes.length+' · Editable: '+editableTubes.length+'</small></span>'+
+      '<span class="tb-tree-label">🌐 Импортированная геометрия <small>· Source: '+scenes.length+' · Editable: '+(editableTubes.length+editableMeshes.length)+'</small></span>'+
       '</div>'
     );
 
@@ -1173,7 +1174,7 @@
       '<button class="tb-tree-icon" data-ref-editable-toggle="1" title="Свернуть/развернуть Editable geometry">'+
       (editableCollapsed?'▸':'▾')+
       '</button>'+
-      '<span class="tb-tree-label">✎ Editable geometry <small>· '+editableTubes.length+'</small></span>'+
+      '<span class="tb-tree-label">✎ Editable geometry <small>· '+(editableTubes.length+editableMeshes.length)+'</small></span>'+
       '</div>'
     );
     if(!editableCollapsed){
@@ -1192,6 +1193,26 @@
           '</small></span></div>'
         );
       }
+      const meshMatches=editableMeshes.filter((instance)=>{
+        if(!q)return true;
+        return [
+          instance?.name,instance?.source?.label,instance?.source?.source_file
+        ].filter(Boolean).some((value)=>String(value).toLowerCase().includes(q));
+      });
+      for(const instance of meshMatches){
+        const linked=instance.link_status!=="detached";
+        const p=instance.transform?.position_mm??{x:0,y:0,z:0};
+        rows.push(
+          '<div class="tb-tree-node clickable tb-import-mesh-instance" style="padding-left:50px" '+
+          'data-import-mesh-instance="'+escape(instance.id)+'">'+
+          '<span style="width:13px;display:inline-block"></span>'+
+          '<span class="tb-tree-icon">'+(linked?'◇':'◆')+'</span>'+
+          '<span class="tb-tree-label">'+escape(instance.name??instance.id)+
+          ' <small>· Mesh Instance · '+(linked?'shared Source':'detached')+
+          ' · Δ '+escape(Number(p.x||0).toFixed(1))+','+escape(Number(p.y||0).toFixed(1))+','+escape(Number(p.z||0).toFixed(1))+
+          '</small></span></div>'
+        );
+
     }
     return rows;
   }
