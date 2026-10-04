@@ -490,33 +490,16 @@
     }catch(error){toast(error.message);return false;}
   }
 
-  function rotateSelection(body){
-    const tubes=selectedWholeTubes();
-    if(!tubes.length){toast("Для Rotate выберите одну или несколько целых труб");return false;}
-    const axisName=$("[data-rotate-axis]",body).value;
-    const axis=axisName==="X"?{x:1,y:0,z:0}:axisName==="Y"?{x:0,y:1,z:0}:{x:0,y:0,z:1};
-    const angle=Number($("[data-rotate-angle]",body).value.replace(",","."));
+  function commitRigidRotation(tubes,{axis,angle_deg,centerResolver,label="Повернуть выбранные трубы"}={}){
+    if(!Array.isArray(tubes)||!tubes.length){toast("Для Rotate выберите одну или несколько целых труб");return false;}
+    const angle=Number(angle_deg);
     if(!Number.isFinite(angle)){toast("Угол Rotate должен быть числом");return false;}
-    const centerMode=$("[data-rotate-center-mode]",body).value;
-    let explicitCenter=null;
-    if(centerMode==="custom"){
-      explicitCenter={
-        x:Number($("[data-rotate-cx]",body).value.replace(",",".")),
-        y:Number($("[data-rotate-cy]",body).value.replace(",",".")),
-        z:Number($("[data-rotate-cz]",body).value.replace(",","."))
-      };
-      if(![explicitCenter.x,explicitCenter.y,explicitCenter.z].every(Number.isFinite)){
-        toast("Координаты центра Rotate должны быть числами");return false;
-      }
-    }
     const plans=[];
     try{
       for(const source of tubes){
-        const center=centerMode==="own"
-          ?clone(source.origin??{x:0,y:0,z:0})
-          :centerMode==="custom"
-            ?explicitCenter
-            :{x:0,y:0,z:0};
+        const center=typeof centerResolver==="function"
+          ?centerResolver(source)
+          :clone(source.origin??{x:0,y:0,z:0});
         const result=rigidTransform.rotateLegacyTubeRigid(source,{axis,center,angle_deg:angle});
         if(result.status!=="exact")throw new Error(result.reason||"Rotate не может быть точно закодирован");
         const rotated=clone(result.tube);
@@ -537,12 +520,51 @@
       }
       return true;
     };
-    const ok=typeof command==="function"?command("Повернуть выбранные трубы",mutate):mutate();
+    const ok=typeof command==="function"?command(label,mutate):mutate();
     if(ok===false)return false;
     try{api()?.reloadActiveTube?.();}catch{}
     try{api()?.save?.();api()?.renderAll?.();context()?.refresh?.();}catch{}
     render();
     return true;
+  }
+  function rotateSelectedDirect({axis={x:0,y:0,z:1},center={x:0,y:0,z:0},angle_deg=0,label="Gizmo Rotate"}={}){
+    const tubes=selectedWholeTubes();
+    return commitRigidRotation(tubes,{
+      axis,
+      angle_deg,
+      centerResolver:()=>clone(center),
+      label
+    });
+  }
+  function rotateSelection(body){
+    const tubes=selectedWholeTubes();
+    if(!tubes.length){toast("Для Rotate выберите одну или несколько целых труб");return false;}
+    const axisName=$("[data-rotate-axis]",body).value;
+    const axis=axisName==="X"?{x:1,y:0,z:0}:axisName==="Y"?{x:0,y:1,z:0}:{x:0,y:0,z:1};
+    const angle=Number($("[data-rotate-angle]",body).value.replace(",","."));
+    if(!Number.isFinite(angle)){toast("Угол Rotate должен быть числом");return false;}
+    const centerMode=$("[data-rotate-center-mode]",body).value;
+    let explicitCenter=null;
+    if(centerMode==="custom"){
+      explicitCenter={
+        x:Number($("[data-rotate-cx]",body).value.replace(",",".")),
+        y:Number($("[data-rotate-cy]",body).value.replace(",",".")),
+        z:Number($("[data-rotate-cz]",body).value.replace(",","."))
+      };
+      if(![explicitCenter.x,explicitCenter.y,explicitCenter.z].every(Number.isFinite)){
+        toast("Координаты центра Rotate должны быть числами");return false;
+      }
+    }
+    return commitRigidRotation(tubes,{
+      axis,
+      angle_deg:angle,
+      centerResolver:(source)=>centerMode==="own"
+        ?clone(source.origin??{x:0,y:0,z:0})
+        :centerMode==="custom"
+          ?explicitCenter
+          :{x:0,y:0,z:0},
+      label:"Повернуть выбранные трубы"
+    });
   }
 
   function mirrorRuntime(){return window.TubeBenderAssociativeMirrors??null;}
@@ -893,7 +915,7 @@
     window.addEventListener("keydown",onCopyKeyDown,true);
     window.addEventListener("tubebender-snap-change",onSnapChangeForCopy);
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
-    window.TubeBenderEditing=Object.freeze({open,close,copySelection,multipleCopySelection,commitCopySeries,undoLastCopyTarget,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,createTransformStackFromSelection,stackAddOperation,stackOperationAction,refresh:render});
+    window.TubeBenderEditing=Object.freeze({open,close,copySelection,multipleCopySelection,commitCopySeries,undoLastCopyTarget,rotateSelectedDirect,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,createTransformStackFromSelection,stackAddOperation,stackOperationAction,refresh:render});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
 })();
