@@ -2414,10 +2414,12 @@ const bundledMeasurementsUi =
 const straightRunDomainUrl = moduleDataUrl(straightRunDomainPath);
 const legacyRigidTransformDomainUrl = moduleDataUrl(legacyRigidTransformDomainPath);
 const dynamicInputDomainUrl = moduleDataUrl(dynamicInputDomainPath);
+const transformCommandsDomainUrl = moduleDataUrl(transformCommandsDomainPath);
 const editingUi = fs.readFileSync(editingUiPath, "utf8")
   .replace("__TB_STRAIGHT_RUN_MODULE_URL__", straightRunDomainUrl)
   .replace("__TB_RIGID_TRANSFORM_MODULE_URL__", legacyRigidTransformDomainUrl)
   .replace("__TB_DYNAMIC_INPUT_MODULE_URL__", dynamicInputDomainUrl)
+  .replace("__TB_TRANSFORM_COMMANDS_MODULE_URL__", transformCommandsDomainUrl)
   .replace(/<\/script/gi, "<\\/script");
 const bundledEditingUi =
   `<script data-tubebender-bundled="editing-ui">\n${editingUi}\n</script>`;
@@ -2434,7 +2436,6 @@ const transformGizmoRuntime = fs.readFileSync(transformGizmoRuntimePath, "utf8")
 const bundledTransformGizmoRuntime =
   `<script data-tubebender-bundled="transform-gizmo-runtime">\n${transformGizmoRuntime}\n</script>`;
 
-const transformCommandsDomainUrl = moduleDataUrl(transformCommandsDomainPath);
 const associativeArrayRuntime = fs.readFileSync(associativeArrayRuntimePath, "utf8")
   .replace("__TB_TRANSFORM_COMMANDS_MODULE_URL__", transformCommandsDomainUrl)
   .replace("__TB_RIGID_TRANSFORM_MODULE_URL__", legacyRigidTransformDomainUrl)
