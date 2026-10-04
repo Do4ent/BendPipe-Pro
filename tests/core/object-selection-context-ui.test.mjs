@@ -327,3 +327,15 @@ test("accepted box and lasso 3D selection use modifier drag without stealing nor
   assert.match(code,/addEventListener\("pointermove"/);
   assert.match(code,/addEventListener\("pointerup"/);
 });
+
+
+test("question 53: 3D hover exposes exact snap candidate seeds for tracking",()=>{
+  const code=fs.readFileSync(path.join(root,"src","ui","object-selection-context-ui.js"),"utf8");
+  assert.match(code,/function snapCandidatesAtEvent\(event\)/);
+  assert.match(code,/function nearestGeometryVertex\(hit\)/);
+  assert.match(code,/type:"Endpoint"/);
+  assert.match(code,/type:"Midpoint"/);
+  assert.match(code,/type:"Node"/);
+  assert.match(code,/type:"Vertex"/);
+  assert.match(code,/snapCandidatesAtEvent,/);
+});
