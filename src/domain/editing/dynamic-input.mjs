@@ -5,10 +5,10 @@ function freeze(value){
 }
 const LENGTH_UNITS=Object.freeze({mm:1,cm:10,m:1000,in:25.4,inch:25.4});
 const ANGLE_UNITS=Object.freeze({deg:1,"°":1,rad:180/Math.PI});
-function normalizeDecimal(text){return String(text??"").trim().replace(/(\\d),(\\d)/g,"$1.$2");}
+function normalizeDecimal(text){return String(text??"").trim().replace(/(\d),(\d)/g,"$1.$2");}
 function replaceUnits(expr,kind){
   const units=kind==="angle"?ANGLE_UNITS:LENGTH_UNITS;
-  return expr.replace(/(\\d+(?:\\.\\d+)?)(?:\\s*)(mm|cm|inch|in|m|deg|rad|°)/gi,(_m,num,unit)=>{
+  return expr.replace(/(\d+(?:\.\d+)?)(?:\s*)(mm|cm|inch|in|m|deg|rad|°)/gi,(_m,num,unit)=>{
     const key=String(unit).toLowerCase(),factor=units[key]??units[unit];
     if(factor==null)return _m;
     return "("+num+"*"+factor+")";
@@ -16,8 +16,8 @@ function replaceUnits(expr,kind){
 }
 function safeArithmetic(expr,variables={}){
   let text=String(expr);
-  text=text.replace(/\\b[A-Za-z_]\\w*\\b/g,(name)=>{if(!(name in variables))throw new Error("Unknown variable: "+name);const n=Number(variables[name]);if(!Number.isFinite(n))throw new Error("Variable is not finite: "+name);return "("+n+")";});
-  if(!/^[0-9eE+*/().\\s-]+$/.test(text))throw new Error("Unsupported expression");
+  text=text.replace(/\b[A-Za-z_]\w*\b/g,(name)=>{if(!(name in variables))throw new Error("Unknown variable: "+name);const n=Number(variables[name]);if(!Number.isFinite(n))throw new Error("Variable is not finite: "+name);return "("+n+")";});
+  if(!/^[0-9eE+*/().\s-]+$/.test(text))throw new Error("Unsupported expression");
   const value=Function('"use strict";return ('+text+')')();
   if(!Number.isFinite(value))throw new Error("Expression result is not finite");
   return value;
@@ -32,7 +32,7 @@ export function evaluateAssociativeFormulas(formulas={},baseVariables={}){
     if(!(name in source))throw new Error("Unknown variable: "+name);
     visiting.add(name);
     const expression=normalizeDecimal(source[name]);
-    const deps=[...new Set(expression.match(/\\b[A-Za-z_]\\w*\\b/g)??[])];
+    const deps=[...new Set(expression.match(/\b[A-Za-z_]\w*\b/g)??[])];
     const vars={...resolved};for(const dep of deps)vars[dep]=resolve(dep);
     const value=evaluateNumericInput(expression,{kind:"length",variables:vars});
     visiting.delete(name);visited.add(name);resolved[name]=value;return value;
@@ -40,7 +40,7 @@ export function evaluateAssociativeFormulas(formulas={},baseVariables={}){
   for(const name of Object.keys(source))resolve(name);
   return freeze(resolved);
 }
-function splitCoordinates(text){const raw=String(text??"").trim();if(raw.includes(";"))return raw.split(";").map((x)=>x.trim());return raw.split(/\\s*,\\s*/).map((x)=>x.trim());}
+function splitCoordinates(text){const raw=String(text??"").trim();if(raw.includes(";"))return raw.split(";").map((x)=>x.trim());return raw.split(/\s*,\s*/).map((x)=>x.trim());}
 export function parseCoordinateInput(input,{origin={x:0,y:0,z:0},variables={}}={}){
   let text=String(input??"").trim(),relative=false;if(text.startsWith("@")){relative=true;text=text.slice(1).trim();}
   if(text.includes("<")){
