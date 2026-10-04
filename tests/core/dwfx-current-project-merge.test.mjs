@@ -337,3 +337,61 @@ test("A62: current-project import automatically corrects recognized CLR to activ
     [31.2]
   );
 });
+
+
+test("question 61: editable DWFx tube keeps an immutable Source node link and geometry snapshot",()=>{
+  const source=tube("10102202","tube-import");
+  source.origin={x:10,y:20,z:30};
+  source.startVector={x:1,y:0,z:0};
+  const result=mergeDwfxTubesIntoCurrentProject({
+    project:{id:"p",tubes:[],referenceScenes:[]},
+    imported_projects:[{
+      tubes:[source],
+      referenceScenes:[{
+        id:"source-scene",
+        runtime_scene_id:"source-scene",
+        source_file:"sample.dwfx",
+        readonly:true,
+        tree:[{
+          id:"root",label:"Assembly",children:[{
+            id:"tube-node",
+            label:"10102202 source mesh",
+            editable_part_number:"10102202",
+            geometry_instances:[],
+            children:[]
+          }],
+          geometry_instances:[]
+        }]
+      }]
+    }],
+    conflict:"copy",
+    make_id:()=> "unused",
+    source_file:"sample.dwfx"
+  });
+
+  const imported=result.project.tubes[0];
+  assert.equal(imported.currentProjectImport.part_number,"10102202");
+  assert.deepEqual(imported.currentProjectImport.source_link,{
+    status:"linked",
+    detached:false,
+    scene_id:"source-scene",
+    node_id:"tube-node",
+    part_number:"10102202",
+    source_label:"10102202 source mesh",
+    source_file:"sample.dwfx",
+    display:"hidden"
+  });
+  assert.equal(
+    imported.currentProjectImport.source_geometry_snapshot.schema,
+    "dwfx_editable_source_geometry_v1"
+  );
+  assert.deepEqual(
+    imported.currentProjectImport.source_geometry_snapshot.rows,
+    imported.rows
+  );
+  assert.notEqual(
+    imported.currentProjectImport.source_geometry_snapshot.rows,
+    imported.rows
+  );
+  assert.equal(result.project.referenceScenes[0].readonly,true);
+});
