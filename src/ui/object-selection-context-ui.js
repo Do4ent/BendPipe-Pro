@@ -251,6 +251,130 @@
     return null;
   }
 
+  function snapScreenDistance(worldPoint,event,canvas){
+    if(!worldPoint||!event||!canvas||typeof THREE==="undefined"||typeof camera==="undefined")return 0;
+    const rect=canvas.getBoundingClientRect();
+    if(!rect.width||!rect.height)return 0;
+    const projected=worldPoint.clone().project(camera);
+    const sx=rect.left+(projected.x+1)*.5*rect.width;
+    const sy=rect.top+(1-projected.y)*.5*rect.height;
+    return Math.hypot(Number(event.clientX)-sx,Number(event.clientY)-sy);
+  }
+
+  function nearestGeometryVertex(hit){
+    const geometry=hit?.object?.geometry,position=geometry?.attributes?.position;
+    if(!position||!hit?.object||!hit?.point)return null;
+    const indices=[];
+    if(hit.face){
+      indices.push(hit.face.a,hit.face.b,hit.face.c);
+    }else if(Number.isInteger(hit.index)){
+      indices.push(hit.index);
+    }
+    if(!indices.length)return null;
+    let best=null,bestDistance=Infinity;
+    for(const index of indices){
+      if(!Number.isInteger(index)||index<0||index>=position.count)continue;
+      const world=new THREE.Vector3().fromBufferAttribute(position,index);
+      hit.object.localToWorld(world);
+      const d=world.distanceToSquared(hit.point);
+      if(d<bestDistance){bestDistance=d;best=world;}
+    }
+    return best;
+  }
+
+  function snapCandidateRecord({id,type,source,objectId,subentityId,world,event,canvas,label}){
+    if(!world)return null;
+    const scale=typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
+    return {
+      id:String(id),
+      type:String(type),
+      source:String(source||"Editable"),
+      object_id:objectId==null?null:String(objectId),
+      subentity_id:subentityId==null?null:String(subentityId),
+      point:{x:world.x/scale,y:world.y/scale,z:world.z/scale},
+      screen_distance_px:snapScreenDistance(world,event,canvas),
+      visible:true,
+      virtual:false,
+      fitted:false,
+      confidence:1,
+      label:String(label||type)
+    };
+  }
+
+  function snapCandidatesAtEvent(event){
+    if(typeof THREE==="undefined"||typeof camera==="undefined"||typeof pipeGroup==="undefined")return Object.freeze([]);
+    const canvas=document.getElementById("threeCanvas");
+    if(!canvas||!camera||!pipeGroup)return Object.freeze([]);
+    const rect=canvas.getBoundingClientRect();
+    if(!rect.width||!rect.height)return Object.freeze([]);
+    ownRaycaster=ownRaycaster||new THREE.Raycaster();
+    ownRaycaster.params.Line={threshold:.18};
+    const mouse=new THREE.Vector2(
+      ((event.clientX-rect.left)/rect.width)*2-1,
+      -((event.clientY-rect.top)/rect.height)*2+1
+    );
+    ownRaycaster.setFromCamera(mouse,camera);
+    const hits=ownRaycaster.intersectObjects(pipeGroup.children,true);
+    const records=[],seen=new Set();
+    const add=(record)=>{
+      if(!record||seen.has(record.id))return;
+      seen.add(record.id);records.push(record);
+    };
+    for(const hit of hits){
+      if(records.length>=18)break;
+      if(skip3DHit(hit.object))continue;
+      let item=hit.object,source="Editable",objectId=hit.object?.uuid??"object",special=null;
+      while(item){
+        const data=item.userData??{};
+        if(data.referenceNodeId&&data.referenceSceneId){
+          source="SourceReference";
+          objectId=String(data.referenceSceneId)+":"+String(data.referenceNodeId);
+          special={type:"Vertex",item,label:"Vertex"};
+          break;
+        }
+        if(data.tubeEnd===true){special={type:"Endpoint",item,label:"Endpoint"};objectId=data.tubeId??objectId;break;}
+        if(data.originPoint===true){special={type:"Node",item,label:"Node"};objectId=data.tubeId??objectId;break;}
+        if(data.tubeId){source="Tube";objectId=String(data.tubeId);}
+        item=item.parent;
+      }
+      if(special){
+        let world;
+        if(special.type==="Vertex")world=nearestGeometryVertex(hit)??hit.point?.clone?.();
+        else{world=new THREE.Vector3();special.item.getWorldPosition(world);}
+        add(snapCandidateRecord({
+          id:"snap:"+String(objectId)+":"+special.type+":"+(hit.object?.uuid??""),
+          type:special.type,source,objectId,subentityId:special.type.toLowerCase(),
+          world,event,canvas,label:special.label
+        }));
+        continue;
+      }
+
+      const geometry=hit.object?.geometry;
+      if(geometry?.type==="CylinderGeometry"&&Number.isFinite(Number(geometry.parameters?.height))){
+        const half=Number(geometry.parameters.height)/2;
+        const locals=[
+          ["Endpoint","start",new THREE.Vector3(0,-half,0)],
+          ["Midpoint","mid",new THREE.Vector3(0,0,0)],
+          ["Endpoint","end",new THREE.Vector3(0,half,0)]
+        ];
+        for(const [type,suffix,world] of locals){
+          hit.object.localToWorld(world);
+          add(snapCandidateRecord({
+            id:"snap:"+String(objectId)+":"+hit.object.uuid+":"+suffix,
+            type,source,objectId,subentityId:suffix,world,event,canvas,label:type
+          }));
+        }
+      }else if(geometry?.type==="SphereGeometry"){
+        const world=new THREE.Vector3();hit.object.getWorldPosition(world);
+        add(snapCandidateRecord({
+          id:"snap:"+String(objectId)+":"+hit.object.uuid+":node",
+          type:"Node",source,objectId,subentityId:"node",world,event,canvas,label:"Node"
+        }));
+      }
+    }
+    return Object.freeze(records);
+  }
+
   function applyMaterialOpacity(object,opacity){
     if(!object?.material)return;
     const materials=Array.isArray(object.material)?object.material:[object.material];
@@ -1526,6 +1650,7 @@
     applyAction,
     applyMove,
     beginAreaSelection,updateAreaSelection,finishAreaSelection,
+    snapCandidatesAtEvent,
     applyReferenceFrame,
     invalidElementDiagnosis,
     openInvalidElementDiagnosis,
