@@ -95,25 +95,23 @@ test("A26: grouped hide/show and transparency operate on selected readonly branc
   assert.deepEqual(Array.from(project.referenceScenes[0].transparentNodeIds),[]);
 });
 
-test("A26: grouped delete removes readonly geometry but preserves editable tube source branch",()=>{
+test("A26/Q61: grouped delete is blocked because Source Reference is immutable",()=>{
   const api=loadUi();
   const project=sampleProject();
   api.selectNode(project,"scene-1","root",true);
+  const before=JSON.stringify(project.referenceScenes);
 
-  api.applyBulkAction(project,"delete");
+  assert.throws(
+    ()=>api.applyBulkAction(project,"delete"),
+    /Immutable Source \/ Reference/
+  );
 
+  assert.equal(JSON.stringify(project.referenceScenes),before);
   assert.equal(project.referenceScenes.length,1);
-  const rootNode=project.referenceScenes[0].tree[0];
-  assert.equal(rootNode.id,"root");
-  assert.deepEqual(Array.from(rootNode.geometry_instances),[]);
-  assert.equal(rootNode.children.length,1);
-  assert.equal(rootNode.children[0].id,"tube-node");
-  assert.equal(rootNode.children[0].editable_part_number,"TUBE-1");
-  assert.equal(api.selectedCount(project),0);
   assert.equal(project.tubes.length,1);
 });
 
-test("A26: selecting an all-readonly scene and deleting it removes only that reference scene",()=>{
+test("A26/Q61: an all-readonly Source scene cannot be deleted through grouped actions",()=>{
   const api=loadUi();
   const project={
     id:"p",
@@ -132,9 +130,12 @@ test("A26: selecting an all-readonly scene and deleting it removes only that ref
   };
 
   assert.equal(api.selectScene(project,"scene-only",true),1);
-  api.applyBulkAction(project,"delete");
-  assert.equal(project.referenceScenes.length,0);
-  assert.equal(api.selectedCount(project),0);
+  assert.throws(
+    ()=>api.applyBulkAction(project,"delete"),
+    /Immutable Source \/ Reference/
+  );
+  assert.equal(project.referenceScenes.length,1);
+  assert.equal(api.selectedCount(project),1);
 });
 
 
