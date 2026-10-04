@@ -1412,17 +1412,15 @@
       y:Number(deltaMm?.y)||0,
       z:Number(deltaMm?.z)||0
     };
-    if(!delta.x&&!delta.y&&!delta.z)return 0;
+    if(!delta.x&&!delta.y&&!delta.z)return {count:0,instance_ids:[]};
     const entries=selectedTopLevelEntries(project);
-    for(const {node} of entries){
-      const current=nodeTranslationMm(node);
-      node.translation_mm={
-        x:Number((current.x+delta.x).toFixed(6)),
-        y:Number((current.y+delta.y).toFixed(6)),
-        z:Number((current.z+delta.z).toFixed(6))
-      };
+    const instanceIds=[];
+    for(const {scene,node} of entries){
+      const instance=ensureEditableMeshInstance(project,scene,node);
+      moveEditableMeshInstance(project,instance.id,delta);
+      instanceIds.push(String(instance.id));
     }
-    return entries.length;
+    return {count:instanceIds.length,instance_ids:instanceIds};
   }
 
   function applyBulkAction(project,action){
