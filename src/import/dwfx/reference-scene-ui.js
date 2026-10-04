@@ -1227,14 +1227,13 @@
   function applyBulkAction(project,action){
     const command=String(action??"");
     if(command==="clear")return clearSelection();
-    if(!["show","hide","transparent","delete"].includes(command)){
-      throw new RangeError("Unknown reference bulk action: "+command);
+    if(!["show","hide","transparent"].includes(command)){
+      throw new RangeError("Immutable Source / Reference does not support bulk action: "+command);
     }
     if(!bulkSelected.size)return 0;
     if(command==="show")applyBulkVisibility(project,true);
     else if(command==="hide")applyBulkVisibility(project,false);
     else if(command==="transparent")applyBulkTransparency(project);
-    else if(command==="delete")applyBulkDelete(project);
     return selectedCount(project);
   }
 
@@ -1267,7 +1266,98 @@
     });
   }
 
-  function bindTree(host,project,{switchTube,save,renderAll,refreshProjectTree,modelCommand}={}){
+  function importedEditableTubeById(project,id){
+    return (project?.tubes??[]).find((tube)=>
+      String(tube?.id??"")===String(id??"")&&
+      (tube?.currentProjectImport?.source_format==="DWFx"||!!sourceLink(tube))
+    )??null;
+  }
+
+  function mutateSourceLinkDisplay(tube,display){
+    const link=sourceLink(tube);
+    if(!link||link.detached===true)throw new Error("Editable object is not linked to Source");
+    if(!["hidden","shown","compare"].includes(display))throw new RangeError("Unknown Source display mode");
+    link.display=display;
+    link.status="linked";
+    return true;
+  }
+
+  function breakSourceLink(tube){
+    const link=sourceLink(tube);
+    if(!link||link.detached===true)return false;
+    link.detached=true;
+    link.status="detached";
+    link.display="hidden";
+    return true;
+  }
+
+  function runSourceLinkCommand(label,mutate,{modelCommand,save,renderAll,refreshProjectTree,reloadActiveTube}={}){
+    const ok=typeof modelCommand==="function"?modelCommand(label,mutate):mutate();
+    if(ok===false)return false;
+    save?.();
+    reloadActiveTube?.();
+    renderAll?.();
+    refreshProjectTree?.();
+    return true;
+  }
+
+  function ensureSourceLinkMenu(){
+    let menu=document.getElementById("tbSourceLinkMenu");
+    if(menu)return menu;
+    menu=document.createElement("div");
+    menu.id="tbSourceLinkMenu";
+    menu.style.cssText="position:fixed;display:none;z-index:120700;min-width:230px;padding:5px;border:1px solid #42566d;border-radius:7px;background:#111c28;color:#eef5ff;box-shadow:0 10px 30px rgba(0,0,0,.45);font:12px system-ui";
+    document.body.appendChild(menu);
+    document.addEventListener("pointerdown",(event)=>{
+      if(menu.style.display!=="none"&&!menu.contains(event.target))menu.style.display="none";
+    },true);
+    return menu;
+  }
+
+  function showSourceLinkMenu(event,project,tube,callbacks={}){
+    const link=sourceLink(tube);
+    if(!link)return false;
+    const menu=ensureSourceLinkMenu();
+    const linked=link.detached!==true&&!!sourceNodeForTube(project,tube);
+    const button=(action,label,disabled=false)=>
+      '<button data-source-link-action="'+action+'" '+(disabled?'disabled ':'')+
+      'style="display:block;width:100%;text-align:left;padding:6px 8px;border:0;border-radius:4px;background:transparent;color:'+
+      (disabled?'#65778b':'#eef5ff')+';cursor:'+(disabled?'default':'pointer')+'">'+label+'</button>';
+    menu.innerHTML=
+      '<div style="padding:5px 8px;color:#8fa4ba;border-bottom:1px solid #2b3a4b;margin-bottom:4px">'+
+      escHtml(tube.name??tube.partNumber??tube.id)+'</div>'+
+      button("show","Показать исходник",!linked)+
+      button("hide","Скрыть исходник",!linked)+
+      button("compare","Сравнить с исходником",!linked)+
+      button("restore","Восстановить из исходника",!linked||!tube?.currentProjectImport?.source_geometry_snapshot)+
+      button("break","Разорвать связь с исходником",!linked);
+    menu.style.left=Math.min(window.innerWidth-245,Math.max(6,event.clientX))+"px";
+    menu.style.top=Math.min(window.innerHeight-190,Math.max(6,event.clientY))+"px";
+    menu.style.display="block";
+    menu.querySelectorAll("[data-source-link-action]").forEach((item)=>{
+      item.addEventListener("click",(click)=>{
+        click.stopPropagation();
+        if(item.disabled)return;
+        const action=item.dataset.sourceLinkAction;
+        menu.style.display="none";
+        if(action==="show"){
+          runSourceLinkCommand("Показать исходник",()=>mutateSourceLinkDisplay(tube,"shown"),callbacks);
+        }else if(action==="hide"){
+          runSourceLinkCommand("Скрыть исходник",()=>mutateSourceLinkDisplay(tube,"hidden"),callbacks);
+        }else if(action==="compare"){
+          runSourceLinkCommand("Сравнить с исходником",()=>mutateSourceLinkDisplay(tube,"compare"),callbacks);
+        }else if(action==="restore"){
+          runSourceLinkCommand("Восстановить из исходника",()=>restoreLinkedTubeGeometry(tube),callbacks);
+        }else if(action==="break"){
+          runSourceLinkCommand("Разорвать связь с исходником",()=>breakSourceLink(tube),callbacks);
+        }
+      });
+    });
+    event.preventDefault();event.stopPropagation();
+    return true;
+  }
+
+  function bindTree(host,project,{switchTube,save,renderAll,refreshProjectTree,modelCommand,reloadActiveTube}={}){
     if(!host||!project)return;
 
     host.querySelector("[data-ref-root-toggle]")?.addEventListener("click",(event)=>{
@@ -1275,6 +1365,17 @@
       project.referenceGeometryTreeCollapsed=project.referenceGeometryTreeCollapsed!==true;
       save?.();
       refreshProjectTree?.();
+    });
+
+    host.querySelector("[data-ref-source-toggle]")?.addEventListener("click",(event)=>{
+      event.stopPropagation();
+      project.referenceSourceTreeCollapsed=project.referenceSourceTreeCollapsed!==true;
+      save?.();refreshProjectTree?.();
+    });
+    host.querySelector("[data-ref-editable-toggle]")?.addEventListener("click",(event)=>{
+      event.stopPropagation();
+      project.referenceEditableTreeCollapsed=project.referenceEditableTreeCollapsed!==true;
+      save?.();refreshProjectTree?.();
     });
 
     const rootSelect=host.querySelector("[data-ref-root-select]");
@@ -1348,12 +1449,8 @@
         }
         if(!bulkSelected.size)return;
         const mutate=()=>applyBulkAction(project,action);
-        if(action==="delete"&&typeof modelCommand==="function"){
-          modelCommand("Удалить импортированные компоненты",mutate);
-        }else{
-          mutate();
-          save?.();
-        }
+        mutate();
+        save?.();
         renderAll?.();
         refreshProjectTree?.();
       });
@@ -1397,6 +1494,20 @@
         scene.hiddenNodeIds=[...set];
         save?.();
         renderAll?.();
+      });
+    });
+
+    host.querySelectorAll("[data-import-editable-tube]").forEach((row)=>{
+      const tube=importedEditableTubeById(project,row.dataset.importEditableTube);
+      if(!tube)return;
+      row.addEventListener("click",(event)=>{
+        if(event.button!==0)return;
+        if(typeof switchTube==="function")switchTube(tube.id);
+      });
+      row.addEventListener("contextmenu",(event)=>{
+        showSourceLinkMenu(event,project,tube,{
+          modelCommand,save,renderAll,refreshProjectTree,reloadActiveTube
+        });
       });
     });
 
