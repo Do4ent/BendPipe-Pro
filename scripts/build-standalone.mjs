@@ -2572,7 +2572,7 @@ if (!output.includes('data-tubebender-bundled="trim-cut-runtime-bridge"')) {
 if (!output.includes('data-tubebender-bundled="reproducibility-runtime"')) {
   throw new Error("Standalone build is missing reproducibility runtime");
 }
-if (!output.includes("TubeBenderReproducibility") || !output.includes("CPU/GPU reproducibility")) {
+if (!output.includes("TubeBenderReproducibility") || !output.includes("compareCpuGpuEvidence")) {
   throw new Error("Standalone build is missing reproducibility integration hooks");
 }
 if (!output.includes('data-tubebender-bundled="equipment-library-ui"')) {
