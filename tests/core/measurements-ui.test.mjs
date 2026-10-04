@@ -84,3 +84,45 @@ test("question 64: saved permanent dimensions snapshot the active project style"
   assert.match(code,/style:clone\(s\.dimension_style\)/);
   assert.match(code,/Изменить стиль постоянных размеров/);
 });
+
+
+test("question 65: Quick Measure is a separate temporary Snap mode",()=>{
+  assert.match(code,/const quick=\{active:false,points:\[\],candidates:\[\],current:null,result:null\}/);
+  assert.match(code,/startQuickMeasure/);
+  assert.match(code,/stopQuickMeasure/);
+  assert.match(code,/clearQuickMeasure/);
+  assert.match(code,/snapTracking\(\)\?\.startCommand\?\.\("quick-measure"/);
+  assert.match(code,/tubebender-snap-change/);
+  assert.match(code,/Временные измерения по Snap без создания объекта размера/);
+});
+
+test("question 65: sequential Quick Measure reports length deltas and three-point angle",()=>{
+  assert.match(code,/geometry\.measurePointToPoint/);
+  assert.match(code,/\["ΔX",m\.delta_mm\.x,"mm"\]/);
+  assert.match(code,/\["ΔY",m\.delta_mm\.y,"mm"\]/);
+  assert.match(code,/\["ΔZ",m\.delta_mm\.z,"mm"\]/);
+  assert.match(code,/geometry\.measureThreePointAngle/);
+  assert.match(code,/quick\.points\.push/);
+  assert.match(code,/Каждый следующий клик продолжает последовательное измерение/);
+});
+
+test("question 65: Esc clears temporary result then exits and no dimension is created until Save",()=>{
+  assert.match(code,/event\.key==="Escape"/);
+  assert.match(code,/if\(quick\.points\.length\|\|quick\.result\)clearQuickMeasure\(\);else stopQuickMeasure\(\)/);
+  const captureBlock=code.slice(code.indexOf("function captureQuickCandidate"),code.indexOf("function onQuickSnapChange"));
+  assert.doesNotMatch(captureBlock,/engineering_dimensions/);
+  assert.match(code,/Сохранить как размер/);
+  assert.match(code,/p\.engineering_dimensions=/);
+});
+
+test("question 65: Quick Measure keeps temporary 3D helper geometry outside object selection",()=>{
+  assert.match(code,/tbQuickMeasureOverlay/);
+  assert.match(code,/quickMeasure:true/);
+  assert.match(code,/helper:true,objectSelectionHelper:true/);
+  assert.match(code,/clearQuickPreview/);
+});
+
+test("question 65: radius remains available for BEND quick inspection",()=>{
+  assert.match(code,/\["Radius",m\.radius_mm,"mm"\]/);
+  assert.match(code,/row\.type==="BEND"/);
+});
