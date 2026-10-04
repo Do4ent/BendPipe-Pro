@@ -112,3 +112,16 @@ test("Copy UI supports atomic multiple copy with XYZ step",()=>{
   assert.match(code,/Множественное копирование труб/);
   assert.match(code,/translateLegacyTubeRigid/);
 });
+
+
+test("question 53: Move Copy Rotate consume Object Snap Tracking candidates",()=>{
+  assert.match(code,/TubeBenderSnapTracking/);
+  assert.match(code,/data-copy-use-snap/);
+  assert.match(code,/data-move-use-snap/);
+  assert.match(code,/data-rotate-use-snap/);
+  assert.match(code,/Snap → Step/);
+  assert.match(code,/Snap → Point/);
+  assert.match(code,/Snap → Pivot/);
+  assert.match(code,/setTrackingModes/);
+  assert.match(code,/finishSnapCommand/);
+});
