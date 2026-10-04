@@ -2,8 +2,9 @@
   const STRAIGHT_RUN_URL="__TB_STRAIGHT_RUN_MODULE_URL__";
   const RIGID_TRANSFORM_URL="__TB_RIGID_TRANSFORM_MODULE_URL__";
   const DYNAMIC_INPUT_URL="__TB_DYNAMIC_INPUT_MODULE_URL__";
+  const TRANSFORM_COMMANDS_URL="__TB_TRANSFORM_COMMANDS_MODULE_URL__";
   const DECIMAL_PREF_KEY="tubebender.dynamicInput.decimalSeparator";
-  let straightRun=null,rigidTransform=null,dynamicInput=null,installed=false,panel=null,button=null,activeTool="copy",snapCommandTool=null;
+  let straightRun=null,rigidTransform=null,dynamicInput=null,transformCommands=null,installed=false,panel=null,button=null,activeTool="copy",snapCommandTool=null;
   let copyPreviewGroup=null;
   const copySession={active:false,mode:"single",base:null,targets:[],pendingPoint:null,sourceIds:[],sourceMeshEntries:[]};
   const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -83,6 +84,35 @@
   }
   function selectedMeshSources(){
     return entries().filter((entry)=>entry.kind==="ref"||entry.kind==="mesh-instance");
+  }
+  function scalePermissionForSelection(){
+    const selection=entries();
+    if(!selection.length)return Object.freeze({allowed:false,code:"NO_SELECTION",reason:"Scale requires a selected object"});
+    const tubes=selection.filter((entry)=>entry.kind==="tube"||entry.kind==="row"||entry.kind==="origin"||entry.kind==="end");
+    if(tubes.length){
+      const entry=tubes[0];
+      const tube=tubeById(entry.tubeId);
+      return transformCommands?.scalePermission?.({
+        ...(tube??{}),
+        kind:"tube",
+        is_tube:true,
+        recognized_tube:true
+      })??Object.freeze({
+        allowed:false,
+        code:"TUBE_SCALE_FORBIDDEN",
+        reason:"Scale is forbidden for recognized/engineering tubes."
+      });
+    }
+    return Object.freeze({allowed:true,code:"SCALE_ALLOWED_NON_TUBE",reason:null});
+  }
+  function canScaleSelection(){
+    return scalePermissionForSelection().allowed===true;
+  }
+  function requestScaleSelection(){
+    const permission=scalePermissionForSelection();
+    if(!permission.allowed){toast(permission.reason);return false;}
+    toast("Scale policy permits only non-tube geometry; no tube Scale command is exposed.");
+    return false;
   }
   function selectedSingleLine(){
     const list=entries();
@@ -986,13 +1016,13 @@
   }
   async function install(){
     if(installed)return;installed=true;
-    try{[straightRun,rigidTransform,dynamicInput]=await Promise.all([import(STRAIGHT_RUN_URL),import(RIGID_TRANSFORM_URL),import(DYNAMIC_INPUT_URL)]);}catch(error){console.error("Editing UI failed to load",error);return;}
+    try{[straightRun,rigidTransform,dynamicInput,transformCommands]=await Promise.all([import(STRAIGHT_RUN_URL),import(RIGID_TRANSFORM_URL),import(DYNAMIC_INPUT_URL),import(TRANSFORM_COMMANDS_URL)]);}catch(error){console.error("Editing UI failed to load",error);return;}
     ensureShell();
     document.getElementById("threeCanvas")?.addEventListener("click",onCopyCanvasClick,true);
     window.addEventListener("keydown",onCopyKeyDown,true);
     window.addEventListener("tubebender-snap-change",onSnapChangeForCopy);
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
-    window.TubeBenderEditing=Object.freeze({open,close,copySelection,multipleCopySelection,commitCopySeries,undoLastCopyTarget,rotateSelectedDirect,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,createTransformStackFromSelection,stackAddOperation,stackOperationAction,refresh:render});
+    window.TubeBenderEditing=Object.freeze({open,close,copySelection,multipleCopySelection,commitCopySeries,undoLastCopyTarget,rotateSelectedDirect,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,createTransformStackFromSelection,stackAddOperation,stackOperationAction,scalePermissionForSelection,canScaleSelection,requestScaleSelection,refresh:render});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
 })();
