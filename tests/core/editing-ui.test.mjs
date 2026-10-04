@@ -101,3 +101,14 @@ test("Move UI supports live dynamic Absolute Relative Polar 3D input with Ortho 
   assert.match(code,/dynamicInput\.dynamicInputPreview/);
   assert.match(code,/Absolute Move доступен только для одной выбранной трубы/);
 });
+
+
+test("Copy UI supports atomic multiple copy with XYZ step",()=>{
+  assert.match(code,/function multipleCopySelection/);
+  assert.match(code,/data-copy-count/);
+  assert.match(code,/data-copy-step-x/);
+  assert.match(code,/data-copy-step-y/);
+  assert.match(code,/data-copy-step-z/);
+  assert.match(code,/Множественное копирование труб/);
+  assert.match(code,/translateLegacyTubeRigid/);
+});
