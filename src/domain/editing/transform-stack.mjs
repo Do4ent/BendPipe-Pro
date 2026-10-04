@@ -1,4 +1,5 @@
 import {
+  assertRigidTransformMatrix,
   createTransformOperation,
   mirrorMatrix,
   reorderTransformStack,
@@ -51,6 +52,7 @@ function stripRuntimeFields(tube){
 function normalizeOperation(op){
   if(!op||typeof op!=="object")throw new TypeError("transform operation is required");
   if(!["Move","Rotate","Mirror"].includes(op.kind))throw new RangeError(`unsupported transform stack operation: ${op.kind}`);
+  assertRigidTransformMatrix(op.matrix);
   return createTransformOperation({
     id:op.id??makeId("transform"),
     kind:op.kind,
