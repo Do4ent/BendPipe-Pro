@@ -44,9 +44,10 @@ test("Bake removes association while preserving stable tube identity",()=>{
 
 
 test("question 68: tube Transform Stack exposes no Scale operation",()=>{
-  assert.doesNotMatch(code,/data-stack-add="scale"/i);
+  assert.doesNotMatch(code,/appendScale/i);
   assert.doesNotMatch(code,/kind:"Scale"/);
-  assert.match(code,/data-stack-add="move"/);
-  assert.match(code,/data-stack-add="rotate"/);
-  assert.match(code,/data-stack-add="mirror"/);
+  assert.match(code,/function appendMove\(/);
+  assert.match(code,/function appendRotate\(/);
+  assert.match(code,/function appendMirror\(/);
+  assert.match(code,/createForTube,appendMove,appendRotate,appendMirror/);
 });
