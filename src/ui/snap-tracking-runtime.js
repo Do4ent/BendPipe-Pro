@@ -7,6 +7,7 @@
   let acquired=[],hoverId=null,hoverTimer=null,lastPointer=null,lastCursor=null;
   let helperGroup=null,hud=null,pruneTimer=null;
   let modes={ortho:true,polar:false,polar_increment_deg:15};
+  let snapOptions={through_snap:false};
 
   const context=()=>window.TubeBenderObjectContext??null;
   const now=()=>globalThis.performance?.now?.()??Date.now();
@@ -226,7 +227,7 @@
     lastCursor=cursor??lastCursor;lastPointer=event??lastPointer;
     const virtual=trackingCandidates(lastCursor,lastPointer);
     const all=[...sourceCandidates,...virtual];
-    rankedCandidates=Array.from(snap?.rankSnapCandidates?.(all,{}, {contextual_types:["LineAxis","Intersection"]})??[]);
+    rankedCandidates=Array.from(snap?.rankSnapCandidates?.(all,{through_snap:snapOptions.through_snap}, {contextual_types:["LineAxis","Intersection"],through_snap:snapOptions.through_snap})??[]);
     const previousId=current?.id;
     current=rankedCandidates.find((c)=>String(c.id)===String(previousId))??rankedCandidates[0]??null;
     const direct=snap?.selectBestSnapCandidate?.(sourceCandidates)??null;
@@ -244,7 +245,7 @@
 
   function cycle(direction=1){
     if(!active||rankedCandidates.length<2)return current;
-    current=snap.cycleSnapCandidate(rankedCandidates,current?.id,direction,{}, {contextual_types:["LineAxis","Intersection"]})??current;
+    current=snap.cycleSnapCandidate(rankedCandidates,current?.id,direction,{through_snap:snapOptions.through_snap}, {contextual_types:["LineAxis","Intersection"],through_snap:snapOptions.through_snap})??current;
     renderHelpers(lastCursor);renderHud();dispatch();
     return current;
   }
@@ -258,9 +259,15 @@
     rebuild(lastCursor,lastPointer);return {...modes};
   }
 
+  function setSnapOptions(next={}){
+    if(next.through_snap!=null)snapOptions.through_snap=next.through_snap===true;
+    rebuild(lastCursor,lastPointer);return {...snapOptions};
+  }
+
   function startCommand(name="Edit",options={}){
     active=true;commandName=String(name||"Edit");
     sourceCandidates=[];rankedCandidates=[];current=null;acquired=[];hoverId=null;lastCursor=null;lastPointer=null;
+    snapOptions={through_snap:options.through_snap===true};
     setTrackingModes({
       ortho:options.ortho==null?true:options.ortho===true,
       polar:options.polar===true,
@@ -318,12 +325,12 @@
     canvas()?.addEventListener("pointermove",onPointerMove,true);
     window.addEventListener("keydown",onKeyDown,true);
     window.TubeBenderSnapTracking=Object.freeze({
-      startCommand,endCommand,setCandidates,setTrackingModes,cycle,pinCurrent,clearReferences,
+      startCommand,endCommand,setCandidates,setTrackingModes,setSnapOptions,cycle,pinCurrent,clearReferences,
       acquireCurrent:()=>current?acquireCandidate(current):false,
       currentCandidate:()=>current?clone(current):null,
       candidates:()=>rankedCandidates.map(clone),
       references:()=>acquired.map((r)=>({candidate:clone(r.candidate),pinned:r.pinned===true})),
-      state:()=>({active,command:commandName,modes:{...modes}})
+      state:()=>({active,command:commandName,modes:{...modes},snapOptions:{...snapOptions}})
     });
   }
 
