@@ -335,6 +335,13 @@
     return instance;
   }
 
+  function ensureEditableMeshInstanceByRef(project,sceneId,nodeId){
+    const scene=findScene(project,sceneId);
+    const node=findNode(scene?.tree,nodeId);
+    if(!scene||!node)throw new Error("Source mesh node is unavailable");
+    return ensureEditableMeshInstance(project,scene,node);
+  }
+
   function ensureEditableMeshInstance(project,scene,node){
     const existing=editableMeshInstanceList(project,{create:false}).find((item)=>
       item?.link_status!=="detached"&&
@@ -1994,6 +2001,7 @@
     meshInstanceById,
     createEditableMeshInstance,
     ensureEditableMeshInstance,
+    ensureEditableMeshInstanceByRef,
     moveEditableMeshInstance,
     rotateEditableMeshInstance,
     rotateEditableMeshInstanceAxis,
