@@ -878,6 +878,42 @@ output=output.replace(
   "}"
 );
 
+
+const measurementFormulaContextAnchor =
+  "function buildFormulaParameterContext(rows = state.rows){\n"+
+  "  const ctx = {};";
+if(!output.includes(measurementFormulaContextAnchor)){
+  throw new Error("formula parameter context anchor missing for MEASURE");
+}
+const measurementFormulaHelper =
+  "function tbMeasurementFormulaContext(){\n"+
+  "  let value=NaN;\n"+
+  "  try{value=Number(window.TubeBenderMeasurements?.formulaValue?.());}catch{}\n"+
+  "  return Number.isFinite(value)?{MEASURE:value,measure:value}:{};\n"+
+  "}\n";
+output=output.replace(
+  measurementFormulaContextAnchor,
+  measurementFormulaHelper+
+  "function buildFormulaParameterContext(rows = state.rows){\n"+
+  "  const ctx = {...tbMeasurementFormulaContext()};"
+);
+
+const recalculateMeasurementContextAnchor =
+  "function recalculateParameterizedRows(){\n"+
+  "  rebuildStandardOffsetsForCurrentDirections();\n"+
+  "  const rows = state.rows || [];\n"+
+  "  let ctx = {};";
+if(!output.includes(recalculateMeasurementContextAnchor)){
+  throw new Error("recalculateParameterizedRows context anchor missing for MEASURE");
+}
+output=output.replace(
+  recalculateMeasurementContextAnchor,
+  "function recalculateParameterizedRows(){\n"+
+  "  rebuildStandardOffsetsForCurrentDirections();\n"+
+  "  const rows = state.rows || [];\n"+
+  "  let ctx = {...tbMeasurementFormulaContext()};"
+);
+
 const importedToolingGuardSort =
   "  for(const t of allTubeRecords()){\n    if(!t.toolingId){\n      const legacy=pipeDb[Number(t.diameterIndex)];\n      if(legacy?.id)t.toolingId=legacy.id;\n    }\n  }";
 if (!output.includes(importedToolingGuardSort)) {
