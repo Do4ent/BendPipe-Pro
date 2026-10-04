@@ -49,3 +49,17 @@ test("runtime consumes exact hover candidates exposed by the 3D object context",
   assert.match(code,/currentCandidate/);
   assert.match(code,/tubebender-snap-change/);
 });
+
+
+test("question 54: all suitable snap candidates are visible and active virtual through states differ",()=>{
+  assert.match(code,/rankedCandidates\.forEach/);
+  assert.match(code,/snapCandidateMarker:true/);
+  assert.match(code,/snapCandidateCurrent:isCurrent/);
+  assert.match(code,/snapCandidateVirtual:isVirtual/);
+  assert.match(code,/snapCandidateThrough:isThrough/);
+  assert.match(code,/isThrough\?0xff66cc:isVirtual\?0x52d6ff/);
+  assert.match(code,/wireframe:isVirtual\|\|isThrough/);
+  assert.match(code,/\["\+\(currentIndex\+1\)\+"\/"\+rankedCandidates\.length\+"\]"/);
+  assert.match(code,/setSnapOptions/);
+  assert.match(code,/through_snap:snapOptions\.through_snap/);
+});
