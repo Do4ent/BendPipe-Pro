@@ -2,12 +2,13 @@
   const STRAIGHT_RUN_URL="__TB_STRAIGHT_RUN_MODULE_URL__";
   const RIGID_TRANSFORM_URL="__TB_RIGID_TRANSFORM_MODULE_URL__";
   const DYNAMIC_INPUT_URL="__TB_DYNAMIC_INPUT_MODULE_URL__";
-  let straightRun=null,rigidTransform=null,dynamicInput=null,installed=false,panel=null,button=null,activeTool="copy";
+  let straightRun=null,rigidTransform=null,dynamicInput=null,installed=false,panel=null,button=null,activeTool="copy",snapCommandTool=null;
   const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
   const clone=(v)=>v==null?v:structuredClone(v);
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,(ch)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
   const api=()=>window.TubeBenderEngineering??null;
   const context=()=>window.TubeBenderObjectContext??null;
+  const snapTracking=()=>window.TubeBenderSnapTracking??null;
   const project=()=>{try{return api()?.activeProject?.()??null;}catch{return null;}};
   const stateValue=()=>{try{return api()?.getState?.()??null;}catch{return null;}};
   const readonly=()=>{try{return api()?.readonly?.()===true;}catch{return false;}};
@@ -77,6 +78,60 @@
     try{api()?.save?.();api()?.renderAll?.();}catch{}
     try{context()?.refresh?.();}catch{}
     render();
+    return true;
+  }
+
+  function syncSnapCommand(){
+    const runtime=snapTracking();
+    if(!runtime)return;
+    const eligible=panel?.classList.contains("open")&&["copy","move","rotate"].includes(activeTool);
+    if(!eligible){
+      if(snapCommandTool)runtime.endCommand?.();
+      snapCommandTool=null;return;
+    }
+    if(snapCommandTool!==activeTool){
+      runtime.endCommand?.();
+      runtime.startCommand?.(activeTool,{ortho:true,polar:false,polar_increment_deg:15});
+      snapCommandTool=activeTool;
+    }
+  }
+  function finishSnapCommand(result){
+    if(result===false)return result;
+    const runtime=snapTracking();
+    runtime?.endCommand?.();snapCommandTool=null;
+    syncSnapCommand();
+    return result;
+  }
+  function currentSnapPoint(){
+    const candidate=snapTracking()?.currentCandidate?.();
+    return candidate?.point?clone(candidate.point):null;
+  }
+  function useSnapForCopyStep(body){
+    const tubes=selectedWholeTubes(),point=currentSnapPoint();
+    if(tubes.length!==1){toast("Snap Step доступен для одной выбранной трубы");return false;}
+    if(!point){toast("Нет активного snap-кандидата");return false;}
+    const origin=tubes[0].origin??{x:0,y:0,z:0};
+    const values={x:point.x-Number(origin.x||0),y:point.y-Number(origin.y||0),z:point.z-Number(origin.z||0)};
+    $("[data-copy-step-x]",body).value=values.x.toFixed(3);
+    $("[data-copy-step-y]",body).value=values.y.toFixed(3);
+    $("[data-copy-step-z]",body).value=values.z.toFixed(3);
+    return true;
+  }
+  function useSnapForMove(body){
+    const point=currentSnapPoint();
+    if(!point){toast("Нет активного snap-кандидата");return false;}
+    const input=$("[data-edit-vector]",body);
+    if(!input)return false;
+    input.value=[point.x,point.y,point.z].map((v)=>Number(v).toFixed(3)).join(";");
+    updateMovePreview(body);return true;
+  }
+  function useSnapForRotatePivot(body){
+    const point=currentSnapPoint();
+    if(!point){toast("Нет активного snap-кандидата");return false;}
+    $("[data-rotate-center-mode]",body).value="custom";
+    $("[data-rotate-cx]",body).value=Number(point.x).toFixed(3);
+    $("[data-rotate-cy]",body).value=Number(point.y).toFixed(3);
+    $("[data-rotate-cz]",body).value=Number(point.z).toFixed(3);
     return true;
   }
 
@@ -518,20 +573,31 @@
     return panel;
   }
   function open(){ensureShell().classList.add("open");render();}
-  function close(){panel?.classList.remove("open");}
+  function close(){panel?.classList.remove("open");snapTracking()?.endCommand?.();snapCommandTool=null;}
   function render(){
     if(!panel||!straightRun)return;
+    syncSnapCommand();
     $$(".tb-edit-tools button",panel).forEach((b)=>b.classList.toggle("active",b.dataset.tool===activeTool));
     const body=$(".tb-edit-body",panel);
     if(activeTool==="copy"){
       const count=selectedWholeTubes().length;
-      body.innerHTML='<div class="tb-edit-card"><b>Copy</b><div class="tb-edit-note" style="margin-top:7px">Выбрано целых труб: '+count+'. Копии независимы; step XYZ создаёт серию одной атомарной командой.</div><div class="tb-edit-grid" style="margin-top:8px"><label>Copies</label><input data-copy-count value="1"><label>Step X, mm</label><input data-copy-step-x value="0"><label>Step Y, mm</label><input data-copy-step-y value="0"><label>Step Z, mm</label><input data-copy-step-z value="0"></div><div class="tb-edit-actions"><button data-copy-run>Копировать</button></div></div>';
-      $("[data-copy-run]",body).onclick=()=>multipleCopySelection(body);
+      body.innerHTML='<div class="tb-edit-card"><b>Copy</b><div class="tb-edit-note" style="margin-top:7px">Выбрано целых труб: '+count+'. Копии независимы; step XYZ создаёт серию одной атомарной командой.</div><div class="tb-edit-grid" style="margin-top:8px"><label>Copies</label><input data-copy-count value="1"><label>Step X, mm</label><input data-copy-step-x value="0"><label>Step Y, mm</label><input data-copy-step-y value="0"><label>Step Z, mm</label><input data-copy-step-z value="0"></div><div class="tb-edit-note" style="margin-top:8px">Object Snap Tracking: наведите на Endpoint / Midpoint / Node / Vertex примерно на 0.45 с. Tab / Shift+Tab переключает кандидаты, P закрепляет reference point.</div><div class="tb-edit-actions"><button data-copy-use-snap>Snap → Step</button><button data-copy-run>Копировать</button></div></div>';
+      $("[data-copy-use-snap]",body).onclick=()=>useSnapForCopyStep(body);
+      $("[data-copy-run]",body).onclick=()=>finishSnapCommand(multipleCopySelection(body));
     }else if(activeTool==="move"){
-      body.innerHTML='<div class="tb-edit-card"><b>Move</b><div class="tb-edit-grid" style="margin-top:8px"><label>ΔX, мм</label><input data-edit-dx value="0"><label>ΔY, мм</label><input data-edit-dy value="0"><label>ΔZ, мм</label><input data-edit-dz value="0"><label>Dynamic input</label><input data-edit-vector placeholder="@10;0;0 / 100;200;0 / @100<45"><label>Ortho</label><input data-edit-ortho type="checkbox"><label>Polar Tracking</label><input data-edit-polar type="checkbox"><label>Polar step, °</label><input data-edit-polar-step value="15"></div><div class="tb-edit-note" data-edit-preview style="margin-top:8px"></div><div class="tb-edit-actions"><button data-move-run>Переместить</button></div></div>';
-      $("[data-move-run]",body).onclick=()=>moveSelection(body);
+      body.innerHTML='<div class="tb-edit-card"><b>Move</b><div class="tb-edit-grid" style="margin-top:8px"><label>ΔX, мм</label><input data-edit-dx value="0"><label>ΔY, мм</label><input data-edit-dy value="0"><label>ΔZ, мм</label><input data-edit-dz value="0"><label>Dynamic input</label><input data-edit-vector placeholder="@10;0;0 / 100;200;0 / @100<45"><label>Ortho</label><input data-edit-ortho type="checkbox"><label>Polar Tracking</label><input data-edit-polar type="checkbox"><label>Polar step, °</label><input data-edit-polar-step value="15"></div><div class="tb-edit-note" data-edit-preview style="margin-top:8px"></div><div class="tb-edit-note" style="margin-top:6px">Object Snap Tracking работает в 3D: hover-acquire, Tab / Shift+Tab, P pin. Tracking guides следуют Ortho / Polar.</div><div class="tb-edit-actions"><button data-move-use-snap>Snap → Point</button><button data-move-run>Переместить</button></div></div>';
+      $("[data-move-use-snap]",body).onclick=()=>useSnapForMove(body);
+      $("[data-move-run]",body).onclick=()=>finishSnapCommand(moveSelection(body));
       $("[data-edit-vector]",body).oninput=()=>updateMovePreview(body);
-      updateMovePreview(body);
+      const syncTracking=()=>snapTracking()?.setTrackingModes?.({
+        ortho:$("[data-edit-ortho]",body)?.checked===true,
+        polar:$("[data-edit-polar]",body)?.checked===true,
+        polar_increment_deg:Number($("[data-edit-polar-step]",body)?.value||15)
+      });
+      $("[data-edit-ortho]",body).onchange=syncTracking;
+      $("[data-edit-polar]",body).onchange=syncTracking;
+      $("[data-edit-polar-step]",body).oninput=syncTracking;
+      syncTracking();updateMovePreview(body);
     }else if(activeTool==="split"){
       const selected=selectedSingleLine(),nodes=selected?.row?.straightRun?.nodes_mm??[];
       body.innerHTML='<div class="tb-edit-card"><b>Split Straight</b><div class="tb-edit-grid" style="margin-top:8px"><label>Режим</label><select data-split-mode><option value="start">Расстояние от начала</option><option value="end">Расстояние от конца</option><option value="equal">N равных частей</option><option value="percent">Позиция, %</option></select><label>Значение</label><input data-split-value value="50"></div><div class="tb-edit-note" style="margin-top:8px">Внутренние узлы: '+esc(nodes.length?nodes.join(", ")+" мм":"нет")+'. LINE остаётся одним производственным StraightRun.</div><div class="tb-edit-actions"><button data-split-run>Разделить</button></div></div>';
@@ -543,8 +609,10 @@
         '<label>Центр</label><select data-rotate-center-mode><option value="global">Global 0,0,0</option><option value="own">Origin каждой трубы</option><option value="custom">Заданный XYZ</option></select>'+
         '<label>Center X</label><input data-rotate-cx value="0"><label>Center Y</label><input data-rotate-cy value="0"><label>Center Z</label><input data-rotate-cz value="0">'+
         '</div><div class="tb-edit-note" style="margin-top:8px">Rigid-body Rotate сохраняет длины, CLR и углы гибов; TubeBender пересчитывает только origin/startVector и legacy plane/rot.</div>'+
-        '<div class="tb-edit-actions"><button data-rotate-run>Повернуть</button></div></div>';
-      $("[data-rotate-run]",body).onclick=()=>rotateSelection(body);
+        '<div class="tb-edit-note" style="margin-top:6px">Object Snap Tracking: Tab переключает кандидаты; P закрепляет временную reference point.</div>'+
+        '<div class="tb-edit-actions"><button data-rotate-use-snap>Snap → Pivot</button><button data-rotate-run>Повернуть</button></div></div>';
+      $("[data-rotate-use-snap]",body).onclick=()=>useSnapForRotatePivot(body);
+      $("[data-rotate-run]",body).onclick=()=>finishSnapCommand(rotateSelection(body));
     }else if(activeTool==="mirror"){
       body.innerHTML=mirrorPanelHtml();
       $("[data-mirror-create]",body).onclick=()=>createMirrorFromSelection(body);
