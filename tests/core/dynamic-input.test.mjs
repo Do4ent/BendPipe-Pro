@@ -6,7 +6,11 @@ import {
   parseCoordinateInput,
   applyOrthoTracking,
   applyPolarTracking,
-  dynamicInputPreview
+  dynamicInputPreview,
+  detectNumericDecimalSeparator,
+  resolveDecimalSeparator,
+  formatNumericInput,
+  normalizeDecimalSeparatorPreference
 } from "../../src/domain/editing/dynamic-input.mjs";
 
 test("numeric input accepts formulas units and comma decimal",()=>{
@@ -39,4 +43,38 @@ test("Ortho and Polar tracking are deterministic",()=>{
 test("live preview fails closed instead of inventing coordinates",()=>{
   const result=dynamicInputPreview("@bad",{origin:{x:0,y:0,z:0}});
   assert.equal(result.status,"Invalid");assert.equal(result.point,null);
+});
+
+
+test("question 58: dot and comma decimals are both accepted",()=>{
+  assert.equal(evaluateNumericInput("12.5"),12.5);
+  assert.equal(evaluateNumericInput("12,5"),12.5);
+  assert.equal(detectNumericDecimalSeparator("12.5"),".");
+  assert.equal(detectNumericDecimalSeparator("12,5"),",");
+  assert.equal(resolveDecimalSeparator("auto",{input:"12,5"}),",");
+  assert.equal(resolveDecimalSeparator("auto",{input:"12.5"}),".");
+});
+
+test("question 58: decimal comma coordinates use semicolon separators",()=>{
+  assert.deepEqual(
+    parseCoordinateInput("10,5;20,25;30,75",{decimal_separator:","}).point,
+    {x:10.5,y:20.25,z:30.75}
+  );
+  assert.throws(
+    ()=>parseCoordinateInput("10,20,30",{decimal_separator:","}),
+    /semicolons/i
+  );
+  assert.deepEqual(
+    parseCoordinateInput("10,20,30",{decimal_separator:"."}).point,
+    {x:10,y:20,z:30}
+  );
+});
+
+test("question 58: preferred separator validates and formats deterministically",()=>{
+  assert.equal(normalizeDecimalSeparatorPreference("auto"),"auto");
+  assert.equal(normalizeDecimalSeparatorPreference("."),".");
+  assert.equal(normalizeDecimalSeparatorPreference(","),",");
+  assert.throws(()=>normalizeDecimalSeparatorPreference("space"),/decimal_separator/);
+  assert.equal(formatNumericInput(12.5,{decimal_separator:".",maximumFractionDigits:3}),"12.5");
+  assert.equal(formatNumericInput(12.5,{decimal_separator:",",maximumFractionDigits:3}),"12,5");
 });
