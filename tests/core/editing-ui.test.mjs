@@ -26,7 +26,7 @@ test("Copy creates independent tube and element identities and detaches external
 });
 
 test("Move reuses the existing selection-aware atomic move implementation",()=>{
-  assert.match(code,/context\(\)\?\.applyMove\?\.\(\{x:dx,y:dy,z:dz\}\)/);
+  assert.match(code,/context\(\)\?\.applyMove\?\.\(delta\)/);
   assert.match(code,/ΔX/);
   assert.match(code,/ΔY/);
   assert.match(code,/ΔZ/);
