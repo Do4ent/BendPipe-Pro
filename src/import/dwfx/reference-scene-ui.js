@@ -179,6 +179,16 @@
     })??null;
   }
 
+  function anyEditableTubeForSource(project,sceneId,nodeId){
+    const sid=String(sceneId??""),nid=String(nodeId??"");
+    return linkedEditableTubes(project).find((tube)=>{
+      const link=sourceLink(tube);
+      return link&&
+        String(link.scene_id??"")===sid&&
+        String(link.node_id??"")===nid;
+    })??null;
+  }
+
   function sourceNodeForTube(project,tube){
     const link=sourceLink(tube);
     if(!link||link.detached===true)return null;
@@ -513,9 +523,13 @@
 
       const recognizedPart=String(node.editable_part_number??"");
       const linkedState=sourceDisplayState(project,sceneMeta,node);
+      const sourceTube=anyEditableTubeForSource(project,sceneMeta.id,node.id);
+      const detachedSource=sourceLink(sourceTube)?.detached===true;
       const suppressEditable=linkedState
         ? !linkedState.visible
-        : !!(recognizedPart&&editable.has(recognizedPart));
+        : detachedSource
+          ? false
+          : !!(recognizedPart&&editable.has(recognizedPart));
 
       if(!suppressEditable){
         const nodeGroup=new THREE.Group();
