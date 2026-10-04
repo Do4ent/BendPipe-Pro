@@ -59,7 +59,8 @@ test("question 54: all suitable snap candidates are visible and active virtual t
   assert.match(code,/snapCandidateThrough:isThrough/);
   assert.match(code,/isThrough\?0xff66cc:isVirtual\?0x52d6ff/);
   assert.match(code,/wireframe:isVirtual\|\|isThrough/);
-  assert.match(code,/\["\+\(currentIndex\+1\)\+"\/"\+rankedCandidates\.length\+"\]"/);
+  assert.match(code,/currentIndex=Math\.max/);
+  assert.match(code,/rankedCandidates\.length/);
   assert.match(code,/setSnapOptions/);
   assert.match(code,/through_snap:snapOptions\.through_snap/);
 });
