@@ -148,11 +148,15 @@ test("A26: standalone exposes grouped reference component actions",()=>{
   assert.match(html,/data-ref-bulk-action="show"/);
   assert.match(html,/data-ref-bulk-action="hide"/);
   assert.match(html,/data-ref-bulk-action="transparent"/);
-  assert.match(html,/data-ref-bulk-action="delete"/);
+  assert.doesNotMatch(html,/data-ref-bulk-action="delete"/);
+  assert.match(html,/Immutable Source \/ Reference does not support bulk action/);
+  assert.match(html,/Source \/ Reference/);
+  assert.match(html,/Editable geometry/);
   assert.match(html,/transparentNodeIds/);
   assert.match(html,/opacity:transparent \? \.24 : 1/);
   assert.match(html,/modelCommand:tbModelCommand/);
-  assert.match(html,/Удалить импортированные компоненты/);
+  assert.match(html,/Восстановить из исходника/);
+  assert.match(html,/Разорвать связь с исходником/);
 });
 
 
