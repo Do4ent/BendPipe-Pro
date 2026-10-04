@@ -29,6 +29,15 @@ function id(prefix){
   return uuid?`${prefix}-${uuid}`:`${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,9)}`;
 }
 
+function normalizeSimpleCalibration(input={}){
+  const source=input&&typeof input==="object"?input:{};
+  return freeze({
+    angle_offset_deg:finite(source.angle_offset_deg,"calibration.angle_offset_deg"),
+    radius_offset_mm:finite(source.radius_offset_mm,"calibration.radius_offset_mm"),
+    note:optionalString(source.note)
+  });
+}
+
 export function createMachineProfile(input={}, {profileId=null}={}){
   return freeze({
     id:requiredString(profileId??input.id??id("machine-profile"),"machine profile id"),
@@ -95,7 +104,7 @@ export function createToolingSet(input={}, {toolingSetId=null}={}){
       wiper_die:optionalString(input.components?.wiper_die)
     }),
     geometry_ref:optionalString(input.geometry_ref),
-    calibration:freeze(clone(input.calibration??{})),
+    calibration:normalizeSimpleCalibration(input.calibration),
     notes:optionalString(input.notes)
   });
 }
@@ -110,7 +119,7 @@ export function createToolingInstance(input={}, {toolingInstanceId=null}={}){
     tooling_set_id:requiredString(input.tooling_set_id,"tooling_set_id"),
     serial_number:optionalString(input.serial_number),
     machine_instance_id:optionalString(input.machine_instance_id),
-    calibration:freeze(clone(input.calibration??{})),
+    calibration:normalizeSimpleCalibration(input.calibration),
     angle_correction_deg:finite(input.angle_correction_deg,"angle_correction_deg")
   });
 }
