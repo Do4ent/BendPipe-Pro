@@ -20,6 +20,7 @@ const materialManufacturingBridgePath = path.join(root, "src", "ui", "material-m
 const measurementsUiPath = path.join(root, "src", "ui", "measurements-ui.js");
 const editingUiPath = path.join(root, "src", "ui", "editing-ui.js");
 const snapTrackingRuntimePath = path.join(root, "src", "ui", "snap-tracking-runtime.js");
+const transformGizmoRuntimePath = path.join(root, "src", "ui", "transform-gizmo-runtime.js");
 const associativeArrayRuntimePath = path.join(root, "src", "ui", "associative-array-runtime.js");
 const associativeMirrorRuntimePath = path.join(root, "src", "ui", "associative-mirror-runtime.js");
 const transformStackRuntimePath = path.join(root, "src", "ui", "transform-stack-runtime.js");
@@ -2256,6 +2257,11 @@ const snapTrackingRuntime = fs.readFileSync(snapTrackingRuntimePath, "utf8")
 const bundledSnapTrackingRuntime =
   `<script data-tubebender-bundled="snap-tracking-runtime">\n${snapTrackingRuntime}\n</script>`;
 
+const transformGizmoRuntime = fs.readFileSync(transformGizmoRuntimePath, "utf8")
+  .replace(/<\/script/gi, "<\\/script");
+const bundledTransformGizmoRuntime =
+  `<script data-tubebender-bundled="transform-gizmo-runtime">\n${transformGizmoRuntime}\n</script>`;
+
 const transformCommandsDomainUrl = moduleDataUrl(transformCommandsDomainPath);
 const associativeArrayRuntime = fs.readFileSync(associativeArrayRuntimePath, "utf8")
   .replace("__TB_TRANSFORM_COMMANDS_MODULE_URL__", transformCommandsDomainUrl)
@@ -2345,6 +2351,8 @@ output =
   bundledSnapTrackingRuntime +
   "\n" +
   bundledEditingUi +
+  "\n" +
+  bundledTransformGizmoRuntime +
   "\n" +
   bundledMaterialLibraryUi +
   "\n" +
@@ -2630,6 +2638,7 @@ process.stdout.write(
       bundledMeasurementsUi: true,
       bundledEditingUi: true,
       bundledSnapTrackingRuntime: true,
+      bundledTransformGizmo: true,
       bundledAssociativeArrays: true,
       bundledAssociativeMirrors: true,
       bundledTransformStacks: true,
