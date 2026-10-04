@@ -105,3 +105,13 @@ test("tooling suggestion orders Compatible before Conditional and Incompatible",
   });
   assert.deepEqual(result.map(x=>x.compatibility.status),["Compatible","Conditional","Incompatible"]);
 });
+
+
+test("simple tooling calibration keeps only explicit flat fields",()=>{
+  const set=createToolingSet({name:"Cal",compatible_machine_profile_ids:[],diameter_mm:12,clr_mm:30,calibration:{angle_offset_deg:0.2,radius_offset_mm:-0.1,note:"shop",wizard:{step:1}}});
+  assert.deepEqual(set.calibration,{angle_offset_deg:0.2,radius_offset_mm:-0.1,note:"shop"});
+  assert.equal("wizard" in set.calibration,false);
+  const instance=createToolingInstance({name:"Cal #1",tooling_set_id:set.id,calibration:{angle_offset_deg:0.1,radius_offset_mm:0.05,note:"bench"}});
+  assert.equal(instance.calibration.note,"bench");
+  assert.equal(instance.calibration.angle_offset_deg,0.1);
+});
