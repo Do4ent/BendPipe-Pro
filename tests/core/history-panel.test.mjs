@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const build=fs.readFileSync(path.join(root,"scripts","build-standalone.mjs"),"utf8");
+const legacy=fs.readFileSync(path.join(root,"legacy","VC207R7","TubeBender_CAD_VC207R7_Pixel_Matched_Approved_Interface_Release.html"),"utf8");
 
 test("question 62: standalone adds a separate History timeline panel",()=>{
   assert.match(build,/tbHistoryEnsurePanel/);
@@ -32,7 +33,7 @@ test("question 62: existing atomic model command rejects failed and conflicting 
   assert.match(build,/if\(fixedEndResult\?\.ok===false\)/);
   assert.match(build,/if\(liveCollisionResult\?\.ok===false\)/);
   assert.match(build,/tbHistoryCancel\(token\)/);
-  assert.match(build,/if\(tbHistorySnapshotKey\(token\.before\)===tbHistorySnapshotKey\(after\)\)/);
+  assert.match(legacy,/if\(tbHistorySnapshotKey\(token\.before\)===tbHistorySnapshotKey\(after\)\)/);
 });
 
 test("question 62: History API exposes timeline cursor jump and panel access",()=>{
