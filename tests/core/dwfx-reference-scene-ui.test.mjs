@@ -97,7 +97,7 @@ test("question 61: selecting linked Editable reveals Source as transparent highl
   assert.match(code,/selectedEditable\|\|display==="shown"\|\|display==="compare"/);
   assert.match(code,/transparent:selectedEditable\|\|display==="compare"/);
   assert.match(code,/sourceEditableHighlight/);
-  assert.match(code,/\(nodeTransparent\|\|linkedState\?\.transparent\)\?"transparent":"normal"/);
+  assert.match(code,/\(nodeTransparent\|\|linkedState\?\.transparent\|\|meshState\?\.transparent\)\?"transparent":"normal"/);
 });
 
 test("question 61: Restore uses saved geometry snapshot without replacing tooling state",()=>{
