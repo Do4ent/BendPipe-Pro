@@ -125,3 +125,35 @@ test("question 53: Move Copy Rotate consume Object Snap Tracking candidates",()=
   assert.match(code,/setTrackingModes/);
   assert.match(code,/finishSnapCommand/);
 });
+
+
+test("question 56: Copy supports Single and Multiple base-target sessions with atomic commit",()=>{
+  assert.match(code,/data-copy-mode/);
+  assert.match(code,/Одна копия/);
+  assert.match(code,/Несколько копий/);
+  assert.match(code,/function setCopyBase\(/);
+  assert.match(code,/function addCopyTarget\(/);
+  assert.match(code,/function commitCopySeries\(/);
+  assert.match(code,/Base Point → Target Point/);
+  assert.match(code,/modelCommand\?api\(\)\.modelCommand/);
+  assert.match(code,/Copy: серия целевых точек/);
+  assert.match(code,/event\.key==="Enter"/);
+  assert.match(code,/event\.key==="Backspace"/);
+});
+
+test("question 56: Copy live preview is helper geometry and never mutates the project",()=>{
+  assert.match(code,/function renderCopyPreview\(\)/);
+  assert.match(code,/copyLivePreview:true/);
+  assert.match(code,/objectSelectionHelper:true/);
+  assert.match(code,/next\.opacity=\.32/);
+  assert.match(code,/placement\.position\.set\(delta\.x\*scale,delta\.y\*scale,delta\.z\*scale\)/);
+  assert.match(code,/tubebender-snap-change/);
+  assert.match(code,/pendingPoint/);
+});
+
+test("question 56: exact target coordinates and polar input reuse Dynamic Input",()=>{
+  assert.match(code,/data-copy-base-input/);
+  assert.match(code,/data-copy-target-input/);
+  assert.match(code,/dynamicInput\.parseCoordinateInput\(raw,\{origin:copySession\.base\}\)/);
+  assert.match(code,/@100<45/);
+});
