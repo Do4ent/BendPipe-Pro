@@ -334,7 +334,7 @@ test("question 53: 3D hover exposes exact snap candidate seeds for tracking",()=
   assert.match(code,/function snapCandidatesAtEvent\(event\)/);
   assert.match(code,/function nearestGeometryVertex\(hit\)/);
   assert.match(code,/type:"Endpoint"/);
-  assert.match(code,/type:"Midpoint"/);
+  assert.match(code,/\["Midpoint","mid"/);
   assert.match(code,/type:"Node"/);
   assert.match(code,/type:"Vertex"/);
   assert.match(code,/snapCandidatesAtEvent,/);
