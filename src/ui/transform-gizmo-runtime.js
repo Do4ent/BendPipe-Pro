@@ -263,6 +263,14 @@
     tagHandle(mesh,{kind:"rotate",axis:name,label:"Rotate "+name.toUpperCase()});
     return mesh;
   }
+  function makePivotHandle(){
+    const mesh=new THREE.Mesh(
+      new THREE.SphereGeometry(.095,16,10),
+      new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.92,depthTest:false,depthWrite:false})
+    );
+    tagHandle(mesh,{kind:"pivot",label:"Move Pivot"});
+    return mesh;
+  }
   function clearGizmo(){
     if(gizmoGroup?.parent)gizmoGroup.parent.remove(gizmoGroup);
     gizmoGroup=null;
@@ -284,6 +292,7 @@
     group.position.copy(pivot);
     group.quaternion.copy(basisQuaternion(basis));
     group.scale.setScalar(gizmoVisualScale(pivot));
+    group.add(makePivotHandle());
     group.add(makeArrow("x"),makeArrow("y"),makeArrow("z"));
     group.add(makePlane("xy"),makePlane("xz"),makePlane("yz"));
     if(canRotate())group.add(makeRing("x"),makeRing("y"),makeRing("z"));
@@ -412,7 +421,10 @@
     const pivot=pivotScene(),basis=currentBasis();if(!pivot||!basis)return false;
     activeHandle={...handle};updatePanel();
     let planeNormal,startHit,startVector=null;
-    if(handle.kind==="move-axis"){
+    if(handle.kind==="pivot"){
+      planeNormal=new THREE.Vector3();camera.getWorldDirection(planeNormal);
+      startHit=planeHit(event,planeNormal,pivot);
+    }else if(handle.kind==="move-axis"){
       const axis=axisVector(handle,basis);
       planeNormal=moveAxisDragPlaneNormal(axis,pivot);
       startHit=planeHit(event,planeNormal,pivot);
@@ -423,7 +435,7 @@
       if(startHit)startVector=startHit.clone().sub(pivot).normalize();
     }
     if(!startHit)return false;
-    ensurePreview();
+    if(handle.kind!=="pivot")ensurePreview();
     drag={handle:{...handle},pivot,basis,planeNormal,startHit,startVector,deltaMm:{x:0,y:0,z:0},angleRad:0};
     try{if(controls)controls.enabled=false;}catch{}
     snapTracking()?.startCommand?.("transform-gizmo",{ortho:settings.ortho,polar:settings.polar,polar_increment_deg:settings.polarStep});
@@ -435,7 +447,16 @@
     const current=planeHit(event,drag.planeNormal,drag.pivot);if(!current)return false;
     const snapped=snapPointScene();
     const handle=drag.handle,s=scale();
-    if(handle.kind==="move-axis"){
+    if(handle.kind==="pivot"){
+      const point=(snapped??current).clone();
+      pivotState.temporary=point;
+      settings.pivotMode="temporary";
+      if(gizmoGroup)gizmoGroup.position.copy(point);
+      const mm={x:point.x/s,y:point.y/s,z:point.z/s};
+      setPivotFields(mm);
+      updatePanel();
+      try{if(typeof markViewerDirty==="function")markViewerDirty();}catch{}
+    }else if(handle.kind==="move-axis"){
       const axis=axisVector(handle,drag.basis);
       const raw=(snapped??current).clone().sub(snapped?drag.pivot:drag.startHit);
       const amount=raw.dot(axis);
@@ -490,8 +511,13 @@
     snapTracking()?.endCommand?.();
     let ok=true;
     if(!cancel){
-      if(state.handle.kind==="rotate")ok=commitRotate(axisVector(state.handle,state.basis),state.pivot,state.angleRad);
+      if(state.handle.kind==="pivot"){
+        if(pivotState.temporary){settings.pivotMode="temporary";saveSettings();}
+      }else if(state.handle.kind==="rotate")ok=commitRotate(axisVector(state.handle,state.basis),state.pivot,state.angleRad);
       else ok=commitMove(state.deltaMm);
+    }else if(state.handle.kind==="pivot"){
+      pivotState.temporary=null;
+      settings.pivotMode="center";
     }
     suppressClickUntil=Date.now()+120;
     rebuildGizmo();updatePanel();
