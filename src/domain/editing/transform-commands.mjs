@@ -48,6 +48,92 @@ export function transformVector(matrix,vector){
     z:m[8]*v.x+m[9]*v.y+m[10]*v.z
   });
 }
+export function scalePermission(target={}){
+  const kind=String(
+    target?.kind ??
+    target?.object_kind ??
+    target?.type ??
+    target?.entity_type ??
+    ""
+  ).trim().toLowerCase();
+  const tubeLike=
+    target?.is_tube===true ||
+    target?.recognized_tube===true ||
+    target?.is_recognized_tube===true ||
+    kind==="tube" ||
+    kind==="recognizedtube" ||
+    kind==="recognized-tube" ||
+    kind==="engineeringtube" ||
+    kind==="engineering-tube" ||
+    (Array.isArray(target?.rows)&&(
+      target?.diameter!==undefined ||
+      target?.diameter_mm!==undefined ||
+      target?.outerDiameterMm!==undefined ||
+      target?.OD!==undefined ||
+      target?.importEvidence!==undefined
+    ));
+  if(tubeLike){
+    return freeze({
+      allowed:false,
+      code:"TUBE_SCALE_FORBIDDEN",
+      reason:"Scale is forbidden for recognized/engineering tubes; use dimensional editing or rigid Move/Rotate/Mirror."
+    });
+  }
+  return freeze({
+    allowed:true,
+    code:"SCALE_ALLOWED_NON_TUBE",
+    reason:null
+  });
+}
+export function assertScaleAllowed(target={}){
+  const permission=scalePermission(target);
+  if(!permission.allowed){
+    const error=new RangeError(permission.reason);
+    error.code=permission.code;
+    throw error;
+  }
+  return permission;
+}
+export function rigidMatrixCheck(matrix,{tolerance=1e-9}={}){
+  const m=rawMatrix(matrix),tol=Math.max(EPS,Math.abs(num(tolerance,"tolerance")));
+  const cols=[
+    {x:m[0],y:m[4],z:m[8]},
+    {x:m[1],y:m[5],z:m[9]},
+    {x:m[2],y:m[6],z:m[10]}
+  ];
+  const lengths=cols.map(length);
+  const orthogonal=
+    Math.abs(dot(cols[0],cols[1]))<=tol &&
+    Math.abs(dot(cols[0],cols[2]))<=tol &&
+    Math.abs(dot(cols[1],cols[2]))<=tol;
+  const unitLengths=lengths.every((value)=>Math.abs(value-1)<=tol);
+  const affine=
+    Math.abs(m[12])<=tol &&
+    Math.abs(m[13])<=tol &&
+    Math.abs(m[14])<=tol &&
+    Math.abs(m[15]-1)<=tol;
+  const determinant=dot(cols[0],cross(cols[1],cols[2]));
+  const unitDeterminant=Math.abs(Math.abs(determinant)-1)<=tol;
+  return freeze({
+    rigid:unitLengths&&orthogonal&&affine&&unitDeterminant,
+    unit_lengths:unitLengths,
+    orthogonal,
+    affine,
+    determinant,
+    reflection:determinant<0,
+    hidden_scale_or_shear:!(unitLengths&&orthogonal&&unitDeterminant)
+  });
+}
+export function assertRigidTransformMatrix(matrix,options={}){
+  const check=rigidMatrixCheck(matrix,options);
+  if(!check.rigid){
+    const error=new RangeError("Tube transforms must be rigid/isometric; Scale and shear are forbidden.");
+    error.code="NON_RIGID_TUBE_TRANSFORM";
+    throw error;
+  }
+  return check;
+}
+
 export function translationMatrix(delta){
   const d=vec(delta,"delta");
   return freeze([1,0,0,d.x,0,1,0,d.y,0,0,1,d.z,0,0,0,1]);
