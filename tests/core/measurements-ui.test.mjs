@@ -126,3 +126,23 @@ test("question 65: radius remains available for BEND quick inspection",()=>{
   assert.match(code,/\["Radius",m\.radius_mm,"mm"\]/);
   assert.match(code,/row\.type==="BEND"/);
 });
+
+
+test("question 66: measurement results use a separate persistent panel",()=>{
+  assert.match(code,/tbMeasurementResultsPanel/);
+  assert.match(code,/Результаты измерения/);
+  assert.match(code,/function renderResultsPanel/);
+  assert.match(code,/panel\?\.classList\.contains\("open"\)\|\|quick\.active/);
+  assert.match(code,/data-result-copy/);
+  assert.match(code,/data-result-save/);
+  assert.match(code,/data-result-formula/);
+});
+
+test("question 66: results panel copies details saves dimension and exposes MEASURE formula value",()=>{
+  assert.match(code,/navigator\.clipboard\.writeText/);
+  assert.match(code,/useMeasurementInFormula/);
+  assert.match(code,/formulaMeasurementValue=Number\(lastResult\.primary_value\)/);
+  assert.match(code,/name:"MEASURE"/);
+  assert.match(code,/formulaValue:\(\)=>formulaMeasurementValue/);
+  assert.match(code,/Сохранить как размер/);
+});
