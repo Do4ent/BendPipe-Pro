@@ -143,16 +143,64 @@
     }
     return box.isEmpty()?null:box;
   }
-  function pivotScene(){
+  function selectionCenterScene(){
     const box=selectionBounds();
     if(!box)return null;
     const world=box.getCenter(new THREE.Vector3());
     if(typeof pipeGroup!=="undefined"&&pipeGroup?.worldToLocal)pipeGroup.worldToLocal(world);
     return world;
   }
+  function mmPointToScene(point){
+    const s=scale();
+    return new THREE.Vector3((Number(point?.x)||0)*s,(Number(point?.y)||0)*s,(Number(point?.z)||0)*s);
+  }
+  function firstSelectedTube(){
+    const entry=wholeEntries().find((item)=>item.kind==="tube");
+    return entry?tubeById(entry.tubeId):null;
+  }
+  function p1PivotScene(){
+    const tube=firstSelectedTube();
+    return tube?mmPointToScene(tube.origin??{x:0,y:0,z:0}):selectionCenterScene();
+  }
+  function activeCsOriginScene(){
+    if(settings.cs==="global")return new THREE.Vector3(0,0,0);
+    if(settings.cs==="local")return p1PivotScene();
+    return mmPointToScene(settings.userOrigin);
+  }
+  function candidateScene({featureOnly=false}={}){
+    const candidate=snapTracking()?.currentCandidate?.();
+    if(!candidate?.point)return null;
+    if(featureOnly&&!["Node","Endpoint","Center","Midpoint"].includes(String(candidate.type)))return null;
+    return mmPointToScene(candidate.point);
+  }
+  function pivotScene(){
+    const fallback=selectionCenterScene();
+    if(!fallback)return null;
+    if(settings.pivotMode==="p1")return p1PivotScene()??fallback;
+    if(settings.pivotMode==="feature")return pivotState.feature?.clone?.()??fallback;
+    if(settings.pivotMode==="snap")return pivotState.snap?.clone?.()??fallback;
+    if(settings.pivotMode==="cs-origin")return activeCsOriginScene()??fallback;
+    if(settings.pivotMode==="temporary")return pivotState.temporary?.clone?.()??fallback;
+    return fallback;
+  }
   function pivotMm(){
     const p=pivotScene();if(!p)return null;
     const s=scale();return {x:p.x/s,y:p.y/s,z:p.z/s};
+  }
+  function captureFeaturePivot(){
+    const point=candidateScene({featureOnly:true});
+    if(!point){toast("Текущий Snap должен быть Node / Endpoint / Center / Midpoint");return false;}
+    pivotState.feature=point.clone();settings.pivotMode="feature";saveSettings();rebuildGizmo();updatePanel();return true;
+  }
+  function captureSnapPivot(){
+    const point=candidateScene();
+    if(!point){toast("Нет активной Snap-точки для Pivot");return false;}
+    pivotState.snap=point.clone();settings.pivotMode="snap";saveSettings();rebuildGizmo();updatePanel();return true;
+  }
+  function setTemporaryPivotMm(point){
+    const values={x:Number(point?.x),y:Number(point?.y),z:Number(point?.z)};
+    if(!Object.values(values).every(Number.isFinite)){toast("Pivot XYZ должен быть числом");return false;}
+    pivotState.temporary=mmPointToScene(values);settings.pivotMode="temporary";saveSettings();rebuildGizmo();updatePanel();return true;
   }
   function canRotate(){
     const list=wholeEntries();
