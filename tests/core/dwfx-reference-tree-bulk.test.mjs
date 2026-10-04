@@ -394,3 +394,25 @@ test("A61: deleting an imported component previews a tighter exact project frame
   );
   assert.equal(project.referenceScenes[0].tree.length,2);
 });
+
+
+test("Q61: Source and Editable appear as separate tree branches and Source has no delete action",()=>{
+  const api=loadUi();
+  const project=sampleProject();
+  const html=api.treeItems({project}).join("\n");
+
+  assert.match(html,/Source \/ Reference/);
+  assert.match(html,/Editable geometry/);
+  assert.doesNotMatch(html,/data-ref-bulk-action="delete"/);
+});
+
+test("Q61: public reference actions reject Source deletion",()=>{
+  const api=loadUi();
+  const project=sampleProject();
+  api.selectNode(project,"scene-1","ref-a",true);
+  assert.throws(
+    ()=>api.applyBulkAction(project,"delete"),
+    /Immutable Source \/ Reference/
+  );
+  assert.equal(project.referenceScenes[0].tree[0].children.some((node)=>node.id==="ref-a"),true);
+});
