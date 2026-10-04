@@ -1,16 +1,18 @@
 (()=>{
   const SETTINGS_KEY="tubebender.transformGizmo.settings";
   let installed=false,gizmoGroup=null,previewGroup=null,panel=null,drag=null,activeHandle=null,suppressClickUntil=0;
+  const pivotState={feature:null,snap:null,temporary:null};
   const settings=loadSettings();
 
   function loadSettings(){
-    const defaults={visible:true,cs:"global",ortho:false,polar:false,polarStep:15,userEuler:{x:0,y:0,z:0}};
+    const defaults={visible:true,cs:"global",pivotMode:"center",ortho:false,polar:false,polarStep:15,userEuler:{x:0,y:0,z:0},userOrigin:{x:0,y:0,z:0}};
     try{
       const raw=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"null");
       if(!raw||typeof raw!=="object")return defaults;
       return {
         visible:raw.visible!==false,
         cs:["global","local","user"].includes(raw.cs)?raw.cs:"global",
+        pivotMode:["center","p1","feature","snap","cs-origin","temporary"].includes(raw.pivotMode)?raw.pivotMode:"center",
         ortho:raw.ortho===true,
         polar:raw.polar===true,
         polarStep:Number(raw.polarStep)>0?Number(raw.polarStep):15,
@@ -18,6 +20,11 @@
           x:Number(raw.userEuler?.x)||0,
           y:Number(raw.userEuler?.y)||0,
           z:Number(raw.userEuler?.z)||0
+        },
+        userOrigin:{
+          x:Number(raw.userOrigin?.x)||0,
+          y:Number(raw.userOrigin?.y)||0,
+          z:Number(raw.userOrigin?.z)||0
         }
       };
     }catch{return defaults;}
