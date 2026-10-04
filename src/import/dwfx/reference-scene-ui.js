@@ -793,6 +793,110 @@
     }
   }
 
+  function detachedRuntime(payload){
+    if(!payload?.assets)return null;
+    return {
+      scale_mm_per_source_unit:Number(payload.scale_mm_per_source_unit)||1,
+      assetsById:new Map((payload.assets??[]).map((asset)=>[String(asset.id),asset]))
+    };
+  }
+
+  function renderMeshInstanceNode({
+    parent,node,runtime,THREE,instanceId,sceneId,sourceNodeId,transparent=false
+  }){
+    const nodeGroup=new THREE.Group();
+    const t=nodeTranslationMm(node);
+    const scaleMm=Number(runtime?.scale_mm_per_source_unit)||1;
+    nodeGroup.position.set(t.x/scaleMm,t.y/scaleMm,t.z/scaleMm);
+    nodeGroup.userData={
+      helper:false,
+      referenceEditableInstanceId:String(instanceId),
+      sourceReferenceSceneId:String(sceneId??""),
+      sourceReferenceNodeId:String(sourceNodeId??""),
+      editableMeshInstance:true
+    };
+    let count=0;
+    for(const geometryInstance of node?.geometry_instances??[]){
+      if(geometryInstance?.status!=="exact")continue;
+      const asset=runtime?.assetsById?.get(String(geometryInstance.asset_id));
+      if(!asset||asset.status!=="exact")continue;
+      const placed=buildAssetTemplate(runtime,asset,THREE,transparent?"transparent":"normal").clone(true);
+      placed.userData={
+        ...(placed.userData??{}),
+        referenceEditableInstanceId:String(instanceId),
+        sourceReferenceSceneId:String(sceneId??""),
+        sourceReferenceNodeId:String(sourceNodeId??""),
+        editableMeshInstance:true
+      };
+      if(Array.isArray(geometryInstance.placement_matrix)&&geometryInstance.placement_matrix.length===16){
+        placed.matrix.fromArray(geometryInstance.placement_matrix);
+        placed.matrixAutoUpdate=false;
+      }
+      nodeGroup.add(placed);count+=1;
+    }
+    for(const child of node?.children??[]){
+      count+=renderMeshInstanceNode({
+        parent:nodeGroup,node:child,runtime,THREE,instanceId,sceneId,sourceNodeId,transparent
+      });
+    }
+    if(count)parent.add(nodeGroup);
+    return count;
+  }
+
+  function renderEditableMeshInstances({parent,project,THREE,geomScale}){
+    let rendered=0;
+    for(const instance of editableMeshInstanceList(project,{create:false})){
+      if(instance?.visible===false)continue;
+      let sourceScene=null,sourceNode=null,runtime=null,scaleMm=1;
+      if(instance.link_status==="detached"&&instance.detached_payload){
+        sourceNode=instance.detached_payload.node;
+        runtime=detachedRuntime(instance.detached_payload);
+        scaleMm=Number(instance.detached_payload.scale_mm_per_source_unit)||1;
+      }else{
+        const linked=meshInstanceSource(project,instance);
+        if(!linked)continue;
+        sourceScene=linked.scene;sourceNode=linked.node;
+        runtime=runtimeForScene(sourceScene);
+        scaleMm=Number(sourceScene?.scale_mm_per_source_unit)||Number(runtime?.scale_mm_per_source_unit)||1;
+      }
+      if(!sourceNode||!runtime)continue;
+      const sceneGroup=new THREE.Group();
+      sceneGroup.name="Editable mesh instance: "+String(instance.name??instance.id);
+      sceneGroup.scale.setScalar(scaleMm*Number(geomScale||1));
+      sceneGroup.userData={
+        referenceEditableInstanceId:String(instance.id),
+        editableMeshInstance:true,
+        sourceReferenceSceneId:String(instance.source?.scene_id??""),
+        sourceReferenceNodeId:String(instance.source?.node_id??"")
+      };
+      const transform=instance.transform??{};
+      const p=transform.position_mm??{};
+      sceneGroup.position.set(
+        (Number(p.x)||0)*Number(geomScale||1),
+        (Number(p.y)||0)*Number(geomScale||1),
+        (Number(p.z)||0)*Number(geomScale||1)
+      );
+      const r=transform.rotation_deg??{};
+      sceneGroup.rotation.set(
+        THREE.MathUtils.degToRad(Number(r.x)||0),
+        THREE.MathUtils.degToRad(Number(r.y)||0),
+        THREE.MathUtils.degToRad(Number(r.z)||0),
+        "XYZ"
+      );
+      const count=renderMeshInstanceNode({
+        parent:sceneGroup,node:sourceNode,runtime:{...runtime,scale_mm_per_source_unit:scaleMm},
+        THREE,instanceId:instance.id,
+        sceneId:instance.source?.scene_id,nodeId:instance.source?.node_id,
+        sourceNodeId:instance.source?.node_id,
+        transparent:false
+      });
+      if(count){
+        parent.add(sceneGroup);rendered+=1;
+      }
+    }
+    return rendered;
+  }
+
   function render3D({parent,project,THREE,geomScale}){
     if(!parent||!project||!THREE)return 0;
     let count=0;
@@ -806,6 +910,7 @@
       renderSceneTree({parent,sceneMeta,runtime,project,THREE,geomScale});
       count+=1;
     }
+    count+=renderEditableMeshInstances({parent,project,THREE,geomScale});
     return count;
   }
 
