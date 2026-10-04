@@ -246,6 +246,193 @@
     return true;
   }
 
+  function editableMeshInstanceList(project,{create=true}={}){
+    if(!project||typeof project!=="object")return [];
+    if(!Array.isArray(project.editable_mesh_instances)){
+      if(!create)return [];
+      project.editable_mesh_instances=[];
+    }
+    return project.editable_mesh_instances;
+  }
+
+  function meshInstanceId(){
+    const uuid=globalThis.crypto?.randomUUID?.();
+    return uuid?"mesh-instance-"+uuid:"mesh-instance-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,9);
+  }
+
+  function meshInstanceById(project,id){
+    return editableMeshInstanceList(project,{create:false}).find((item)=>String(item?.id??"")===String(id??""))??null;
+  }
+
+  function meshInstanceSource(project,instance){
+    if(!instance)return null;
+    const source=instance.source??{};
+    const scene=findScene(project,source.scene_id);
+    const node=findNode(scene?.tree,source.node_id);
+    return scene&&node?{scene,node}:null;
+  }
+
+  function createEditableMeshInstance(project,scene,node,{name=null,position_mm=null,rotation_deg=null}={}){
+    if(!project||!scene||!node)throw new Error("Source scene/node is required");
+    const instance={
+      id:meshInstanceId(),
+      kind:"EditableMeshInstance",
+      name:String(name??(node.label??node.id)+" instance"),
+      source:{
+        scene_id:String(scene.id),
+        node_id:String(node.id),
+        source_file:String(scene.source_file??scene.name??""),
+        label:String(node.label??node.id)
+      },
+      transform:{
+        position_mm:{
+          x:Number(position_mm?.x)||0,
+          y:Number(position_mm?.y)||0,
+          z:Number(position_mm?.z)||0
+        },
+        rotation_deg:{
+          x:Number(rotation_deg?.x)||0,
+          y:Number(rotation_deg?.y)||0,
+          z:Number(rotation_deg?.z)||0
+        }
+      },
+      link_status:"linked",
+      source_visible:false,
+      compare_source:false,
+      visible:true,
+      detached_payload:null
+    };
+    editableMeshInstanceList(project).push(instance);
+    return instance;
+  }
+
+  function ensureEditableMeshInstance(project,scene,node){
+    const existing=editableMeshInstanceList(project,{create:false}).find((item)=>
+      item?.link_status!=="detached"&&
+      String(item?.source?.scene_id??"")===String(scene?.id??"")&&
+      String(item?.source?.node_id??"")===String(node?.id??"")&&
+      item?.source_seed===true
+    );
+    if(existing)return existing;
+    const created=createEditableMeshInstance(project,scene,node);
+    created.source_seed=true;
+    return created;
+  }
+
+  function moveEditableMeshInstance(project,instanceId,deltaMm){
+    const instance=meshInstanceById(project,instanceId);
+    if(!instance)throw new Error("Editable mesh instance not found");
+    const p=instance.transform?.position_mm??{x:0,y:0,z:0};
+    instance.transform={
+      ...(instance.transform??{}),
+      position_mm:{
+        x:Number((Number(p.x||0)+Number(deltaMm?.x||0)).toFixed(6)),
+        y:Number((Number(p.y||0)+Number(deltaMm?.y||0)).toFixed(6)),
+        z:Number((Number(p.z||0)+Number(deltaMm?.z||0)).toFixed(6))
+      }
+    };
+    return instance;
+  }
+
+  function rotateEditableMeshInstance(project,instanceId,deltaDeg){
+    const instance=meshInstanceById(project,instanceId);
+    if(!instance)throw new Error("Editable mesh instance not found");
+    const r=instance.transform?.rotation_deg??{x:0,y:0,z:0};
+    instance.transform={
+      ...(instance.transform??{}),
+      rotation_deg:{
+        x:Number((Number(r.x||0)+Number(deltaDeg?.x||0)).toFixed(6)),
+        y:Number((Number(r.y||0)+Number(deltaDeg?.y||0)).toFixed(6)),
+        z:Number((Number(r.z||0)+Number(deltaDeg?.z||0)).toFixed(6))
+      }
+    };
+    return instance;
+  }
+
+  function copyEditableMeshInstance(project,instanceId,{offset_mm={x:0,y:0,z:0},name=null}={}){
+    const source=meshInstanceById(project,instanceId);
+    if(!source)throw new Error("Editable mesh instance not found");
+    const p=source.transform?.position_mm??{x:0,y:0,z:0};
+    const copy=clonePlain(source);
+    copy.id=meshInstanceId();
+    copy.name=String(name??String(source.name??"Editable mesh")+" copy");
+    copy.source_seed=false;
+    copy.array_member=null;
+    copy.transform={
+      ...(copy.transform??{}),
+      position_mm:{
+        x:Number(p.x||0)+Number(offset_mm?.x||0),
+        y:Number(p.y||0)+Number(offset_mm?.y||0),
+        z:Number(p.z||0)+Number(offset_mm?.z||0)
+      }
+    };
+    editableMeshInstanceList(project).push(copy);
+    return copy;
+  }
+
+  function arrayEditableMeshInstance(project,instanceId,{count=2,step_mm={x:0,y:0,z:0}}={}){
+    const n=Math.trunc(Number(count));
+    if(!(n>=2))throw new RangeError("Array count must be >= 2");
+    const created=[];
+    for(let index=1;index<n;index++){
+      const copy=copyEditableMeshInstance(project,instanceId,{
+        offset_mm:{
+          x:Number(step_mm?.x||0)*index,
+          y:Number(step_mm?.y||0)*index,
+          z:Number(step_mm?.z||0)*index
+        }
+      });
+      copy.array_member={source_instance_id:String(instanceId),member_index:index,derived:false};
+      created.push(copy);
+    }
+    return created;
+  }
+
+  function collectDetachedAssets(runtime,node){
+    const ids=new Set();
+    const visitAsset=(assetId)=>{
+      const key=String(assetId??"");
+      if(!key||ids.has(key))return;
+      const asset=runtime?.assetsById?.get(key);
+      if(!asset)return;
+      ids.add(key);
+      for(const nested of asset.nested_instances??[])visitAsset(nested?.asset_id);
+    };
+    const visitNode=(item)=>{
+      for(const gi of item?.geometry_instances??[])visitAsset(gi?.asset_id);
+      for(const child of item?.children??[])visitNode(child);
+    };
+    visitNode(node);
+    return [...ids].map((key)=>clonePlain(runtime.assetsById.get(key))).filter(Boolean);
+  }
+
+  function snapshotMeshInstanceSource(project,instance){
+    const linked=meshInstanceSource(project,instance);
+    if(!linked)throw new Error("Source mesh is unavailable");
+    const runtime=runtimeForScene(linked.scene);
+    if(!runtime)throw new Error("Source mesh runtime is unavailable");
+    return {
+      schema:"detached_mesh_instance_v1",
+      source_scene_id:String(linked.scene.id),
+      source_node_id:String(linked.node.id),
+      scale_mm_per_source_unit:Number(linked.scene.scale_mm_per_source_unit)||Number(runtime.scale_mm_per_source_unit)||1,
+      node:clonePlain(linked.node),
+      assets:collectDetachedAssets(runtime,linked.node)
+    };
+  }
+
+  function breakEditableMeshInstanceLink(project,instanceId){
+    const instance=meshInstanceById(project,instanceId);
+    if(!instance)throw new Error("Editable mesh instance not found");
+    if(instance.link_status==="detached")return instance;
+    instance.detached_payload=snapshotMeshInstanceSource(project,instance);
+    instance.link_status="detached";
+    instance.source_seed=false;
+    instance.compare_source=false;
+    instance.source_visible=false;
+    return instance;
+  }
+
   function nodeTranslationMm(node){
     const value=node?.translation_mm;
     const source=Array.isArray(value)
