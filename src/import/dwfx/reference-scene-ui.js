@@ -512,8 +512,10 @@
       const translation=addTranslationMm(parentTranslation,nodeTranslationMm(node));
 
       const recognizedPart=String(node.editable_part_number??"");
-      const suppressEditable=
-        recognizedPart&&editable.has(recognizedPart);
+      const linkedState=sourceDisplayState(project,sceneMeta,node);
+      const suppressEditable=linkedState
+        ? !linkedState.visible
+        : !!(recognizedPart&&editable.has(recognizedPart));
 
       if(!suppressEditable){
         const nodeGroup=new THREE.Group();
@@ -521,6 +523,11 @@
         nodeGroup.userData.referenceGeometry=true;
         nodeGroup.userData.referenceNodeId=String(node.id);
         nodeGroup.userData.referenceSceneId=String(sceneMeta.id);
+        if(linkedState?.tube?.id){
+          nodeGroup.userData.sourceLinkedEditableTubeId=String(linkedState.tube.id);
+          nodeGroup.userData.sourceEditableHighlight=linkedState.selectedEditable===true;
+          nodeGroup.userData.sourceCompare=linkedState.compare===true;
+        }
         nodeGroup.position.set(
           translation.x/scaleMm,
           translation.y/scaleMm,
@@ -535,13 +542,18 @@
             runtime,
             asset,
             THREE,
-            nodeTransparent?"transparent":"normal"
+            (nodeTransparent||linkedState?.transparent)?"transparent":"normal"
           );
           const placed=template.clone(true);
           placed.userData.referenceShared=true;
           placed.userData.referenceGeometry=true;
           placed.userData.referenceNodeId=String(node.id);
           placed.userData.referenceSceneId=String(sceneMeta.id);
+          if(linkedState?.tube?.id){
+            placed.userData.sourceLinkedEditableTubeId=String(linkedState.tube.id);
+            placed.userData.sourceEditableHighlight=linkedState.selectedEditable===true;
+            placed.userData.sourceCompare=linkedState.compare===true;
+          }
           if(Array.isArray(instance.placement_matrix)&&instance.placement_matrix.length===16){
             placed.matrix.fromArray(instance.placement_matrix);
             placed.matrixAutoUpdate=false;
