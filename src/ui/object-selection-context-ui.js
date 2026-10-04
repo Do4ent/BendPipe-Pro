@@ -772,6 +772,8 @@
       '<button type="button" data-object-action="show">◉ <span>Показать</span></button>'+
       '<button type="button" data-object-action="show-all">◉ <span>Показать все</span></button>'+
       '<button type="button" data-object-action="transparent">◫ <span>Прозрачность</span></button>'+
+      '<button type="button" data-object-action="compare-source">⇄ <span>Сравнить с Source</span></button>'+
+      '<button type="button" data-object-action="break-mesh-link">⛓̸ <span>Разорвать Source Link</span></button>'+
       '<button type="button" class="anchor-end" data-object-action="anchor-end">⚓ <span>Зафиксировать</span></button>'+
       '<button type="button" class="diagnose" data-object-action="diagnose">? <span>Что не правильно?</span></button>'+
       '<div class="tb-object-context-separator"></div>'+
@@ -785,6 +787,8 @@
       if(action==="move")openMovePanel();
       else if(action==="anchor-end")toggleEndConstraint();
       else if(action==="diagnose")openInvalidElementDiagnosis();
+      else if(action==="compare-source")toggleMeshSourceCompare();
+      else if(action==="break-mesh-link")breakSelectedMeshLinks();
       else applyAction(action);
     });
     contextMenu=menu;
@@ -831,6 +835,19 @@
       diagnose.title=diagnosis
         ?diagnosis.issues.join("\n")
         :"Доступно только для некорректного элемента трубы";
+    }
+    const meshEntries=entries.filter((entry)=>entry.kind==="mesh-instance");
+    const compareSource=menu.querySelector('[data-object-action="compare-source"]');
+    const breakMesh=menu.querySelector('[data-object-action="break-mesh-link"]');
+    const meshOnly=meshEntries.length>0&&meshEntries.length===entries.length;
+    const linkedMeshes=meshEntries.filter((entry)=>refApi()?.meshInstanceById?.(project(),entry.instanceId)?.link_status!=="detached");
+    if(compareSource){
+      compareSource.hidden=!meshOnly||!linkedMeshes.length;
+      compareSource.disabled=!meshOnly||!linkedMeshes.length;
+    }
+    if(breakMesh){
+      breakMesh.hidden=!meshOnly||!linkedMeshes.length;
+      breakMesh.disabled=!meshOnly||!linkedMeshes.length;
     }
     const move=menu.querySelector('[data-object-action="move"]');
     if(move){
@@ -897,6 +914,39 @@
     panel.querySelector('[data-move-axis="x"]')?.select();
   }
   function closeMovePanel(){if(movePanel)movePanel.style.display="none";}
+
+  function toggleMeshSourceCompare(){
+    const p=project(),meshEntries=selectionEntries().filter((entry)=>entry.kind==="mesh-instance");
+    if(!p||!meshEntries.length)return false;
+    const mutate=()=>{
+      for(const entry of meshEntries){
+        const instance=refApi()?.meshInstanceById?.(p,entry.instanceId);
+        if(!instance||instance.link_status==="detached")continue;
+        instance.compare_source=instance.compare_source!==true;
+        instance.source_visible=instance.compare_source===true;
+      }
+      return true;
+    };
+    const ok=typeof tbModelCommand==="function"?tbModelCommand("Сравнить Mesh Instance с Source",mutate):mutate();
+    if(ok===false)return false;
+    try{if(typeof save==="function")save();if(typeof renderAll==="function")renderAll();if(typeof refreshProjectTree==="function")refreshProjectTree();}catch{}
+    refreshVisualSelection();return true;
+  }
+
+  function breakSelectedMeshLinks(){
+    const p=project(),meshEntries=selectionEntries().filter((entry)=>entry.kind==="mesh-instance");
+    if(!p||!meshEntries.length)return false;
+    const mutate=()=>{
+      for(const entry of meshEntries){
+        refApi()?.breakEditableMeshInstanceLink?.(p,entry.instanceId);
+      }
+      return true;
+    };
+    const ok=typeof tbModelCommand==="function"?tbModelCommand("Разорвать Source Link mesh instance",mutate):mutate();
+    if(ok===false)return false;
+    try{if(typeof save==="function")save();if(typeof renderAll==="function")renderAll();if(typeof refreshProjectTree==="function")refreshProjectTree();}catch{}
+    refreshVisualSelection();return true;
+  }
 
   function selectedReferenceEntries(entries){
     return entries.filter((entry)=>entry.kind==="ref");
