@@ -7,6 +7,7 @@
   let ownRaycaster=null;
   const PREFIX={
     ref:"ref:",
+    mesh:"mesh:",
     tube:"tube:",
     row:"row:",
     end:"end:",
@@ -16,6 +17,7 @@
   function enc(value){return encodeURIComponent(String(value??""));}
   function dec(value){try{return decodeURIComponent(String(value??""));}catch{return String(value??"");}}
   function refKey(sceneId,nodeId){return PREFIX.ref+enc(sceneId)+":"+enc(nodeId);}
+  function meshKey(instanceId){return PREFIX.mesh+enc(instanceId);}
   function tubeKey(tubeId){return PREFIX.tube+enc(tubeId);}
   function endKey(tubeId){return PREFIX.end+enc(tubeId);}
   function rowKey(tubeId,rowIndex){return PREFIX.row+enc(tubeId)+":"+String(Number(rowIndex));}
@@ -28,6 +30,9 @@
       const split=body.indexOf(":");
       if(split<0)return null;
       return {kind:"ref",sceneId:dec(body.slice(0,split)),nodeId:dec(body.slice(split+1))};
+    }
+    if(text.startsWith(PREFIX.mesh)){
+      return {kind:"mesh-instance",instanceId:dec(text.slice(PREFIX.mesh.length))};
     }
     if(text.startsWith(PREFIX.tube)){
       return {kind:"tube",tubeId:dec(text.slice(PREFIX.tube.length))};
@@ -134,6 +139,9 @@
     if(row.matches?.("[data-ref-node]")){
       return refKey(row.dataset.refScene,row.dataset.refNode);
     }
+    if(row.matches?.("[data-import-mesh-instance]")){
+      return meshKey(row.dataset.importMeshInstance);
+    }
     if(row.matches?.("[data-tree-tube]")){
       return tubeKey(row.dataset.treeTube);
     }
@@ -160,7 +168,7 @@
 
   function treeRowFromTarget(target){
     return target?.closest?.(
-      "[data-ref-node],[data-tree-tube],[data-tree-row],[data-tree-end],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
+      "[data-ref-node],[data-import-mesh-instance],[data-tree-tube],[data-tree-row],[data-tree-end],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
     )??null;
   }
 
@@ -175,6 +183,7 @@
     let item=object;
     while(item){
       const data=item.userData??{};
+      if(data.referenceEditableInstanceId)return false;
       if(data.referenceNodeId&&data.referenceSceneId)return false;
       if(
         data.bboxCorner||
@@ -199,6 +208,12 @@
     let origin=false;
     while(item){
       const data=item.userData??{};
+      if(data.referenceEditableInstanceId){
+        return {
+          key:meshKey(data.referenceEditableInstanceId),
+          entry:{kind:"mesh-instance",instanceId:String(data.referenceEditableInstanceId)}
+        };
+      }
       if(data.referenceNodeId&&data.referenceSceneId){
         return {
           key:refKey(data.referenceSceneId,data.referenceNodeId),
