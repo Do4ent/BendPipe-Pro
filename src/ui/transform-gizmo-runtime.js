@@ -12,7 +12,7 @@
       return {
         visible:raw.visible!==false,
         cs:["global","local","user"].includes(raw.cs)?raw.cs:"global",
-        pivotMode:["center","p1","feature","snap","cs-origin","temporary"].includes(raw.pivotMode)?raw.pivotMode:"center",
+        pivotMode:["center","p1","cs-origin"].includes(raw.pivotMode)?raw.pivotMode:"center",
         ortho:raw.ortho===true,
         polar:raw.polar===true,
         polarStep:Number(raw.polarStep)>0?Number(raw.polarStep):15,
@@ -562,7 +562,7 @@
     if(document.getElementById("tbTransformGizmoStyles"))return;
     const style=document.createElement("style");style.id="tbTransformGizmoStyles";
     style.textContent=
-      '#tbTransformGizmoPanel{position:fixed;z-index:120310;left:14px;bottom:14px;width:280px;padding:8px;border:1px solid #41566f;border-radius:8px;background:rgba(13,22,32,.96);color:#eaf3fd;font:11px system-ui;box-shadow:0 10px 30px rgba(0,0,0,.45)}'+
+      '#tbTransformGizmoPanel{position:fixed;z-index:120310;left:14px;bottom:14px;width:340px;padding:8px;border:1px solid #41566f;border-radius:8px;background:rgba(13,22,32,.96);color:#eaf3fd;font:11px system-ui;box-shadow:0 10px 30px rgba(0,0,0,.45)}'+
       '#tbTransformGizmoPanel .tg-row{display:flex;align-items:center;gap:6px;margin:5px 0}#tbTransformGizmoPanel .tg-row label{color:#9fb0c3}'+
       '#tbTransformGizmoPanel select,#tbTransformGizmoPanel input{min-width:0;background:#0a121b;color:#fff;border:1px solid #40536a;border-radius:4px;padding:4px}'+
       '#tbTransformGizmoPanel input[type=number]{width:55px}#tbTransformGizmoPanel button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:4px;padding:4px 7px;cursor:pointer}'+
@@ -578,31 +578,59 @@
       '<div class="tg-row"><label>CS</label><select data-gizmo-cs><option value="global">Global</option><option value="local">Local</option><option value="user">User</option></select>'+
       '<label><input data-gizmo-ortho type="checkbox"> Ortho</label><label><input data-gizmo-polar type="checkbox"> Polar</label></div>'+
       '<div class="tg-row" data-gizmo-user><label>User XYZ°</label><input data-user-x type="number"><input data-user-y type="number"><input data-user-z type="number"></div>'+
+      '<div class="tg-row" data-gizmo-user><label>User O</label><input data-user-ox type="number"><input data-user-oy type="number"><input data-user-oz type="number"></div>'+
+      '<div class="tg-row"><label>Pivot</label><select data-gizmo-pivot><option value="center">Center / group bbox</option><option value="p1">P1</option><option value="feature">Node / Endpoint / Center</option><option value="snap">Snap point</option><option value="cs-origin">Active CS origin</option><option value="temporary">Temporary</option></select></div>'+
+      '<div class="tg-row"><button data-pivot-feature>Use feature</button><button data-pivot-snap>Use Snap</button><span class="tg-muted">center sphere = drag Pivot</span></div>'+
+      '<div class="tg-row"><label>Pivot XYZ</label><input data-pivot-x type="number"><input data-pivot-y type="number"><input data-pivot-z type="number"><button data-pivot-set>Set</button></div>'+
       '<div class="tg-row"><label>Polar°</label><input data-gizmo-step type="number" min="0.001"><span class="tg-grow"></span><span class="tg-muted" data-gizmo-handle>handle: —</span></div>'+
       '<div class="tg-row"><label>A</label><input data-gizmo-a placeholder="mm / °"><label>B</label><input data-gizmo-b placeholder="mm"><button data-gizmo-apply>Apply exact</button></div>';
     document.body.appendChild(panel);
-    const cs=panel.querySelector("[data-gizmo-cs]"),ortho=panel.querySelector("[data-gizmo-ortho]"),polar=panel.querySelector("[data-gizmo-polar]"),step=panel.querySelector("[data-gizmo-step]");
+    const cs=panel.querySelector("[data-gizmo-cs]"),pivotMode=panel.querySelector("[data-gizmo-pivot]"),ortho=panel.querySelector("[data-gizmo-ortho]"),polar=panel.querySelector("[data-gizmo-polar]"),step=panel.querySelector("[data-gizmo-step]");
     cs.onchange=()=>{settings.cs=cs.value;saveSettings();rebuildGizmo();updatePanel();};
+    pivotMode.onchange=()=>{settings.pivotMode=pivotMode.value;saveSettings();rebuildGizmo();updatePanel();};
     ortho.onchange=()=>{settings.ortho=ortho.checked;saveSettings();snapTracking()?.setTrackingModes?.({ortho:settings.ortho,polar:settings.polar,polar_increment_deg:settings.polarStep});};
     polar.onchange=()=>{settings.polar=polar.checked;saveSettings();snapTracking()?.setTrackingModes?.({ortho:settings.ortho,polar:settings.polar,polar_increment_deg:settings.polarStep});};
     step.onchange=()=>{settings.polarStep=Math.max(.001,Number(step.value)||15);saveSettings();snapTracking()?.setTrackingModes?.({polar_increment_deg:settings.polarStep});};
     for(const axis of ["x","y","z"]){
       panel.querySelector("[data-user-"+axis+"]").onchange=(event)=>{settings.userEuler[axis]=Number(event.target.value)||0;saveSettings();if(settings.cs==="user")rebuildGizmo();};
+      panel.querySelector("[data-user-o"+axis+"]").onchange=(event)=>{settings.userOrigin[axis]=Number(event.target.value)||0;saveSettings();if(settings.cs==="user"&&settings.pivotMode==="cs-origin")rebuildGizmo();};
     }
+    panel.querySelector("[data-pivot-feature]").onclick=captureFeaturePivot;
+    panel.querySelector("[data-pivot-snap]").onclick=captureSnapPivot;
+    panel.querySelector("[data-pivot-set]").onclick=()=>{
+      setTemporaryPivotMm({
+        x:parseNumber(panel.querySelector("[data-pivot-x]").value),
+        y:parseNumber(panel.querySelector("[data-pivot-y]").value),
+        z:parseNumber(panel.querySelector("[data-pivot-z]").value)
+      });
+    };
     panel.querySelector("[data-gizmo-toggle]").onclick=()=>toggleVisible();
     panel.querySelector("[data-gizmo-apply]").onclick=applyNumeric;
     updatePanel();return panel;
   }
+  function setPivotFields(point){
+    if(!panel||!point)return;
+    const map={x:"[data-pivot-x]",y:"[data-pivot-y]",z:"[data-pivot-z]"};
+    for(const axis of ["x","y","z"]){
+      const input=panel.querySelector(map[axis]);
+      if(input)input.value=Number(point[axis]).toFixed(3);
+    }
+  }
   function updatePanel(){
     if(!panel)return;
     panel.querySelector("[data-gizmo-cs]").value=settings.cs;
+    panel.querySelector("[data-gizmo-pivot]").value=settings.pivotMode;
     panel.querySelector("[data-gizmo-ortho]").checked=settings.ortho;
     panel.querySelector("[data-gizmo-polar]").checked=settings.polar;
     panel.querySelector("[data-gizmo-step]").value=settings.polarStep;
     panel.querySelector("[data-user-x]").value=settings.userEuler.x;
     panel.querySelector("[data-user-y]").value=settings.userEuler.y;
     panel.querySelector("[data-user-z]").value=settings.userEuler.z;
-    panel.querySelector("[data-gizmo-user]").style.display=settings.cs==="user"?"flex":"none";
+    panel.querySelector("[data-user-ox]").value=settings.userOrigin.x;
+    panel.querySelector("[data-user-oy]").value=settings.userOrigin.y;
+    panel.querySelector("[data-user-oz]").value=settings.userOrigin.z;
+    panel.querySelectorAll("[data-gizmo-user]").forEach((row)=>row.style.display=settings.cs==="user"?"flex":"none");
+    const currentPivot=pivotMm();if(currentPivot)setPivotFields(currentPivot);
     panel.querySelector("[data-gizmo-toggle]").textContent=settings.visible?"Hide":"Show";
     panel.querySelector("[data-gizmo-handle]").textContent="handle: "+(activeHandle?handleLabel(activeHandle):"—");
     panel.querySelector("[data-gizmo-b]").disabled=activeHandle?.kind!=="move-plane";
@@ -630,7 +658,10 @@
   }
   function onSelectionChange(){
     if(drag)return;
-    activeHandle=null;clearPreview();rebuildGizmo();updatePanel();
+    activeHandle=null;clearPreview();
+    pivotState.feature=null;pivotState.snap=null;pivotState.temporary=null;
+    if(["feature","snap","temporary"].includes(settings.pivotMode))settings.pivotMode="center";
+    rebuildGizmo();updatePanel();
   }
   function install(){
     if(installed)return;installed=true;
@@ -650,6 +681,9 @@
       settings:()=>structuredClone(settings),
       setCoordinateSystem:(value)=>{if(!["global","local","user"].includes(value))throw new RangeError("Unknown coordinate system");settings.cs=value;saveSettings();rebuildGizmo();updatePanel();return value;},
       setUserEuler:(value)=>{settings.userEuler={x:Number(value?.x)||0,y:Number(value?.y)||0,z:Number(value?.z)||0};saveSettings();if(settings.cs==="user")rebuildGizmo();updatePanel();return structuredClone(settings.userEuler);},
+      setUserOrigin:(value)=>{settings.userOrigin={x:Number(value?.x)||0,y:Number(value?.y)||0,z:Number(value?.z)||0};saveSettings();if(settings.cs==="user"&&settings.pivotMode==="cs-origin")rebuildGizmo();updatePanel();return structuredClone(settings.userOrigin);},
+      setPivotMode:(value)=>{if(!["center","p1","feature","snap","cs-origin","temporary"].includes(value))throw new RangeError("Unknown pivot mode");settings.pivotMode=value;saveSettings();rebuildGizmo();updatePanel();return value;},
+      captureFeaturePivot,captureSnapPivot,setTemporaryPivotMm,
       applyNumeric,
       activeHandle:()=>activeHandle?structuredClone(activeHandle):null,
       pivotMm
