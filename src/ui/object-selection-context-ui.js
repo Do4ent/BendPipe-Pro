@@ -1209,6 +1209,76 @@
     refreshVisualSelection();
   }
 
+  let areaSelection=null;
+  function ensureAreaOverlay(){
+    let el=document.getElementById("tbAreaSelectionOverlay");
+    if(el)return el;
+    el=document.createElement("div");el.id="tbAreaSelectionOverlay";
+    el.style.cssText="position:fixed;z-index:119990;pointer-events:none;border:1px solid #ffd54a;background:rgba(255,213,74,.10);display:none";
+    document.body.appendChild(el);
+    return el;
+  }
+  function pointInPolygon(point,polygon){
+    let inside=false;
+    for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){
+      const a=polygon[i],b=polygon[j];
+      if(((a.y>point.y)!==(b.y>point.y))&&(point.x<(b.x-a.x)*(point.y-a.y)/(b.y-a.y||1e-12)+a.x))inside=!inside;
+    }
+    return inside;
+  }
+  function projectedSelectionCandidates(){
+    if(typeof THREE==="undefined"||typeof camera==="undefined"||typeof pipeGroup==="undefined")return [];
+    const canvas=document.getElementById("threeCanvas");if(!canvas)return [];
+    const rect=canvas.getBoundingClientRect(),map=new Map();
+    pipeGroup.traverse((object)=>{
+      if(!object||object.visible===false||skip3DHit(object))return;
+      const hit=entryFrom3DObject(object);if(!hit||map.has(hit.key))return;
+      let box;try{box=new THREE.Box3().setFromObject(object);}catch{return;}
+      if(!box||box.isEmpty())return;
+      const center=box.getCenter(new THREE.Vector3()).project(camera);
+      if(center.z<-1||center.z>1)return;
+      map.set(hit.key,{key:hit.key,x:rect.left+(center.x+1)*.5*rect.width,y:rect.top+(1-center.y)*.5*rect.height});
+    });
+    return [...map.values()];
+  }
+  function beginAreaSelection(event){
+    if(event.button!==0||!(event.shiftKey||event.altKey))return false;
+    areaSelection={mode:event.altKey?"lasso":"box",start:{x:event.clientX,y:event.clientY},points:[{x:event.clientX,y:event.clientY}],additive:!!(event.ctrlKey||event.metaKey),moved:false};
+    const overlay=ensureAreaOverlay();overlay.style.display="block";
+    if(areaSelection.mode==="lasso"){overlay.style.borderStyle="dashed";overlay.style.background="rgba(255,213,74,.06)";}else overlay.style.borderStyle="solid";
+    event.preventDefault();event.stopPropagation();
+    try{event.target.setPointerCapture?.(event.pointerId);}catch{}
+    return true;
+  }
+  function updateAreaSelection(event){
+    if(!areaSelection)return;
+    const dx=event.clientX-areaSelection.start.x,dy=event.clientY-areaSelection.start.y;
+    if(Math.hypot(dx,dy)>4)areaSelection.moved=true;
+    areaSelection.points.push({x:event.clientX,y:event.clientY});
+    const overlay=ensureAreaOverlay();
+    const xs=areaSelection.points.map((p)=>p.x),ys=areaSelection.points.map((p)=>p.y);
+    overlay.style.left=Math.min(...xs)+"px";overlay.style.top=Math.min(...ys)+"px";
+    overlay.style.width=Math.max(1,Math.max(...xs)-Math.min(...xs))+"px";overlay.style.height=Math.max(1,Math.max(...ys)-Math.min(...ys))+"px";
+    event.preventDefault();event.stopPropagation();
+  }
+  function finishAreaSelection(event){
+    if(!areaSelection)return false;
+    const gesture=areaSelection;areaSelection=null;
+    const overlay=ensureAreaOverlay();overlay.style.display="none";
+    if(!gesture.moved)return false;
+    const candidates=projectedSelectionCandidates(),start=gesture.start,end={x:event.clientX,y:event.clientY};
+    const minX=Math.min(start.x,end.x),maxX=Math.max(start.x,end.x),minY=Math.min(start.y,end.y),maxY=Math.max(start.y,end.y);
+    const keys=candidates.filter((p)=>gesture.mode==="lasso"
+      ?pointInPolygon(p,gesture.points)
+      :(p.x>=minX&&p.x<=maxX&&p.y>=minY&&p.y<=maxY)).map((p)=>p.key);
+    if(!gesture.additive){selected.clear();refApi()?.clearSelection?.();}
+    for(const key of keys)selected.add(key);
+    syncSelectionIntoReference();refreshVisualSelection();
+    window.dispatchEvent(new CustomEvent("tubebender-selection-change"));
+    event.preventDefault();event.stopPropagation();
+    return true;
+  }
+
   function onCanvasClick(event){
     if(event.button!==0)return;
     try{if(controls?.shouldSuppressSelection?.())return;}catch{}
@@ -1384,7 +1454,10 @@
     installed=true;
     installStyles();
     const canvas=document.getElementById("threeCanvas");
-    canvas?.addEventListener("click",onCanvasClick);
+    canvas?.addEventListener("pointerdown",(event)=>{beginAreaSelection(event);},true);
+    canvas?.addEventListener("pointermove",(event)=>{if(areaSelection)updateAreaSelection(event);},true);
+    canvas?.addEventListener("pointerup",(event)=>{if(areaSelection)finishAreaSelection(event);},true);
+        canvas?.addEventListener("click",onCanvasClick);
     canvas?.addEventListener("contextmenu",onCanvasContext);
     // Project tree is built dynamically by buildShell(), so bind through
     // document instead of capturing a possibly non-existent tree element.
@@ -1452,6 +1525,7 @@
     selectionEntries,
     applyAction,
     applyMove,
+    beginAreaSelection,updateAreaSelection,finishAreaSelection,
     applyReferenceFrame,
     invalidElementDiagnosis,
     openInvalidElementDiagnosis,
