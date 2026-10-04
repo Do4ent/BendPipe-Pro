@@ -153,6 +153,89 @@
     );
   }
 
+  function clonePlain(value){
+    return value==null?value:JSON.parse(JSON.stringify(value));
+  }
+
+  function sourceLink(tube){
+    const link=tube?.currentProjectImport?.source_link;
+    return link&&typeof link==="object"?link:null;
+  }
+
+  function linkedEditableTubes(project){
+    return (project?.tubes??[]).filter((tube)=>
+      tube?.currentProjectImport?.source_format==="DWFx"||
+      !!sourceLink(tube)
+    );
+  }
+
+  function linkedTubeForSource(project,sceneId,nodeId){
+    const sid=String(sceneId??""),nid=String(nodeId??"");
+    return linkedEditableTubes(project).find((tube)=>{
+      const link=sourceLink(tube);
+      return link&&link.detached!==true&&
+        String(link.scene_id??"")===sid&&
+        String(link.node_id??"")===nid;
+    })??null;
+  }
+
+  function sourceNodeForTube(project,tube){
+    const link=sourceLink(tube);
+    if(!link||link.detached===true)return null;
+    const scene=(project?.referenceScenes??[]).find((item)=>
+      String(item?.id??"")===String(link.scene_id??"")
+    )??null;
+    if(!scene)return null;
+    const node=findNode(scene.tree,link.node_id);
+    return node?{scene,node,link}:null;
+  }
+
+  function selectedEditableTubeIds(){
+    try{
+      return new Set(
+        (window.TubeBenderObjectContext?.selectionEntries?.()??[])
+          .filter((entry)=>entry?.kind==="tube")
+          .map((entry)=>String(entry.tubeId))
+      );
+    }catch{
+      return new Set();
+    }
+  }
+
+  function sourceDisplayState(project,scene,node){
+    const linked=linkedTubeForSource(project,scene?.id,node?.id);
+    if(!linked)return null;
+    const link=sourceLink(linked);
+    const selectedEditable=selectedEditableTubeIds().has(String(linked.id));
+    const display=String(link?.display??"hidden");
+    return {
+      tube:linked,
+      link,
+      selectedEditable,
+      visible:selectedEditable||display==="shown"||display==="compare",
+      transparent:selectedEditable||display==="compare",
+      compare:display==="compare"
+    };
+  }
+
+  function restoreLinkedTubeGeometry(tube){
+    const snapshot=tube?.currentProjectImport?.source_geometry_snapshot;
+    if(!snapshot||snapshot.schema!=="dwfx_editable_source_geometry_v1"){
+      throw new Error("Source geometry snapshot is unavailable");
+    }
+    const fields=[
+      "origin","startVector","startAxis","startDir","rows",
+      "diameter","diameter_mm","outerDiameterMm","outer_diameter_mm","OD","OD_mm",
+      "wall","wall_mm","wallThicknessMm","wall_thickness_mm"
+    ];
+    for(const key of fields){
+      if(Object.prototype.hasOwnProperty.call(snapshot,key)){
+        tube[key]=clonePlain(snapshot[key]);
+      }
+    }
+    return true;
+  }
+
   function nodeTranslationMm(node){
     const value=node?.translation_mm;
     const source=Array.isArray(value)
