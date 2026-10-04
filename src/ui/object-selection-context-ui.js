@@ -1003,7 +1003,7 @@
     const requested=entries.filter((entry)=>entry.kind==="tube");
     const derived=requested.filter((entry)=>{const tube=tubeById(entry.tubeId);return tube?.array_member?.derived_readonly===true||tube?.mirror_member?.derived_readonly===true||tube?.transform_stack_member?.derived_readonly===true;});
     if(derived.length){
-      if(typeof ptToast==="function")ptToast("Ассоциативно производный объект нельзя удалить напрямую — используйте управление соответствующей операцией или Bake / Break");
+      if(typeof ptToast==="function")ptToast("Элемент ассоциативного массива нельзя удалить напрямую; Mirror / Transform Stack также управляются через свою операцию — используйте Suppress / Detach / Break Array либо Bake / Break");
     }
     const ids=new Set(requested.filter((entry)=>{const tube=tubeById(entry.tubeId);return tube?.array_member?.derived_readonly!==true&&tube?.mirror_member?.derived_readonly!==true&&tube?.transform_stack_member?.derived_readonly!==true;}).map((entry)=>String(entry.tubeId)));
     if(!ids.size)return;
