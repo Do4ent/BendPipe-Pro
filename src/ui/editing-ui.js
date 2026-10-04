@@ -53,7 +53,9 @@
     return copy;
   }
   function selectedWholeTubes(){
-    return entries().filter((e)=>e.kind==="tube").map((e)=>tubeById(e.tubeId)).filter((tube)=>tube&&tube?.array_member?.derived_readonly!==true);
+    return entries().filter((e)=>e.kind==="tube").map((e)=>tubeById(e.tubeId)).filter((tube)=>
+      tube&&tube?.array_member?.derived_readonly!==true&&tube?.mirror_member?.derived_readonly!==true
+    );
   }
   function selectedSingleLine(){
     const list=entries();
@@ -190,6 +192,93 @@
     return true;
   }
 
+  function mirrorRuntime(){return window.TubeBenderAssociativeMirrors??null;}
+  function mirrorPlaneFromBody(body){
+    const mode=$("[data-mirror-plane]",body).value;
+    const point={
+      x:Number($("[data-mirror-px]",body).value.replace(",",".")),
+      y:Number($("[data-mirror-py]",body).value.replace(",",".")),
+      z:Number($("[data-mirror-pz]",body).value.replace(",","."))
+    };
+    if(![point.x,point.y,point.z].every(Number.isFinite))throw new Error("Точка плоскости Mirror должна быть числовой");
+    let normal;
+    if(mode==="XY")normal={x:0,y:0,z:1};
+    else if(mode==="XZ")normal={x:0,y:1,z:0};
+    else if(mode==="YZ")normal={x:1,y:0,z:0};
+    else{
+      normal={
+        x:Number($("[data-mirror-nx]",body).value.replace(",",".")),
+        y:Number($("[data-mirror-ny]",body).value.replace(",",".")),
+        z:Number($("[data-mirror-nz]",body).value.replace(",","."))
+      };
+    }
+    if(![normal.x,normal.y,normal.z].every(Number.isFinite)||Math.hypot(normal.x,normal.y,normal.z)<=1e-12){
+      throw new Error("Нормаль плоскости Mirror должна быть ненулевой");
+    }
+    return {plane_point:point,plane_normal:normal};
+  }
+  function createMirrorFromSelection(body){
+    const tubes=selectedWholeTubes();
+    if(!tubes.length){toast("Для Mirror выберите одну или несколько целых труб");return false;}
+    const runtime=mirrorRuntime();
+    if(!runtime){toast("Associative Mirror runtime ещё не загружен");return false;}
+    const mode=$("[data-mirror-mode]",body).value;
+    const associative=$("[data-mirror-associative]",body).checked;
+    let plane;
+    try{plane=mirrorPlaneFromBody(body);}catch(error){toast(error.message);return false;}
+    if(mode==="Original"&&associative){
+      toast("Associative Mirror для Original пока не применяется: выберите Copy или отключите Associative");
+      return false;
+    }
+    return commit(mode==="Original"?"Mirror Original":"Mirror Copy",()=>{
+      for(const source of tubes){
+        if(mode==="Original"){
+          runtime.mirrorOriginal({source_tube_id:source.id,...plane},project());
+        }else if(associative){
+          runtime.addAssociativeCopy({
+            source_tube_id:source.id,
+            name:$("[data-mirror-name]",body).value.trim()||"Mirror",
+            ...plane
+          },project());
+        }else{
+          runtime.createIndependentCopy({
+            source_tube_id:source.id,
+            name:uniqueTubeName((source.name??"Tube")+" Mirror"),
+            ...plane
+          },project());
+        }
+      }
+      try{api()?.reloadActiveTube?.();}catch{}
+      return true;
+    });
+  }
+  function mirrorAction(body,action){
+    const runtime=mirrorRuntime(),id=$("[data-mirror-existing]",body)?.value;
+    if(!runtime||!id){toast("Выберите существующий Associative Mirror");return false;}
+    if(action==="break"){
+      return commit("Разорвать Associative Mirror",()=>{runtime.breakMirror(id,project());return true;});
+    }
+    if(action==="delete"){
+      return commit("Удалить Associative Mirror",()=>{runtime.deleteMirror(id,{deleteTarget:true},project());return true;});
+    }
+    return false;
+  }
+  function mirrorPanelHtml(){
+    const defs=mirrorRuntime()?.definitions?.()??[];
+    const existing='<option value="">—</option>'+defs.map((d)=>'<option value="'+esc(d.id)+'">'+esc(d.name)+" · "+esc(d.status??"")+'</option>').join("");
+    return '<div class="tb-edit-card"><b>Mirror</b><div class="tb-edit-grid" style="margin-top:8px">'+
+      '<label>Name</label><input data-mirror-name value="Mirror">'+
+      '<label>Mode</label><select data-mirror-mode><option>Copy</option><option>Original</option></select>'+
+      '<label>Plane</label><select data-mirror-plane><option>XY</option><option>XZ</option><option>YZ</option><option value="Custom">Custom normal</option></select>'+
+      '<label>Plane point X</label><input data-mirror-px value="0"><label>Plane point Y</label><input data-mirror-py value="0"><label>Plane point Z</label><input data-mirror-pz value="0">'+
+      '<label>Normal X</label><input data-mirror-nx value="1"><label>Normal Y</label><input data-mirror-ny value="0"><label>Normal Z</label><input data-mirror-nz value="0">'+
+      '<label>Associative Copy</label><input data-mirror-associative type="checkbox" checked>'+
+      '</div><div class="tb-edit-note" style="margin-top:8px">Mirror Copy по умолчанию ассоциативен: источник не меняется, производная труба пересчитывается перед renderAll. Отражение пере-кодируется в правостороннюю геометрию; nominal L / CLR / bend angle сохраняются. Mirror Original выполняется как явная неассоциативная операция.</div>'+
+      '<div class="tb-edit-actions"><button data-mirror-create>Применить Mirror</button></div></div>'+
+      '<div class="tb-edit-card" style="margin-top:8px"><b>Associative Mirrors</b><div class="tb-edit-grid" style="margin-top:8px"><label>Mirror</label><select data-mirror-existing>'+existing+'</select></div>'+
+      '<div class="tb-edit-actions"><button data-mirror-break>Break Mirror</button><button data-mirror-delete>Удалить Mirror</button></div></div>';
+  }
+
   function arrayRuntime(){return window.TubeBenderAssociativeArrays??null;}
   function createArrayFromSelection(body){
     const tubes=selectedWholeTubes();
@@ -288,7 +377,7 @@
     panel.innerHTML='<div class="tb-edit-head"><b>Редактирование</b><span class="sp"></span><button data-edit-close>×</button></div>'+
       '<div class="tb-edit-tools">'+
       '<button data-tool="copy">Copy</button><button data-tool="move">Move</button><button data-tool="split">Split</button>'+
-      '<button data-tool="rotate">Rotate</button>'+
+      '<button data-tool="rotate">Rotate</button><button data-tool="mirror">Mirror</button>'+
       '<button data-tool="array">Array</button>'+
       '</div><div class="tb-edit-body"></div>';
     document.body.appendChild(panel);
@@ -322,6 +411,11 @@
         '</div><div class="tb-edit-note" style="margin-top:8px">Rigid-body Rotate сохраняет длины, CLR и углы гибов; TubeBender пересчитывает только origin/startVector и legacy plane/rot.</div>'+
         '<div class="tb-edit-actions"><button data-rotate-run>Повернуть</button></div></div>';
       $("[data-rotate-run]",body).onclick=()=>rotateSelection(body);
+    }else if(activeTool==="mirror"){
+      body.innerHTML=mirrorPanelHtml();
+      $("[data-mirror-create]",body).onclick=()=>createMirrorFromSelection(body);
+      $("[data-mirror-break]",body).onclick=()=>mirrorAction(body,"break");
+      $("[data-mirror-delete]",body).onclick=()=>mirrorAction(body,"delete");
     }else if(activeTool==="array"){
       body.innerHTML=arrayPanelHtml();
       $("[data-array-create]",body).onclick=()=>createArrayFromSelection(body);
@@ -335,7 +429,7 @@
     try{[straightRun,rigidTransform]=await Promise.all([import(STRAIGHT_RUN_URL),import(RIGID_TRANSFORM_URL)]);}catch(error){console.error("Editing UI failed to load",error);return;}
     ensureShell();
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
-    window.TubeBenderEditing=Object.freeze({open,close,copySelection,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createArrayFromSelection,arrayAction,refresh:render});
+    window.TubeBenderEditing=Object.freeze({open,close,copySelection,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,refresh:render});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
 })();
