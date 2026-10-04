@@ -171,3 +171,13 @@ test("question 58: Editing UI persists and applies preferred decimal separator",
   assert.match(code,/12\.5 и 12,5/);
   assert.match(code,/точкой с запятой \(;\)/);
 });
+
+
+test("question 68: Editing UI exposes fail-closed Scale policy and no Scale tool for tubes",()=>{
+  assert.match(code,/TRANSFORM_COMMANDS_URL/);
+  assert.match(code,/scalePermissionForSelection/);
+  assert.match(code,/canScaleSelection/);
+  assert.match(code,/requestScaleSelection/);
+  assert.match(code,/TUBE_SCALE_FORBIDDEN/);
+  assert.doesNotMatch(code,/data-tool="scale"/i);
+});
