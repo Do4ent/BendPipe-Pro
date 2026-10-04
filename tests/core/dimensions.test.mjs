@@ -2,12 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   createDimension,
+  dimensionVisualState,
   drivingSolvePlan,
   formatDimensionValue,
   recalculateDimension,
   removeDimensionRepresentation,
+  resolveDimensionDisplayMetrics,
   setDimensionMode,
   setDrivingTarget,
+  normalizeDimensionStyle,
   updateDimensionStyle,
   upsertDimensionRepresentation
 } from "../../src/domain/measurements/dimensions.mjs";
@@ -149,4 +152,66 @@ test("same engineering dimension can have independent 3D and drawing placements"
   assert.equal(removed.representations.length,1);
   assert.equal(removed.value,d.value);
   assert.equal(removed.references.length,d.references.length);
+});
+
+
+test("question 64: permanent Dimension Style normalizes text arrows offsets symbols and colors",()=>{
+  const style=normalizeDimensionStyle({
+    text_height_px:14,
+    arrow_size_px:9,
+    extension_offset_px:6,
+    dimension_offset_px:12,
+    diameter_symbol:"Ø",
+    radius_symbol:"R",
+    angle_symbol:"°",
+    reference_color:"#ffee66",
+    driving_color:"#66ddff",
+    error_color:"#ff5555"
+  });
+  assert.equal(style.text_height_px,14);
+  assert.equal(style.arrow_size_px,9);
+  assert.equal(style.extension_offset_px,6);
+  assert.equal(style.dimension_offset_px,12);
+  assert.equal(style.diameter_symbol,"Ø");
+  assert.equal(style.radius_symbol,"R");
+  assert.equal(style.angle_symbol,"°");
+});
+
+test("question 64: Hybrid display scaling remains model-aware but screen-readable",()=>{
+  const style=normalizeDimensionStyle({
+    screen_scale_mode:"Hybrid",
+    model_text_height_mm:3.5,
+    min_text_px:11,
+    max_text_px:24,
+    min_arrow_px:6,
+    max_arrow_px:16
+  });
+  const far=resolveDimensionDisplayMetrics(style,{pixels_per_mm:.1});
+  const mid=resolveDimensionDisplayMetrics(style,{pixels_per_mm:4});
+  const near=resolveDimensionDisplayMetrics(style,{pixels_per_mm:20});
+  assert.equal(far.text_px,11);
+  assert.equal(mid.text_px,14);
+  assert.equal(near.text_px,24);
+  assert.ok(mid.arrow_px>=6&&mid.arrow_px<=16);
+});
+
+test("question 64: Driving and error dimensions have explicit visual states",()=>{
+  const reference=base();
+  const driving=setDimensionMode(reference,"Driving");
+  const error={...reference,status:"Error"};
+  const rs=dimensionVisualState(reference);
+  const ds=dimensionVisualState(driving);
+  const es=dimensionVisualState(error);
+  assert.equal(rs.emphasis,"Reference");
+  assert.equal(ds.emphasis,"Driving");
+  assert.equal(es.emphasis,"Error");
+  assert.notEqual(rs.color,ds.color);
+  assert.notEqual(ds.color,es.color);
+});
+
+test("question 64: diameter radius and angle notation follows Dimension Style",()=>{
+  const common={references:[{object_id:"tube"}],value:12.5,format:{length_decimals:1,angle_decimals:1}};
+  assert.equal(formatDimensionValue(createDimension({...common,kind:"diameter"})),"Ø12.5 mm");
+  assert.equal(formatDimensionValue(createDimension({...common,kind:"radius"})),"R12.5 mm");
+  assert.equal(formatDimensionValue(createDimension({...common,kind:"angle"})),"12.5°");
 });
