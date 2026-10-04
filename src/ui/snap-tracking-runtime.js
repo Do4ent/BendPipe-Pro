@@ -174,11 +174,38 @@
       const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([p1,p2]),new THREE.LineDashedMaterial({color:0x52d6ff,dashSize:Math.max(.04,8*scale),gapSize:Math.max(.025,5*scale),depthTest:false,depthWrite:false}));
       line.computeLineDistances();line.renderOrder=9890;line.userData={helper:true,snapTrackingGuide:true};group.add(line);
     }
-    if(current?.point){
-      const p=current.point;
-      const marker=new THREE.Mesh(new THREE.SphereGeometry(Math.max(.045,4*scale),14,9),new THREE.MeshBasicMaterial({color:0xffd54a,depthTest:false,depthWrite:false}));
-      marker.position.set(p.x*scale,p.y*scale,p.z*scale);marker.renderOrder=9910;marker.userData={helper:true,snapCurrentCandidate:true};group.add(marker);
-    }
+    rankedCandidates.forEach((candidate,index)=>{
+      if(!candidate?.point)return;
+      const isCurrent=String(candidate.id)===String(current?.id);
+      const isThrough=candidate.through===true;
+      const isVirtual=candidate.virtual===true;
+      const color=isCurrent?0xffd54a:isThrough?0xff66cc:isVirtual?0x52d6ff:0xe8f1ff;
+      const radius=isCurrent?Math.max(.052,4.8*scale):Math.max(.032,3*scale);
+      const geometry=new THREE.SphereGeometry(radius,isCurrent?16:10,isCurrent?10:7);
+      const material=new THREE.MeshBasicMaterial({
+        color,
+        depthTest:false,
+        depthWrite:false,
+        transparent:!isCurrent,
+        opacity:isCurrent?1:.78,
+        wireframe:isVirtual||isThrough
+      });
+      const p=candidate.point;
+      const marker=new THREE.Mesh(geometry,material);
+      marker.position.set(p.x*scale,p.y*scale,p.z*scale);
+      marker.renderOrder=isCurrent?9920:9910;
+      marker.userData={
+        helper:true,
+        snapCandidateMarker:true,
+        snapCandidateId:String(candidate.id),
+        snapCandidateType:String(candidate.type),
+        snapCandidateCurrent:isCurrent,
+        snapCandidateVirtual:isVirtual,
+        snapCandidateThrough:isThrough,
+        snapCandidateIndex:index
+      };
+      group.add(marker);
+    });
     pipeGroup.add(group);helperGroup=group;
     try{if(typeof markViewerDirty==="function")markViewerDirty();}catch{}
   }
@@ -187,7 +214,9 @@
     const el=ensureHud();
     if(!active||!current||!lastPointer){el.style.display="none";return;}
     const p=current.point;
-    el.textContent=(current.label||current.type)+"  X "+Number(p.x).toFixed(2)+"  Y "+Number(p.y).toFixed(2)+"  Z "+Number(p.z).toFixed(2)+"  · Tab / Shift+Tab · P pin";
+    const currentIndex=Math.max(0,rankedCandidates.findIndex((candidate)=>String(candidate.id)===String(current.id)));
+    const kind=current.through===true?"Through":current.virtual===true?"Virtual":"Exact";
+    el.textContent=(current.label||current.type)+" ["+(currentIndex+1)+"/"+rankedCandidates.length+"] "+kind+"  X "+Number(p.x).toFixed(2)+"  Y "+Number(p.y).toFixed(2)+"  Z "+Number(p.z).toFixed(2)+"  · Tab / Shift+Tab · P pin";
     el.style.display="block";
     el.style.left=Math.min(window.innerWidth-320,Math.max(8,Number(lastPointer.clientX)+14))+"px";
     el.style.top=Math.min(window.innerHeight-34,Math.max(8,Number(lastPointer.clientY)+14))+"px";
