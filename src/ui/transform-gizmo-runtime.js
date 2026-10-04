@@ -198,8 +198,11 @@
     pivotState.snap=point.clone();settings.pivotMode="snap";saveSettings();rebuildGizmo();updatePanel();return true;
   }
   function setTemporaryPivotMm(point){
-    const values={x:Number(point?.x),y:Number(point?.y),z:Number(point?.z)};
-    if(!Object.values(values).every(Number.isFinite)){toast("Pivot XYZ должен быть числом");return false;}
+    const raw=[point?.x,point?.y,point?.z];
+    if(!raw.every((value)=>value!==null&&value!==""&&Number.isFinite(Number(value)))){
+      toast("Pivot XYZ должен быть числом");return false;
+    }
+    const values={x:Number(raw[0]),y:Number(raw[1]),z:Number(raw[2])};
     pivotState.temporary=mmPointToScene(values);settings.pivotMode="temporary";saveSettings();rebuildGizmo();updatePanel();return true;
   }
   function canRotate(){
@@ -517,7 +520,7 @@
       else ok=commitMove(state.deltaMm);
     }else if(state.handle.kind==="pivot"){
       pivotState.temporary=null;
-      settings.pivotMode="center";
+      settings.pivotMode="center";saveSettings();
     }
     suppressClickUntil=Date.now()+120;
     rebuildGizmo();updatePanel();
