@@ -487,7 +487,8 @@
     return entries.length>0&&entries.every((entry)=>{
       if(entry.kind==="ref")return true;
       if(entry.kind!=="tube")return false;
-      const tube=tubeById(entry.tubeId);\n      return tube?.array_member?.derived_readonly!==true&&tube?.mirror_member?.derived_readonly!==true&&tube?.transform_stack_member?.derived_readonly!==true;
+      const tube=tubeById(entry.tubeId);
+      return tube?.array_member?.derived_readonly!==true&&tube?.mirror_member?.derived_readonly!==true&&tube?.transform_stack_member?.derived_readonly!==true;
     });
   }
 
