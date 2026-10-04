@@ -6,10 +6,12 @@ import {
   angleBetweenVectorsDeg
 } from "../../src/recognition/legacy-row-kinematics.mjs";
 import {
+  mirrorLegacyTubeRigid,
   rotateLegacyTubeRigid,
   translateLegacyTubeRigid
 } from "../../src/domain/editing/legacy-rigid-transform.mjs";
 import {
+  mirrorMatrix,
   rotationMatrix,
   transformPoint,
   transformVector
@@ -143,4 +145,59 @@ test("rigid rotation fails closed on malformed row data",()=>{
     ()=>rotateLegacyTubeRigid(source,{axis:{x:0,y:0,z:1},angle_deg:30}),
     /unsupported legacy bend plane/
   );
+});
+
+
+test("mirror preserves nominal lengths bend angles and CLR while re-encoding right-handed legacy geometry",()=>{
+  const source=sample();
+  const result=mirrorLegacyTubeRigid(source,{
+    plane_point:{x:0,y:0,z:0},
+    plane_normal:{x:0,y:1,z:0}
+  });
+  assert.equal(result.status,"exact");
+  assert.equal(result.nominal_scalars_preserved,true);
+  assert.equal(result.reflection_reencoded_right_handed,true);
+  assert.equal(result.tube.mirror_handedness,"right-handed-reencoded");
+  assert.deepEqual(
+    result.tube.rows.filter((r)=>r.type==="LINE").map((r)=>r.L),
+    source.rows.filter((r)=>r.type==="LINE").map((r)=>r.L)
+  );
+  assert.deepEqual(
+    result.tube.rows.filter((r)=>r.type==="BEND").map((r)=>[r.angle,r.clr]),
+    source.rows.filter((r)=>r.type==="BEND").map((r)=>[r.angle,r.clr])
+  );
+});
+
+test("mirror re-encodes reflected tangent directions and axial bend axes correctly",()=>{
+  const source=sample();
+  const plane_point={x:5,y:-3,z:2},plane_normal={x:0.4,y:0.8,z:-0.1};
+  const matrix=mirrorMatrix({plane_point,plane_normal});
+  const result=mirrorLegacyTubeRigid(source,{plane_point,plane_normal});
+  assert.equal(result.status,"exact");
+
+  const before=replay(source.rows,arr(source.startVector));
+  const after=replay(result.tube.rows,arr(result.tube.startVector));
+  for(let i=0;i<before.length;i++){
+    if(before[i].type==="LINE"){
+      const expected=unit(arr(transformVector(matrix,obj(before[i].direction))));
+      assert.ok(angleBetweenVectorsDeg(after[i].direction,expected)<1e-5);
+    }else{
+      const expectedOut=unit(arr(transformVector(matrix,obj(before[i].outgoing))));
+      const reflectedAxis=unit(arr(transformVector(matrix,obj(before[i].effective)))).map((x)=>-x);
+      assert.ok(angleBetweenVectorsDeg(after[i].outgoing,expectedOut)<1e-5);
+      assert.ok(angleBetweenVectorsDeg(after[i].effective,reflectedAxis)<1e-5);
+    }
+  }
+});
+
+test("mirror transforms origin and P2 as polar geometry while keeping P1 anchored to mirrored origin",()=>{
+  const source=sample();
+  const plane_point={x:0,y:0,z:0},plane_normal={x:1,y:0,z:0};
+  const matrix=mirrorMatrix({plane_point,plane_normal});
+  const result=mirrorLegacyTubeRigid(source,{plane_point,plane_normal});
+  near(result.tube.origin,transformPoint(matrix,source.origin));
+  near(result.tube.engineering.ports.P1.position,result.tube.origin);
+  near(result.tube.engineering.ports.P2.position,transformPoint(matrix,source.engineering.ports.P2.position));
+  const expectedP2Dir=transformVector(matrix,source.engineering.ports.P2.direction);
+  assert.ok(angleBetweenVectorsDeg(arr(result.tube.engineering.ports.P2.direction),arr(expectedP2Dir))<1e-7);
 });
