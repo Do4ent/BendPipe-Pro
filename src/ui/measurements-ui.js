@@ -1,7 +1,7 @@
 (()=>{
   const GEOMETRY_URL="__TB_GEOMETRY_MEASUREMENTS_MODULE_URL__";
   const DIMENSIONS_URL="__TB_DIMENSIONS_MODULE_URL__";
-  let geometry=null,dimensions=null,installed=false,panel=null,button=null,lastResult=null,lastSelectionKey="",poll=null;
+  let geometry=null,dimensions=null,installed=false,panel=null,resultsPanel=null,button=null,lastResult=null,lastSelectionKey="",poll=null,formulaMeasurementValue=null;
   const quick={active:false,points:[],candidates:[],current:null,result:null};
 
   const $=(s,r=document)=>r.querySelector(s);
@@ -159,7 +159,9 @@
     quick.active=false;quick.current=null;quick.candidates=[];
     snapTracking()?.endCommand?.();
     if(clear){quick.points=[];quick.result=null;clearQuickPreview();}
-    render();return true;
+    render();
+    if(!panel?.classList.contains("open"))resultsPanel?.classList.remove("open");
+    return true;
   }
   function clearQuickMeasure(){
     quick.points=[];quick.result=null;quick.current=null;clearQuickPreview();render();return true;
@@ -306,10 +308,72 @@
 #tbMeasurementsButton{border:1px solid rgba(255,255,255,.14);border-radius:6px;background:#233244;color:#eef5ff;padding:6px 9px;cursor:pointer;font:600 12px system-ui}
 #tbMeasurementsButton.tb-fixed{position:fixed;right:16px;bottom:100px;z-index:120240}
 #tbMeasurementsPanel{position:fixed;z-index:120320;right:16px;top:86px;width:min(430px,calc(100vw - 32px));max-height:calc(100vh - 110px);display:none;flex-direction:column;background:#101923;color:#edf4fb;border:1px solid #43546a;border-radius:9px;box-shadow:0 16px 45px rgba(0,0,0,.55);font:12px system-ui}
-#tbMeasurementsPanel.open{display:flex}.tb-measure-head{display:flex;align-items:center;padding:9px 10px;border-bottom:1px solid #2c3948}.tb-measure-head b{font-size:13px}.tb-measure-head .sp{flex:1}.tb-measure-head button,.tb-measure-actions button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:5px;padding:5px 8px;cursor:pointer}
+#tbMeasurementsPanel.open{display:flex}#tbMeasurementResultsPanel{position:fixed;z-index:120315;right:460px;top:86px;width:min(350px,calc(100vw - 32px));max-height:calc(100vh - 110px);display:none;flex-direction:column;background:#0d1721;color:#edf4fb;border:1px solid #43546a;border-radius:9px;box-shadow:0 16px 45px rgba(0,0,0,.48);font:12px system-ui}#tbMeasurementResultsPanel.open{display:flex}#tbMeasurementResultsPanel .tb-measure-body{overflow:auto}.tb-result-formula{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:#76d7ff}.tb-measure-head{display:flex;align-items:center;padding:9px 10px;border-bottom:1px solid #2c3948}.tb-measure-head b{font-size:13px}.tb-measure-head .sp{flex:1}.tb-measure-head button,.tb-measure-actions button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:5px;padding:5px 8px;cursor:pointer}
 .tb-measure-body{padding:10px;overflow:auto}.tb-measure-result{border:1px solid #304154;border-radius:7px;padding:9px}.tb-measure-title{font-weight:700;margin-bottom:7px}.tb-measure-value{font-size:20px;color:#ffe46b;margin:6px 0 10px}.tb-measure-table{width:100%;border-collapse:collapse}.tb-measure-table td{padding:4px 5px;border-bottom:1px solid rgba(128,151,178,.18)}.tb-measure-note{color:#9fafbf;line-height:1.45}.tb-measure-error{color:#ff7979}.tb-measure-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:9px}.tb-measure-settings{display:grid;grid-template-columns:1fr 110px;gap:6px 8px;margin-top:10px}.tb-measure-settings input,.tb-measure-settings select{background:#0b131c;color:#fff;border:1px solid #40536a;border-radius:5px;padding:5px}.tb-dim-colors{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px}.tb-dim-colors label{display:flex;align-items:center;justify-content:space-between;gap:6px}.tb-dim-colors input[type=color]{width:42px;height:28px;padding:1px}
 `;
     document.head.appendChild(style);
+  }
+
+  function ensureResultsPanel(){
+    if(resultsPanel)return resultsPanel;
+    resultsPanel=document.createElement("section");resultsPanel.id="tbMeasurementResultsPanel";
+    resultsPanel.innerHTML='<div class="tb-measure-head"><b>Результаты измерения</b><span class="sp"></span><button data-results-close>×</button></div><div class="tb-measure-body" data-results-body></div>';
+    document.body.appendChild(resultsPanel);
+    $("[data-results-close]",resultsPanel).onclick=()=>resultsPanel.classList.remove("open");
+    return resultsPanel;
+  }
+  async function copyMeasurementResult(){
+    if(!lastResult?.ok)return false;
+    const lines=[
+      lastResult.title,
+      ...lastResult.details.map(([name,value,unit])=>name+": "+formatted(value,unit))
+    ];
+    try{
+      await navigator.clipboard.writeText(lines.join("\n"));
+      toast("Результат измерения скопирован");
+      return true;
+    }catch{
+      toast("Не удалось скопировать результат");
+      return false;
+    }
+  }
+  function useMeasurementInFormula(){
+    if(!lastResult?.ok||!Number.isFinite(Number(lastResult.primary_value))){
+      toast("Нет числового результата измерения");return false;
+    }
+    formulaMeasurementValue=Number(lastResult.primary_value);
+    try{
+      window.dispatchEvent(new CustomEvent("tubebender-measurement-formula",{
+        detail:{name:"MEASURE",value:formulaMeasurementValue,unit:lastResult.primary_unit,kind:lastResult.kind}
+      }));
+    }catch{}
+    toast("MEASURE = "+formatted(formulaMeasurementValue,lastResult.primary_unit));
+    renderResultsPanel(lastResult);
+    return true;
+  }
+  function renderResultsPanel(result=lastResult){
+    const rp=ensureResultsPanel(),body=$("[data-results-body]",rp);
+    const shouldShow=panel?.classList.contains("open")||quick.active;
+    rp.classList.toggle("open",!!shouldShow);
+    if(!shouldShow)return;
+    if(!result?.ok){
+      body.innerHTML='<div class="tb-measure-note">Нет результата. Выберите геометрию или Snap-точки.</div>';
+      return;
+    }
+    const rows=result.details.map(([name,value,unit])=>
+      '<tr><td>'+esc(name)+'</td><td><b>'+esc(formatted(value,unit))+'</b></td></tr>'
+    ).join("");
+    body.innerHTML=
+      '<div class="tb-measure-title">'+esc(result.title)+'</div>'+
+      '<div class="tb-measure-value">'+esc(formatted(result.primary_value,result.primary_unit))+'</div>'+
+      '<table class="tb-measure-table">'+rows+'</table>'+
+      '<div class="tb-measure-note" style="margin-top:8px">Formula: <span class="tb-result-formula">MEASURE'+
+      (formulaMeasurementValue==null?' = —':' = '+esc(String(formulaMeasurementValue)))+
+      '</span></div>'+
+      '<div class="tb-measure-actions"><button data-result-copy>Копировать</button><button data-result-formula>Использовать в формуле</button><button data-result-save>Сохранить как размер</button></div>';
+    $("[data-result-copy]",body).onclick=copyMeasurementResult;
+    $("[data-result-formula]",body).onclick=useMeasurementInFormula;
+    $("[data-result-save]",body).onclick=saveCurrentDimension;
   }
 
   function ensureShell(){
@@ -322,10 +386,11 @@
     panel.innerHTML='<div class="tb-measure-head"><b>Измерения</b><span class="sp"></span><button data-measure-close>×</button></div><div class="tb-measure-body"></div>';
     document.body.appendChild(panel);
     $("[data-measure-close]",panel).onclick=close;
+    ensureResultsPanel();
     return panel;
   }
   function open(){ensureShell().classList.add("open");render();}
-  function close(){panel?.classList.remove("open");if(quick.active)stopQuickMeasure({clear:false});}
+  function close(){panel?.classList.remove("open");if(!quick.active)resultsPanel?.classList.remove("open");}
 
   function saveSettings(body){
     if(readonly()){toast("Проект открыт только для просмотра");return;}
@@ -392,7 +457,7 @@
       return true;
     };
     const ok=api()?.modelCommand?api().modelCommand("Сохранить Reference Dimension",mutate):mutate();
-    if(ok!==false){api()?.save?.();toast("Размер сохранён в проект");render();}
+    if(ok!==false){api()?.save?.();toast("Размер сохранён в проект");render();renderResultsPanel(lastResult);}
   }
 
   function render(){
@@ -400,6 +465,7 @@
     const body=$(".tb-measure-body",panel),entries=selectionEntries();
     const result=quick.active&&quick.result?quick.result:buildMeasurement(entries);
     lastResult=result;
+    renderResultsPanel(result);
     const s=settings();
     const count=savedDimensions().length;
     const quickHtml='<div class="tb-measure-result" style="margin-bottom:9px"><div class="tb-measure-title">Quick Measure</div>'+
@@ -465,6 +531,9 @@
     window.TubeBenderMeasurements=Object.freeze({
       open,close,refresh:render,buildMeasurement,savedDimensions,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
+      copyMeasurementResult,useMeasurementInFormula,
+      formulaValue:()=>formulaMeasurementValue,
+      openResults:()=>{ensureResultsPanel().classList.add("open");renderResultsPanel(lastResult);},
       quickState:()=>clone(quick)
     });
   }
