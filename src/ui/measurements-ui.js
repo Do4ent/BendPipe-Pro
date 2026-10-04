@@ -161,10 +161,12 @@
 
   function settings(){
     const p=project();
+    const style=dimensions?.normalizeDimensionStyle?.(p?.dimension_style??{})??{};
     return {
       length_decimals:Number.isInteger(Number(p?.measurement_settings?.length_decimals))?Number(p.measurement_settings.length_decimals):1,
       angle_decimals:Number.isInteger(Number(p?.measurement_settings?.angle_decimals))?Number(p.measurement_settings.angle_decimals):2,
-      trailing_zeros:p?.measurement_settings?.trailing_zeros!==false
+      trailing_zeros:p?.measurement_settings?.trailing_zeros!==false,
+      dimension_style:style
     };
   }
   function formatted(value,unit){
@@ -184,7 +186,7 @@
 #tbMeasurementsButton.tb-fixed{position:fixed;right:16px;bottom:100px;z-index:120240}
 #tbMeasurementsPanel{position:fixed;z-index:120320;right:16px;top:86px;width:min(430px,calc(100vw - 32px));max-height:calc(100vh - 110px);display:none;flex-direction:column;background:#101923;color:#edf4fb;border:1px solid #43546a;border-radius:9px;box-shadow:0 16px 45px rgba(0,0,0,.55);font:12px system-ui}
 #tbMeasurementsPanel.open{display:flex}.tb-measure-head{display:flex;align-items:center;padding:9px 10px;border-bottom:1px solid #2c3948}.tb-measure-head b{font-size:13px}.tb-measure-head .sp{flex:1}.tb-measure-head button,.tb-measure-actions button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:5px;padding:5px 8px;cursor:pointer}
-.tb-measure-body{padding:10px;overflow:auto}.tb-measure-result{border:1px solid #304154;border-radius:7px;padding:9px}.tb-measure-title{font-weight:700;margin-bottom:7px}.tb-measure-value{font-size:20px;color:#ffe46b;margin:6px 0 10px}.tb-measure-table{width:100%;border-collapse:collapse}.tb-measure-table td{padding:4px 5px;border-bottom:1px solid rgba(128,151,178,.18)}.tb-measure-note{color:#9fafbf;line-height:1.45}.tb-measure-error{color:#ff7979}.tb-measure-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:9px}.tb-measure-settings{display:grid;grid-template-columns:1fr 90px;gap:6px 8px;margin-top:10px}.tb-measure-settings input{background:#0b131c;color:#fff;border:1px solid #40536a;border-radius:5px;padding:5px}
+.tb-measure-body{padding:10px;overflow:auto}.tb-measure-result{border:1px solid #304154;border-radius:7px;padding:9px}.tb-measure-title{font-weight:700;margin-bottom:7px}.tb-measure-value{font-size:20px;color:#ffe46b;margin:6px 0 10px}.tb-measure-table{width:100%;border-collapse:collapse}.tb-measure-table td{padding:4px 5px;border-bottom:1px solid rgba(128,151,178,.18)}.tb-measure-note{color:#9fafbf;line-height:1.45}.tb-measure-error{color:#ff7979}.tb-measure-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:9px}.tb-measure-settings{display:grid;grid-template-columns:1fr 110px;gap:6px 8px;margin-top:10px}.tb-measure-settings input,.tb-measure-settings select{background:#0b131c;color:#fff;border:1px solid #40536a;border-radius:5px;padding:5px}.tb-dim-colors{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px}.tb-dim-colors label{display:flex;align-items:center;justify-content:space-between;gap:6px}.tb-dim-colors input[type=color]{width:42px;height:28px;padding:1px}
 `;
     document.head.appendChild(style);
   }
@@ -210,11 +212,37 @@
     const length=Math.max(0,Math.min(6,Math.trunc(Number($("[data-length-decimals]",body).value)||0)));
     const angle=Math.max(0,Math.min(6,Math.trunc(Number($("[data-angle-decimals]",body).value)||0)));
     const trailing=$("[data-trailing-zeros]",body).checked;
-    const mutate=()=>{p.measurement_settings={length_decimals:length,angle_decimals:angle,trailing_zeros:trailing};return true;};
-    const ok=api()?.modelCommand?api().modelCommand("Изменить настройки измерений",mutate):mutate();
+    const rawStyle={
+      text_height_px:Number($("[data-dim-text-px]",body).value),
+      arrow_size_px:Number($("[data-dim-arrow-px]",body).value),
+      extension_offset_px:Number($("[data-dim-ext-offset]",body).value),
+      dimension_offset_px:Number($("[data-dim-line-offset]",body).value),
+      model_text_height_mm:Number($("[data-dim-model-mm]",body).value),
+      min_text_px:Number($("[data-dim-min-text]",body).value),
+      max_text_px:Number($("[data-dim-max-text]",body).value),
+      min_arrow_px:Number($("[data-dim-min-arrow]",body).value),
+      max_arrow_px:Number($("[data-dim-max-arrow]",body).value),
+      screen_scale_mode:$("[data-dim-scale-mode]",body).value,
+      show_units:$("[data-dim-show-units]",body).checked,
+      diameter_symbol:$("[data-dim-symbol-dia]",body).value,
+      radius_symbol:$("[data-dim-symbol-radius]",body).value,
+      angle_symbol:$("[data-dim-symbol-angle]",body).value,
+      reference_color:$("[data-dim-color-reference]",body).value,
+      driving_color:$("[data-dim-color-driving]",body).value,
+      error_color:$("[data-dim-color-error]",body).value,
+      normal_color:$("[data-dim-color-normal]",body).value
+    };
+    let style;
+    try{style=dimensions.normalizeDimensionStyle(rawStyle);}
+    catch(error){toast(error.message);return;}
+    const mutate=()=>{
+      p.measurement_settings={length_decimals:length,angle_decimals:angle,trailing_zeros:trailing};
+      p.dimension_style=clone(style);
+      return true;
+    };
+    const ok=api()?.modelCommand?api().modelCommand("Изменить стиль постоянных размеров",mutate):mutate();
     if(ok!==false){api()?.save?.();render();}
   }
-
   function savedDimensions(){
     const p=project();return Array.isArray(p?.engineering_dimensions)?p.engineering_dimensions:[];
   }
@@ -235,6 +263,7 @@
         angle_decimals:s.angle_decimals,
         trailing_zeros:s.trailing_zeros
       },
+      style:clone(s.dimension_style),
       note:lastResult.title
     });
     const mutate=()=>{
@@ -263,13 +292,29 @@
     $("[data-save-measure-settings]",body).onclick=()=>saveSettings(body);
   }
   function settingsHtml(s,count){
-    return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Настройки</div><div class="tb-measure-settings">'+
+    const d=s.dimension_style??{};
+    return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Настройки постоянных размеров</div><div class="tb-measure-settings">'+
       '<label>Length decimals</label><input data-length-decimals type="number" min="0" max="6" value="'+esc(s.length_decimals)+'">'+
       '<label>Angle decimals</label><input data-angle-decimals type="number" min="0" max="6" value="'+esc(s.angle_decimals)+'">'+
       '<label>Trailing zeros</label><input data-trailing-zeros type="checkbox" '+(s.trailing_zeros?"checked":"")+'>'+
-      '</div><div class="tb-measure-actions"><span class="tb-measure-note">Сохранено размеров: '+count+'</span><button data-save-measure-settings>Сохранить настройки</button></div></div>';
+      '<label>Scale mode</label><select data-dim-scale-mode><option value="Hybrid" '+(d.screen_scale_mode==="Hybrid"?"selected":"")+'>Hybrid</option><option value="Screen" '+(d.screen_scale_mode==="Screen"?"selected":"")+'>Screen</option><option value="Model" '+(d.screen_scale_mode==="Model"?"selected":"")+'>Model</option></select>'+
+      '<label>Text height, px</label><input data-dim-text-px type="number" min="6" max="72" value="'+esc(d.text_height_px)+'">'+
+      '<label>Arrow size, px</label><input data-dim-arrow-px type="number" min="3" max="40" value="'+esc(d.arrow_size_px)+'">'+
+      '<label>Extension offset, px</label><input data-dim-ext-offset type="number" min="0" max="80" value="'+esc(d.extension_offset_px)+'">'+
+      '<label>Dimension offset, px</label><input data-dim-line-offset type="number" min="0" max="120" value="'+esc(d.dimension_offset_px)+'">'+
+      '<label>Model text height, mm</label><input data-dim-model-mm type="number" min=".5" max="50" step=".1" value="'+esc(d.model_text_height_mm)+'">'+
+      '<label>Hybrid text min/max, px</label><span><input data-dim-min-text type="number" style="width:47%" value="'+esc(d.min_text_px)+'"> <input data-dim-max-text type="number" style="width:47%" value="'+esc(d.max_text_px)+'"></span>'+
+      '<label>Hybrid arrow min/max, px</label><span><input data-dim-min-arrow type="number" style="width:47%" value="'+esc(d.min_arrow_px)+'"> <input data-dim-max-arrow type="number" style="width:47%" value="'+esc(d.max_arrow_px)+'"></span>'+
+      '<label>Show units</label><input data-dim-show-units type="checkbox" '+(d.show_units!==false?"checked":"")+'>'+
+      '<label>Symbols Ø / R / °</label><span><input data-dim-symbol-dia style="width:28%" value="'+esc(d.diameter_symbol)+'"> <input data-dim-symbol-radius style="width:28%" value="'+esc(d.radius_symbol)+'"> <input data-dim-symbol-angle style="width:28%" value="'+esc(d.angle_symbol)+'"></span>'+
+      '</div><div class="tb-dim-colors" style="margin-top:9px">'+
+      '<label>Reference <input data-dim-color-reference type="color" value="'+esc(d.reference_color)+'"></label>'+
+      '<label>Driving <input data-dim-color-driving type="color" value="'+esc(d.driving_color)+'"></label>'+
+      '<label>Error <input data-dim-color-error type="color" value="'+esc(d.error_color)+'"></label>'+
+      '<label>Normal <input data-dim-color-normal type="color" value="'+esc(d.normal_color)+'"></label>'+
+      '</div><div class="tb-measure-note" style="margin-top:8px">Hybrid масштабирует размер с моделью, но удерживает текст и стрелки в читаемом экранном диапазоне. Driving и Error имеют отдельные цвета.</div>'+
+      '<div class="tb-measure-actions"><span class="tb-measure-note">Сохранено размеров: '+count+'</span><button data-save-measure-settings>Сохранить настройки</button></div></div>';
   }
-
   async function install(){
     if(installed)return;installed=true;
     try{[geometry,dimensions]=await Promise.all([import(GEOMETRY_URL),import(DIMENSIONS_URL)]);}
