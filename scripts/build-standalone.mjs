@@ -21,6 +21,8 @@ const measurementsUiPath = path.join(root, "src", "ui", "measurements-ui.js");
 const editingUiPath = path.join(root, "src", "ui", "editing-ui.js");
 const associativeArrayRuntimePath = path.join(root, "src", "ui", "associative-array-runtime.js");
 const associativeMirrorRuntimePath = path.join(root, "src", "ui", "associative-mirror-runtime.js");
+const transformStackRuntimePath = path.join(root, "src", "ui", "transform-stack-runtime.js");
+const transformStackDomainPath = path.join(root, "src", "domain", "editing", "transform-stack.mjs");
 const straightRunDomainPath = path.join(root, "src", "domain", "editing", "straight-run.mjs");
 const legacyRigidTransformDomainPath = path.join(root, "src", "domain", "editing", "legacy-rigid-transform.mjs");
 const transformCommandsDomainPath = path.join(root, "src", "domain", "editing", "transform-commands.mjs");
@@ -2254,6 +2256,13 @@ const associativeMirrorRuntime = fs.readFileSync(associativeMirrorRuntimePath, "
 const bundledAssociativeMirrorRuntime =
   `<script data-tubebender-bundled="associative-mirror-runtime">\n${associativeMirrorRuntime}\n</script>`;
 
+const transformStackDomainUrl = moduleDataUrl(transformStackDomainPath);
+const transformStackRuntime = fs.readFileSync(transformStackRuntimePath, "utf8")
+  .replace("__TB_TRANSFORM_STACK_MODULE_URL__", transformStackDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledTransformStackRuntime =
+  `<script data-tubebender-bundled="transform-stack-runtime">\n${transformStackRuntime}\n</script>`;
+
 const equipmentRuntimeBridge = fs.readFileSync(equipmentRuntimeBridgePath, "utf8").replace(/<\/script/gi, "<\\/script");
 const bundledEquipmentRuntimeBridge =
   `<script data-tubebender-bundled="equipment-runtime-bridge">\n${equipmentRuntimeBridge}\n</script>`;
@@ -2307,6 +2316,8 @@ output =
   bundledAssociativeArrayRuntime +
   "\n" +
   bundledAssociativeMirrorRuntime +
+  "\n" +
+  bundledTransformStackRuntime +
   "\n" +
   bundledEditingUi +
   "\n" +
@@ -2496,6 +2507,12 @@ if (!output.includes('data-tubebender-bundled="associative-array-runtime"')) {
 if (!output.includes('data-tubebender-bundled="associative-mirror-runtime"')) {
   throw new Error("Standalone build is missing the Associative Mirror runtime marker");
 }
+if (!output.includes('data-tubebender-bundled="transform-stack-runtime"')) {
+  throw new Error("Standalone build is missing the Transform Stack runtime marker");
+}
+if (!output.includes("TubeBenderTransformStacks") || !output.includes("associative_transform_stacks")) {
+  throw new Error("Standalone build is missing Transform Stack integration hooks");
+}
 if (!output.includes("TubeBenderAssociativeMirrors") || !output.includes("associative_mirrors")) {
   throw new Error("Standalone build is missing Associative Mirror integration hooks");
 }
@@ -2583,6 +2600,7 @@ process.stdout.write(
       bundledEditingUi: true,
       bundledAssociativeArrays: true,
       bundledAssociativeMirrors: true,
+      bundledTransformStacks: true,
       materialManufacturingCompensation: true,
       equipmentRuntimeBridge: true,
       bundledEquipmentLibrary: true,
