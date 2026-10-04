@@ -63,9 +63,11 @@ test("question 59: Ortho Polar Snap exact input and full gizmo visibility toggle
   assert.match(code,/event\.key==="g"\|\|event\.key==="G"/);
 });
 
-test("question 59: reference geometry can move, while rotation rings require editable whole tubes",()=>{
-  assert.match(code,/entry\.kind==="tube"\|\|entry\.kind==="ref"/);
-  assert.match(code,/return list\.length>0&&list\.every\(\(entry\)=>entry\.kind==="tube"\)/);
+test("question 59/Q67: Gizmo supports Source and Editable Mesh instances without mixed tube-mesh rotation",()=>{
+  assert.match(code,/entry\.kind==="tube"\|\|entry\.kind==="ref"\|\|entry\.kind==="mesh-instance"/);
+  assert.match(code,/const meshes=list\.every\(\(entry\)=>entry\.kind==="ref"\|\|entry\.kind==="mesh-instance"\)/);
+  assert.match(code,/return tubes\|\|meshes/);
+  assert.match(code,/rotateEditableMeshInstanceAxis/);
   assert.match(code,/if\(canRotate\(\)\)group\.add\(makeRing/);
 });
 
