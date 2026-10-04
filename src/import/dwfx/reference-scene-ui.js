@@ -1212,7 +1212,7 @@
           ' · Δ '+escape(Number(p.x||0).toFixed(1))+','+escape(Number(p.y||0).toFixed(1))+','+escape(Number(p.z||0).toFixed(1))+
           '</small></span></div>'
         );
-
+      }
     }
     return rows;
   }
