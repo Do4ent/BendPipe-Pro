@@ -31,7 +31,8 @@ test("tracking uses Ortho and Polar rays plus virtual intersections",()=>{
   assert.match(code,/createObjectSnapTrackingRay/);
   assert.match(code,/objectSnapTrackingCandidate/);
   assert.match(code,/intersectObjectSnapTrackingRays/);
-  assert.match(code,/Tracking Polar/);
+  assert.match(code,/name:"Polar"/);
+  assert.match(code,/"Tracking "\+direction\.name/);
   assert.match(code,/snapTrackingGuide:true/);
 });
 
