@@ -574,6 +574,105 @@ output=output.replace(
   p1SaveLockAnchor,
   "q.locked=k==='P1'?true:!!E(`engPort_${k}_locked`)?.checked;"
 );
+
+const historyPanelBeginAnchor =
+  "function tbHistoryBegin(label){";
+if(!output.includes(historyPanelBeginAnchor)){
+  throw new Error("tbHistoryBegin anchor missing for History panel");
+}
+const historyPanelRuntime =
+  "function tbHistoryTimeline(){return [...tbHistory.undo,...tbHistory.redo.slice().reverse()];}\n"+
+  "function tbHistoryCursor(){return tbHistory.undo.length;}\n"+
+  "function tbHistoryJump(targetIndex){\n"+
+  "  if(typeof poReadOnly==='function'&&poReadOnly()){ptToast('Проект открыт только для просмотра');return false;}\n"+
+  "  if(tbHistory.transaction||tbHistory.applying)return false;\n"+
+  "  const all=tbHistoryTimeline();\n"+
+  "  if(!all.length)return false;\n"+
+  "  const target=Math.max(0,Math.min(all.length,Math.trunc(Number(targetIndex))));\n"+
+  "  if(target===tbHistoryCursor())return true;\n"+
+  "  const snapshot=target===0?all[0].before:all[target-1].after;\n"+
+  "  if(!tbHistoryRestore(snapshot))return false;\n"+
+  "  tbHistory.undo.splice(0,tbHistory.undo.length,...all.slice(0,target));\n"+
+  "  tbHistory.redo.splice(0,tbHistory.redo.length,...all.slice(target).reverse());\n"+
+  "  tbHistoryUpdateUi();\n"+
+  "  ptToast('History: восстановлен шаг '+target+' из '+all.length);\n"+
+  "  return true;\n"+
+  "}\n"+
+  "function tbHistoryEnsurePanel(){\n"+
+  "  let panel=document.getElementById('tbHistoryPanel');\n"+
+  "  if(panel)return panel;\n"+
+  "  const style=document.createElement('style');style.id='tbHistoryPanelStyles';style.textContent='#tbHistoryToggle{position:fixed;right:14px;bottom:14px;z-index:120280;background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:6px;padding:6px 10px;cursor:pointer}#tbHistoryPanel{position:fixed;right:14px;bottom:50px;width:300px;max-height:55vh;display:none;z-index:120290;background:rgba(13,22,32,.98);color:#eef5ff;border:1px solid #41566f;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.45);font:12px system-ui;overflow:hidden}#tbHistoryPanel.open{display:flex;flex-direction:column}.tb-history-head{display:flex;align-items:center;gap:6px;padding:8px;border-bottom:1px solid #304154}.tb-history-head .grow{flex:1}.tb-history-list{overflow:auto;padding:5px}.tb-history-row{width:100%;display:flex;align-items:center;gap:7px;text-align:left;border:0;border-radius:5px;padding:6px 7px;margin:2px 0;background:transparent;color:#dce8f5;cursor:pointer}.tb-history-row:hover{background:#1c2a39}.tb-history-row.current{background:#28435d;color:#fff}.tb-history-row.future{color:#7f91a5}.tb-history-index{width:26px;text-align:right;color:#71859b}.tb-history-empty{padding:14px;color:#8799ad}';document.head.appendChild(style);\n"+
+  "  const toggle=document.createElement('button');toggle.id='tbHistoryToggle';toggle.type='button';toggle.textContent='History';toggle.title='История операций';document.body.appendChild(toggle);\n"+
+  "  panel=document.createElement('section');panel.id='tbHistoryPanel';panel.innerHTML='<div class=\"tb-history-head\"><b>History</b><span class=\"grow\"></span><button data-history-undo>↶</button><button data-history-redo>↷</button><button data-history-close>×</button></div><div class=\"tb-history-list\" data-history-list></div>';document.body.appendChild(panel);\n"+
+  "  toggle.onclick=()=>{panel.classList.toggle('open');tbHistoryPanelRender();};\n"+
+  "  panel.querySelector('[data-history-close]').onclick=()=>panel.classList.remove('open');\n"+
+  "  panel.querySelector('[data-history-undo]').onclick=()=>tbUndo();\n"+
+  "  panel.querySelector('[data-history-redo]').onclick=()=>tbRedo();\n"+
+  "  panel.querySelector('[data-history-list]').onclick=(event)=>{const row=event.target.closest('[data-history-target]');if(row)tbHistoryJump(Number(row.dataset.historyTarget));};\n"+
+  "  return panel;\n"+
+  "}\n"+
+  "function tbHistoryPanelRender(){\n"+
+  "  if(typeof document==='undefined')return;\n"+
+  "  const panel=tbHistoryEnsurePanel(),list=panel.querySelector('[data-history-list]'),all=tbHistoryTimeline(),cursor=tbHistoryCursor();\n"+
+  "  panel.querySelector('[data-history-undo]').disabled=cursor<=0||!!tbHistory.transaction;\n"+
+  "  panel.querySelector('[data-history-redo]').disabled=cursor>=all.length||!!tbHistory.transaction;\n"+
+  "  if(!all.length){list.innerHTML='<div class=\"tb-history-empty\">История пуста</div>';return;}\n"+
+  "  const rows=[{target:0,label:'Начальное состояние',future:cursor<0}];\n"+
+  "  all.forEach((entry,index)=>rows.push({target:index+1,label:entry.label||'Изменение',future:index+1>cursor}));\n"+
+  "  list.innerHTML=rows.map(row=>'<button class=\"tb-history-row '+(row.target===cursor?'current ':'')+(row.future?'future':'')+'\" data-history-target=\"'+row.target+'\"><span class=\"tb-history-index\">'+row.target+'</span><span>'+String(row.label).replace(/[&<>\"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[ch]))+'</span></button>').join('');\n"+
+  "}\n";
+output=output.replace(historyPanelBeginAnchor,historyPanelRuntime+historyPanelBeginAnchor);
+
+const historyUiUpdateAnchor =
+  "  if(redo){\n"+
+  "    redo.disabled=!canRedo;\n"+
+  "    redo.classList.toggle('disabled',!canRedo);\n"+
+  "    redo.title=canRedo?\`Повторить: \${tbHistory.redo.at(-1)?.label||'изменение'}\`:'Нет действий для повтора';\n"+
+  "  }\n"+
+  "}";
+if(!output.includes(historyUiUpdateAnchor)){
+  throw new Error("tbHistoryUpdateUi end anchor missing for History panel");
+}
+output=output.replace(
+  historyUiUpdateAnchor,
+  "  if(redo){\n"+
+  "    redo.disabled=!canRedo;\n"+
+  "    redo.classList.toggle('disabled',!canRedo);\n"+
+  "    redo.title=canRedo?\`Повторить: \${tbHistory.redo.at(-1)?.label||'изменение'}\`:'Нет действий для повтора';\n"+
+  "  }\n"+
+  "  try{tbHistoryPanelRender();}catch{}\n"+
+  "}"
+);
+
+const historyExportAnchor =
+  "window.TubeBenderHistory={\n"+
+  "  undo:tbUndo,\n"+
+  "  redo:tbRedo,\n"+
+  "  clear:tbHistoryClear,\n"+
+  "  canUndo:()=>tbHistory.undo.length>0,\n"+
+  "  canRedo:()=>tbHistory.redo.length>0,\n"+
+  "  execute:tbModelCommand\n"+
+  "};";
+if(!output.includes(historyExportAnchor)){
+  throw new Error("TubeBenderHistory export anchor missing");
+}
+output=output.replace(
+  historyExportAnchor,
+  "window.TubeBenderHistory={\n"+
+  "  undo:tbUndo,\n"+
+  "  redo:tbRedo,\n"+
+  "  clear:tbHistoryClear,\n"+
+  "  canUndo:()=>tbHistory.undo.length>0,\n"+
+  "  canRedo:()=>tbHistory.redo.length>0,\n"+
+  "  execute:tbModelCommand,\n"+
+  "  timeline:()=>tbHistoryTimeline().map((entry,index)=>({index:index+1,label:entry.label||'Изменение'})),\n"+
+  "  cursor:tbHistoryCursor,\n"+
+  "  jump:tbHistoryJump,\n"+
+  "  openPanel:()=>{const panel=tbHistoryEnsurePanel();panel.classList.add('open');tbHistoryPanelRender();}\n"+
+  "};\n"+
+  "if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{tbHistoryEnsurePanel();tbHistoryPanelRender();},{once:true});else{tbHistoryEnsurePanel();tbHistoryPanelRender();}"
+);
+
 const fixedEndHistoryBeginAnchor =
   "  const token={label:String(label||'Изменение'),before:tbHistorySnapshot()};";
 if(!output.includes(fixedEndHistoryBeginAnchor)){
