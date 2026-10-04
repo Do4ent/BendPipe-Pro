@@ -313,3 +313,16 @@ test("A67: tube-end context exposes anchor fix-release action only for the end p
   assert.match(code,/if\(endSelection\)\{[\s\S]*button\.dataset\.objectAction!=="anchor-end"/);
   assert.match(code,/object\.userData\?\.tubeEnd===true/);
 });
+
+
+test("accepted box and lasso 3D selection use modifier drag without stealing normal orbit",()=>{
+  assert.match(code,/function beginAreaSelection/);
+  assert.match(code,/event\.shiftKey\|\|event\.altKey/);
+  assert.match(code,/mode:event\.altKey\?"lasso":"box"/);
+  assert.match(code,/function pointInPolygon/);
+  assert.match(code,/projectedSelectionCandidates/);
+  assert.match(code,/tubebender-selection-change/);
+  assert.match(code,/addEventListener\("pointerdown"/);
+  assert.match(code,/addEventListener\("pointermove"/);
+  assert.match(code,/addEventListener\("pointerup"/);
+});
