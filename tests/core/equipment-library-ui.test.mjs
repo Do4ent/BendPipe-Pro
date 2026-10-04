@@ -187,3 +187,14 @@ test("Clearance Monitor renders Green Yellow Red status badges",()=>{
   assert.match(code,/tb-clearance-status\.NotChecked/);
   assert.match(code,/class="tb-clearance-status /);
 });
+
+
+test("tooling forms expose simple calibration fields without wizard or hierarchy",()=>{
+  assert.match(code,/Calibration angle offset, °/);
+  assert.match(code,/Calibration radius offset, mm/);
+  assert.match(code,/Calibration note/);
+  assert.match(code,/calibration:\{angle_offset_deg:/);
+  assert.doesNotMatch(code,/Calibration Wizard/);
+  assert.doesNotMatch(code,/calibration hierarchy/i);
+  assert.doesNotMatch(code,/Validated|Deprecated/);
+});
