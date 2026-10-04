@@ -140,3 +140,25 @@ test("unsupported operation kinds fail closed",()=>{
     /unsupported transform stack operation/
   );
 });
+
+
+test("question 68: disguised Scale or shear cannot enter a tube Transform Stack",()=>{
+  const stack=createTubeTransformStack(sample());
+  const uniformScale={
+    id:"fake-move",
+    kind:"Move",
+    matrix:[
+      2,0,0,0,
+      0,2,0,0,
+      0,0,2,0,
+      0,0,0,1
+    ],
+    enabled:true,
+    associative:true,
+    metadata:{delta:{x:0,y:0,z:0}}
+  };
+  assert.throws(
+    ()=>appendTransformOperation(stack,uniformScale),
+    (error)=>error?.code==="NON_RIGID_TUBE_TRANSFORM"
+  );
+});
