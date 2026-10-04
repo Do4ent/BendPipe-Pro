@@ -54,7 +54,7 @@
   }
   function selectedWholeTubes(){
     return entries().filter((e)=>e.kind==="tube").map((e)=>tubeById(e.tubeId)).filter((tube)=>
-      tube&&tube?.array_member?.derived_readonly!==true&&tube?.mirror_member?.derived_readonly!==true
+      tube&&tube?.array_member?.derived_readonly!==true&&tube?.mirror_member?.derived_readonly!==true&&tube?.transform_stack_member?.derived_readonly!==true
     );
   }
   function selectedSingleLine(){
