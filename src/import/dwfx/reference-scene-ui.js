@@ -322,7 +322,8 @@
           x:Number(rotation_deg?.x)||0,
           y:Number(rotation_deg?.y)||0,
           z:Number(rotation_deg?.z)||0
-        }
+        },
+        rotation_quaternion:{x:0,y:0,z:0,w:1}
       },
       link_status:"linked",
       source_visible:false,
@@ -358,6 +359,42 @@
         y:Number((Number(p.y||0)+Number(deltaMm?.y||0)).toFixed(6)),
         z:Number((Number(p.z||0)+Number(deltaMm?.z||0)).toFixed(6))
       }
+    };
+    return instance;
+  }
+
+  function normalizedQuaternion(value={}){
+    const x=Number(value.x)||0,y=Number(value.y)||0,z=Number(value.z)||0,w=Number.isFinite(Number(value.w))?Number(value.w):1;
+    const len=Math.hypot(x,y,z,w)||1;
+    return {x:x/len,y:y/len,z:z/len,w:w/len};
+  }
+
+  function multiplyQuaternion(aValue,bValue){
+    const a=normalizedQuaternion(aValue),b=normalizedQuaternion(bValue);
+    return normalizedQuaternion({
+      x:a.w*b.x+a.x*b.w+a.y*b.z-a.z*b.y,
+      y:a.w*b.y-a.x*b.z+a.y*b.w+a.z*b.x,
+      z:a.w*b.z+a.x*b.y-a.y*b.x+a.z*b.w,
+      w:a.w*b.w-a.x*b.x-a.y*b.y-a.z*b.z
+    });
+  }
+
+  function axisAngleQuaternion(axis,angleDeg){
+    const x=Number(axis?.x)||0,y=Number(axis?.y)||0,z=Number(axis?.z)||0;
+    const len=Math.hypot(x,y,z);
+    if(!(len>1e-12))throw new Error("Rotation axis is invalid");
+    const half=Number(angleDeg)*Math.PI/360,s=Math.sin(half)/len;
+    return normalizedQuaternion({x:x*s,y:y*s,z:z*s,w:Math.cos(half)});
+  }
+
+  function rotateEditableMeshInstanceAxis(project,instanceId,{axis,angle_deg}={}){
+    const instance=meshInstanceById(project,instanceId);
+    if(!instance)throw new Error("Editable mesh instance not found");
+    const current=instance.transform?.rotation_quaternion??{x:0,y:0,z:0,w:1};
+    const delta=axisAngleQuaternion(axis,Number(angle_deg)||0);
+    instance.transform={
+      ...(instance.transform??{}),
+      rotation_quaternion:multiplyQuaternion(delta,current)
     };
     return instance;
   }
@@ -907,13 +944,18 @@
         (Number(p.y)||0)*Number(geomScale||1),
         (Number(p.z)||0)*Number(geomScale||1)
       );
-      const r=transform.rotation_deg??{};
-      sceneGroup.rotation.set(
-        THREE.MathUtils.degToRad(Number(r.x)||0),
-        THREE.MathUtils.degToRad(Number(r.y)||0),
-        THREE.MathUtils.degToRad(Number(r.z)||0),
-        "XYZ"
-      );
+      const q=transform.rotation_quaternion;
+      if(q&&[q.x,q.y,q.z,q.w].every((value)=>Number.isFinite(Number(value)))){
+        sceneGroup.quaternion.set(Number(q.x),Number(q.y),Number(q.z),Number(q.w)).normalize();
+      }else{
+        const r=transform.rotation_deg??{};
+        sceneGroup.rotation.set(
+          THREE.MathUtils.degToRad(Number(r.x)||0),
+          THREE.MathUtils.degToRad(Number(r.y)||0),
+          THREE.MathUtils.degToRad(Number(r.z)||0),
+          "XYZ"
+        );
+      }
       const count=renderMeshInstanceNode({
         parent:sceneGroup,node:sourceNode,runtime:{...runtime,scale_mm_per_source_unit:scaleMm},
         THREE,instanceId:instance.id,
@@ -1954,6 +1996,7 @@
     ensureEditableMeshInstance,
     moveEditableMeshInstance,
     rotateEditableMeshInstance,
+    rotateEditableMeshInstanceAxis,
     copyEditableMeshInstance,
     arrayEditableMeshInstance,
     breakEditableMeshInstanceLink,
