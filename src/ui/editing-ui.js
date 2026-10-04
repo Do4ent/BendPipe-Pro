@@ -426,6 +426,48 @@
       return true;
     });
   }
+  function createMeshArray(body){
+    const meshEntries=selectedMeshSources();
+    if(!meshEntries.length){toast("Для Mesh Array выберите Source mesh или Editable Mesh Instance");return false;}
+    if(selectedWholeTubes().length){toast("Mesh Array не смешивает трубы и mesh instances");return false;}
+    const count=Math.trunc(Number($("[data-mesh-array-count]",body)?.value));
+    const step={
+      x:Number($("[data-mesh-array-x]",body)?.value.replace(",",".")||0),
+      y:Number($("[data-mesh-array-y]",body)?.value.replace(",",".")||0),
+      z:Number($("[data-mesh-array-z]",body)?.value.replace(",",".")||0)
+    };
+    if(!(count>=2)){toast("Mesh Array count должен быть ≥ 2");return false;}
+    if(![step.x,step.y,step.z].every(Number.isFinite)){toast("Mesh Array step XYZ должен быть числом");return false;}
+    const p=project(),ref=referenceApi();if(!p||!ref)return false;
+    const createdIds=[];
+    return commit("Создать Mesh Array",()=>{
+      for(const entry of meshEntries){
+        if(entry.kind==="mesh-instance"){
+          const created=ref.arrayEditableMeshInstance?.(p,entry.instanceId,{count,step_mm:step})??[];
+          createdIds.push(...created.map((item)=>String(item.id)));
+        }else{
+          for(let index=1;index<count;index++){
+            const created=ref.createEditableMeshInstanceByRef?.(p,entry.sceneId,entry.nodeId,{
+              position_mm:{x:step.x*index,y:step.y*index,z:step.z*index},
+              name:"Source mesh ["+(index+1)+"]"
+            });
+            if(!created)throw new Error("Source Mesh Array failed");
+            created.array_member={
+              source_reference:{scene_id:String(entry.sceneId),node_id:String(entry.nodeId)},
+              member_index:index,
+              derived:false
+            };
+            createdIds.push(String(created.id));
+          }
+        }
+      }
+      queueMicrotask(()=>{
+        try{context()?.replaceSelectionKeys?.(createdIds.map((id)=>"mesh:"+encodeURIComponent(id)));}catch{}
+      });
+      return true;
+    });
+  }
+
   function multipleCopySelection(body){
     const tubes=selectedWholeTubes();
     if(!tubes.length){toast("Для Copy выберите одну или несколько целых труб");return false;}
@@ -875,7 +917,9 @@
         '<label>Base XYZ</label><input data-copy-base-input placeholder="100;200;0"><label>Target / @delta</label><input data-copy-target-input placeholder="300;200;0 / @100;0;0 / @100<45"></div>'+
         '<div class="tb-edit-note" data-copy-session-status style="margin-top:8px"></div>'+
         '<div class="tb-edit-note" style="margin-top:6px">В 3D: первый клик по Snap задаёт Base Point, следующие клики — Target Point. Live-preview не изменяет модель. Поддерживаются 12.5 и 12,5; при десятичной запятой разделяйте X/Y/Z точкой с запятой (;). В режиме «Несколько»: Enter завершает всю серию одним Undo, Backspace убирает последнюю ещё не записанную в модель точку.</div>'+
-        '<div class="tb-edit-actions"><button data-copy-base-snap>Snap → Base</button><button data-copy-base-input-run>XYZ → Base</button><button data-copy-target-snap>Snap → Target</button><button data-copy-target-input-run>Input → Target</button><button data-copy-finish>Завершить</button></div></div>';
+        '<div class="tb-edit-actions"><button data-copy-base-snap>Snap → Base</button><button data-copy-base-input-run>XYZ → Base</button><button data-copy-target-snap>Snap → Target</button><button data-copy-target-input-run>Input → Target</button><button data-copy-finish>Завершить</button></div>'+
+        (selectedMeshSources().length?'<div class="tb-edit-note" style="margin-top:10px"><b>Mesh Array</b> · Source остаётся readonly, создаются lightweight instances.</div><div class="tb-edit-grid" style="margin-top:6px"><label>Count</label><input data-mesh-array-count value="3"><label>Step X</label><input data-mesh-array-x value="100"><label>Step Y</label><input data-mesh-array-y value="0"><label>Step Z</label><input data-mesh-array-z value="0"></div><div class="tb-edit-actions"><button data-mesh-array-create>Создать Mesh Array</button></div>':'')+
+        '</div>';
       $("[data-copy-mode]",body).value=copySession.mode;
       $("[data-copy-mode]",body).onchange=(event)=>{copySession.mode=event.target.value==="multiple"?"multiple":"single";resetCopySession();copySession.active=true;copySessionStatus(body);};
       $("[data-copy-base-snap]",body).onclick=()=>setCopyBaseFromSnap(body);
@@ -883,6 +927,7 @@
       $("[data-copy-target-snap]",body).onclick=()=>addCopyTargetFromSnap(body);
       $("[data-copy-target-input-run]",body).onclick=()=>addCopyTargetFromInput(body);
       $("[data-copy-finish]",body).onclick=()=>commitCopySeries(body);
+      $("[data-mesh-array-create]",body)?.addEventListener("click",()=>createMeshArray(body));
       copySessionStatus(body);renderCopyPreview();
     }else if(activeTool==="move"){
       body.innerHTML='<div class="tb-edit-card"><b>Move</b><div class="tb-edit-grid" style="margin-top:8px"><label>ΔX, мм</label><input data-edit-dx value="0"><label>ΔY, мм</label><input data-edit-dy value="0"><label>ΔZ, мм</label><input data-edit-dz value="0"><label>Dynamic input</label><input data-edit-vector placeholder="@10;0;0 / 100;200;0 / @100<45"><label>Ortho</label><input data-edit-ortho type="checkbox"><label>Polar Tracking</label><input data-edit-polar type="checkbox"><label>Polar step, °</label><input data-edit-polar-step value="15"></div><div class="tb-edit-note" data-edit-preview style="margin-top:8px"></div><div class="tb-edit-note" style="margin-top:6px">Object Snap Tracking работает в 3D: hover-acquire, Tab / Shift+Tab, P pin. Tracking guides следуют Ortho / Polar. Числа принимают 12.5 и 12,5; для X/Y/Z с десятичной запятой используйте ;.</div><div class="tb-edit-actions"><button data-move-use-snap>Snap → Point</button><button data-move-run>Переместить</button></div></div>';
