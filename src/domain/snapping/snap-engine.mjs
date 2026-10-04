@@ -275,4 +275,62 @@ export function gridSnapCandidate({point:gridPoint,object_id="grid",screen_dista
   });
 }
 
+export function createObjectSnapTrackingRay({anchor,direction,source_candidate_id=null,label=null}={}){
+  const a=point(anchor,"anchor"),d=unit(point(direction,"direction"),"direction");
+  return freeze({
+    anchor:a,
+    direction:d,
+    source_candidate_id:source_candidate_id==null?null:String(source_candidate_id),
+    label:label==null?"Object Snap Tracking":String(label)
+  });
+}
+
+export function objectSnapTrackingCandidate({cursor,ray,object_id="tracking",source="Construction",screen_distance_px=0}={}){
+  if(!ray)throw new TypeError("tracking ray is required");
+  const projection=projectPointToLine(cursor,ray.anchor,ray.direction);
+  return createSnapCandidate({
+    id:`${object_id}:tracking:${ray.source_candidate_id??"ray"}`,
+    type:"LineAxis",
+    source,
+    object_id,
+    subentity_id:"object-snap-tracking",
+    point:projection.point,
+    screen_distance_px,
+    virtual:true,
+    label:ray.label??"Object Snap Tracking",
+    metadata:{
+      tracking:true,
+      source_candidate_id:ray.source_candidate_id??null,
+      line_parameter:projection.parameter,
+      distance_mm:projection.distance_mm,
+      direction:ray.direction
+    }
+  });
+}
+
+export function intersectObjectSnapTrackingRays(rayA,rayB,{tolerance_mm=0.01,object_id="tracking"}={}){
+  if(!rayA||!rayB)throw new TypeError("two tracking rays are required");
+  const candidate=lineIntersectionSnapCandidate({
+    lineA:{point:rayA.anchor,direction:rayA.direction},
+    lineB:{point:rayB.anchor,direction:rayB.direction},
+    object_id,
+    source:"Construction",
+    tolerance_mm,
+    allow_closest:false
+  });
+  if(!candidate)return null;
+  return createSnapCandidate({
+    ...candidate,
+    id:`${object_id}:tracking-intersection`,
+    type:"Intersection",
+    virtual:true,
+    label:"Object Snap Tracking Intersection",
+    metadata:{
+      ...candidate.metadata,
+      tracking:true,
+      source_candidate_ids:[rayA.source_candidate_id??null,rayB.source_candidate_id??null]
+    }
+  });
+}
+
 export const SnapMath=freeze({add,sub,mul,dot,cross,len,unit,distance});
