@@ -110,6 +110,18 @@
     if(!keepReference)refApi()?.clearSelection?.();
     refreshVisualSelection();
   }
+  function replaceSelectionKeys(keys,{announce=true}={}){
+    selected.clear();
+    refApi()?.clearSelection?.();
+    for(const key of Array.isArray(keys)?keys:[]){
+      if(typeof key==="string"&&key)selected.add(key);
+    }
+    syncSelectionIntoReference();
+    refreshVisualSelection();
+    if(announce)dispatchSelectionChanged("replace");
+    return Object.freeze([...selected]);
+  }
+
 
   function setSelectedKey(key,{additive=false,toggle=false}={}){
     if(!key)return;
@@ -1675,6 +1687,7 @@
   window.TubeBenderObjectContext=Object.freeze({
     install,
     clearSelection,
+    replaceSelectionKeys,
     selectionKeys:()=>Object.freeze([...selected]),
     selectionEntries,
     applyAction,
