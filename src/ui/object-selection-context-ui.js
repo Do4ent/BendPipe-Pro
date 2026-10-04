@@ -624,7 +624,7 @@
   function canMoveSelection(){
     const entries=selectionEntries();
     return entries.length>0&&entries.every((entry)=>{
-      if(entry.kind==="ref")return true;
+      if(entry.kind==="ref"||entry.kind==="mesh-instance")return true;
       if(entry.kind!=="tube")return false;
       const tube=tubeById(entry.tubeId);
       return tube?.array_member?.derived_readonly!==true&&tube?.mirror_member?.derived_readonly!==true&&tube?.transform_stack_member?.derived_readonly!==true;
@@ -889,6 +889,9 @@
   function selectedReferenceEntries(entries){
     return entries.filter((entry)=>entry.kind==="ref");
   }
+  function selectedMeshEntries(entries){
+    return entries.filter((entry)=>entry.kind==="mesh-instance");
+  }
   function prepareReferenceSelection(entries){
     const api=refApi();
     const p=project();
@@ -903,12 +906,17 @@
     const p=project();
     if(!p)return false;
 
+    let createdInstanceIds=[];
     const mutate=()=>{
       if(typeof syncActiveTubeFromState==="function")syncActiveTubeFromState();
       const refEntries=selectedReferenceEntries(entries);
       if(refEntries.length){
         prepareReferenceSelection(entries);
-        refApi()?.moveSelection?.(p,delta);
+        const result=refApi()?.moveSelection?.(p,delta);
+        createdInstanceIds=Array.isArray(result?.instance_ids)?result.instance_ids.map(String):[];
+      }
+      for(const entry of selectedMeshEntries(entries)){
+        refApi()?.moveEditableMeshInstance?.(p,entry.instanceId,delta);
       }
 
       const originals=[];
@@ -956,8 +964,15 @@
         ? tbModelCommand("Переместить выбранные объекты",mutate)
         : mutate();
     if(ok===false)return false;
+    if(createdInstanceIds.length){
+      selected.clear();
+      refApi()?.clearSelection?.();
+      for(const id of createdInstanceIds)selected.add(meshKey(id));
+    }
     try{if(typeof save==="function")save();}catch{}
     try{if(typeof renderAll==="function")renderAll();}catch{}
+    try{if(typeof refreshProjectTree==="function")refreshProjectTree();}catch{}
+    refreshVisualSelection();
     updateTreeSelectionStyles();
     return true;
   }
