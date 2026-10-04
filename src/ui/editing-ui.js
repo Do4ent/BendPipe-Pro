@@ -2,6 +2,7 @@
   const STRAIGHT_RUN_URL="__TB_STRAIGHT_RUN_MODULE_URL__";
   const RIGID_TRANSFORM_URL="__TB_RIGID_TRANSFORM_MODULE_URL__";
   const DYNAMIC_INPUT_URL="__TB_DYNAMIC_INPUT_MODULE_URL__";
+  const DECIMAL_PREF_KEY="tubebender.dynamicInput.decimalSeparator";
   let straightRun=null,rigidTransform=null,dynamicInput=null,installed=false,panel=null,button=null,activeTool="copy",snapCommandTool=null;
   let copyPreviewGroup=null;
   const copySession={active:false,mode:"single",base:null,targets:[],pendingPoint:null,sourceIds:[]};
@@ -17,6 +18,24 @@
   const toast=(m)=>{try{api()?.toast?.(String(m??""));}catch{}};
   const entries=()=>context()?.selectionEntries?.()??[];
   const tubeById=(id)=>(project()?.tubes??[]).find((t)=>String(t?.id)===String(id))??null;
+  function decimalPreference(){
+    let value="auto";
+    try{value=localStorage.getItem(DECIMAL_PREF_KEY)||"auto";}catch{}
+    try{return dynamicInput?.normalizeDecimalSeparatorPreference?.(value)??"auto";}catch{return "auto";}
+  }
+  function setDecimalPreference(value){
+    let next="auto";
+    try{next=dynamicInput?.normalizeDecimalSeparatorPreference?.(value)??"auto";}catch{}
+    try{localStorage.setItem(DECIMAL_PREF_KEY,next);}catch{}
+    const select=panel?.querySelector?.("[data-decimal-pref]");
+    if(select)select.value=next;
+    render();
+    return next;
+  }
+  function formatDynamicNumber(value,digits=3){
+    try{return dynamicInput?.formatNumericInput?.(value,{decimal_separator:decimalPreference(),maximumFractionDigits:digits})??Number(value).toFixed(digits);}
+    catch{return String(value);}
+  }
   function makeId(prefix){
     const uuid=globalThis.crypto?.randomUUID?.();
     return uuid?prefix+"-"+uuid:prefix+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,9);
@@ -199,7 +218,7 @@
     const status=$("[data-copy-session-status]",body);
     if(!status)return;
     const base=copySession.base
-      ?"Base: "+["x","y","z"].map((k)=>Number(copySession.base[k]).toFixed(2)).join(", ")
+      ?"Base: "+["x","y","z"].map((k)=>formatDynamicNumber(copySession.base[k],2)).join(decimalPreference()===","?"; ":", ")
       :"Base: выберите Snap-точку в 3D или введите XYZ";
     status.textContent=base+" · Targets: "+copySession.targets.length+
       (copySession.mode==="multiple"?" · Enter завершает серию · Backspace отменяет последнюю точку":" · одна целевая точка завершает команду");
@@ -221,7 +240,7 @@
     const raw=$("[data-copy-base-input]",body)?.value.trim();
     if(!raw){toast("Введите Base XYZ");return false;}
     try{
-      const parsed=dynamicInput.parseCoordinateInput(raw,{origin:{x:0,y:0,z:0}});
+      const parsed=dynamicInput.parseCoordinateInput(raw,{origin:{x:0,y:0,z:0},decimal_separator:decimalPreference()});
       return setCopyBase(parsed.point,body);
     }catch(error){toast(error.message);return false;}
   }
@@ -244,7 +263,7 @@
     const raw=$("[data-copy-target-input]",body)?.value.trim();
     if(!raw){toast("Введите Target XYZ / @delta / polar");return false;}
     try{
-      const parsed=dynamicInput.parseCoordinateInput(raw,{origin:copySession.base});
+      const parsed=dynamicInput.parseCoordinateInput(raw,{origin:copySession.base,decimal_separator:decimalPreference()});
       return addCopyTarget(parsed.point,body);
     }catch(error){toast(error.message);return false;}
   }
@@ -419,7 +438,7 @@
       try{
         const tubes=selectedWholeTubes();
         const origin=tubes.length===1?clone(tubes[0].origin??{x:0,y:0,z:0}):{x:0,y:0,z:0};
-        const parsed=dynamicInput.parseCoordinateInput(expression,{origin});
+        const parsed=dynamicInput.parseCoordinateInput(expression,{origin,decimal_separator:decimalPreference()});
         if(!String(parsed.mode).startsWith("relative")&&tubes.length!==1){
           toast("Absolute Move доступен только для одной выбранной трубы");return false;
         }
@@ -443,9 +462,9 @@
     if(!out)return;
     if(!expression){out.textContent="Dynamic preview: используйте @10;0;0, 100;200;0 или @100<45";return;}
     const tubes=selectedWholeTubes(),origin=tubes.length===1?clone(tubes[0].origin??{x:0,y:0,z:0}):{x:0,y:0,z:0};
-    const preview=dynamicInput.dynamicInputPreview(expression,{origin});
+    const preview=dynamicInput.dynamicInputPreview(expression,{origin,decimal_separator:decimalPreference()});
     out.textContent=preview.status==="Valid"
-      ?"Preview "+preview.mode+": X="+preview.point.x.toFixed(3)+" Y="+preview.point.y.toFixed(3)+" Z="+preview.point.z.toFixed(3)
+      ?"Preview "+preview.mode+": X="+formatDynamicNumber(preview.point.x)+" Y="+formatDynamicNumber(preview.point.y)+" Z="+formatDynamicNumber(preview.point.z)
       :"Invalid: "+preview.error;
   }
   function splitSelected(body){
@@ -765,7 +784,7 @@
 #tbEditingPanel{position:fixed;z-index:120321;right:16px;top:86px;width:min(440px,calc(100vw - 32px));display:none;flex-direction:column;background:#101923;color:#edf4fb;border:1px solid #43546a;border-radius:9px;box-shadow:0 16px 45px rgba(0,0,0,.55);font:12px system-ui}
 #tbEditingPanel.open{display:flex}.tb-edit-head{display:flex;align-items:center;padding:9px 10px;border-bottom:1px solid #2c3948}.tb-edit-head .sp{flex:1}.tb-edit-head button,.tb-edit-tools button,.tb-edit-actions button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:5px;padding:5px 8px;cursor:pointer}
 .tb-edit-tools{display:flex;flex-wrap:wrap;gap:5px;padding:8px;border-bottom:1px solid #293746}.tb-edit-tools button.active{background:#3b5570;color:#fff}.tb-edit-tools button[disabled]{opacity:.45;cursor:not-allowed}
-.tb-edit-body{padding:10px}.tb-edit-card{border:1px solid #304154;border-radius:7px;padding:9px}.tb-edit-grid{display:grid;grid-template-columns:130px 1fr;gap:7px 9px;align-items:center}.tb-edit-grid input,.tb-edit-grid select{background:#0b131c;color:#fff;border:1px solid #40536a;border-radius:5px;padding:6px}.tb-edit-note{color:#9fafbf;line-height:1.45}.tb-edit-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:9px}
+.tb-edit-body{padding:10px}.tb-edit-card{border:1px solid #304154;border-radius:7px;padding:9px}.tb-edit-grid{display:grid;grid-template-columns:130px 1fr;gap:7px 9px;align-items:center}.tb-edit-grid input,.tb-edit-grid select{background:#0b131c;color:#fff;border:1px solid #40536a;border-radius:5px;padding:6px}.tb-edit-note{color:#9fafbf;line-height:1.45}.tb-edit-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:9px}.tb-decimal-pref{display:flex;align-items:center;gap:5px;color:#9fafbf;font-size:11px}.tb-decimal-pref select{background:#0b131c;color:#fff;border:1px solid #40536a;border-radius:4px;padding:3px 5px}
 `;document.head.appendChild(s);
   }
   function ensureShell(){
@@ -775,7 +794,7 @@
     const host=document.querySelector(".tb-head-actions");
     if(host)host.appendChild(button);else{button.classList.add("tb-fixed");document.body.appendChild(button);}
     panel=document.createElement("section");panel.id="tbEditingPanel";
-    panel.innerHTML='<div class="tb-edit-head"><b>Редактирование</b><span class="sp"></span><button data-edit-close>×</button></div>'+
+    panel.innerHTML='<div class="tb-edit-head"><b>Редактирование</b><span class="sp"></span><label class="tb-decimal-pref">Decimal <select data-decimal-pref title="Десятичный разделитель"><option value="auto">Auto</option><option value=".">.</option><option value=",">,</option></select></label><button data-edit-close>×</button></div>'+
       '<div class="tb-edit-tools">'+
       '<button data-tool="copy">Copy</button><button data-tool="move">Move</button><button data-tool="split">Split</button>'+
       '<button data-tool="rotate">Rotate</button><button data-tool="mirror">Mirror</button>'+
@@ -783,6 +802,8 @@
       '</div><div class="tb-edit-body"></div>';
     document.body.appendChild(panel);
     $("[data-edit-close]",panel).onclick=close;
+    const decimalSelect=$("[data-decimal-pref]",panel);
+    if(decimalSelect){decimalSelect.value=decimalPreference();decimalSelect.onchange=(event)=>setDecimalPreference(event.target.value);}
     $(".tb-edit-tools",panel).onclick=(e)=>{const b=e.target.closest("[data-tool]");if(!b||b.disabled)return;if(activeTool==="copy"&&b.dataset.tool!=="copy"){resetCopySession();copySession.active=false;}activeTool=b.dataset.tool;render();};
     return panel;
   }
@@ -799,7 +820,7 @@
         '<div class="tb-edit-grid" style="margin-top:8px"><label>Режим</label><select data-copy-mode><option value="single">Одна копия</option><option value="multiple">Несколько копий</option></select>'+
         '<label>Base XYZ</label><input data-copy-base-input placeholder="100;200;0"><label>Target / @delta</label><input data-copy-target-input placeholder="300;200;0 / @100;0;0 / @100<45"></div>'+
         '<div class="tb-edit-note" data-copy-session-status style="margin-top:8px"></div>'+
-        '<div class="tb-edit-note" style="margin-top:6px">В 3D: первый клик по Snap задаёт Base Point, следующие клики — Target Point. Live-preview не изменяет модель. В режиме «Несколько»: Enter завершает всю серию одним Undo, Backspace убирает последнюю ещё не записанную в модель точку.</div>'+
+        '<div class="tb-edit-note" style="margin-top:6px">В 3D: первый клик по Snap задаёт Base Point, следующие клики — Target Point. Live-preview не изменяет модель. Поддерживаются 12.5 и 12,5; при десятичной запятой разделяйте X/Y/Z точкой с запятой (;). В режиме «Несколько»: Enter завершает всю серию одним Undo, Backspace убирает последнюю ещё не записанную в модель точку.</div>'+
         '<div class="tb-edit-actions"><button data-copy-base-snap>Snap → Base</button><button data-copy-base-input-run>XYZ → Base</button><button data-copy-target-snap>Snap → Target</button><button data-copy-target-input-run>Input → Target</button><button data-copy-finish>Завершить</button></div></div>';
       $("[data-copy-mode]",body).value=copySession.mode;
       $("[data-copy-mode]",body).onchange=(event)=>{copySession.mode=event.target.value==="multiple"?"multiple":"single";resetCopySession();copySession.active=true;copySessionStatus(body);};
@@ -810,7 +831,7 @@
       $("[data-copy-finish]",body).onclick=()=>commitCopySeries(body);
       copySessionStatus(body);renderCopyPreview();
     }else if(activeTool==="move"){
-      body.innerHTML='<div class="tb-edit-card"><b>Move</b><div class="tb-edit-grid" style="margin-top:8px"><label>ΔX, мм</label><input data-edit-dx value="0"><label>ΔY, мм</label><input data-edit-dy value="0"><label>ΔZ, мм</label><input data-edit-dz value="0"><label>Dynamic input</label><input data-edit-vector placeholder="@10;0;0 / 100;200;0 / @100<45"><label>Ortho</label><input data-edit-ortho type="checkbox"><label>Polar Tracking</label><input data-edit-polar type="checkbox"><label>Polar step, °</label><input data-edit-polar-step value="15"></div><div class="tb-edit-note" data-edit-preview style="margin-top:8px"></div><div class="tb-edit-note" style="margin-top:6px">Object Snap Tracking работает в 3D: hover-acquire, Tab / Shift+Tab, P pin. Tracking guides следуют Ortho / Polar.</div><div class="tb-edit-actions"><button data-move-use-snap>Snap → Point</button><button data-move-run>Переместить</button></div></div>';
+      body.innerHTML='<div class="tb-edit-card"><b>Move</b><div class="tb-edit-grid" style="margin-top:8px"><label>ΔX, мм</label><input data-edit-dx value="0"><label>ΔY, мм</label><input data-edit-dy value="0"><label>ΔZ, мм</label><input data-edit-dz value="0"><label>Dynamic input</label><input data-edit-vector placeholder="@10;0;0 / 100;200;0 / @100<45"><label>Ortho</label><input data-edit-ortho type="checkbox"><label>Polar Tracking</label><input data-edit-polar type="checkbox"><label>Polar step, °</label><input data-edit-polar-step value="15"></div><div class="tb-edit-note" data-edit-preview style="margin-top:8px"></div><div class="tb-edit-note" style="margin-top:6px">Object Snap Tracking работает в 3D: hover-acquire, Tab / Shift+Tab, P pin. Tracking guides следуют Ortho / Polar. Числа принимают 12.5 и 12,5; для X/Y/Z с десятичной запятой используйте ;.</div><div class="tb-edit-actions"><button data-move-use-snap>Snap → Point</button><button data-move-run>Переместить</button></div></div>';
       $("[data-move-use-snap]",body).onclick=()=>useSnapForMove(body);
       $("[data-move-run]",body).onclick=()=>finishSnapCommand(moveSelection(body));
       $("[data-edit-vector]",body).oninput=()=>updateMovePreview(body);
