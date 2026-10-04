@@ -3,6 +3,8 @@
   const RIGID_TRANSFORM_URL="__TB_RIGID_TRANSFORM_MODULE_URL__";
   const DYNAMIC_INPUT_URL="__TB_DYNAMIC_INPUT_MODULE_URL__";
   let straightRun=null,rigidTransform=null,dynamicInput=null,installed=false,panel=null,button=null,activeTool="copy",snapCommandTool=null;
+  let copyPreviewGroup=null;
+  const copySession={active:false,mode:"single",base:null,targets:[],pendingPoint:null,sourceIds:[]};
   const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
   const clone=(v)=>v==null?v:structuredClone(v);
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,(ch)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -106,6 +108,218 @@
     const candidate=snapTracking()?.currentCandidate?.();
     return candidate?.point?clone(candidate.point):null;
   }
+  function copySceneScale(){
+    return typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
+  }
+  function clearCopyPreview(){
+    if(copyPreviewGroup?.parent)copyPreviewGroup.parent.remove(copyPreviewGroup);
+    copyPreviewGroup=null;
+    try{if(typeof markViewerDirty==="function")markViewerDirty();}catch{}
+  }
+  function copySourceTubes(){
+    const ids=copySession.sourceIds.length?copySession.sourceIds:selectedWholeTubes().map((tube)=>String(tube.id));
+    return ids.map(tubeById).filter(Boolean);
+  }
+  function rootBelongsToCopySource(root,tubeId){
+    if(!root||root.userData?.helper||root.userData?.referenceGeometry||root.userData?.referenceSelectionHelper)return false;
+    const activeId=String(stateValue()?.activeTubeId??"");
+    let belongs=String(root.userData?.tubeId??"")===String(tubeId);
+    try{
+      root.traverse?.((object)=>{
+        if(String(object.userData?.tubeId??"")===String(tubeId))belongs=true;
+        if(String(tubeId)===activeId&&object.userData?.pipe===true&&!object.userData?.referenceGeometry)belongs=true;
+      });
+    }catch{}
+    return belongs;
+  }
+  function makeCopyPreviewClone(root){
+    const copy=root.clone(true);
+    copy.traverse?.((object)=>{
+      object.userData={...(object.userData??{}),helper:true,objectSelectionHelper:true,copyLivePreview:true};
+      if(object.material){
+        const materials=Array.isArray(object.material)?object.material:[object.material];
+        const cloned=materials.map((material)=>{
+          const next=material?.clone?.()??material;
+          if(next){
+            next.transparent=true;next.opacity=.32;next.depthWrite=false;next.depthTest=true;
+            if(next.color?.setHex)next.color.setHex(0x52d6ff);
+          }
+          return next;
+        });
+        object.material=Array.isArray(object.material)?cloned:cloned[0];
+      }
+    });
+    return copy;
+  }
+  function copyPreviewRoots(tubeId){
+    if(typeof pipeGroup==="undefined"||!pipeGroup)return [];
+    return [...pipeGroup.children].filter((root)=>root!==copyPreviewGroup&&rootBelongsToCopySource(root,tubeId));
+  }
+  function samePoint(a,b,tol=1e-6){
+    return !!a&&!!b&&Math.hypot(Number(a.x)-Number(b.x),Number(a.y)-Number(b.y),Number(a.z)-Number(b.z))<=tol;
+  }
+  function renderCopyPreview(){
+    clearCopyPreview();
+    if(!copySession.active||!copySession.base||typeof THREE==="undefined"||typeof pipeGroup==="undefined"||!pipeGroup)return;
+    const points=[...copySession.targets];
+    if(copySession.pendingPoint&&!points.some((p)=>samePoint(p,copySession.pendingPoint)))points.push(copySession.pendingPoint);
+    if(!points.length)return;
+    const group=new THREE.Group();group.userData={helper:true,objectSelectionHelper:true,copyLivePreview:true};
+    const scale=copySceneScale(),sources=copySourceTubes();
+    for(const target of points){
+      const delta={
+        x:Number(target.x)-Number(copySession.base.x),
+        y:Number(target.y)-Number(copySession.base.y),
+        z:Number(target.z)-Number(copySession.base.z)
+      };
+      const placement=new THREE.Group();
+      placement.userData={helper:true,objectSelectionHelper:true,copyLivePreview:true};
+      placement.position.set(delta.x*scale,delta.y*scale,delta.z*scale);
+      for(const source of sources){
+        for(const root of copyPreviewRoots(source.id))placement.add(makeCopyPreviewClone(root));
+      }
+      group.add(placement);
+    }
+    pipeGroup.add(group);copyPreviewGroup=group;
+    try{if(typeof markViewerDirty==="function")markViewerDirty();}catch{}
+  }
+  function resetCopySession({keepMode=true}={}){
+    const mode=copySession.mode;
+    clearCopyPreview();
+    copySession.active=panel?.classList.contains("open")&&activeTool==="copy";
+    copySession.base=null;copySession.targets=[];copySession.pendingPoint=null;copySession.sourceIds=[];
+    if(keepMode)copySession.mode=mode;else copySession.mode="single";
+  }
+  function syncCopySessionTool(){
+    const shouldBeActive=panel?.classList.contains("open")&&activeTool==="copy";
+    if(!shouldBeActive&&copySession.active){resetCopySession();copySession.active=false;}
+    else if(shouldBeActive)copySession.active=true;
+  }
+  function copySessionStatus(body){
+    const status=$("[data-copy-session-status]",body);
+    if(!status)return;
+    const base=copySession.base
+      ?"Base: "+["x","y","z"].map((k)=>Number(copySession.base[k]).toFixed(2)).join(", ")
+      :"Base: выберите Snap-точку в 3D или введите XYZ";
+    status.textContent=base+" · Targets: "+copySession.targets.length+
+      (copySession.mode==="multiple"?" · Enter завершает серию · Backspace отменяет последнюю точку":" · одна целевая точка завершает команду");
+  }
+  function setCopyBase(point,body=null){
+    const sources=selectedWholeTubes();
+    if(!sources.length){toast("Для Copy выберите одну или несколько целых труб");return false;}
+    if(!point){toast("Не задана базовая точка Copy");return false;}
+    copySession.base=clone(point);copySession.targets=[];copySession.pendingPoint=null;
+    copySession.sourceIds=sources.map((tube)=>String(tube.id));
+    renderCopyPreview();if(body)copySessionStatus(body);return true;
+  }
+  function setCopyBaseFromSnap(body){
+    const point=currentSnapPoint();
+    if(!point){toast("Нет активного snap-кандидата для Base Point");return false;}
+    return setCopyBase(point,body);
+  }
+  function setCopyBaseFromInput(body){
+    const raw=$("[data-copy-base-input]",body)?.value.trim();
+    if(!raw){toast("Введите Base XYZ");return false;}
+    try{
+      const parsed=dynamicInput.parseCoordinateInput(raw,{origin:{x:0,y:0,z:0}});
+      return setCopyBase(parsed.point,body);
+    }catch(error){toast(error.message);return false;}
+  }
+  function addCopyTarget(point,body=null){
+    if(!copySession.base){toast("Сначала задайте Base Point");return false;}
+    if(!point){toast("Не задана целевая точка Copy");return false;}
+    if(samePoint(point,copySession.base)){toast("Target Point совпадает с Base Point");return false;}
+    copySession.targets.push(clone(point));copySession.pendingPoint=null;
+    renderCopyPreview();if(body)copySessionStatus(body);
+    if(copySession.mode==="single")return commitCopySeries(body);
+    return true;
+  }
+  function addCopyTargetFromSnap(body){
+    const point=currentSnapPoint();
+    if(!point){toast("Нет активного snap-кандидата для Target Point");return false;}
+    return addCopyTarget(point,body);
+  }
+  function addCopyTargetFromInput(body){
+    if(!copySession.base){toast("Сначала задайте Base Point");return false;}
+    const raw=$("[data-copy-target-input]",body)?.value.trim();
+    if(!raw){toast("Введите Target XYZ / @delta / polar");return false;}
+    try{
+      const parsed=dynamicInput.parseCoordinateInput(raw,{origin:copySession.base});
+      return addCopyTarget(parsed.point,body);
+    }catch(error){toast(error.message);return false;}
+  }
+  function nextCopyName(base,used){
+    let name=String(base||"Tube")+" Copy",i=2;
+    while(used.has(name))name=String(base||"Tube")+" Copy "+i++;
+    used.add(name);return name;
+  }
+  function translatedIndependentCopy(source,delta,usedNames){
+    let copy=detachExternalGeometryLinks(source);
+    const moved=rigidTransform.translateLegacyTubeRigid(copy,delta);
+    if(moved.status!=="exact")throw new Error(moved.reason||"Copy translation failed");
+    copy=clone(moved.tube);
+    copy.id=makeId("tube");copy.name=nextCopyName(source.name,usedNames);copy.partNumber="";
+    copy.material_warning_ack_signature=null;copy.equipment_calculation_state="Stale";
+    copy.material_calculation_state=copy.material_profile_id?"Stale":"Missing Material";
+    if(Array.isArray(copy.rows))copy.rows=copy.rows.map((row)=>({...row,elementId:row?.elementId?makeId("element"):row?.elementId}));
+    return copy;
+  }
+  function commitCopySeries(body=null){
+    if(!copySession.base||!copySession.targets.length){toast("Нет целевых точек Copy");return false;}
+    if(readonly()){toast("Проект открыт только для просмотра");return false;}
+    const p=project(),sources=copySourceTubes();
+    if(!p||!sources.length){toast("Исходные трубы Copy недоступны");return false;}
+    const base=clone(copySession.base),targets=copySession.targets.map(clone);
+    const usedNames=new Set((p.tubes??[]).map((tube)=>String(tube?.name??"")));
+    const mutate=()=>{
+      const created=[];
+      for(const target of targets){
+        const delta={x:target.x-base.x,y:target.y-base.y,z:target.z-base.z};
+        for(const source of sources)created.push(translatedIndependentCopy(source,delta,usedNames));
+      }
+      p.tubes=[...(p.tubes??[]),...created];
+      return true;
+    };
+    const ok=api()?.modelCommand?api().modelCommand(targets.length>1?"Copy: серия целевых точек":"Copy: одна целевая точка",mutate):mutate();
+    if(ok===false)return false;
+    resetCopySession();copySession.active=true;
+    try{api()?.save?.();api()?.renderAll?.();context()?.refresh?.();}catch{}
+    finishSnapCommand(true);render();return true;
+  }
+  function undoLastCopyTarget(body=null){
+    if(!copySession.targets.length)return false;
+    copySession.targets.pop();copySession.pendingPoint=null;renderCopyPreview();
+    if(body)copySessionStatus(body);return true;
+  }
+  function onCopyCanvasClick(event){
+    if(!copySession.active||activeTool!=="copy"||!panel?.classList.contains("open"))return;
+    const point=currentSnapPoint();if(!point)return;
+    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();
+    const body=$(".tb-edit-body",panel);
+    if(!copySession.base)setCopyBase(point,body);
+    else addCopyTarget(point,body);
+  }
+  function onCopyKeyDown(event){
+    if(!copySession.active||activeTool!=="copy"||!panel?.classList.contains("open"))return;
+    const target=event.target;
+    if(target&&(target.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/i.test(String(target.tagName||""))))return;
+    const body=$(".tb-edit-body",panel);
+    if(event.key==="Enter"&&copySession.mode==="multiple"&&copySession.targets.length){
+      event.preventDefault();commitCopySeries(body);return;
+    }
+    if(event.key==="Backspace"&&copySession.targets.length){
+      event.preventDefault();undoLastCopyTarget(body);return;
+    }
+    if(event.key==="Escape"&&(copySession.base||copySession.targets.length)){
+      event.preventDefault();resetCopySession();copySession.active=true;if(body)copySessionStatus(body);
+    }
+  }
+  function onSnapChangeForCopy(event){
+    if(!copySession.active||!copySession.base||activeTool!=="copy")return;
+    copySession.pendingPoint=event?.detail?.current?.point?clone(event.detail.current.point):null;
+    renderCopyPreview();
+  }
+
   function useSnapForCopyStep(body){
     const tubes=selectedWholeTubes(),point=currentSnapPoint();
     if(tubes.length!==1){toast("Snap Step доступен для одной выбранной трубы");return false;}
@@ -569,21 +783,32 @@
       '</div><div class="tb-edit-body"></div>';
     document.body.appendChild(panel);
     $("[data-edit-close]",panel).onclick=close;
-    $(".tb-edit-tools",panel).onclick=(e)=>{const b=e.target.closest("[data-tool]");if(!b||b.disabled)return;activeTool=b.dataset.tool;render();};
+    $(".tb-edit-tools",panel).onclick=(e)=>{const b=e.target.closest("[data-tool]");if(!b||b.disabled)return;if(activeTool==="copy"&&b.dataset.tool!=="copy"){resetCopySession();copySession.active=false;}activeTool=b.dataset.tool;render();};
     return panel;
   }
   function open(){ensureShell().classList.add("open");render();}
-  function close(){panel?.classList.remove("open");snapTracking()?.endCommand?.();snapCommandTool=null;}
+  function close(){panel?.classList.remove("open");resetCopySession();copySession.active=false;snapTracking()?.endCommand?.();snapCommandTool=null;}
   function render(){
     if(!panel||!straightRun)return;
-    syncSnapCommand();
+    syncSnapCommand();syncCopySessionTool();
     $$(".tb-edit-tools button",panel).forEach((b)=>b.classList.toggle("active",b.dataset.tool===activeTool));
     const body=$(".tb-edit-body",panel);
     if(activeTool==="copy"){
       const count=selectedWholeTubes().length;
-      body.innerHTML='<div class="tb-edit-card"><b>Copy</b><div class="tb-edit-note" style="margin-top:7px">Выбрано целых труб: '+count+'. Копии независимы; step XYZ создаёт серию одной атомарной командой.</div><div class="tb-edit-grid" style="margin-top:8px"><label>Copies</label><input data-copy-count value="1"><label>Step X, mm</label><input data-copy-step-x value="0"><label>Step Y, mm</label><input data-copy-step-y value="0"><label>Step Z, mm</label><input data-copy-step-z value="0"></div><div class="tb-edit-note" style="margin-top:8px">Object Snap Tracking: наведите на Endpoint / Midpoint / Node / Vertex примерно на 0.45 с. Tab / Shift+Tab переключает кандидаты, P закрепляет reference point.</div><div class="tb-edit-actions"><button data-copy-use-snap>Snap → Step</button><button data-copy-run>Копировать</button></div></div>';
-      $("[data-copy-use-snap]",body).onclick=()=>useSnapForCopyStep(body);
-      $("[data-copy-run]",body).onclick=()=>finishSnapCommand(multipleCopySelection(body));
+      body.innerHTML='<div class="tb-edit-card"><b>Copy</b><div class="tb-edit-note" style="margin-top:7px">Выбрано целых труб: '+count+'. Copy работает как Base Point → Target Point; исходный объект остаётся на месте.</div>'+
+        '<div class="tb-edit-grid" style="margin-top:8px"><label>Режим</label><select data-copy-mode><option value="single">Одна копия</option><option value="multiple">Несколько копий</option></select>'+
+        '<label>Base XYZ</label><input data-copy-base-input placeholder="100;200;0"><label>Target / @delta</label><input data-copy-target-input placeholder="300;200;0 / @100;0;0 / @100<45"></div>'+
+        '<div class="tb-edit-note" data-copy-session-status style="margin-top:8px"></div>'+
+        '<div class="tb-edit-note" style="margin-top:6px">В 3D: первый клик по Snap задаёт Base Point, следующие клики — Target Point. Live-preview не изменяет модель. В режиме «Несколько»: Enter завершает всю серию одним Undo, Backspace убирает последнюю ещё не записанную в модель точку.</div>'+
+        '<div class="tb-edit-actions"><button data-copy-base-snap>Snap → Base</button><button data-copy-base-input-run>XYZ → Base</button><button data-copy-target-snap>Snap → Target</button><button data-copy-target-input-run>Input → Target</button><button data-copy-finish>Завершить</button></div></div>';
+      $("[data-copy-mode]",body).value=copySession.mode;
+      $("[data-copy-mode]",body).onchange=(event)=>{copySession.mode=event.target.value==="multiple"?"multiple":"single";resetCopySession();copySession.active=true;copySessionStatus(body);};
+      $("[data-copy-base-snap]",body).onclick=()=>setCopyBaseFromSnap(body);
+      $("[data-copy-base-input-run]",body).onclick=()=>setCopyBaseFromInput(body);
+      $("[data-copy-target-snap]",body).onclick=()=>addCopyTargetFromSnap(body);
+      $("[data-copy-target-input-run]",body).onclick=()=>addCopyTargetFromInput(body);
+      $("[data-copy-finish]",body).onclick=()=>commitCopySeries(body);
+      copySessionStatus(body);renderCopyPreview();
     }else if(activeTool==="move"){
       body.innerHTML='<div class="tb-edit-card"><b>Move</b><div class="tb-edit-grid" style="margin-top:8px"><label>ΔX, мм</label><input data-edit-dx value="0"><label>ΔY, мм</label><input data-edit-dy value="0"><label>ΔZ, мм</label><input data-edit-dz value="0"><label>Dynamic input</label><input data-edit-vector placeholder="@10;0;0 / 100;200;0 / @100<45"><label>Ortho</label><input data-edit-ortho type="checkbox"><label>Polar Tracking</label><input data-edit-polar type="checkbox"><label>Polar step, °</label><input data-edit-polar-step value="15"></div><div class="tb-edit-note" data-edit-preview style="margin-top:8px"></div><div class="tb-edit-note" style="margin-top:6px">Object Snap Tracking работает в 3D: hover-acquire, Tab / Shift+Tab, P pin. Tracking guides следуют Ortho / Polar.</div><div class="tb-edit-actions"><button data-move-use-snap>Snap → Point</button><button data-move-run>Переместить</button></div></div>';
       $("[data-move-use-snap]",body).onclick=()=>useSnapForMove(body);
@@ -643,8 +868,11 @@
     if(installed)return;installed=true;
     try{[straightRun,rigidTransform,dynamicInput]=await Promise.all([import(STRAIGHT_RUN_URL),import(RIGID_TRANSFORM_URL),import(DYNAMIC_INPUT_URL)]);}catch(error){console.error("Editing UI failed to load",error);return;}
     ensureShell();
+    document.getElementById("threeCanvas")?.addEventListener("click",onCopyCanvasClick,true);
+    window.addEventListener("keydown",onCopyKeyDown,true);
+    window.addEventListener("tubebender-snap-change",onSnapChangeForCopy);
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
-    window.TubeBenderEditing=Object.freeze({open,close,copySelection,multipleCopySelection,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,createTransformStackFromSelection,stackAddOperation,stackOperationAction,refresh:render});
+    window.TubeBenderEditing=Object.freeze({open,close,copySelection,multipleCopySelection,commitCopySeries,undoLastCopyTarget,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,createTransformStackFromSelection,stackAddOperation,stackOperationAction,refresh:render});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
 })();
