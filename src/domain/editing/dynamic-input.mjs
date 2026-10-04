@@ -37,8 +37,8 @@ export function formatNumericInput(value,{decimal_separator="auto",locale=null,m
   const n=Number(value);
   if(!Number.isFinite(n))throw new TypeError("value must be finite");
   const digits=Math.max(0,Math.min(12,Math.trunc(Number(maximumFractionDigits))));
-  let text=n.toFixed(digits).replace(/(?:\.0+|(?<=\.\d*?)0+)$/,"");
-  if(text.endsWith("."))text=text.slice(0,-1);
+  let text=n.toFixed(digits);
+  if(text.includes("."))text=text.replace(/0+$/,"").replace(/\.$/,"");
   return resolveDecimalSeparator(decimal_separator,{locale})===","?text.replace(".",","):text;
 }
 function normalizeDecimal(text){return String(text??"").trim().replace(/(\d),(\d)/g,"$1.$2");}
