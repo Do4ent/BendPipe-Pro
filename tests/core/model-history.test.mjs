@@ -76,3 +76,27 @@ test("A13: snapshots are cloned and cannot be mutated through history", () => {
   assert.equal(h.undo().snapshot.rows[0].L, 100);
   assert.equal(h.redo().snapshot.rows[0].L, 120);
 });
+
+
+test("history state can persist across sessions without losing undo redo order",()=>{
+  const first=createModelHistory({limit:5});
+  first.record("A",{v:0},{v:1});
+  first.record("B",{v:1},{v:2});
+  const undone=first.undo();
+  assert.equal(undone.snapshot.v,1);
+  const saved=first.exportState();
+  const restored=createModelHistory({limit:5,initialState:saved});
+  assert.equal(restored.canUndo(),true);
+  assert.equal(restored.canRedo(),true);
+  assert.equal(restored.nextUndoLabel(),"A");
+  assert.equal(restored.nextRedoLabel(),"B");
+  assert.equal(restored.redo().snapshot.v,2);
+});
+
+test("imported history respects current limit",()=>{
+  const source=createModelHistory({limit:10});
+  for(let i=0;i<6;i++)source.record("C"+i,{v:i},{v:i+1});
+  const restored=createModelHistory({limit:3,initialState:source.exportState()});
+  assert.equal(restored.undoCount(),3);
+  assert.equal(restored.nextUndoLabel(),"C5");
+});
