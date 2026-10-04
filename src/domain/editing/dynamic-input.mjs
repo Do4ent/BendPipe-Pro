@@ -5,6 +5,42 @@ function freeze(value){
 }
 const LENGTH_UNITS=Object.freeze({mm:1,cm:10,m:1000,in:25.4,inch:25.4});
 const ANGLE_UNITS=Object.freeze({deg:1,"°":1,rad:180/Math.PI});
+export const DECIMAL_SEPARATOR_PREFERENCES=Object.freeze(["auto",".",","]);
+export function normalizeDecimalSeparatorPreference(value="auto"){
+  const preference=String(value??"auto").trim();
+  if(!DECIMAL_SEPARATOR_PREFERENCES.includes(preference))throw new RangeError("decimal_separator must be auto, . or ,");
+  return preference;
+}
+export function detectNumericDecimalSeparator(input){
+  const text=String(input??"").trim();
+  const comma=/(?:^|[^\d])[-+]?\d+,\d+(?:$|[^\d])/.test(text);
+  const dot=/(?:^|[^\d])[-+]?\d+\.\d+(?:$|[^\d])/.test(text);
+  if(comma&&!dot)return ",";
+  if(dot&&!comma)return ".";
+  if(comma&&dot)return "mixed";
+  return null;
+}
+export function resolveDecimalSeparator(preference="auto",{locale=null,input=null}={}){
+  const normalized=normalizeDecimalSeparatorPreference(preference);
+  if(normalized!=="auto")return normalized;
+  const detected=input==null?null:detectNumericDecimalSeparator(input);
+  if(detected==="."||detected===",")return detected;
+  if(locale){
+    try{
+      const formatted=new Intl.NumberFormat(String(locale),{useGrouping:false,maximumFractionDigits:1}).format(1.1);
+      if(formatted.includes(","))return ",";
+    }catch{}
+  }
+  return ".";
+}
+export function formatNumericInput(value,{decimal_separator="auto",locale=null,maximumFractionDigits=6}={}){
+  const n=Number(value);
+  if(!Number.isFinite(n))throw new TypeError("value must be finite");
+  const digits=Math.max(0,Math.min(12,Math.trunc(Number(maximumFractionDigits))));
+  let text=n.toFixed(digits).replace(/(?:\.0+|(?<=\.\d*?)0+)$/,"");
+  if(text.endsWith("."))text=text.slice(0,-1);
+  return resolveDecimalSeparator(decimal_separator,{locale})===","?text.replace(".",","):text;
+}
 function normalizeDecimal(text){return String(text??"").trim().replace(/(\d),(\d)/g,"$1.$2");}
 function replaceUnits(expr,kind){
   const units=kind==="angle"?ANGLE_UNITS:LENGTH_UNITS;
@@ -40,8 +76,13 @@ export function evaluateAssociativeFormulas(formulas={},baseVariables={}){
   for(const name of Object.keys(source))resolve(name);
   return freeze(resolved);
 }
-function splitCoordinates(text){const raw=String(text??"").trim();if(raw.includes(";"))return raw.split(";").map((x)=>x.trim());return raw.split(/\s*,\s*/).map((x)=>x.trim());}
-export function parseCoordinateInput(input,{origin={x:0,y:0,z:0},variables={}}={}){
+function splitCoordinates(text,{decimal_separator="auto"}={}){
+  const raw=String(text??"").trim(),preference=normalizeDecimalSeparatorPreference(decimal_separator);
+  if(raw.includes(";"))return raw.split(";").map((x)=>x.trim());
+  if(preference===",")throw new Error("With decimal comma, separate X/Y/Z coordinates using semicolons");
+  return raw.split(/\s*,\s*/).map((x)=>x.trim());
+}
+export function parseCoordinateInput(input,{origin={x:0,y:0,z:0},variables={},decimal_separator="auto"}={}){
   let text=String(input??"").trim(),relative=false;if(text.startsWith("@")){relative=true;text=text.slice(1).trim();}
   if(text.includes("<")){
     const parts=text.split("<").map((x)=>x.trim());if(parts.length<2||parts.length>3)throw new Error("Polar input must be distance<azimuth or distance<azimuth<elevation");
@@ -51,7 +92,7 @@ export function parseCoordinateInput(input,{origin={x:0,y:0,z:0},variables={}}={
     const delta={x:distance*Math.cos(el)*Math.cos(az),y:distance*Math.cos(el)*Math.sin(az),z:distance*Math.sin(el)};
     return freeze({mode:relative?"relative-polar":"absolute-polar",point:relative?{x:Number(origin.x||0)+delta.x,y:Number(origin.y||0)+delta.y,z:Number(origin.z||0)+delta.z}:delta,delta});
   }
-  const parts=splitCoordinates(text);if(parts.length<2||parts.length>3)throw new Error("Coordinate input requires X,Y or X,Y,Z");
+  const parts=splitCoordinates(text,{decimal_separator});if(parts.length<2||parts.length>3)throw new Error("Coordinate input requires X,Y or X,Y,Z");
   const values=parts.map((part)=>evaluateNumericInput(part,{kind:"length",variables}));
   const raw={x:values[0],y:values[1],z:values[2]??0};
   const point=relative?{x:Number(origin.x||0)+raw.x,y:Number(origin.y||0)+raw.y,z:Number(origin.z||0)+raw.z}:raw;
