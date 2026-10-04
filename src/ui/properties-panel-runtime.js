@@ -1,0 +1,148 @@
+(()=>{
+  let installed=false,panel=null,toggle=null,lastSignature="";
+  const ctx=()=>window.TubeBenderObjectContext??null;
+  const eng=()=>window.TubeBenderEngineering??null;
+  const refApi=()=>window.TubeBenderReferenceSceneUi??null;
+  const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
+  const entries=()=>ctx()?.selectionEntries?.()??[];
+  const esc=(v)=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+  const value=(v)=>{
+    if(v===null||v===undefined||v==="")return "—";
+    if(typeof v==="number")return Number.isFinite(v)?String(Number(v.toFixed(6))):"—";
+    if(typeof v==="boolean")return v?"Да":"Нет";
+    if(typeof v==="object"){
+      if(["x","y","z"].every(k=>Object.prototype.hasOwnProperty.call(v,k))){
+        return ["x","y","z"].map(k=>k.toUpperCase()+" "+value(Number(v[k]))).join(" · ");
+      }
+      return JSON.stringify(v);
+    }
+    return String(v);
+  };
+  function findTube(id){return (project()?.tubes??[]).find(t=>String(t?.id)===String(id))??null;}
+  function findScene(id){return (project()?.referenceScenes??[]).find(s=>String(s?.id)===String(id))??null;}
+  function findNode(tree,id){
+    for(const node of tree??[]){
+      if(String(node?.id)===String(id))return node;
+      const nested=findNode(node?.children,id);if(nested)return nested;
+    }
+    return null;
+  }
+  function commonTubeProps(tube){
+    if(!tube)return [];
+    return [
+      ["ID",tube.id],
+      ["Имя",tube.name],
+      ["Part number",tube.partNumber??tube.part_number],
+      ["Тип","Tube"],
+      ["Диаметр",tube.diameter_mm??tube.outerDiameterMm??tube.OD_mm??tube.OD],
+      ["Стенка",tube.wall_mm??tube.wallThicknessMm??tube.wall_thickness_mm],
+      ["Origin",tube.origin],
+      ["Start axis",tube.startAxis],
+      ["Tooling",tube.toolingId??tube.tooling_id],
+      ["Material",tube.material_profile_id],
+      ["Import",tube.currentProjectImport?.source_format??tube.importEvidence?.source?.format],
+      ["Source file",tube.currentProjectImport?.source_file??tube.importEvidence?.source?.file],
+      ["Readonly",tube.readonly===true]
+    ];
+  }
+  function describe(entry){
+    const p=project();
+    if(!entry)return {title:"Неизвестный объект",kind:"unknown",groups:[]};
+    if(entry.kind==="tube"){
+      const tube=findTube(entry.tubeId);
+      return {title:tube?.name??"Tube",kind:"tube",groups:[
+        {name:"Общие",rows:commonTubeProps(tube)},
+        {name:"Геометрия",rows:[["Элементов",tube?.rows?.length??0],["CLR bends",(tube?.rows??[]).filter(r=>r?.type==="BEND").length]]}
+      ]};
+    }
+    if(["row","origin","end"].includes(entry.kind)){
+      const tube=findTube(entry.tubeId);
+      const row=entry.kind==="row"?tube?.rows?.[Number(entry.rowIndex)]:null;
+      const rows=entry.kind==="row"?[
+        ["Тип",row?.type],["Element ID",row?.elementId],["Length",row?.length],["Angle",row?.angle],
+        ["Plane",row?.plane],["CLR",row?.clr??row?.radius],["Formula",row?.lengthFormula??row?.angleFormula]
+      ]:[
+        ["Тип",entry.kind==="origin"?"Origin":"End"],["Tube",tube?.name??tube?.id],["Tube ID",tube?.id]
+      ];
+      return {title:(tube?.name??"Tube")+" · "+(entry.kind==="row"?(row?.type??"Element")+" #"+(Number(entry.rowIndex)+1):entry.kind),kind:entry.kind,groups:[
+        {name:"Объект",rows},{name:"Родительская труба",rows:commonTubeProps(tube).slice(0,6)}
+      ]};
+    }
+    if(entry.kind==="assembly"||entry.kind==="assembly-part"){
+      return {title:entry.kind==="assembly"?"Assembly":"Assembly Part",kind:entry.kind,groups:[{name:"Связь",rows:[
+        ["Assembly ID",entry.assemblyId],["Part",entry.part??entry.partId],["Tube ID",entry.tubeId],["Row",entry.rowIndex]
+      ]}]};
+    }
+    if(entry.kind==="ref"){
+      const scene=findScene(entry.sceneId),node=findNode(scene?.tree,entry.nodeId);
+      return {title:node?.label??"Source / Reference",kind:"ref",groups:[
+        {name:"Source / Reference",rows:[
+          ["Scene",scene?.name??scene?.source_file],["Scene ID",scene?.id],["Node ID",node?.id],["Label",node?.label],
+          ["Readonly",true],["Geometry status",node?.geometry_status],["Editable part",node?.editable_part_number],
+          ["Geometry instances",node?.geometry_instances?.length??0],["Children",node?.children?.length??0]
+        ]}
+      ]};
+    }
+    if(entry.kind==="mesh-instance"){
+      const instance=refApi()?.meshInstanceById?.(p,entry.instanceId);
+      return {title:instance?.name??"Editable Mesh Instance",kind:"mesh-instance",groups:[
+        {name:"Instance",rows:[
+          ["ID",instance?.id],["Link",instance?.link_status],["Visible",instance?.visible!==false],
+          ["Position",instance?.transform?.position_mm],["Rotation",instance?.transform?.rotation_deg]
+        ]},
+        {name:"Source",rows:[
+          ["Scene ID",instance?.source?.scene_id],["Node ID",instance?.source?.node_id],
+          ["Source file",instance?.source?.source_file],["Label",instance?.source?.label],
+          ["Compare Source",instance?.compare_source===true]
+        ]}
+      ]};
+    }
+    return {title:String(entry.kind??"Object"),kind:String(entry.kind??"unknown"),groups:[{name:"Selection",rows:Object.entries(entry)}]};
+  }
+  function ensureStyles(){
+    if(document.getElementById("tbPropertiesStyles"))return;
+    const s=document.createElement("style");s.id="tbPropertiesStyles";s.textContent=
+      '#tbPropertiesToggle{position:fixed;right:14px;top:54px;z-index:120360;background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:6px;padding:6px 10px;cursor:pointer}'+
+      '#tbPropertiesPanel{position:fixed;right:14px;top:88px;width:min(360px,calc(100vw - 28px));max-height:calc(100vh - 110px);z-index:120350;display:none;flex-direction:column;background:rgba(13,22,32,.98);color:#edf4fb;border:1px solid #41566f;border-radius:9px;box-shadow:0 14px 40px rgba(0,0,0,.45);font:12px system-ui}#tbPropertiesPanel.open{display:flex}'+
+      '.tb-prop-head{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid #304154}.tb-prop-head .grow{flex:1}.tb-prop-body{overflow:auto;padding:8px}.tb-prop-card{border:1px solid #2f4154;border-radius:7px;margin-bottom:8px;overflow:hidden}.tb-prop-title{padding:7px 8px;background:#172433;font-weight:600}.tb-prop-kind{color:#8ea2b7;font-weight:400}.tb-prop-group{padding:7px 8px}.tb-prop-group+.tb-prop-group{border-top:1px solid #263647}.tb-prop-group>strong{display:block;margin-bottom:5px;color:#a9bdd1}.tb-prop-row{display:grid;grid-template-columns:42% 58%;gap:8px;padding:3px 0}.tb-prop-key{color:#8fa3b8}.tb-prop-val{word-break:break-word}.tb-prop-empty{padding:14px;color:#8396aa}';
+    document.head.appendChild(s);
+  }
+  function ensurePanel(){
+    if(panel)return panel;
+    ensureStyles();
+    toggle=document.createElement("button");toggle.id="tbPropertiesToggle";toggle.type="button";toggle.textContent="Свойства";document.body.appendChild(toggle);
+    panel=document.createElement("section");panel.id="tbPropertiesPanel";
+    panel.innerHTML='<div class="tb-prop-head"><b>Свойства</b><span class="grow"></span><span data-prop-count></span><button data-prop-close>×</button></div><div class="tb-prop-body" data-prop-body></div>';
+    document.body.appendChild(panel);
+    toggle.onclick=()=>{panel.classList.toggle("open");render(true);};
+    panel.querySelector("[data-prop-close]").onclick=()=>panel.classList.remove("open");
+    return panel;
+  }
+  function cardHtml(item){
+    return '<div class="tb-prop-card"><div class="tb-prop-title">'+esc(item.title)+' <span class="tb-prop-kind">· '+esc(item.kind)+'</span></div>'+
+      item.groups.map(group=>'<div class="tb-prop-group"><strong>'+esc(group.name)+'</strong>'+
+        group.rows.map(([k,v])=>'<div class="tb-prop-row"><span class="tb-prop-key">'+esc(k)+'</span><span class="tb-prop-val">'+esc(value(v))+'</span></div>').join("")+
+      '</div>').join("")+'</div>';
+  }
+  function snapshot(){
+    const selection=entries();
+    return {selection,items:selection.map(describe)};
+  }
+  function render(force=false){
+    const root=ensurePanel(),body=root.querySelector("[data-prop-body]"),data=snapshot();
+    const signature=JSON.stringify(data.selection);
+    if(!force&&signature===lastSignature&&!root.classList.contains("open"))return;
+    lastSignature=signature;
+    root.querySelector("[data-prop-count]").textContent=data.items.length?String(data.items.length):"";
+    body.innerHTML=data.items.length?data.items.map(cardHtml).join(""):'<div class="tb-prop-empty">Выберите объект в 3D или TreeView.</div>';
+  }
+  function open(){ensurePanel().classList.add("open");render(true);}
+  function close(){panel?.classList.remove("open");}
+  function install(){
+    if(installed)return;installed=true;ensurePanel();render(true);
+    window.addEventListener("tubebender-selection-change",()=>render(true));
+    window.addEventListener("tubebender-snap-change",()=>{if(panel?.classList.contains("open"))render(false);});
+    window.TubeBenderProperties=Object.freeze({open,close,refresh:()=>render(true),snapshot,describe});
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
+})();
