@@ -42,3 +42,31 @@ test("question 62: History API exposes timeline cursor jump and panel access",()
   assert.match(build,/jump:tbHistoryJump/);
   assert.match(build,/openPanel:/);
 });
+
+
+test("question 63: History persists undo redo state across sessions with model signature guard",()=>{
+  assert.match(build,/TB_HISTORY_STORAGE_KEY='tubebender\.modelHistory\.v1'/);
+  assert.match(build,/function tbHistoryPersist\(\)/);
+  assert.match(build,/function tbHistoryRestorePersisted\(\)/);
+  assert.match(build,/current_signature:tbHistorySignature\(current\)/);
+  assert.match(build,/saved\.current_signature!==tbHistorySignature\(current\)/);
+  assert.match(build,/localStorage\.setItem\(TB_HISTORY_STORAGE_KEY/);
+  assert.match(build,/localStorage\.getItem\(TB_HISTORY_STORAGE_KEY/);
+  assert.match(build,/tbHistory\.undo\.splice/);
+  assert.match(build,/tbHistory\.redo\.splice/);
+  assert.match(build,/tbHistoryRestorePersisted\(\);/);
+});
+
+test("question 63: persisted History validates snapshots and degrades safely on storage quota",()=>{
+  assert.match(build,/saved\.undo\.every\(valid\)/);
+  assert.match(build,/saved\.redo\.every\(valid\)/);
+  assert.match(build,/keepUndo=Math\.max\(0,keepUndo-5\)/);
+  assert.match(build,/keepRedo=Math\.max\(0,keepRedo-5\)/);
+  assert.match(build,/truncated:keepUndo<undo\.length\|\|keepRedo<redo\.length/);
+  assert.match(build,/localStorage\.removeItem\(TB_HISTORY_STORAGE_KEY\)/);
+});
+
+test("question 63: History API exposes explicit persist and restore hooks",()=>{
+  assert.match(build,/persist:tbHistoryPersist/);
+  assert.match(build,/restorePersisted:tbHistoryRestorePersisted/);
+});
