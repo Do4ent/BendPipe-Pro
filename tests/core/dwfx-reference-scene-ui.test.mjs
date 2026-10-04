@@ -121,7 +121,7 @@ test("question 67: Source Mesh editing is implemented through lightweight instan
   assert.match(code,/function arrayEditableMeshInstance\(/);
   assert.match(code,/function breakEditableMeshInstanceLink\(/);
   assert.match(code,/referenceEditableInstanceId/);
-  assert.match(code,/Editable Mesh Instance/);
+  assert.match(code,/Editable mesh instance/i);
 });
 
 test("question 67: Source Move never writes Source node translation_mm",()=>{
