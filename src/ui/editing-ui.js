@@ -393,6 +393,10 @@
       return commit("Разорвать ассоциативный массив",()=>{runtime.breakArray(id,project());return true;});
     }
     const index=Math.trunc(Number($("[data-array-member-index]",body)?.value));
+    if(action==="detach"){
+      if(!(index>0)){toast("Member index должен быть больше 0; source member имеет индекс 0");return false;}
+      return commit("Отсоединить Array member для редактирования",()=>{runtime.detachMember(id,index,{},project());return true;});
+    }
     if(!(index>0)){toast("Member index должен быть больше 0; source member имеет индекс 0");return false;}
     return commit(action==="suppress"?"Suppress Array member":"Restore Array member",()=>{
       runtime.suppressMember(id,index,action==="suppress",project());
@@ -416,7 +420,7 @@
       '</div><div class="tb-edit-note" style="margin-top:8px">Source member остаётся исходной трубой. Производные members пересобираются из source перед renderAll и защищены от прямого редактирования.</div>'+
       '<div class="tb-edit-actions"><button data-array-create>Создать Array</button></div></div>'+
       '<div class="tb-edit-card" style="margin-top:8px"><b>Управление массивом</b><div class="tb-edit-grid" style="margin-top:8px"><label>Array</label><select data-array-existing>'+existing+'</select><label>Member index</label><input data-array-member-index value="1"></div>'+
-      '<div class="tb-edit-actions"><button data-array-suppress>Suppress</button><button data-array-restore>Restore</button><button data-array-break>Break Array</button></div></div>';
+      '<div class="tb-edit-actions"><button data-array-suppress>Suppress</button><button data-array-restore>Restore</button><button data-array-detach>Detach for editing</button><button data-array-break>Break Array</button></div></div>';
   }
 
   function injectStyles(){
@@ -496,6 +500,7 @@
       $("[data-array-create]",body).onclick=()=>createArrayFromSelection(body);
       $("[data-array-suppress]",body).onclick=()=>arrayAction(body,"suppress");
       $("[data-array-restore]",body).onclick=()=>arrayAction(body,"restore");
+      $("[data-array-detach]",body).onclick=()=>arrayAction(body,"detach");
       $("[data-array-break]",body).onclick=()=>arrayAction(body,"break");
     }
   }
