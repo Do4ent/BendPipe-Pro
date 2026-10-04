@@ -56,3 +56,12 @@ test("Break Array detaches derived members instead of deleting them",()=>{
   assert.match(code,/tube\.source_link_detached=true/);
   assert.match(code,/p\.associative_arrays\.splice/);
 });
+
+
+test("array runtime exposes explicit detach for independent member editing",()=>{
+  assert.match(code,/function detachMember/);
+  assert.match(code,/array_detached_from/);
+  assert.match(code,/source_link_detached=true/);
+  assert.match(code,/suppressed_members/);
+  assert.match(code,/detachMember/);
+});
