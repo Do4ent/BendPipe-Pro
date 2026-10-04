@@ -25,6 +25,7 @@ const transformStackRuntimePath = path.join(root, "src", "ui", "transform-stack-
 const transformStackDomainPath = path.join(root, "src", "domain", "editing", "transform-stack.mjs");
 const straightRunDomainPath = path.join(root, "src", "domain", "editing", "straight-run.mjs");
 const legacyRigidTransformDomainPath = path.join(root, "src", "domain", "editing", "legacy-rigid-transform.mjs");
+const dynamicInputDomainPath = path.join(root, "src", "domain", "editing", "dynamic-input.mjs");
 const transformCommandsDomainPath = path.join(root, "src", "domain", "editing", "transform-commands.mjs");
 const geometryMeasurementsDomainPath = path.join(root, "src", "domain", "measurements", "geometry-measurements.mjs");
 const dimensionsDomainPath = path.join(root, "src", "domain", "measurements", "dimensions.mjs");
@@ -2237,9 +2238,11 @@ const bundledMeasurementsUi =
 
 const straightRunDomainUrl = moduleDataUrl(straightRunDomainPath);
 const legacyRigidTransformDomainUrl = moduleDataUrl(legacyRigidTransformDomainPath);
+const dynamicInputDomainUrl = moduleDataUrl(dynamicInputDomainPath);
 const editingUi = fs.readFileSync(editingUiPath, "utf8")
   .replace("__TB_STRAIGHT_RUN_MODULE_URL__", straightRunDomainUrl)
   .replace("__TB_RIGID_TRANSFORM_MODULE_URL__", legacyRigidTransformDomainUrl)
+  .replace("__TB_DYNAMIC_INPUT_MODULE_URL__", dynamicInputDomainUrl)
   .replace(/<\/script/gi, "<\\/script");
 const bundledEditingUi =
   `<script data-tubebender-bundled="editing-ui">\n${editingUi}\n</script>`;
