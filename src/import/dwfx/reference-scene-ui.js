@@ -675,11 +675,14 @@
     const rows=[];
     const q=String(query??"").trim().toLowerCase();
     const scenes=(project?.referenceScenes??[]).filter(Boolean);
-    if(!scenes.length)return rows;
+    const editableTubes=linkedEditableTubes(project);
+    if(!scenes.length&&!editableTubes.length)return rows;
 
     pruneBulkSelection(project);
     const bulkCount=bulkSelected.size;
     const rootCollapsed=q?false:project?.referenceGeometryTreeCollapsed===true;
+    const sourceCollapsed=q?false:project?.referenceSourceTreeCollapsed===true;
+    const editableCollapsed=q?false:project?.referenceEditableTreeCollapsed===true;
     const allSelectable=scenes.flatMap((scene)=>collectSelectableNodes(scene.tree??[]));
     const allSelectedCount=scenes.reduce((sum,scene)=>
       sum+collectSelectableNodes(scene.tree??[]).filter((node)=>
@@ -693,119 +696,165 @@
       '<div class="tb-tree-node level1 tb-ref-root" data-ref-root-row="1">'+
       '<input type="checkbox" data-ref-root-select="1" '+
       (rootChecked?'checked ':'')+
-      'data-ref-indeterminate="'+(rootIndeterminate?'1':'0')+'" title="Выбрать всю импортированную readonly-геометрию">'+
+      (allSelectable.length?'':'disabled ')+
+      'data-ref-indeterminate="'+(rootIndeterminate?'1':'0')+'" title="Выбрать Source / Reference геометрию">'+
       '<button class="tb-tree-icon" data-ref-root-toggle="1" title="Свернуть/развернуть импортированную геометрию">'+
       (rootCollapsed?'▸':'▾')+
       '</button>'+
-      '<span class="tb-tree-label">🌐 Импортированная геометрия <small>· файлов: '+scenes.length+'</small></span>'+
+      '<span class="tb-tree-label">🌐 Импортированная геометрия <small>· Source: '+scenes.length+' · Editable: '+editableTubes.length+'</small></span>'+
       '</div>'
     );
 
     if(rootCollapsed)return rows;
 
     rows.push(
-      '<div class="tb-tree-node tb-ref-bulk-toolbar" data-ref-bulk-toolbar="1" '+
-      'style="gap:6px;align-items:center;flex-wrap:wrap;padding:6px 8px 6px 34px">'+
-      '<span class="tb-tree-label" style="min-width:86px">Выбрано: '+bulkCount+'</span>'+
-      '<small title="Групповой выбор: Ctrl+клик; диапазон: Shift+клик">Ctrl+клик · Shift+клик</small>'+
-      '<button data-ref-bulk-action="show" '+(bulkCount?'':'disabled')+' title="Показать выбранные">Показать</button>'+
-      '<button data-ref-bulk-action="hide" '+(bulkCount?'':'disabled')+' title="Скрыть выбранные">Скрыть</button>'+
-      '<button data-ref-bulk-action="transparent" '+(bulkCount?'':'disabled')+' title="Переключить прозрачность">Прозрачность</button>'+
-      '<button data-ref-bulk-action="delete" '+(bulkCount?'':'disabled')+' title="Удалить выбранную reference-геометрию">Удалить</button>'+
-      '<button data-ref-bulk-action="clear" '+(bulkCount?'':'disabled')+' title="Снять выбор">Снять выбор</button>'+
+      '<div class="tb-tree-node level2 tb-ref-source-root" style="padding-left:30px" data-ref-source-root="1">'+
+      '<button class="tb-tree-icon" data-ref-source-toggle="1" title="Свернуть/развернуть Source / Reference">'+
+      (sourceCollapsed?'▸':'▾')+
+      '</button>'+
+      '<span class="tb-tree-label">🔒 Source / Reference <small>· неизменяемый исходник</small></span>'+
       '</div>'
     );
 
-    for(const scene of scenes){
-      const collapsedScenes=new Set(
-        Array.isArray(scene.collapsedNodeIds)
-          ? scene.collapsedNodeIds.map(String)
-          : []
-      );
-      const hidden=hiddenSet(scene);
-      const transparent=transparentSet(scene);
-      const sceneSelectable=collectSelectableNodes(scene.tree??[]);
-      const sceneSelectedCount=sceneSelectable.filter((node)=>
-        bulkSelected.has(selectionKey(scene.id,node.id))
-      ).length;
-      const sceneChecked=sceneSelectable.length>0&&sceneSelectedCount===sceneSelectable.length;
-      const sceneIndeterminate=sceneSelectedCount>0&&!sceneChecked;
-      const sceneLabel=String(scene.name??scene.source_file??"DWFx");
-      const sceneMatches=
-        !q||
-        sceneLabel.toLowerCase().includes(q)||
-        (scene.tree??[]).some((node)=>matchNode(node,q));
-      if(!sceneMatches)continue;
-
-      const sceneCollapsed=q?false:scene.treeCollapsed===true;
+    if(!sourceCollapsed){
       rows.push(
-        '<div class="tb-tree-node tb-ref-scene" style="padding-left:34px" data-ref-scene-row="'+escape(scene.id)+'">'+
-        '<input type="checkbox" data-ref-scene-select="'+escape(scene.id)+'" '+
-        (sceneChecked?'checked ':'')+
-        'data-ref-indeterminate="'+(sceneIndeterminate?'1':'0')+'" title="Выбрать все readonly-компоненты файла">'+
-        '<button class="tb-tree-icon" data-ref-scene-toggle="'+escape(scene.id)+'" title="Свернуть/развернуть файл">'+
-        (sceneCollapsed?'▸':'▾')+
-        '</button>'+
-        '<span class="tb-tree-label">📦 '+escape(sceneLabel)+' <small>· DWFx · только чтение</small></span>'+
-        '<button class="tb-tree-eye" data-ref-scene-eye="'+escape(scene.id)+'" title="Видимость импортированной геометрии">'+
-        (scene.visible===false?'○':'◉')+
-        '</button></div>'
+        '<div class="tb-tree-node tb-ref-bulk-toolbar" data-ref-bulk-toolbar="1" '+
+        'style="gap:6px;align-items:center;flex-wrap:wrap;padding:6px 8px 6px 48px">'+
+        '<span class="tb-tree-label" style="min-width:86px">Выбрано: '+bulkCount+'</span>'+
+        '<small title="Групповой выбор: Ctrl+клик; диапазон: Shift+клик">Ctrl+клик · Shift+клик</small>'+
+        '<button data-ref-bulk-action="show" '+(bulkCount?'':'disabled')+' title="Показать выбранные Source-компоненты">Показать</button>'+
+        '<button data-ref-bulk-action="hide" '+(bulkCount?'':'disabled')+' title="Скрыть выбранные Source-компоненты">Скрыть</button>'+
+        '<button data-ref-bulk-action="transparent" '+(bulkCount?'':'disabled')+' title="Переключить прозрачность Source">Прозрачность</button>'+
+        '<button data-ref-bulk-action="clear" '+(bulkCount?'':'disabled')+' title="Снять выбор">Снять выбор</button>'+
+        '</div>'
       );
 
-      if(sceneCollapsed)continue;
+      for(const scene of scenes){
+        const collapsedScenes=new Set(
+          Array.isArray(scene.collapsedNodeIds)
+            ? scene.collapsedNodeIds.map(String)
+            : []
+        );
+        const hidden=hiddenSet(scene);
+        const transparent=transparentSet(scene);
+        const sceneSelectable=collectSelectableNodes(scene.tree??[]);
+        const sceneSelectedCount=sceneSelectable.filter((node)=>
+          bulkSelected.has(selectionKey(scene.id,node.id))
+        ).length;
+        const sceneChecked=sceneSelectable.length>0&&sceneSelectedCount===sceneSelectable.length;
+        const sceneIndeterminate=sceneSelectedCount>0&&!sceneChecked;
+        const sceneLabel=String(scene.name??scene.source_file??"DWFx");
+        const sceneMatches=
+          !q||
+          sceneLabel.toLowerCase().includes(q)||
+          (scene.tree??[]).some((node)=>matchNode(node,q));
+        if(!sceneMatches)continue;
 
-      const append=(node,depth)=>{
-        if(q&&!matchNode(node,q))return;
-        const hasChildren=(node.children??[]).length>0;
-        const collapsed=q?false:collapsedScenes.has(String(node.id));
-        const isHidden=hidden.has(String(node.id));
-        const isTransparent=transparent.has(String(node.id));
-        const status=String(node.geometry_status??"");
-        const editable=!!node.editable_part_number;
-        const selectable=!editable;
-        const checked=selectable&&bulkSelected.has(selectionKey(scene.id,node.id));
-        const icon=hasChildren
-          ? (collapsed?'▸':'▾')
-          : editable
-            ? '⌁'
-            : status==="unresolved"||status==="partial"
-              ? '⚠'
-              : status==="metadata_only"
-                ? '◇'
-                : '◆';
-        const pad=Math.min(240,52+depth*18);
-        const cls=
-          selected?.sceneId===String(scene.id)&&
-          selected?.nodeId===String(node.id)
-            ? " active"
-            : "";
+        const sceneCollapsed=q?false:scene.treeCollapsed===true;
         rows.push(
-          '<div class="tb-tree-node clickable tb-ref-node'+cls+'" '+
-          'style="padding-left:'+pad+'px" '+
-          'data-ref-scene="'+escape(scene.id)+'" data-ref-node="'+escape(node.id)+'" '+
-          (node.editable_part_number?'data-ref-editable-part="'+escape(node.editable_part_number)+'" ':'')+
-          '>'+
-          (selectable
-            ? '<input type="checkbox" data-ref-select="'+escape(node.id)+'" '+(checked?'checked ':'')+'title="Выбрать компонент/группу">'
-            : '<span style="width:13px;display:inline-block"></span>')+
-          '<button class="tb-tree-icon" '+(hasChildren?'data-ref-toggle="'+escape(node.id)+'"':'disabled')+'>'+
-          icon+'</button>'+
-          '<span class="tb-tree-label">'+escape(node.label??node.id)+
-          (editable
-            ? ' <small>· редактируемая труба</small>'
-            : status==="metadata_only"
-              ? ' <small>· без геометрии</small>'
-              : ' <small>· только чтение'+(isTransparent?' · прозрачно':'')+'</small>')+
-          '</span>'+
-          '<button class="tb-tree-eye" data-ref-eye="'+escape(node.id)+'" title="Видимость">'+
-          (isHidden?'○':'◉')+
+          '<div class="tb-tree-node tb-ref-scene" style="padding-left:48px" data-ref-scene-row="'+escape(scene.id)+'">'+
+          '<input type="checkbox" data-ref-scene-select="'+escape(scene.id)+'" '+
+          (sceneChecked?'checked ':'')+
+          'data-ref-indeterminate="'+(sceneIndeterminate?'1':'0')+'" title="Выбрать readonly-компоненты файла">'+
+          '<button class="tb-tree-icon" data-ref-scene-toggle="'+escape(scene.id)+'" title="Свернуть/развернуть файл">'+
+          (sceneCollapsed?'▸':'▾')+
+          '</button>'+
+          '<span class="tb-tree-label">📦 '+escape(sceneLabel)+' <small>· DWFx · Source readonly</small></span>'+
+          '<button class="tb-tree-eye" data-ref-scene-eye="'+escape(scene.id)+'" title="Видимость Source">'+
+          (scene.visible===false?'○':'◉')+
           '</button></div>'
         );
-        if(hasChildren&&!collapsed){
-          for(const child of node.children??[])append(child,depth+1);
-        }
-      };
-      for(const root of scene.tree??[])append(root,0);
+
+        if(sceneCollapsed)continue;
+
+        const append=(node,depth)=>{
+          if(q&&!matchNode(node,q))return;
+          const hasChildren=(node.children??[]).length>0;
+          const collapsed=q?false:collapsedScenes.has(String(node.id));
+          const isHidden=hidden.has(String(node.id));
+          const isTransparent=transparent.has(String(node.id));
+          const status=String(node.geometry_status??"");
+          const editable=!!node.editable_part_number;
+          const linked=linkedTubeForSource(project,scene.id,node.id);
+          const selectable=!editable;
+          const checked=selectable&&bulkSelected.has(selectionKey(scene.id,node.id));
+          const icon=hasChildren
+            ? (collapsed?'▸':'▾')
+            : editable
+              ? '🔗'
+              : status==="unresolved"||status==="partial"
+                ? '⚠'
+                : status==="metadata_only"
+                  ? '◇'
+                  : '◆';
+          const pad=Math.min(260,66+depth*18);
+          const cls=
+            selected?.sceneId===String(scene.id)&&
+            selected?.nodeId===String(node.id)
+              ? " active"
+              : "";
+          rows.push(
+            '<div class="tb-tree-node clickable tb-ref-node'+cls+'" '+
+            'style="padding-left:'+pad+'px" '+
+            'data-ref-scene="'+escape(scene.id)+'" data-ref-node="'+escape(node.id)+'" '+
+            (node.editable_part_number?'data-ref-editable-part="'+escape(node.editable_part_number)+'" ':'')+
+            '>'+
+            (selectable
+              ? '<input type="checkbox" data-ref-select="'+escape(node.id)+'" '+(checked?'checked ':'')+'title="Выбрать Source компонент/группу">'
+              : '<span style="width:13px;display:inline-block"></span>')+
+            '<button class="tb-tree-icon" '+(hasChildren?'data-ref-toggle="'+escape(node.id)+'"':'disabled')+'>'+
+            icon+'</button>'+
+            '<span class="tb-tree-label">'+escape(node.label??node.id)+
+            (editable
+              ? ' <small>· Source'+(linked?' ↔ Editable':' · recognized')+'</small>'
+              : status==="metadata_only"
+                ? ' <small>· Source · без геометрии</small>'
+                : ' <small>· Source · только чтение'+(isTransparent?' · прозрачно':'')+'</small>')+
+            '</span>'+
+            '<button class="tb-tree-eye" data-ref-eye="'+escape(node.id)+'" title="Видимость Source">'+
+            (isHidden?'○':'◉')+
+            '</button></div>'
+          );
+          if(hasChildren&&!collapsed){
+            for(const child of node.children??[])append(child,depth+1);
+          }
+        };
+        for(const root of scene.tree??[])append(root,0);
+      }
+    }
+
+    const editableMatches=editableTubes.filter((tube)=>{
+      if(!q)return true;
+      const link=sourceLink(tube);
+      return [
+        tube?.name,tube?.partNumber,tube?.part_number,
+        link?.source_label,link?.part_number,link?.source_file
+      ].filter(Boolean).some((value)=>String(value).toLowerCase().includes(q));
+    });
+    rows.push(
+      '<div class="tb-tree-node level2 tb-ref-editable-root" style="padding-left:30px" data-ref-editable-root="1">'+
+      '<button class="tb-tree-icon" data-ref-editable-toggle="1" title="Свернуть/развернуть Editable geometry">'+
+      (editableCollapsed?'▸':'▾')+
+      '</button>'+
+      '<span class="tb-tree-label">✎ Editable geometry <small>· '+editableTubes.length+'</small></span>'+
+      '</div>'
+    );
+    if(!editableCollapsed){
+      for(const tube of editableMatches){
+        const link=sourceLink(tube);
+        const linked=!!link&&link.detached!==true&&!!sourceNodeForTube(project,tube);
+        const display=String(link?.display??"hidden");
+        rows.push(
+          '<div class="tb-tree-node clickable tb-import-editable" style="padding-left:50px" '+
+          'data-tree-tube="'+escape(tube.id)+'" data-import-editable-tube="'+escape(tube.id)+'">'+
+          '<span style="width:13px;display:inline-block"></span>'+
+          '<span class="tb-tree-icon">'+(linked?'🔗':'⛓̸')+'</span>'+
+          '<span class="tb-tree-label">'+escape(tube.name??tube.partNumber??tube.id)+
+          ' <small>· Editable'+(linked?' · source '+escape(link.part_number??""):' · link broken')+
+          (linked&&display!=="hidden"?' · Source '+escape(display):'')+
+          '</small></span></div>'
+        );
+      }
     }
     return rows;
   }
