@@ -37,6 +37,99 @@ export const DEFAULT_DIMENSION_FORMAT=freeze({
   angle_decimals:2,
   trailing_zeros:true
 });
+export const DEFAULT_DIMENSION_STYLE=freeze({
+  text_height_px:13,
+  arrow_size_px:8,
+  extension_offset_px:5,
+  dimension_offset_px:10,
+  model_text_height_mm:3.5,
+  min_text_px:11,
+  max_text_px:24,
+  min_arrow_px:6,
+  max_arrow_px:16,
+  screen_scale_mode:"Hybrid",
+  show_units:true,
+  diameter_symbol:"Ø",
+  radius_symbol:"R",
+  angle_symbol:"°",
+  reference_color:"#ffe46b",
+  driving_color:"#65d6ff",
+  error_color:"#ff6b6b",
+  normal_color:"#dce8f5"
+});
+function finiteRange(value,fallback,min,max,name){
+  const n=Number(value??fallback);
+  if(!Number.isFinite(n))throw new TypeError(`${name} must be finite`);
+  return Math.min(max,Math.max(min,n));
+}
+function color(value,fallback){
+  const text=String(value??fallback).trim();
+  if(!/^#[0-9a-f]{6}$/i.test(text))throw new TypeError("dimension color must be #RRGGBB");
+  return text.toLowerCase();
+}
+export function normalizeDimensionStyle(input={}){
+  const mode=String(input.screen_scale_mode??DEFAULT_DIMENSION_STYLE.screen_scale_mode);
+  if(!["Hybrid","Screen","Model"].includes(mode))throw new RangeError("screen_scale_mode must be Hybrid, Screen or Model");
+  return freeze({
+    text_height_px:finiteRange(input.text_height_px,DEFAULT_DIMENSION_STYLE.text_height_px,6,72,"text_height_px"),
+    arrow_size_px:finiteRange(input.arrow_size_px,DEFAULT_DIMENSION_STYLE.arrow_size_px,3,40,"arrow_size_px"),
+    extension_offset_px:finiteRange(input.extension_offset_px,DEFAULT_DIMENSION_STYLE.extension_offset_px,0,80,"extension_offset_px"),
+    dimension_offset_px:finiteRange(input.dimension_offset_px,DEFAULT_DIMENSION_STYLE.dimension_offset_px,0,120,"dimension_offset_px"),
+    model_text_height_mm:finiteRange(input.model_text_height_mm,DEFAULT_DIMENSION_STYLE.model_text_height_mm,.5,50,"model_text_height_mm"),
+    min_text_px:finiteRange(input.min_text_px,DEFAULT_DIMENSION_STYLE.min_text_px,6,72,"min_text_px"),
+    max_text_px:finiteRange(input.max_text_px,DEFAULT_DIMENSION_STYLE.max_text_px,6,120,"max_text_px"),
+    min_arrow_px:finiteRange(input.min_arrow_px,DEFAULT_DIMENSION_STYLE.min_arrow_px,3,40,"min_arrow_px"),
+    max_arrow_px:finiteRange(input.max_arrow_px,DEFAULT_DIMENSION_STYLE.max_arrow_px,3,80,"max_arrow_px"),
+    screen_scale_mode:mode,
+    show_units:input.show_units!==false,
+    diameter_symbol:String(input.diameter_symbol??DEFAULT_DIMENSION_STYLE.diameter_symbol),
+    radius_symbol:String(input.radius_symbol??DEFAULT_DIMENSION_STYLE.radius_symbol),
+    angle_symbol:String(input.angle_symbol??DEFAULT_DIMENSION_STYLE.angle_symbol),
+    reference_color:color(input.reference_color,DEFAULT_DIMENSION_STYLE.reference_color),
+    driving_color:color(input.driving_color,DEFAULT_DIMENSION_STYLE.driving_color),
+    error_color:color(input.error_color,DEFAULT_DIMENSION_STYLE.error_color),
+    normal_color:color(input.normal_color,DEFAULT_DIMENSION_STYLE.normal_color)
+  });
+}
+export function resolveDimensionDisplayMetrics(styleInput={},{
+  pixels_per_mm=1,
+  device_pixel_ratio=1
+}={}){
+  const style=normalizeDimensionStyle(styleInput);
+  const ppm=Math.max(1e-9,Number(pixels_per_mm)||1);
+  const dpr=Math.max(.5,Number(device_pixel_ratio)||1);
+  let textPx,arrowPx;
+  if(style.screen_scale_mode==="Screen"){
+    textPx=style.text_height_px;arrowPx=style.arrow_size_px;
+  }else if(style.screen_scale_mode==="Model"){
+    const ratio=style.arrow_size_px/style.text_height_px;
+    textPx=style.model_text_height_mm*ppm/dpr;
+    arrowPx=textPx*ratio;
+  }else{
+    const ratio=style.arrow_size_px/style.text_height_px;
+    const modelPx=style.model_text_height_mm*ppm/dpr;
+    textPx=Math.min(style.max_text_px,Math.max(style.min_text_px,modelPx));
+    arrowPx=Math.min(style.max_arrow_px,Math.max(style.min_arrow_px,textPx*ratio));
+  }
+  return freeze({
+    text_px:textPx,
+    arrow_px:arrowPx,
+    extension_offset_px:style.extension_offset_px,
+    dimension_offset_px:style.dimension_offset_px,
+    mode:style.screen_scale_mode
+  });
+}
+export function dimensionVisualState(dimension,styleInput={}){
+  const style=normalizeDimensionStyle(styleInput);
+  const error=["Error","LostReference","Conflict"].includes(String(dimension?.status));
+  const driving=dimension?.mode==="Driving";
+  return freeze({
+    color:error?style.error_color:driving?style.driving_color:style.reference_color,
+    error,
+    driving,
+    emphasis:error?"Error":driving?"Driving":"Reference"
+  });
+}
 export function createDimension(input={}, {dimensionId=null}={}){
   const kind=requiredString(input.kind,"dimension kind");
   const mode=input.mode??"Reference";
@@ -52,6 +145,7 @@ export function createDimension(input={}, {dimensionId=null}={}){
     text_position:clone(input.text_position??null),
     leader:clone(input.leader??null),
     format:freeze({...DEFAULT_DIMENSION_FORMAT,...clone(input.format??{})}),
+    style:normalizeDimensionStyle(input.style??{}),
     value:finiteOrNull(input.value,"dimension value"),
     target_value:finiteOrNull(input.target_value,"dimension target_value"),
     status:input.status??"NeedsUpdate",
@@ -66,6 +160,7 @@ export function updateDimensionStyle(dimension,patch={}){
     text_position:patch.text_position===undefined?clone(dimension.text_position):clone(patch.text_position),
     leader:patch.leader===undefined?clone(dimension.leader):clone(patch.leader),
     format:freeze({...clone(dimension.format),...clone(patch.format??{})}),
+    style:patch.style===undefined?normalizeDimensionStyle(dimension.style??{}):normalizeDimensionStyle({...clone(dimension.style??{}),...clone(patch.style??{})}),
     visible:patch.visible===undefined?dimension.visible:patch.visible!==false
   });
 }
@@ -163,13 +258,18 @@ export function drivingSolvePlan(dimension,{resolveReference,planSolve}={}){
 }
 export function formatDimensionValue(dimension){
   if(dimension.value===null||dimension.value===undefined)return "—";
-  const isAngle=/angle/i.test(dimension.kind);
+  const kind=String(dimension.kind??"");
+  const isAngle=/angle/i.test(kind);
+  const isDiameter=/diameter/i.test(kind);
+  const isRadius=/radius|radial/i.test(kind);
+  const style=normalizeDimensionStyle(dimension.style??{});
   const decimals=Math.max(0,Math.min(12,Math.trunc(Number(isAngle?dimension.format.angle_decimals:dimension.format.length_decimals)||0)));
   let text=Number(dimension.value).toFixed(decimals);
   if(dimension.format.trailing_zeros===false&&text.includes("."))text=text.replace(/\.?0+$/,"");
-  if(isAngle)return text+"°";
+  if(isAngle)return text+style.angle_symbol;
+  const prefix=isDiameter?style.diameter_symbol:isRadius?style.radius_symbol:"";
   const unit=dimension.format.length_unit??"mm";
-  return text+" "+unit;
+  return prefix+text+(style.show_units?" "+unit:"");
 }
 export function removeDimensionRepresentation(dimension,representationId){
   const reps=Array.isArray(dimension.representations)?dimension.representations:[];
