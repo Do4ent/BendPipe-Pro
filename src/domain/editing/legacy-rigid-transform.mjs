@@ -4,6 +4,7 @@ import {
   solveLegacyBendSettings
 } from "../../recognition/legacy-row-kinematics.mjs";
 import {
+  mirrorMatrix,
   rotationMatrix,
   transformPoint,
   transformVector
@@ -182,6 +183,144 @@ export function rotateLegacyTubeRigid(
     rows:freeze(reencoded),
     nominal_scalars_preserved:true,
     rigid_body_only:true
+  });
+}
+
+
+export function mirrorLegacyTubeRigid(
+  tube,
+  {
+    plane_point={x:0,y:0,z:0},
+    plane_normal,
+    direction_tolerance_deg=0.02,
+    plane_tolerance_deg=0.05
+  }={}
+){
+  if(!tube||typeof tube!=="object")throw new TypeError("tube is required");
+  if(!Array.isArray(tube.rows)||!tube.rows.length)throw new RangeError("tube rows are required");
+  const matrix=mirrorMatrix({plane_point,plane_normal});
+  const out=clone(tube);
+  const sourceOrigin=pointObject(tube.origin??{x:0,y:0,z:0},"tube.origin");
+  const targetOrigin=transformPoint(matrix,sourceOrigin);
+  out.origin={
+    x:Number(targetOrigin.x.toFixed(9)),
+    y:Number(targetOrigin.y.toFixed(9)),
+    z:Number(targetOrigin.z.toFixed(9))
+  };
+
+  let sourceIncoming=startDirection(tube);
+  let targetIncoming=rotatedVector(matrix,sourceIncoming);
+  out.startVector={
+    x:Number(targetIncoming[0].toFixed(12)),
+    y:Number(targetIncoming[1].toFixed(12)),
+    z:Number(targetIncoming[2].toFixed(12))
+  };
+  out.startAxis=null;
+
+  const reencoded=[];
+  for(let index=0;index<tube.rows.length;index+=1){
+    const sourceRow=tube.rows[index];
+    const targetRow=out.rows[index];
+    if(sourceRow?.type==="LINE"){
+      const length=finite(sourceRow.L,`rows[${index}].L`);
+      if(length<0)throw new RangeError("LINE length must be non-negative");
+      reencoded.push(freeze({
+        row_index:index,
+        type:"LINE",
+        length_mm:length
+      }));
+      continue;
+    }
+    if(sourceRow?.type!=="BEND")throw new RangeError(`Unsupported row type at ${index}`);
+    const signedAngle=finite(sourceRow.angle,`rows[${index}].angle`);
+    const sourceRotation=finite(sourceRow.rot??0,`rows[${index}].rot`);
+    const sourceEffective=[...effectiveLegacyBendAxis(
+      sourceIncoming,
+      sourceRow.plane,
+      sourceRotation
+    )];
+    const sourceOutgoing=[...replayLegacyDirection(sourceIncoming,{
+      angle:signedAngle,
+      plane:sourceRow.plane,
+      rotation:sourceRotation
+    })];
+    const targetOutgoing=rotatedVector(matrix,sourceOutgoing);
+
+    // Plane normals / bend axes are axial vectors. Under an improper
+    // reflection an axial vector transforms as det(M)*M*a = -M*a.
+    const reflectedEffective=rotatedVector(matrix,sourceEffective);
+    const targetEffective=reflectedEffective.map((value)=>-value);
+
+    const solved=solveLegacyBendSettings({
+      incoming:targetIncoming,
+      target:targetOutgoing,
+      signedAngleHintDeg:signedAngle,
+      targetPlaneNormal:targetEffective,
+      preferredPlane:sourceRow.plane,
+      directionToleranceDeg:direction_tolerance_deg,
+      planeNormalToleranceDeg:plane_tolerance_deg
+    });
+    if(solved.status!=="exact"){
+      return freeze({
+        status:"blocked",
+        tube:null,
+        row_index:index,
+        reason:solved.reason??"Mirror could not be encoded in right-handed legacy plane/rotation"
+      });
+    }
+
+    targetRow.angle=signedAngle;
+    targetRow.angleFormula=Number(signedAngle).toFixed(2);
+    targetRow.plane=solved.plane;
+    targetRow.rot=solved.rotation;
+    targetRow.rotFormula=Number(solved.rotation).toFixed(2);
+    reencoded.push(freeze({
+      row_index:index,
+      type:"BEND",
+      original_plane:sourceRow.plane,
+      original_rotation_deg:sourceRotation,
+      target_plane:solved.plane,
+      target_rotation_deg:solved.rotation,
+      axis_error_deg:solved.axis_error_deg
+    }));
+    sourceIncoming=sourceOutgoing;
+    targetIncoming=targetOutgoing;
+  }
+
+  if(out.engineering?.ports?.P1){
+    out.engineering.ports.P1.position=clone(out.origin);
+    out.engineering.ports.P1.direction=clone(out.startVector);
+    out.engineering.ports.P1.locked=true;
+  }
+  if(out.engineering?.ports?.P2?.position){
+    const p2=transformPoint(matrix,pointObject(out.engineering.ports.P2.position,"P2.position"));
+    out.engineering.ports.P2.position={
+      x:Number(p2.x.toFixed(9)),
+      y:Number(p2.y.toFixed(9)),
+      z:Number(p2.z.toFixed(9))
+    };
+    if(out.engineering.ports.P2.direction){
+      const direction=rotatedVector(matrix,arrayVector(out.engineering.ports.P2.direction,"P2.direction"));
+      out.engineering.ports.P2.direction=asObject(direction);
+    }
+  }
+
+  if(out.importEvidence?.spatialPlacement){
+    out.importEvidence.spatialPlacement.user_origin_override=true;
+    out.importEvidence.spatialPlacement.mirror_reencoded_right_handed=true;
+  }
+  out.mirror_handedness="right-handed-reencoded";
+
+  return freeze({
+    status:"exact",
+    tube:out,
+    matrix,
+    plane_point:freeze(pointObject(plane_point,"plane_point")),
+    plane_normal:freeze(pointObject(plane_normal,"plane_normal")),
+    rows:freeze(reencoded),
+    nominal_scalars_preserved:true,
+    rigid_body_only:true,
+    reflection_reencoded_right_handed:true
   });
 }
 
