@@ -21,6 +21,66 @@ function uniqueCopyName(base,usedKeys){
   return candidate;
 }
 
+function tubePartNumber(tube){
+  return String(
+    tube?.partNumber ??
+    tube?.part_number ??
+    tube?.importEvidence?.part_number ??
+    tube?.importEvidence?.metadata?.part_number ??
+    ""
+  ).trim();
+}
+
+function geometrySnapshot(tube){
+  const fields=[
+    "origin","startVector","startAxis","startDir","rows",
+    "diameter","diameter_mm","outerDiameterMm","outer_diameter_mm","OD","OD_mm",
+    "wall","wall_mm","wallThicknessMm","wall_thickness_mm"
+  ];
+  const snapshot={schema:"dwfx_editable_source_geometry_v1"};
+  for(const key of fields){
+    if(tube?.[key]!==undefined)snapshot[key]=clone(tube[key]);
+  }
+  return snapshot;
+}
+
+function findReferenceSourceLink(project,tube,{sourceFile=null}={}){
+  const part=tubePartNumber(tube);
+  if(!part)return null;
+  const preferredFile=String(
+    sourceFile ??
+    tube?.importEvidence?.source?.file ??
+    ""
+  );
+  const matches=[];
+  const visit=(scene,node)=>{
+    if(String(node?.editable_part_number??"")===part){
+      matches.push({scene,node});
+    }
+    for(const child of node?.children??[])visit(scene,child);
+  };
+  for(const scene of project?.referenceScenes??[]){
+    for(const root of scene?.tree??[])visit(scene,root);
+  }
+  if(!matches.length)return null;
+  const chosen=
+    matches.find(({scene})=>
+      preferredFile &&
+      String(scene?.source_file??scene?.name??"")===preferredFile
+    ) ??
+    matches[0];
+  return {
+    status:"linked",
+    detached:false,
+    scene_id:String(chosen.scene.id),
+    node_id:String(chosen.node.id),
+    part_number:part,
+    source_label:String(chosen.node.label??chosen.node.id??part),
+    source_file:String(chosen.scene.source_file??chosen.scene.name??preferredFile),
+    display:"hidden"
+  };
+}
+
 function nextId(preferred,usedIds,makeId){
   let candidate=String(preferred??"").trim();
   if(candidate&&!usedIds.has(candidate)) return candidate;
@@ -89,6 +149,7 @@ function editableImportedTube(source,{usedIds,usedNames,makeId,sourceFile}){
       tube.importEvidence?.source?.file ??
       ""
     ),
+    part_number:tubePartNumber(tube),
     geometry_source:"recognized_canonical_geometry",
     machine_compensation_applied:false
   };
@@ -263,6 +324,13 @@ export function mergeDwfxTubesIntoCurrentProject({
         materialized.name=uniqueCopyName(originalName,usedNames);
         usedNames.add(nameKey(materialized.name));
       }
+
+      const sourceLink=findReferenceSourceLink(target,materialized,{sourceFile:source_file});
+      materialized.currentProjectImport={
+        ...(materialized.currentProjectImport??{}),
+        source_link:sourceLink,
+        source_geometry_snapshot:geometrySnapshot(materialized)
+      };
 
       target.tubes.push(materialized);
       imported.push(materialized);
