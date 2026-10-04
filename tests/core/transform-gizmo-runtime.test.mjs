@@ -68,3 +68,46 @@ test("question 59: reference geometry can move, while rotation rings require edi
   assert.match(code,/return list\.length>0&&list\.every\(\(entry\)=>entry\.kind==="tube"\)/);
   assert.match(code,/if\(canRotate\(\)\)group\.add\(makeRing/);
 });
+
+
+test("question 60: Gizmo Pivot supports all accepted base point modes",()=>{
+  assert.match(code,/pivotMode:"center"/);
+  assert.match(code,/\["center","p1","cs-origin"\]/);
+  assert.match(code,/selectionCenterScene/);
+  assert.match(code,/p1PivotScene/);
+  assert.match(code,/captureFeaturePivot/);
+  assert.match(code,/captureSnapPivot/);
+  assert.match(code,/activeCsOriginScene/);
+  assert.match(code,/setTemporaryPivotMm/);
+  assert.match(code,/Center \/ group bbox/);
+  assert.match(code,/Node \/ Endpoint \/ Center/);
+  assert.match(code,/Active CS origin/);
+});
+
+test("question 60: P1 uses tube origin and group center uses the combined bounding box",()=>{
+  assert.match(code,/tube\.origin\?\?\{x:0,y:0,z:0\}/);
+  assert.match(code,/for\(const object of leaves\)/);
+  assert.match(code,/box\.union\(b\)/);
+  assert.match(code,/box\.getCenter/);
+});
+
+test("question 60: Pivot can be dragged temporarily or captured from exact Snap features",()=>{
+  assert.match(code,/function makePivotHandle\(/);
+  assert.match(code,/kind:"pivot"/);
+  assert.match(code,/center sphere = drag Pivot/);
+  assert.match(code,/pivotState\.temporary=point/);
+  assert.match(code,/\["Node","Endpoint","Center","Midpoint"\]/);
+  assert.match(code,/data-pivot-feature/);
+  assert.match(code,/data-pivot-snap/);
+  assert.match(code,/data-pivot-x/);
+  assert.match(code,/data-pivot-y/);
+  assert.match(code,/data-pivot-z/);
+});
+
+test("question 60: User CS has an explicit origin for Active CS origin pivot",()=>{
+  assert.match(code,/userOrigin:\{x:0,y:0,z:0\}/);
+  assert.match(code,/data-user-ox/);
+  assert.match(code,/data-user-oy/);
+  assert.match(code,/data-user-oz/);
+  assert.match(code,/setUserOrigin/);
+});
