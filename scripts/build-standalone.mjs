@@ -19,6 +19,7 @@ const materialLibraryUiPath = path.join(root, "src", "ui", "material-library-ui.
 const materialManufacturingBridgePath = path.join(root, "src", "ui", "material-manufacturing-bridge.js");
 const measurementsUiPath = path.join(root, "src", "ui", "measurements-ui.js");
 const editingUiPath = path.join(root, "src", "ui", "editing-ui.js");
+const snapTrackingRuntimePath = path.join(root, "src", "ui", "snap-tracking-runtime.js");
 const associativeArrayRuntimePath = path.join(root, "src", "ui", "associative-array-runtime.js");
 const associativeMirrorRuntimePath = path.join(root, "src", "ui", "associative-mirror-runtime.js");
 const transformStackRuntimePath = path.join(root, "src", "ui", "transform-stack-runtime.js");
@@ -26,6 +27,7 @@ const transformStackDomainPath = path.join(root, "src", "domain", "editing", "tr
 const straightRunDomainPath = path.join(root, "src", "domain", "editing", "straight-run.mjs");
 const legacyRigidTransformDomainPath = path.join(root, "src", "domain", "editing", "legacy-rigid-transform.mjs");
 const dynamicInputDomainPath = path.join(root, "src", "domain", "editing", "dynamic-input.mjs");
+const snapEngineDomainPath = path.join(root, "src", "domain", "snapping", "snap-engine.mjs");
 const transformCommandsDomainPath = path.join(root, "src", "domain", "editing", "transform-commands.mjs");
 const geometryMeasurementsDomainPath = path.join(root, "src", "domain", "measurements", "geometry-measurements.mjs");
 const dimensionsDomainPath = path.join(root, "src", "domain", "measurements", "dimensions.mjs");
@@ -2247,6 +2249,13 @@ const editingUi = fs.readFileSync(editingUiPath, "utf8")
 const bundledEditingUi =
   `<script data-tubebender-bundled="editing-ui">\n${editingUi}\n</script>`;
 
+const snapEngineDomainUrl = moduleDataUrl(snapEngineDomainPath);
+const snapTrackingRuntime = fs.readFileSync(snapTrackingRuntimePath, "utf8")
+  .replace("__TB_SNAP_ENGINE_MODULE_URL__", snapEngineDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledSnapTrackingRuntime =
+  `<script data-tubebender-bundled="snap-tracking-runtime">\n${snapTrackingRuntime}\n</script>`;
+
 const transformCommandsDomainUrl = moduleDataUrl(transformCommandsDomainPath);
 const associativeArrayRuntime = fs.readFileSync(associativeArrayRuntimePath, "utf8")
   .replace("__TB_TRANSFORM_COMMANDS_MODULE_URL__", transformCommandsDomainUrl)
@@ -2332,6 +2341,8 @@ output =
   bundledAssociativeMirrorRuntime +
   "\n" +
   bundledTransformStackRuntime +
+  "\n" +
+  bundledSnapTrackingRuntime +
   "\n" +
   bundledEditingUi +
   "\n" +
@@ -2618,6 +2629,7 @@ process.stdout.write(
       bundledMaterialLibrary: true,
       bundledMeasurementsUi: true,
       bundledEditingUi: true,
+      bundledSnapTrackingRuntime: true,
       bundledAssociativeArrays: true,
       bundledAssociativeMirrors: true,
       bundledTransformStacks: true,
