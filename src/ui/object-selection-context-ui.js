@@ -487,7 +487,7 @@
     return entries.length>0&&entries.every((entry)=>{
       if(entry.kind==="ref")return true;
       if(entry.kind!=="tube")return false;
-      return tubeById(entry.tubeId)?.array_member?.derived_readonly!==true;
+      const tube=tubeById(entry.tubeId);\n      return tube?.array_member?.derived_readonly!==true&&tube?.mirror_member?.derived_readonly!==true&&tube?.transform_stack_member?.derived_readonly!==true;
     });
   }
 
@@ -1000,11 +1000,11 @@
     const p=project();
     if(!p)return;
     const requested=entries.filter((entry)=>entry.kind==="tube");
-    const derived=requested.filter((entry)=>tubeById(entry.tubeId)?.array_member?.derived_readonly===true);
+    const derived=requested.filter((entry)=>{const tube=tubeById(entry.tubeId);return tube?.array_member?.derived_readonly===true||tube?.mirror_member?.derived_readonly===true||tube?.transform_stack_member?.derived_readonly===true;});
     if(derived.length){
-      if(typeof ptToast==="function")ptToast("Элемент ассоциативного массива нельзя удалить напрямую — используйте Suppress / Detach / Break Array");
+      if(typeof ptToast==="function")ptToast("Ассоциативно производный объект нельзя удалить напрямую — используйте управление соответствующей операцией или Bake / Break");
     }
-    const ids=new Set(requested.filter((entry)=>tubeById(entry.tubeId)?.array_member?.derived_readonly!==true).map((entry)=>String(entry.tubeId)));
+    const ids=new Set(requested.filter((entry)=>{const tube=tubeById(entry.tubeId);return tube?.array_member?.derived_readonly!==true&&tube?.mirror_member?.derived_readonly!==true&&tube?.transform_stack_member?.derived_readonly!==true;}).map((entry)=>String(entry.tubeId)));
     if(!ids.size)return;
     p.tubes=(p.tubes??[]).filter((tube)=>!ids.has(String(tube.id)));
     if(!p.tubes.length&&typeof newTubeData==="function"){
