@@ -17,7 +17,7 @@ function replaceUnits(expr,kind){
 function safeArithmetic(expr,variables={}){
   let text=String(expr);
   text=text.replace(/\\b[A-Za-z_]\\w*\\b/g,(name)=>{if(!(name in variables))throw new Error("Unknown variable: "+name);const n=Number(variables[name]);if(!Number.isFinite(n))throw new Error("Variable is not finite: "+name);return "("+n+")";});
-  if(!/^[0-9eE+\\-*/().\\s]+$/.test(text))throw new Error("Unsupported expression");
+  if(!/^[0-9eE+*/().\\s-]+$/.test(text))throw new Error("Unsupported expression");
   const value=Function('"use strict";return ('+text+')')();
   if(!Number.isFinite(value))throw new Error("Expression result is not finite");
   return value;
