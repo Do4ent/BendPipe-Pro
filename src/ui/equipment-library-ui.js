@@ -226,13 +226,17 @@
       {key:"compatible",label:"Compatible Machine Profile IDs",value:(x?.compatible_machine_profile_ids??[]).join(",")},
       {key:"bend_die",label:"Bend die",value:x?.components?.bend_die},{key:"clamp_die",label:"Clamp die",value:x?.components?.clamp_die},
       {key:"pressure_die",label:"Pressure die",value:x?.components?.pressure_die},{key:"mandrel",label:"Mandrel",value:x?.components?.mandrel},
-      {key:"wiper_die",label:"Wiper die",value:x?.components?.wiper_die}
+      {key:"wiper_die",label:"Wiper die",value:x?.components?.wiper_die},
+      {key:"cal_angle_offset_deg",label:"Calibration angle offset, °",value:number(x?.calibration?.angle_offset_deg),type:"number"},
+      {key:"cal_radius_offset_mm",label:"Calibration radius offset, mm",value:number(x?.calibration?.radius_offset_mm),type:"number"},
+      {key:"cal_note",label:"Calibration note",value:x?.calibration?.note}
     ],(root)=>{
       const v=values(root),ids=v.compatible.split(",").map((s)=>s.trim()).filter(Boolean);
       const rec=domain.createToolingSet({...v,
         compatible_machine_profile_ids:ids,diameter_mm:parseNum(v.diameter_mm),wall_min_mm:parseNum(v.wall_min_mm),
         wall_max_mm:parseNum(v.wall_max_mm),clr_mm:parseNum(v.clr_mm),min_straight_mm:parseNum(v.min_straight_mm),
-        components:{bend_die:v.bend_die,clamp_die:v.clamp_die,pressure_die:v.pressure_die,mandrel:v.mandrel,wiper_die:v.wiper_die}
+        components:{bend_die:v.bend_die,clamp_die:v.clamp_die,pressure_die:v.pressure_die,mandrel:v.mandrel,wiper_die:v.wiper_die},
+        calibration:{angle_offset_deg:parseNum(v.cal_angle_offset_deg),radius_offset_mm:parseNum(v.cal_radius_offset_mm),note:v.cal_note}
       },{toolingSetId:x?.id});
       const check=domain.validateToolingSet(rec);if(!check.ok)throw new Error(check.errors.join("; "));
       upsert("tooling_sets",rec,x?"Изменить Tooling Set":"Создать Tooling Set");
@@ -247,10 +251,13 @@
     const body=form(x?"Tooling Instance":"New Tooling Instance",[
       {key:"name",label:"Name *",value:x?.name},{key:"tooling_set_id",label:"Tooling Set *",value:x?.tooling_set_id,type:"select",options:tsOptions},
       {key:"serial_number",label:"Serial",value:x?.serial_number},{key:"machine_instance_id",label:"Machine Instance",value:x?.machine_instance_id,type:"select",options:miOptions},
-      {key:"angle_correction_deg",label:"Angle correction, °",value:number(x?.angle_correction_deg),type:"number"}
+      {key:"angle_correction_deg",label:"Angle correction, °",value:number(x?.angle_correction_deg),type:"number"},
+      {key:"cal_angle_offset_deg",label:"Calibration angle offset, °",value:number(x?.calibration?.angle_offset_deg),type:"number"},
+      {key:"cal_radius_offset_mm",label:"Calibration radius offset, mm",value:number(x?.calibration?.radius_offset_mm),type:"number"},
+      {key:"cal_note",label:"Calibration note",value:x?.calibration?.note}
     ],(root)=>{
       const v=values(root);
-      const rec=domain.createToolingInstance({...v,machine_instance_id:v.machine_instance_id||null,angle_correction_deg:parseNum(v.angle_correction_deg)},{toolingInstanceId:x?.id});
+      const rec=domain.createToolingInstance({...v,machine_instance_id:v.machine_instance_id||null,angle_correction_deg:parseNum(v.angle_correction_deg),calibration:{angle_offset_deg:parseNum(v.cal_angle_offset_deg),radius_offset_mm:parseNum(v.cal_radius_offset_mm),note:v.cal_note}},{toolingInstanceId:x?.id});
       upsert("tooling_instances",rec,x?"Изменить Tooling Instance":"Создать Tooling Instance");
     });
   }
