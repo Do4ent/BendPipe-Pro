@@ -36,6 +36,8 @@ const machineSetupDomainPath = path.join(root, "src", "domain", "machines", "mac
 const bendSequenceDomainPath = path.join(root, "src", "domain", "manufacturing", "bend-sequence-analysis.mjs");
 const simulationCollisionDomainPath = path.join(root, "src", "domain", "manufacturing", "bending-simulation-collision.mjs");
 const clearanceMonitorDomainPath = path.join(root, "src", "domain", "validation", "clearance-monitor.mjs");
+const reproducibilityDomainPath = path.join(root, "src", "domain", "validation", "reproducibility.mjs");
+const reproducibilityRuntimePath = path.join(root, "src", "ui", "reproducibility-runtime.js");
 const equipmentLibraryUiPath = path.join(root, "src", "ui", "equipment-library-ui.js");
 const distDir = path.join(root, "dist");
 const outputPath = path.join(distDir, "TubeBender_CAD_VC207R7_M1_Standalone.html");
@@ -2286,6 +2288,13 @@ const equipmentLibraryUi = fs.readFileSync(equipmentLibraryUiPath, "utf8")
 const bundledEquipmentLibraryUi =
   `<script data-tubebender-bundled="equipment-library-ui">\n${equipmentLibraryUi}\n</script>`;
 
+const reproducibilityDomainUrl = moduleDataUrl(reproducibilityDomainPath);
+const reproducibilityRuntime = fs.readFileSync(reproducibilityRuntimePath, "utf8")
+  .replace("__TB_REPRODUCIBILITY_MODULE_URL__", reproducibilityDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledReproducibilityRuntime =
+  `<script data-tubebender-bundled="reproducibility-runtime">\n${reproducibilityRuntime}\n</script>`;
+
 if (!output.includes("</body>")) {
   throw new Error("Standalone source HTML is missing </body>");
 }
@@ -2308,6 +2317,8 @@ output =
   bundledTrimCutRuntimeBridge +
   "\n" +
   bundledEquipmentLibraryUi +
+  "\n" +
+  bundledReproducibilityRuntime +
   "\n" +
   bundledMaterialManufacturingBridge +
   "\n" +
@@ -2558,6 +2569,12 @@ if (!output.includes('data-tubebender-bundled="equipment-runtime-bridge"')) {
 if (!output.includes('data-tubebender-bundled="trim-cut-runtime-bridge"')) {
   throw new Error("Standalone build is missing Trim/Cut runtime bridge");
 }
+if (!output.includes('data-tubebender-bundled="reproducibility-runtime"')) {
+  throw new Error("Standalone build is missing reproducibility runtime");
+}
+if (!output.includes("TubeBenderReproducibility") || !output.includes("CPU/GPU reproducibility")) {
+  throw new Error("Standalone build is missing reproducibility integration hooks");
+}
 if (!output.includes('data-tubebender-bundled="equipment-library-ui"')) {
   throw new Error("Standalone build is missing the Equipment Library UI");
 }
@@ -2604,6 +2621,7 @@ process.stdout.write(
       materialManufacturingCompensation: true,
       equipmentRuntimeBridge: true,
       bundledEquipmentLibrary: true,
+      bundledReproducibilityRuntime: true,
       injectedAtFinalBodyClose: true,
       lazyDwfxRuntime: true,
       optionalExternalModules: ["tesseract"]
