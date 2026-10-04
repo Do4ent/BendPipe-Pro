@@ -581,6 +581,38 @@ if(!output.includes(historyPanelBeginAnchor)){
   throw new Error("tbHistoryBegin anchor missing for History panel");
 }
 const historyPanelRuntime =
+  "const TB_HISTORY_STORAGE_KEY='tubebender.modelHistory.v1';\n"+
+  "let tbHistoryPersistenceLoading=false;\n"+
+  "function tbHistorySignature(snapshot){const text=tbHistorySnapshotKey(snapshot);let hash=2166136261;for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}return (hash>>>0).toString(16)+':'+text.length;}\n"+
+  "function tbHistoryPersist(){\n"+
+  "  if(tbHistoryPersistenceLoading||tbHistory.transaction||tbHistory.applying)return false;\n"+
+  "  let current;try{current=tbHistorySnapshot();}catch{return false;}\n"+
+  "  const base={version:1,current_signature:tbHistorySignature(current),saved_at:new Date().toISOString()};\n"+
+  "  const undo=[...tbHistory.undo],redo=[...tbHistory.redo];\n"+
+  "  let keepUndo=undo.length,keepRedo=redo.length;\n"+
+  "  while(true){\n"+
+  "    const payload={...base,undo:undo.slice(Math.max(0,undo.length-keepUndo)),redo:redo.slice(Math.max(0,redo.length-keepRedo)),truncated:keepUndo<undo.length||keepRedo<redo.length};\n"+
+  "    try{localStorage.setItem(TB_HISTORY_STORAGE_KEY,JSON.stringify(payload));return true;}catch(error){\n"+
+  "      if(keepUndo>0){keepUndo=Math.max(0,keepUndo-5);continue;}\n"+
+  "      if(keepRedo>0){keepRedo=Math.max(0,keepRedo-5);continue;}\n"+
+  "      try{localStorage.removeItem(TB_HISTORY_STORAGE_KEY);}catch{}return false;\n"+
+  "    }\n"+
+  "  }\n"+
+  "}\n"+
+  "function tbHistoryRestorePersisted(){\n"+
+  "  let raw=null;try{raw=localStorage.getItem(TB_HISTORY_STORAGE_KEY);}catch{return false;}\n"+
+  "  if(!raw)return false;\n"+
+  "  let saved;try{saved=JSON.parse(raw);}catch{try{localStorage.removeItem(TB_HISTORY_STORAGE_KEY);}catch{}return false;}\n"+
+  "  if(saved?.version!==1||!Array.isArray(saved.undo)||!Array.isArray(saved.redo))return false;\n"+
+  "  let current;try{current=tbHistorySnapshot();}catch{return false;}\n"+
+  "  if(saved.current_signature!==tbHistorySignature(current)){try{localStorage.removeItem(TB_HISTORY_STORAGE_KEY);}catch{}return false;}\n"+
+  "  const valid=(entry)=>entry&&typeof entry.label==='string'&&entry.before?.state&&Array.isArray(entry.before?.pipeDb)&&entry.after?.state&&Array.isArray(entry.after?.pipeDb);\n"+
+  "  if(!saved.undo.every(valid)||!saved.redo.every(valid)){try{localStorage.removeItem(TB_HISTORY_STORAGE_KEY);}catch{}return false;}\n"+
+  "  tbHistoryPersistenceLoading=true;\n"+
+  "  try{tbHistory.undo.splice(0,tbHistory.undo.length,...saved.undo.slice(-TB_HISTORY_LIMIT));tbHistory.redo.splice(0,tbHistory.redo.length,...saved.redo.slice(-TB_HISTORY_LIMIT));}\n"+
+  "  finally{tbHistoryPersistenceLoading=false;}\n"+
+  "  return true;\n"+
+  "}\n"+
   "function tbHistoryTimeline(){return [...tbHistory.undo,...tbHistory.redo.slice().reverse()];}\n"+
   "function tbHistoryCursor(){return tbHistory.undo.length;}\n"+
   "function tbHistoryJump(targetIndex){\n"+
@@ -641,6 +673,7 @@ output=output.replace(
   "    redo.title=canRedo?\`Повторить: \${tbHistory.redo.at(-1)?.label||'изменение'}\`:'Нет действий для повтора';\n"+
   "  }\n"+
   "  try{tbHistoryPanelRender();}catch{}\n"+
+  "  try{tbHistoryPersist();}catch{}\n"+
   "}"
 );
 
@@ -668,8 +701,11 @@ output=output.replace(
   "  timeline:()=>tbHistoryTimeline().map((entry,index)=>({index:index+1,label:entry.label||'Изменение'})),\n"+
   "  cursor:tbHistoryCursor,\n"+
   "  jump:tbHistoryJump,\n"+
-  "  openPanel:()=>{const panel=tbHistoryEnsurePanel();panel.classList.add('open');tbHistoryPanelRender();}\n"+
+  "  openPanel:()=>{const panel=tbHistoryEnsurePanel();panel.classList.add('open');tbHistoryPanelRender();},\n"+
+  "  persist:tbHistoryPersist,\n"+
+  "  restorePersisted:tbHistoryRestorePersisted\n"+
   "};\n"+
+  "tbHistoryRestorePersisted();\n"+
   "if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{tbHistoryEnsurePanel();tbHistoryPanelRender();},{once:true});else{tbHistoryEnsurePanel();tbHistoryPanelRender();}"
 );
 
