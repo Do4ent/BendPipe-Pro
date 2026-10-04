@@ -5,13 +5,14 @@
   const DECIMAL_PREF_KEY="tubebender.dynamicInput.decimalSeparator";
   let straightRun=null,rigidTransform=null,dynamicInput=null,installed=false,panel=null,button=null,activeTool="copy",snapCommandTool=null;
   let copyPreviewGroup=null;
-  const copySession={active:false,mode:"single",base:null,targets:[],pendingPoint:null,sourceIds:[]};
+  const copySession={active:false,mode:"single",base:null,targets:[],pendingPoint:null,sourceIds:[],sourceMeshEntries:[]};
   const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
   const clone=(v)=>v==null?v:structuredClone(v);
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,(ch)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
   const api=()=>window.TubeBenderEngineering??null;
   const context=()=>window.TubeBenderObjectContext??null;
   const snapTracking=()=>window.TubeBenderSnapTracking??null;
+  const referenceApi=()=>window.TubeBenderReferenceSceneUi??null;
   const project=()=>{try{return api()?.activeProject?.()??null;}catch{return null;}};
   const stateValue=()=>{try{return api()?.getState?.()??null;}catch{return null;}};
   const readonly=()=>{try{return api()?.readonly?.()===true;}catch{return false;}};
@@ -79,6 +80,9 @@
     return entries().filter((e)=>e.kind==="tube").map((e)=>tubeById(e.tubeId)).filter((tube)=>
       tube&&tube?.array_member?.derived_readonly!==true&&tube?.mirror_member?.derived_readonly!==true&&tube?.transform_stack_member?.derived_readonly!==true
     );
+  }
+  function selectedMeshSources(){
+    return entries().filter((entry)=>entry.kind==="ref"||entry.kind==="mesh-instance");
   }
   function selectedSingleLine(){
     const list=entries();
@@ -206,7 +210,7 @@
     const mode=copySession.mode;
     clearCopyPreview();
     copySession.active=panel?.classList.contains("open")&&activeTool==="copy";
-    copySession.base=null;copySession.targets=[];copySession.pendingPoint=null;copySession.sourceIds=[];
+    copySession.base=null;copySession.targets=[];copySession.pendingPoint=null;copySession.sourceIds=[];copySession.sourceMeshEntries=[];
     if(keepMode)copySession.mode=mode;else copySession.mode="single";
   }
   function syncCopySessionTool(){
@@ -224,11 +228,13 @@
       (copySession.mode==="multiple"?" · Enter завершает серию · Backspace отменяет последнюю точку":" · одна целевая точка завершает команду");
   }
   function setCopyBase(point,body=null){
-    const sources=selectedWholeTubes();
-    if(!sources.length){toast("Для Copy выберите одну или несколько целых труб");return false;}
+    const tubes=selectedWholeTubes(),meshes=selectedMeshSources();
+    if(tubes.length&&meshes.length){toast("Copy: не смешивайте трубы и mesh instances в одной операции");return false;}
+    if(!tubes.length&&!meshes.length){toast("Для Copy выберите целую трубу, Source mesh или Editable Mesh Instance");return false;}
     if(!point){toast("Не задана базовая точка Copy");return false;}
     copySession.base=clone(point);copySession.targets=[];copySession.pendingPoint=null;
-    copySession.sourceIds=sources.map((tube)=>String(tube.id));
+    copySession.sourceIds=tubes.map((tube)=>String(tube.id));
+    copySession.sourceMeshEntries=meshes.map(clone);
     renderCopyPreview();if(body)copySessionStatus(body);return true;
   }
   function setCopyBaseFromSnap(body){
@@ -286,11 +292,31 @@
   function commitCopySeries(body=null){
     if(!copySession.base||!copySession.targets.length){toast("Нет целевых точек Copy");return false;}
     if(readonly()){toast("Проект открыт только для просмотра");return false;}
-    const p=project(),sources=copySourceTubes();
-    if(!p||!sources.length){toast("Исходные трубы Copy недоступны");return false;}
+    const p=project(),sources=copySourceTubes(),meshEntries=copySession.sourceMeshEntries.map(clone);
+    if(!p||(!sources.length&&!meshEntries.length)){toast("Исходные объекты Copy недоступны");return false;}
+    if(sources.length&&meshEntries.length){toast("Copy: смешанный tube/mesh источник запрещён");return false;}
     const base=clone(copySession.base),targets=copySession.targets.map(clone);
     const usedNames=new Set((p.tubes??[]).map((tube)=>String(tube?.name??"")));
+    const createdMeshIds=[];
     const mutate=()=>{
+      if(meshEntries.length){
+        const ref=referenceApi();
+        if(!ref)throw new Error("Editable Mesh Instance API недоступен");
+        for(const target of targets){
+          const delta={x:target.x-base.x,y:target.y-base.y,z:target.z-base.z};
+          for(const entry of meshEntries){
+            let created;
+            if(entry.kind==="ref"){
+              created=ref.createEditableMeshInstanceByRef?.(p,entry.sceneId,entry.nodeId,{position_mm:delta});
+            }else{
+              created=ref.copyEditableMeshInstance?.(p,entry.instanceId,{offset_mm:delta});
+            }
+            if(!created)throw new Error("Mesh Copy failed");
+            createdMeshIds.push(String(created.id));
+          }
+        }
+        return true;
+      }
       const created=[];
       for(const target of targets){
         const delta={x:target.x-base.x,y:target.y-base.y,z:target.z-base.z};
@@ -299,10 +325,16 @@
       p.tubes=[...(p.tubes??[]),...created];
       return true;
     };
-    const ok=api()?.modelCommand?api().modelCommand(targets.length>1?"Copy: серия целевых точек":"Copy: одна целевая точка",mutate):mutate();
+    const label=meshEntries.length
+      ?(targets.length>1?"Copy: серия mesh instances":"Copy: mesh instance")
+      :(targets.length>1?"Copy: серия целевых точек":"Copy: одна целевая точка");
+    const ok=api()?.modelCommand?api().modelCommand(label,mutate):mutate();
     if(ok===false)return false;
     resetCopySession();copySession.active=true;
     try{api()?.save?.();api()?.renderAll?.();context()?.refresh?.();}catch{}
+    if(createdMeshIds.length){
+      try{context()?.replaceSelectionKeys?.(createdMeshIds.map((id)=>"mesh:"+encodeURIComponent(id)));}catch{}
+    }
     finishSnapCommand(true);render();return true;
   }
   function undoLastCopyTarget(body=null){
@@ -837,8 +869,8 @@
     $$(".tb-edit-tools button",panel).forEach((b)=>b.classList.toggle("active",b.dataset.tool===activeTool));
     const body=$(".tb-edit-body",panel);
     if(activeTool==="copy"){
-      const count=selectedWholeTubes().length;
-      body.innerHTML='<div class="tb-edit-card"><b>Copy</b><div class="tb-edit-note" style="margin-top:7px">Выбрано целых труб: '+count+'. Copy работает как Base Point → Target Point; исходный объект остаётся на месте.</div>'+
+      const count=selectedWholeTubes().length+selectedMeshSources().length;
+      body.innerHTML='<div class="tb-edit-card"><b>Copy</b><div class="tb-edit-note" style="margin-top:7px">Выбрано объектов: '+count+'. Copy работает как Base Point → Target Point; Source mesh создаёт lightweight Editable Instance без копирования тяжёлой геометрии.</div>'+
         '<div class="tb-edit-grid" style="margin-top:8px"><label>Режим</label><select data-copy-mode><option value="single">Одна копия</option><option value="multiple">Несколько копий</option></select>'+
         '<label>Base XYZ</label><input data-copy-base-input placeholder="100;200;0"><label>Target / @delta</label><input data-copy-target-input placeholder="300;200;0 / @100;0;0 / @100<45"></div>'+
         '<div class="tb-edit-note" data-copy-session-status style="margin-top:8px"></div>'+
