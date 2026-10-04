@@ -2,12 +2,14 @@
   const GEOMETRY_URL="__TB_GEOMETRY_MEASUREMENTS_MODULE_URL__";
   const DIMENSIONS_URL="__TB_DIMENSIONS_MODULE_URL__";
   let geometry=null,dimensions=null,installed=false,panel=null,button=null,lastResult=null,lastSelectionKey="",poll=null;
+  const quick={active:false,points:[],candidates:[],current:null,result:null};
 
   const $=(s,r=document)=>r.querySelector(s);
   const clone=(v)=>v==null?v:structuredClone(v);
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,(ch)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
   const api=()=>window.TubeBenderEngineering??null;
   const context=()=>window.TubeBenderObjectContext??null;
+  const snapTracking=()=>window.TubeBenderSnapTracking??null;
   const project=()=>{try{return api()?.activeProject?.()??null;}catch{return null;}};
   const readonly=()=>{try{return api()?.readonly?.()===true;}catch{return false;}};
   const toast=(m)=>{try{api()?.toast?.(String(m??""));}catch{}};
@@ -71,6 +73,125 @@
       return {object_id:String(entry.tubeId),subentity_id:null,snap_type:null,role:"measurement"};
     }
     return {object_id:String(entry.tubeId??entry.sceneId??"unknown"),subentity_id:null,snap_type:null,role:"measurement"};
+  }
+
+  function snapReference(candidate,role){
+    return {
+      object_id:String(candidate?.object_id??"snap"),
+      subentity_id:candidate?.subentity_id==null?String(candidate?.id??"point"):String(candidate.subentity_id),
+      snap_type:candidate?.type==null?null:String(candidate.type),
+      role:String(role??"measurement")
+    };
+  }
+  function quickPoint(candidate){
+    const p=candidate?.point;
+    if(!p)return null;
+    const x=Number(p.x),y=Number(p.y),z=Number(p.z);
+    return [x,y,z].every(Number.isFinite)?{x,y,z}:null;
+  }
+  function buildQuickSegment(){
+    if(quick.points.length<2)return null;
+    const a=quick.points.at(-2),b=quick.points.at(-1);
+    const m=geometry.measurePointToPoint(a.point,b.point);
+    const details=[
+      ["Length",m.length_mm,"mm"],
+      ["ΔX",m.delta_mm.x,"mm"],
+      ["ΔY",m.delta_mm.y,"mm"],
+      ["ΔZ",m.delta_mm.z,"mm"]
+    ];
+    let angle=null;
+    if(quick.points.length>=3){
+      const p0=quick.points.at(-3).point,p1=a.point,p2=b.point;
+      try{
+        angle=geometry.measureThreePointAngle(p0,p1,p2,{mode:"unsigned"});
+        details.push(["Angle",angle.angle_deg,"deg"]);
+      }catch{}
+    }
+    return {
+      ok:true,
+      kind:angle?"three-point-angle":"point-point-length",
+      primary_value:angle?angle.angle_deg:m.length_mm,
+      primary_unit:angle?"deg":"mm",
+      title:angle?"Quick Measure · угол":"Quick Measure · расстояние",
+      details,
+      references:angle
+        ?quick.points.slice(-3).map((item,index)=>snapReference(item.candidate,index===1?"vertex":index===0?"start":"end"))
+        :[snapReference(a.candidate,"start"),snapReference(b.candidate,"end")],
+      entries:[],
+      quick:true
+    };
+  }
+  function clearQuickPreview(){
+    const old=document.getElementById("tbQuickMeasureOverlay");
+    old?.remove?.();
+  }
+  function renderQuickPreview(){
+    clearQuickPreview();
+    if(!quick.active||!quick.points.length||typeof THREE==="undefined"||typeof pipeGroup==="undefined"||!pipeGroup)return;
+    const scale=typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
+    const group=new THREE.Group();group.id="tbQuickMeasureOverlay";group.name="Quick Measure";
+    group.userData={helper:true,objectSelectionHelper:true,quickMeasure:true};
+    const points=quick.points.map((item)=>new THREE.Vector3(item.point.x*scale,item.point.y*scale,item.point.z*scale));
+    for(const p of points){
+      const marker=new THREE.Mesh(
+        new THREE.SphereGeometry(Math.max(.035,3.5*scale),12,8),
+        new THREE.MeshBasicMaterial({color:0xffe46b,depthTest:false,depthWrite:false})
+      );
+      marker.position.copy(p);marker.renderOrder=11900;marker.userData={helper:true,objectSelectionHelper:true,quickMeasure:true};group.add(marker);
+    }
+    if(points.length>1){
+      const line=new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(points),
+        new THREE.LineBasicMaterial({color:0xffe46b,depthTest:false,depthWrite:false})
+      );
+      line.renderOrder=11890;line.userData={helper:true,objectSelectionHelper:true,quickMeasure:true};group.add(line);
+    }
+    pipeGroup.add(group);
+    try{if(typeof markViewerDirty==="function")markViewerDirty();}catch{}
+  }
+  function startQuickMeasure(){
+    quick.active=true;quick.points=[];quick.candidates=[];quick.current=null;quick.result=null;
+    snapTracking()?.endCommand?.();
+    snapTracking()?.startCommand?.("quick-measure",{ortho:false,polar:false});
+    renderQuickPreview();render();return true;
+  }
+  function stopQuickMeasure({clear=true}={}){
+    quick.active=false;quick.current=null;quick.candidates=[];
+    snapTracking()?.endCommand?.();
+    if(clear){quick.points=[];quick.result=null;clearQuickPreview();}
+    render();return true;
+  }
+  function clearQuickMeasure(){
+    quick.points=[];quick.result=null;quick.current=null;clearQuickPreview();render();return true;
+  }
+  function captureQuickCandidate(candidate=quick.current){
+    if(!quick.active)return false;
+    const pointValue=quickPoint(candidate);
+    if(!pointValue){toast("Нет активной Snap-точки");return false;}
+    quick.points.push({point:pointValue,candidate:clone(candidate)});
+    quick.result=buildQuickSegment();
+    renderQuickPreview();render();
+    return true;
+  }
+  function onQuickSnapChange(event){
+    if(!quick.active)return;
+    quick.current=event?.detail?.current?clone(event.detail.current):null;
+    quick.candidates=Array.isArray(event?.detail?.candidates)?event.detail.candidates.map(clone):[];
+    if(panel?.classList.contains("open"))render();
+  }
+  function onQuickCanvasClick(event){
+    if(!quick.active||!quick.current)return;
+    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();
+    captureQuickCandidate();
+  }
+  function onQuickKeyDown(event){
+    if(!quick.active)return;
+    const target=event.target;
+    if(target&&(target.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/i.test(String(target.tagName||""))))return;
+    if(event.key==="Escape"){
+      event.preventDefault();
+      if(quick.points.length||quick.result)clearQuickMeasure();else stopQuickMeasure();
+    }
   }
 
   function buildMeasurement(entries=selectionEntries()){
@@ -204,7 +325,7 @@
     return panel;
   }
   function open(){ensureShell().classList.add("open");render();}
-  function close(){panel?.classList.remove("open");}
+  function close(){panel?.classList.remove("open");if(quick.active)stopQuickMeasure({clear:false});}
 
   function saveSettings(body){
     if(readonly()){toast("Проект открыт только для просмотра");return;}
@@ -276,19 +397,31 @@
 
   function render(){
     if(!panel||!geometry||!dimensions)return;
-    const body=$(".tb-measure-body",panel),entries=selectionEntries(),result=buildMeasurement(entries);
+    const body=$(".tb-measure-body",panel),entries=selectionEntries();
+    const result=quick.active&&quick.result?quick.result:buildMeasurement(entries);
     lastResult=result;
     const s=settings();
     const count=savedDimensions().length;
+    const quickHtml='<div class="tb-measure-result" style="margin-bottom:9px"><div class="tb-measure-title">Quick Measure</div>'+
+      '<div class="tb-measure-note">'+(quick.active
+        ?(quick.points.length===0?'Активен: выберите первую Snap-точку.':quick.points.length===1?'Выберите вторую Snap-точку. Каждый следующий клик продолжает последовательное измерение.':'Последовательность: '+quick.points.length+' точек. Новый клик создаёт следующее временное измерение.')+
+          ' Esc очищает результат; повторный Esc завершает режим.'
+        :'Временные измерения по Snap без создания объекта размера.')+'</div>'+
+      '<div class="tb-measure-actions">'+
+      (quick.active?'<button data-quick-clear>Очистить</button><button data-quick-stop>Завершить</button>':'<button data-quick-start>Начать Quick Measure</button>')+
+      '</div></div>';
     if(!result.ok){
-      body.innerHTML='<div class="tb-measure-result"><div class="tb-measure-error">'+esc(result.message)+'</div><div class="tb-measure-note" style="margin-top:7px">Quick Measure использует текущий выбор TreeView/3D.</div></div>'+
+      body.innerHTML=quickHtml+'<div class="tb-measure-result"><div class="tb-measure-error">'+esc(result.message)+'</div><div class="tb-measure-note" style="margin-top:7px">Выберите геометрию или запустите Quick Measure.</div></div>'+
         settingsHtml(s,count);
     }else{
       const rows=result.details.map(([name,value,unit])=>'<tr><td>'+esc(name)+'</td><td><b>'+esc(formatted(value,unit))+'</b></td></tr>').join("");
-      body.innerHTML='<div class="tb-measure-result"><div class="tb-measure-title">'+esc(result.title)+'</div><div class="tb-measure-value">'+esc(formatted(result.primary_value,result.primary_unit))+'</div><table class="tb-measure-table">'+rows+'</table>'+
+      body.innerHTML=quickHtml+'<div class="tb-measure-result"><div class="tb-measure-title">'+esc(result.title)+'</div><div class="tb-measure-value">'+esc(formatted(result.primary_value,result.primary_unit))+'</div><table class="tb-measure-table">'+rows+'</table>'+
         '<div class="tb-measure-actions"><button data-save-dimension>Сохранить как размер</button></div></div>'+settingsHtml(s,count);
       $("[data-save-dimension]",body).onclick=saveCurrentDimension;
     }
+    $("[data-quick-start]",body)?.addEventListener("click",startQuickMeasure);
+    $("[data-quick-clear]",body)?.addEventListener("click",clearQuickMeasure);
+    $("[data-quick-stop]",body)?.addEventListener("click",()=>stopQuickMeasure());
     $("[data-save-measure-settings]",body).onclick=()=>saveSettings(body);
   }
   function settingsHtml(s,count){
@@ -325,8 +458,15 @@
       if(next!==lastSelectionKey){lastSelectionKey=next;if(panel?.classList.contains("open"))render();}
     };
     window.addEventListener("tubebender-selection-change",update);
+    window.addEventListener("tubebender-snap-change",onQuickSnapChange);
+    document.getElementById("threeCanvas")?.addEventListener("click",onQuickCanvasClick,true);
+    window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
-    window.TubeBenderMeasurements=Object.freeze({open,close,refresh:render,buildMeasurement,savedDimensions});
+    window.TubeBenderMeasurements=Object.freeze({
+      open,close,refresh:render,buildMeasurement,savedDimensions,
+      startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
+      quickState:()=>clone(quick)
+    });
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
 })();
