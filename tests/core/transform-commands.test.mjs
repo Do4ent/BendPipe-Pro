@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   arrayMemberTransforms,
+  assertRigidTransformMatrix,
+  assertScaleAllowed,
   breakAssociativeArray,
   circularArrayTransforms,
   composeTransformStack,
@@ -13,8 +15,10 @@ import {
   moveByPoints,
   multiplyMatrices,
   reorderTransformStack,
+  rigidMatrixCheck,
   rotateTransform,
   rotationMatrix,
+  scalePermission,
   suppressArrayMember,
   toggleTransformOperation,
   transformPoint,
@@ -143,4 +147,61 @@ test("degenerate axes and invalid array counts are rejected",()=>{
   assert.throws(()=>rotationMatrix({axis:{x:0,y:0,z:0},angle_deg:90}),/non-zero/);
   assert.throws(()=>linearArrayTransforms({count:0,step:1,direction:{x:1,y:0,z:0}}),/>= 1/);
   assert.throws(()=>matrixArrayTransforms({counts:[1,0,1],steps:[1,1,1],directions:[{x:1,y:0,z:0},{x:0,y:1,z:0},{x:0,y:0,z:1}]}),/>= 1/);
+});
+
+
+test("question 68: recognized and engineering tubes are explicitly forbidden to Scale",()=>{
+  for(const target of [
+    {kind:"tube"},
+    {kind:"recognized-tube"},
+    {is_tube:true},
+    {recognized_tube:true},
+    {rows:[{type:"LINE"}],diameter_mm:6.35,importEvidence:{source:{format:"DWFx"}}}
+  ]){
+    const permission=scalePermission(target);
+    assert.equal(permission.allowed,false);
+    assert.equal(permission.code,"TUBE_SCALE_FORBIDDEN");
+    assert.match(permission.reason,/Scale is forbidden/i);
+    assert.throws(()=>assertScaleAllowed(target),(error)=>error?.code==="TUBE_SCALE_FORBIDDEN");
+  }
+  assert.equal(scalePermission({kind:"mesh-instance"}).allowed,true);
+});
+
+test("question 68: tube transform policy rejects hidden uniform scale non-uniform scale and shear",()=>{
+  const uniform=[
+    2,0,0,0,
+    0,2,0,0,
+    0,0,2,0,
+    0,0,0,1
+  ];
+  const nonUniform=[
+    2,0,0,0,
+    0,1,0,0,
+    0,0,.5,0,
+    0,0,0,1
+  ];
+  const shear=[
+    1,.2,0,0,
+    0,1,0,0,
+    0,0,1,0,
+    0,0,0,1
+  ];
+  for(const matrix of [uniform,nonUniform,shear]){
+    const check=rigidMatrixCheck(matrix);
+    assert.equal(check.rigid,false);
+    assert.equal(check.hidden_scale_or_shear,true);
+    assert.throws(()=>assertRigidTransformMatrix(matrix),(error)=>error?.code==="NON_RIGID_TUBE_TRANSFORM");
+  }
+});
+
+test("question 68: rigid Move Rotate and Mirror remain legal tube transforms",()=>{
+  for(const matrix of [
+    translationMatrix({x:10,y:-5,z:2}),
+    rotationMatrix({axis:{x:0,y:0,z:1},angle_deg:37}),
+    mirrorMatrix({plane_point:{x:0,y:0,z:0},plane_normal:{x:1,y:0,z:0}})
+  ]){
+    const check=rigidMatrixCheck(matrix);
+    assert.equal(check.rigid,true);
+    assert.doesNotThrow(()=>assertRigidTransformMatrix(matrix));
+  }
 });
