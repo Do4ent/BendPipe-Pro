@@ -316,6 +316,7 @@ test("A67: tube-end context exposes anchor fix-release action only for the end p
 
 
 test("accepted box and lasso 3D selection use modifier drag without stealing normal orbit",()=>{
+  const code=fs.readFileSync(path.join(root,"src","ui","object-selection-context-ui.js"),"utf8");
   assert.match(code,/function beginAreaSelection/);
   assert.match(code,/event\.shiftKey\|\|event\.altKey/);
   assert.match(code,/mode:event\.altKey\?"lasso":"box"/);
