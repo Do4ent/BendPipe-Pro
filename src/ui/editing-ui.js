@@ -1,7 +1,8 @@
 (()=>{
   const STRAIGHT_RUN_URL="__TB_STRAIGHT_RUN_MODULE_URL__";
   const RIGID_TRANSFORM_URL="__TB_RIGID_TRANSFORM_MODULE_URL__";
-  let straightRun=null,rigidTransform=null,installed=false,panel=null,button=null,activeTool="copy";
+  const DYNAMIC_INPUT_URL="__TB_DYNAMIC_INPUT_MODULE_URL__";
+  let straightRun=null,rigidTransform=null,dynamicInput=null,installed=false,panel=null,button=null,activeTool="copy";
   const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
   const clone=(v)=>v==null?v:structuredClone(v);
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,(ch)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -106,13 +107,40 @@
     });
   }
   function moveSelection(body){
-    const dx=Number($("[data-edit-dx]",body).value.replace(",",".")),
-      dy=Number($("[data-edit-dy]",body).value.replace(",",".")),
-      dz=Number($("[data-edit-dz]",body).value.replace(",","."));
-    if(![dx,dy,dz].every(Number.isFinite)){toast("ΔX / ΔY / ΔZ должны быть числами");return false;}
-    const ok=context()?.applyMove?.({x:dx,y:dy,z:dz});
+    const expression=$("[data-edit-vector]",body)?.value.trim();
+    let delta;
+    if(expression){
+      try{
+        const tubes=selectedWholeTubes();
+        const origin=tubes.length===1?clone(tubes[0].origin??{x:0,y:0,z:0}):{x:0,y:0,z:0};
+        const parsed=dynamicInput.parseCoordinateInput(expression,{origin});
+        if(!String(parsed.mode).startsWith("relative")&&tubes.length!==1){
+          toast("Absolute Move доступен только для одной выбранной трубы");return false;
+        }
+        delta=parsed.delta??{x:parsed.point.x-origin.x,y:parsed.point.y-origin.y,z:parsed.point.z-origin.z};
+        delta=dynamicInput.applyOrthoTracking(delta,{enabled:$("[data-edit-ortho]",body)?.checked===true});
+        delta=dynamicInput.applyPolarTracking(delta,{enabled:$("[data-edit-polar]",body)?.checked===true,increment_deg:Number($("[data-edit-polar-step]",body)?.value||15)});
+      }catch(error){toast(error.message);return false;}
+    }else{
+      const dx=Number($("[data-edit-dx]",body).value.replace(",",".")),
+        dy=Number($("[data-edit-dy]",body).value.replace(",",".")),
+        dz=Number($("[data-edit-dz]",body).value.replace(",","."));
+      if(![dx,dy,dz].every(Number.isFinite)){toast("ΔX / ΔY / ΔZ должны быть числами");return false;}
+      delta={x:dx,y:dy,z:dz};
+    }
+    const ok=context()?.applyMove?.(delta);
     if(ok===false)toast("Перемещение недоступно для текущего выбора");
     return ok;
+  }
+  function updateMovePreview(body){
+    const out=$("[data-edit-preview]",body),expression=$("[data-edit-vector]",body)?.value.trim();
+    if(!out)return;
+    if(!expression){out.textContent="Dynamic preview: используйте @10;0;0, 100;200;0 или @100<45";return;}
+    const tubes=selectedWholeTubes(),origin=tubes.length===1?clone(tubes[0].origin??{x:0,y:0,z:0}):{x:0,y:0,z:0};
+    const preview=dynamicInput.dynamicInputPreview(expression,{origin});
+    out.textContent=preview.status==="Valid"
+      ?"Preview "+preview.mode+": X="+preview.point.x.toFixed(3)+" Y="+preview.point.y.toFixed(3)+" Z="+preview.point.z.toFixed(3)
+      :"Invalid: "+preview.error;
   }
   function splitSelected(body){
     const selected=selectedSingleLine();
@@ -463,8 +491,10 @@
       body.innerHTML='<div class="tb-edit-card"><b>Copy</b><div class="tb-edit-note" style="margin-top:7px">Выбрано целых труб: '+count+'. Копия получает независимый ID, новый набор element IDs, снимает внешние geometry links и освобождает P2.</div><div class="tb-edit-actions"><button data-copy-run>Копировать</button></div></div>';
       $("[data-copy-run]",body).onclick=copySelection;
     }else if(activeTool==="move"){
-      body.innerHTML='<div class="tb-edit-card"><b>Move</b><div class="tb-edit-grid" style="margin-top:8px"><label>ΔX, мм</label><input data-edit-dx value="0"><label>ΔY, мм</label><input data-edit-dy value="0"><label>ΔZ, мм</label><input data-edit-dz value="0"></div><div class="tb-edit-actions"><button data-move-run>Переместить</button></div></div>';
+      body.innerHTML='<div class="tb-edit-card"><b>Move</b><div class="tb-edit-grid" style="margin-top:8px"><label>ΔX, мм</label><input data-edit-dx value="0"><label>ΔY, мм</label><input data-edit-dy value="0"><label>ΔZ, мм</label><input data-edit-dz value="0"><label>Dynamic input</label><input data-edit-vector placeholder="@10;0;0 / 100;200;0 / @100<45"><label>Ortho</label><input data-edit-ortho type="checkbox"><label>Polar Tracking</label><input data-edit-polar type="checkbox"><label>Polar step, °</label><input data-edit-polar-step value="15"></div><div class="tb-edit-note" data-edit-preview style="margin-top:8px"></div><div class="tb-edit-actions"><button data-move-run>Переместить</button></div></div>';
       $("[data-move-run]",body).onclick=()=>moveSelection(body);
+      $("[data-edit-vector]",body).oninput=()=>updateMovePreview(body);
+      updateMovePreview(body);
     }else if(activeTool==="split"){
       const selected=selectedSingleLine(),nodes=selected?.row?.straightRun?.nodes_mm??[];
       body.innerHTML='<div class="tb-edit-card"><b>Split Straight</b><div class="tb-edit-grid" style="margin-top:8px"><label>Режим</label><select data-split-mode><option value="start">Расстояние от начала</option><option value="end">Расстояние от конца</option><option value="equal">N равных частей</option><option value="percent">Позиция, %</option></select><label>Значение</label><input data-split-value value="50"></div><div class="tb-edit-note" style="margin-top:8px">Внутренние узлы: '+esc(nodes.length?nodes.join(", ")+" мм":"нет")+'. LINE остаётся одним производственным StraightRun.</div><div class="tb-edit-actions"><button data-split-run>Разделить</button></div></div>';
@@ -506,7 +536,7 @@
   }
   async function install(){
     if(installed)return;installed=true;
-    try{[straightRun,rigidTransform]=await Promise.all([import(STRAIGHT_RUN_URL),import(RIGID_TRANSFORM_URL)]);}catch(error){console.error("Editing UI failed to load",error);return;}
+    try{[straightRun,rigidTransform,dynamicInput]=await Promise.all([import(STRAIGHT_RUN_URL),import(RIGID_TRANSFORM_URL),import(DYNAMIC_INPUT_URL)]);}catch(error){console.error("Editing UI failed to load",error);return;}
     ensureShell();
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
     window.TubeBenderEditing=Object.freeze({open,close,copySelection,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,createTransformStackFromSelection,stackAddOperation,stackOperationAction,refresh:render});
