@@ -1763,7 +1763,8 @@ output = output.replace(
       save,
       renderAll,
       refreshProjectTree,
-      modelCommand:tbModelCommand
+      modelCommand:tbModelCommand,
+      reloadActiveTube:()=>{loadActiveTubeToState();renderPipeTable();}
     });\n  }catch(error){\n    console.warn("DWFx reference tree binding:",error);\n  }`
 );
 
