@@ -156,6 +156,18 @@ test("question 56: Copy live preview is helper geometry and never mutates the pr
 test("question 56: exact target coordinates and polar input reuse Dynamic Input",()=>{
   assert.match(code,/data-copy-base-input/);
   assert.match(code,/data-copy-target-input/);
-  assert.match(code,/dynamicInput\.parseCoordinateInput\(raw,\{origin:copySession\.base\}\)/);
+  assert.match(code,/dynamicInput\.parseCoordinateInput\(raw,\{origin:copySession\.base,decimal_separator:decimalPreference\(\)\}\)/);
   assert.match(code,/@100<45/);
+});
+
+
+test("question 58: Editing UI persists and applies preferred decimal separator",()=>{
+  assert.match(code,/DECIMAL_PREF_KEY="tubebender\.dynamicInput\.decimalSeparator"/);
+  assert.match(code,/data-decimal-pref/);
+  assert.match(code,/<option value="auto">Auto<\/option>/);
+  assert.match(code,/localStorage\.setItem\(DECIMAL_PREF_KEY,next\)/);
+  assert.match(code,/decimal_separator:decimalPreference\(\)/);
+  assert.match(code,/formatNumericInput/);
+  assert.match(code,/12\.5 и 12,5/);
+  assert.match(code,/точкой с запятой \(;\)/);
 });
