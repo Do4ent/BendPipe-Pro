@@ -20,6 +20,7 @@ const materialManufacturingBridgePath = path.join(root, "src", "ui", "material-m
 const measurementsUiPath = path.join(root, "src", "ui", "measurements-ui.js");
 const editingUiPath = path.join(root, "src", "ui", "editing-ui.js");
 const associativeArrayRuntimePath = path.join(root, "src", "ui", "associative-array-runtime.js");
+const associativeMirrorRuntimePath = path.join(root, "src", "ui", "associative-mirror-runtime.js");
 const straightRunDomainPath = path.join(root, "src", "domain", "editing", "straight-run.mjs");
 const legacyRigidTransformDomainPath = path.join(root, "src", "domain", "editing", "legacy-rigid-transform.mjs");
 const transformCommandsDomainPath = path.join(root, "src", "domain", "editing", "transform-commands.mjs");
@@ -2247,6 +2248,12 @@ const associativeArrayRuntime = fs.readFileSync(associativeArrayRuntimePath, "ut
 const bundledAssociativeArrayRuntime =
   `<script data-tubebender-bundled="associative-array-runtime">\n${associativeArrayRuntime}\n</script>`;
 
+const associativeMirrorRuntime = fs.readFileSync(associativeMirrorRuntimePath, "utf8")
+  .replace("__TB_RIGID_TRANSFORM_MODULE_URL__", legacyRigidTransformDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledAssociativeMirrorRuntime =
+  `<script data-tubebender-bundled="associative-mirror-runtime">\n${associativeMirrorRuntime}\n</script>`;
+
 const equipmentRuntimeBridge = fs.readFileSync(equipmentRuntimeBridgePath, "utf8").replace(/<\/script/gi, "<\\/script");
 const bundledEquipmentRuntimeBridge =
   `<script data-tubebender-bundled="equipment-runtime-bridge">\n${equipmentRuntimeBridge}\n</script>`;
@@ -2298,6 +2305,8 @@ output =
   bundledMeasurementsUi +
   "\n" +
   bundledAssociativeArrayRuntime +
+  "\n" +
+  bundledAssociativeMirrorRuntime +
   "\n" +
   bundledEditingUi +
   "\n" +
@@ -2484,6 +2493,12 @@ if (!output.includes('data-tubebender-bundled="editing-ui"')) {
 if (!output.includes('data-tubebender-bundled="associative-array-runtime"')) {
   throw new Error("Standalone build is missing the Associative Array runtime marker");
 }
+if (!output.includes('data-tubebender-bundled="associative-mirror-runtime"')) {
+  throw new Error("Standalone build is missing the Associative Mirror runtime marker");
+}
+if (!output.includes("TubeBenderAssociativeMirrors") || !output.includes("associative_mirrors")) {
+  throw new Error("Standalone build is missing Associative Mirror integration hooks");
+}
 if (!output.includes("TubeBenderAssociativeArrays") || !output.includes("associative_arrays")) {
   throw new Error("Standalone build is missing Associative Array integration hooks");
 }
@@ -2567,6 +2582,7 @@ process.stdout.write(
       bundledMeasurementsUi: true,
       bundledEditingUi: true,
       bundledAssociativeArrays: true,
+      bundledAssociativeMirrors: true,
       materialManufacturingCompensation: true,
       equipmentRuntimeBridge: true,
       bundledEquipmentLibrary: true,
