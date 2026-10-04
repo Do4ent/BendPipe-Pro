@@ -20,7 +20,7 @@ test("Measurements panel uses shared TreeView and 3D selection API",()=>{
   assert.match(code,/TubeBenderObjectContext/);
   assert.match(code,/selectionEntries/);
   assert.match(code,/tubebender-selection-change/);
-  assert.match(code,/Quick Measure использует текущий выбор TreeView\/3D/);
+  assert.match(code,/Временные измерения по Snap без создания объекта размера/);
 });
 
 test("single LINE BEND and whole tube selections expose real engineering measurements",()=>{
