@@ -40,3 +40,34 @@ test("question 69: tree and 3D selection refresh the same Properties panel",()=>
   assert.match(runtime,/window\.addEventListener\("tubebender-selection-change"/);
   assert.match(runtime,/Выберите объект в 3D или TreeView/);
 });
+
+
+test("question 70: Properties panel computes shared editable fields for multi-selection",()=>{
+  assert.match(runtime,/function editableTarget\(entry\)/);
+  assert.match(runtime,/function editableTargets\(\)/);
+  assert.match(runtime,/function commonEditableFields\(\)/);
+  assert.match(runtime,/targets\.every\(target=>!!target\.fields\[name\]\)/);
+  assert.match(runtime,/mixed=values\.some\(value=>value!==first\)/);
+  assert.match(runtime,/— разные значения —/);
+});
+
+test("question 70: multi-edit applies one common property through one atomic model command",()=>{
+  assert.match(runtime,/function applyCommonProperty\(fieldName,input\)/);
+  assert.match(runtime,/for\(const target of targets\)target\.fields\[fieldName\]\.set\(next\)/);
+  assert.match(runtime,/const command=eng\(\)\?\.modelCommand/);
+  assert.match(runtime,/Изменение применяется ко всем совместимым выбранным объектам одной операцией Undo/);
+});
+
+test("question 70: Source and geometry rows remain protected from unsafe generic property edits",()=>{
+  const editableBlock=runtime.slice(runtime.indexOf("function editableTarget"),runtime.indexOf("function commonTubeProps"));
+  assert.match(editableBlock,/entry\.kind==="tube"/);
+  assert.match(editableBlock,/entry\.kind==="mesh-instance"/);
+  assert.doesNotMatch(editableBlock,/entry\.kind==="ref"/);
+  assert.doesNotMatch(editableBlock,/entry\.kind==="row"/);
+});
+
+test("question 70: boolean mixed values use indeterminate state before user chooses a value",()=>{
+  assert.match(runtime,/data-property-mixed/);
+  assert.match(runtime,/input\.indeterminate=input\.dataset\.propertyMixed==="1"/);
+  assert.match(runtime,/input\.indeterminate=false/);
+});
