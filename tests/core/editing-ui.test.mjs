@@ -83,3 +83,10 @@ test("Transform Stack UI exposes associative Move Rotate Mirror ordering and Bak
   assert.match(code,/runtime\.bake/);
   assert.match(code,/Номинальные L, CLR и bend angle не изменяются/);
 });
+
+
+test("Array UI can detach one derived member for editing",()=>{
+  assert.match(code,/Detach for editing/);
+  assert.match(code,/runtime\.detachMember/);
+  assert.match(code,/Отсоединить Array member для редактирования/);
+});
