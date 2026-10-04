@@ -279,6 +279,69 @@
       '<div class="tb-edit-actions"><button data-mirror-break>Break Mirror</button><button data-mirror-delete>Удалить Mirror</button></div></div>';
   }
 
+  function stackRuntime(){return window.TubeBenderTransformStacks??null;}
+  function stackSelectedDefinition(body){
+    const id=$("[data-stack-existing]",body)?.value;
+    return id?stackRuntime()?.definitionById?.(id)??null:null;
+  }
+  function createTransformStackFromSelection(){
+    const tubes=selectedWholeTubes();
+    if(!tubes.length){toast("Для Transform Stack выберите одну или несколько целых труб");return false;}
+    const runtime=stackRuntime();
+    if(!runtime?.createForTube){toast("Transform Stack runtime ещё не загружен");return false;}
+    return commit("Создать Transform Stack",()=>{
+      for(const tube of tubes)runtime.createForTube(tube.id,project());
+      return true;
+    });
+  }
+  function stackAddOperation(body,kind){
+    const runtime=stackRuntime(),def=stackSelectedDefinition(body);
+    if(!runtime||!def){toast("Выберите Transform Stack");return false;}
+    try{
+      return commit("Добавить "+kind+" в Transform Stack",()=>{
+        if(kind==="Move"){
+          runtime.appendMove(def.id,{x:Number($("[data-stack-dx]",body).value.replace(",",".")),y:Number($("[data-stack-dy]",body).value.replace(",",".")),z:Number($("[data-stack-dz]",body).value.replace(",","."))},project());
+        }else if(kind==="Rotate"){
+          const axisName=$("[data-stack-axis]",body).value;
+          const axis=axisName==="X"?{x:1,y:0,z:0}:axisName==="Y"?{x:0,y:1,z:0}:{x:0,y:0,z:1};
+          runtime.appendRotate(def.id,{axis,center:{x:Number($("[data-stack-cx]",body).value.replace(",",".")),y:Number($("[data-stack-cy]",body).value.replace(",",".")),z:Number($("[data-stack-cz]",body).value.replace(",","."))},angle_deg:Number($("[data-stack-angle]",body).value.replace(",","."))},project());
+        }else{
+          const plane=$("[data-stack-plane]",body).value;
+          const normal=plane==="XY"?{x:0,y:0,z:1}:plane==="XZ"?{x:0,y:1,z:0}:{x:1,y:0,z:0};
+          runtime.appendMirror(def.id,{plane_point:{x:Number($("[data-stack-px]",body).value.replace(",",".")),y:Number($("[data-stack-py]",body).value.replace(",",".")),z:Number($("[data-stack-pz]",body).value.replace(",","."))},plane_normal:normal},project());
+        }
+        return true;
+      });
+    }catch(error){toast(error.message);return false;}
+  }
+  function stackOperationAction(body,action){
+    const runtime=stackRuntime(),def=stackSelectedDefinition(body);
+    if(!runtime||!def){toast("Выберите Transform Stack");return false;}
+    const opId=$("[data-stack-operation]",body)?.value;
+    if(action==="bake")return commit("Bake Transform Stack",()=>{runtime.bake(def.id,project());return true;});
+    if(action==="delete")return commit("Удалить Transform Stack",()=>runtime.deleteStack(def.id,{restoreBase:true},project()));
+    if(!opId){toast("Выберите операцию Transform Stack");return false;}
+    const index=def.operations.findIndex((op)=>String(op.id)===String(opId));
+    if(index<0){toast("Операция Transform Stack не найдена");return false;}
+    if(action==="remove")return commit("Удалить операцию Transform Stack",()=>{runtime.removeOperation(def.id,opId,project());return true;});
+    if(action==="toggle"){const op=def.operations[index];return commit("Переключить операцию Transform Stack",()=>{runtime.setOperationEnabled(def.id,opId,op.enabled===false,project());return true;});}
+    const target=action==="up"?index-1:index+1;
+    if(target<0||target>=def.operations.length)return false;
+    return commit("Изменить порядок Transform Stack",()=>{runtime.reorderOperation(def.id,index,target,project());return true;});
+  }
+  function stackPanelHtml(){
+    const defs=stackRuntime()?.definitions?.()??[];
+    const existing='<option value="">—</option>'+defs.map((d)=>'<option value="'+esc(d.id)+'">'+esc(d.base_tube?.name??d.object_id)+" · "+esc(d.operations?.length??0)+" ops · "+esc(d.state??"")+'</option>').join("");
+    return '<div class="tb-edit-card"><b>Associative Transform Stack</b><div class="tb-edit-note" style="margin-top:7px">Стек хранит исходную геометрию отдельно и применяет Move / Rotate / Mirror строго по порядку. Номинальные L, CLR и bend angle не изменяются.</div><div class="tb-edit-actions"><button data-stack-create>Создать Stack из выбранной трубы</button></div></div>'+
+      '<div class="tb-edit-card" style="margin-top:8px"><div class="tb-edit-grid"><label>Stack</label><select data-stack-existing>'+existing+'</select>'+
+      '<label>Move ΔX</label><input data-stack-dx value="0"><label>Move ΔY</label><input data-stack-dy value="0"><label>Move ΔZ</label><input data-stack-dz value="0">'+
+      '<label>Rotate axis</label><select data-stack-axis><option>X</option><option>Y</option><option>Z</option></select><label>Angle, °</label><input data-stack-angle value="90">'+
+      '<label>Center X</label><input data-stack-cx value="0"><label>Center Y</label><input data-stack-cy value="0"><label>Center Z</label><input data-stack-cz value="0">'+
+      '<label>Mirror plane</label><select data-stack-plane><option>XY</option><option>XZ</option><option>YZ</option></select><label>Plane point X</label><input data-stack-px value="0"><label>Plane point Y</label><input data-stack-py value="0"><label>Plane point Z</label><input data-stack-pz value="0">'+
+      '</div><div class="tb-edit-actions"><button data-stack-add-move>+ Move</button><button data-stack-add-rotate>+ Rotate</button><button data-stack-add-mirror>+ Mirror</button></div></div>'+
+      '<div class="tb-edit-card" style="margin-top:8px"><div class="tb-edit-grid"><label>Operation ID</label><input data-stack-operation placeholder="operation id"></div><div class="tb-edit-actions"><button data-stack-up>↑</button><button data-stack-down>↓</button><button data-stack-toggle>On/Off</button><button data-stack-remove>Remove</button><button data-stack-bake>Bake</button><button data-stack-delete>Delete Stack</button></div></div>';
+  }
+
   function arrayRuntime(){return window.TubeBenderAssociativeArrays??null;}
   function createArrayFromSelection(body){
     const tubes=selectedWholeTubes();
@@ -378,7 +441,7 @@
       '<div class="tb-edit-tools">'+
       '<button data-tool="copy">Copy</button><button data-tool="move">Move</button><button data-tool="split">Split</button>'+
       '<button data-tool="rotate">Rotate</button><button data-tool="mirror">Mirror</button>'+
-      '<button data-tool="array">Array</button>'+
+      '<button data-tool="array">Array</button><button data-tool="stack">Transform Stack</button>'+
       '</div><div class="tb-edit-body"></div>';
     document.body.appendChild(panel);
     $("[data-edit-close]",panel).onclick=close;
@@ -416,6 +479,18 @@
       $("[data-mirror-create]",body).onclick=()=>createMirrorFromSelection(body);
       $("[data-mirror-break]",body).onclick=()=>mirrorAction(body,"break");
       $("[data-mirror-delete]",body).onclick=()=>mirrorAction(body,"delete");
+    }else if(activeTool==="stack"){
+      body.innerHTML=stackPanelHtml();
+      $("[data-stack-create]",body).onclick=createTransformStackFromSelection;
+      $("[data-stack-add-move]",body).onclick=()=>stackAddOperation(body,"Move");
+      $("[data-stack-add-rotate]",body).onclick=()=>stackAddOperation(body,"Rotate");
+      $("[data-stack-add-mirror]",body).onclick=()=>stackAddOperation(body,"Mirror");
+      $("[data-stack-up]",body).onclick=()=>stackOperationAction(body,"up");
+      $("[data-stack-down]",body).onclick=()=>stackOperationAction(body,"down");
+      $("[data-stack-toggle]",body).onclick=()=>stackOperationAction(body,"toggle");
+      $("[data-stack-remove]",body).onclick=()=>stackOperationAction(body,"remove");
+      $("[data-stack-bake]",body).onclick=()=>stackOperationAction(body,"bake");
+      $("[data-stack-delete]",body).onclick=()=>stackOperationAction(body,"delete");
     }else if(activeTool==="array"){
       body.innerHTML=arrayPanelHtml();
       $("[data-array-create]",body).onclick=()=>createArrayFromSelection(body);
@@ -429,7 +504,7 @@
     try{[straightRun,rigidTransform]=await Promise.all([import(STRAIGHT_RUN_URL),import(RIGID_TRANSFORM_URL)]);}catch(error){console.error("Editing UI failed to load",error);return;}
     ensureShell();
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
-    window.TubeBenderEditing=Object.freeze({open,close,copySelection,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,refresh:render});
+    window.TubeBenderEditing=Object.freeze({open,close,copySelection,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,createTransformStackFromSelection,stackAddOperation,stackOperationAction,refresh:render});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
 })();
