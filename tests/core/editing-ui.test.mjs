@@ -68,3 +68,18 @@ test("editing mutations run through readonly-aware model commands",()=>{
 test("derived associative members are excluded from direct Copy Rotate and Array source selection",()=>{
   assert.match(code,/array_member\?\.derived_readonly!==true/);
 });
+
+
+test("Transform Stack UI exposes associative Move Rotate Mirror ordering and Bake controls",()=>{
+  assert.match(code,/data-tool="stack">Transform Stack/);
+  assert.match(code,/TubeBenderTransformStacks/);
+  assert.match(code,/runtime\.createForTube/);
+  assert.match(code,/runtime\.appendMove/);
+  assert.match(code,/runtime\.appendRotate/);
+  assert.match(code,/runtime\.appendMirror/);
+  assert.match(code,/runtime\.reorderOperation/);
+  assert.match(code,/runtime\.setOperationEnabled/);
+  assert.match(code,/runtime\.removeOperation/);
+  assert.match(code,/runtime\.bake/);
+  assert.match(code,/Номинальные L, CLR и bend angle не изменяются/);
+});
