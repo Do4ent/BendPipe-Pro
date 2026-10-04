@@ -90,3 +90,14 @@ test("Array UI can detach one derived member for editing",()=>{
   assert.match(code,/runtime\.detachMember/);
   assert.match(code,/Отсоединить Array member для редактирования/);
 });
+
+
+test("Move UI supports live dynamic Absolute Relative Polar 3D input with Ortho Polar tracking",()=>{
+  assert.match(code,/__TB_DYNAMIC_INPUT_MODULE_URL__/);
+  assert.match(code,/data-edit-vector/);
+  assert.match(code,/dynamicInput\.parseCoordinateInput/);
+  assert.match(code,/dynamicInput\.applyOrthoTracking/);
+  assert.match(code,/dynamicInput\.applyPolarTracking/);
+  assert.match(code,/dynamicInput\.dynamicInputPreview/);
+  assert.match(code,/Absolute Move доступен только для одной выбранной трубы/);
+});
