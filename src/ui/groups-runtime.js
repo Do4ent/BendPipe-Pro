@@ -285,9 +285,13 @@
     delete copy.array_member;delete copy.mirror_member;delete copy.transform_stack_member;delete copy.lock_state;
     return copy;
   }
+  function remapTubeDependencies(tube,idMap,plan,externalPolicy){
+    return copyDependencies.applyCopyDependencyPolicy(tube,idMap,plan,{external_policy:externalPolicy});
+  }
   function cloneDimension(dim,idMap){
     const copy=clone(dim),oldId=String(dim.id);
     copy.__copy_source_id=oldId;copy.id=idMap.get(oldId)??makeId("dimension");idMap.set(oldId,String(copy.id));
+    if(Array.isArray(copy.references))copy.references=copy.references.map(ref=>({...ref,object_id:idMap.get(String(ref.object_id))??ref.object_id}));
     return copy;
   }
   function cloneConstruction(ref,offset,idMap){
@@ -344,7 +348,10 @@
         memberMap.set(groups.groupMemberKey(ref),{...clone(ref),tube_id:String(mappedTube)});
       }
     }
-    copyDependencies.applyCopyDependencyBatch(copies,idMap,choice.plan,{external_policy:choice.externalPolicy});
+    for(const copy of copies){
+      if(copy?.engineering?.ports)remapTubeDependencies(copy,idMap,choice.plan,choice.externalPolicy);
+      else copyDependencies.applyCopyDependencyPolicy(copy,idMap,choice.plan,{external_policy:choice.externalPolicy});
+    }
     const copyRecursive=(oldId,isTop=false)=>{
       const old=groupById(oldId);if(!old)throw new Error("Nested Group not found");
       const created=groups.createGroup(project(),{
