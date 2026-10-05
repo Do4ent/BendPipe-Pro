@@ -5,19 +5,103 @@
   let snap=null,installed=false,active=false,commandName="";
   let sourceCandidates=[],rankedCandidates=[],current=null;
   let acquired=[],hoverId=null,hoverTimer=null,lastPointer=null,lastCursor=null;
-  let helperGroup=null,hud=null,pruneTimer=null;
+  let helperGroup=null,hud=null,pruneTimer=null,sourcePanel=null,sourceButton=null;
   let modes={ortho:true,polar:false,polar_increment_deg:15};
   let snapOptions={through_snap:false};
+  const SOURCE_PREF_KEY="tubebender.snapSourcePreferences.v1";
+  const SOURCE_NAMES=["Editable","Tube","Construction","SourceReference","MeshFitted","Grid"];
+  const SOURCE_LABELS={Editable:"Editable",Tube:"Tube",Construction:"Construction",SourceReference:"Source / Reference",MeshFitted:"Mesh / Fitted",Grid:"Grid"};
+  let sourcePreferences={order:[...SOURCE_NAMES],enabled:Object.fromEntries(SOURCE_NAMES.map(name=>[name,true]))};
+  let temporaryExternalExcluded=false;
 
   const context=()=>window.TubeBenderObjectContext??null;
   const toleranceApi=()=>window.TubeBenderToleranceProfile??null;
   const toleranceProfile=()=>toleranceApi()?.profile?.()??null;
-  const snapSettings=(base={})=>toleranceApi()?.snapSettings?.(base)??base;
+  function sourcePriorityMap(){
+    const out={};
+    sourcePreferences.order.forEach((name,index)=>{out[name]=index;});
+    return out;
+  }
+  function sourceEnabledMap(){
+    const out={...sourcePreferences.enabled};
+    if(temporaryExternalExcluded){
+      out.SourceReference=false;
+      out.MeshFitted=false;
+    }
+    return out;
+  }
+  const snapSettings=(base={})=>{
+    const merged={
+      ...base,
+      source_priority:{...sourcePriorityMap(),...(base.source_priority??{})},
+      source_enabled:{...sourceEnabledMap(),...(base.source_enabled??{})}
+    };
+    return toleranceApi()?.snapSettings?.(merged)??merged;
+  };
   const now=()=>globalThis.performance?.now?.()??Date.now();
   const clone=(v)=>v==null?v:structuredClone(v);
   const canvas=()=>document.getElementById("threeCanvas");
   const sceneScale=()=>typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
   const isTextTarget=(target)=>!!target&&(target.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/i.test(String(target.tagName||"")));
+
+  function normalizeSourcePreferences(input={}){
+    const rawOrder=Array.isArray(input.order)?input.order.map(String):[];
+    const order=[...new Set([...rawOrder.filter(name=>SOURCE_NAMES.includes(name)),...SOURCE_NAMES])];
+    const enabled=Object.fromEntries(SOURCE_NAMES.map(name=>[name,input.enabled?.[name]!==false]));
+    return {order,enabled};
+  }
+  function loadSourcePreferences(){
+    try{sourcePreferences=normalizeSourcePreferences(JSON.parse(localStorage.getItem(SOURCE_PREF_KEY)||"{}"));}catch{sourcePreferences=normalizeSourcePreferences({});}
+    return clone(sourcePreferences);
+  }
+  function saveSourcePreferences(){
+    try{localStorage.setItem(SOURCE_PREF_KEY,JSON.stringify(sourcePreferences));}catch{}
+  }
+  function setSourceEnabled(name,enabled,{persist=true}={}){
+    if(!SOURCE_NAMES.includes(String(name)))throw new RangeError("Unknown Snap source");
+    sourcePreferences.enabled[String(name)]=enabled===true;
+    if(persist)saveSourcePreferences();
+    renderSourcePanel();rebuild(lastCursor,lastPointer);return clone(sourcePreferences);
+  }
+  function setSourceOrder(order,{persist=true}={}){
+    sourcePreferences=normalizeSourcePreferences({order,enabled:sourcePreferences.enabled});
+    if(persist)saveSourcePreferences();
+    renderSourcePanel();rebuild(lastCursor,lastPointer);return clone(sourcePreferences);
+  }
+  function moveSource(name,direction){
+    const order=[...sourcePreferences.order],index=order.indexOf(String(name));
+    if(index<0)return false;
+    const target=index+(direction<0?-1:1);
+    if(target<0||target>=order.length)return false;
+    [order[index],order[target]]=[order[target],order[index]];
+    setSourceOrder(order);return true;
+  }
+  function setTemporaryExternalExcluded(value){
+    temporaryExternalExcluded=value===true;
+    renderSourcePanel();rebuild(lastCursor,lastPointer);
+    return temporaryExternalExcluded;
+  }
+  function ensureSourcePanel(){
+    if(sourcePanel)return sourcePanel;
+    const style=document.createElement("style");style.id="tbSnapSourceStyles";
+    style.textContent='#tbSnapSourceButton{position:fixed;right:315px;top:54px;z-index:120366;background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:6px;padding:6px 10px;cursor:pointer}#tbSnapSourcePanel{position:fixed;right:14px;top:88px;width:min(390px,calc(100vw - 28px));z-index:120359;display:none;background:rgba(13,22,32,.985);color:#edf4fb;border:1px solid #41566f;border-radius:9px;box-shadow:0 14px 40px rgba(0,0,0,.45);font:12px system-ui}#tbSnapSourcePanel.open{display:block}.tb-snap-source-head{display:flex;align-items:center;padding:8px 10px;border-bottom:1px solid #304154}.tb-snap-source-head .grow{flex:1}.tb-snap-source-body{padding:8px}.tb-snap-source-row{display:grid;grid-template-columns:28px 1fr 36px 36px;gap:5px;align-items:center;padding:4px 0}.tb-snap-source-row button,.tb-snap-source-body button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:4px;padding:4px;cursor:pointer}.tb-snap-source-temp{display:flex;gap:7px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #304154}';document.head.appendChild(style);
+    sourceButton=document.createElement("button");sourceButton.id="tbSnapSourceButton";sourceButton.type="button";sourceButton.textContent="Snap Sources";document.body.appendChild(sourceButton);
+    sourcePanel=document.createElement("section");sourcePanel.id="tbSnapSourcePanel";sourcePanel.innerHTML='<div class="tb-snap-source-head"><b>Snap source priority</b><span class="grow"></span><button data-snap-source-close>×</button></div><div class="tb-snap-source-body" data-snap-source-body></div>';document.body.appendChild(sourcePanel);
+    sourceButton.onclick=()=>{sourcePanel.classList.toggle("open");renderSourcePanel();};
+    sourcePanel.querySelector("[data-snap-source-close]").onclick=()=>sourcePanel.classList.remove("open");
+    return sourcePanel;
+  }
+  function renderSourcePanel(){
+    if(!sourcePanel)return;
+    const body=sourcePanel.querySelector("[data-snap-source-body]");if(!body)return;
+    body.innerHTML=sourcePreferences.order.map((name,index)=>
+      '<div class="tb-snap-source-row"><input type="checkbox" data-snap-source-enabled="'+name+'" '+(sourcePreferences.enabled[name]!==false?'checked':'')+'><span>'+(index+1)+'. '+SOURCE_LABELS[name]+'</span><button data-snap-source-up="'+name+'" '+(index===0?'disabled':'')+'>↑</button><button data-snap-source-down="'+name+'" '+(index===sourcePreferences.order.length-1?'disabled':'')+'>↓</button></div>'
+    ).join("")+'<label class="tb-snap-source-temp"><input type="checkbox" data-snap-source-temporary '+(temporaryExternalExcluded?'checked':'')+'><span>Временно исключить Source / mesh</span></label>';
+    body.querySelectorAll("[data-snap-source-enabled]").forEach(input=>input.onchange=()=>setSourceEnabled(input.dataset.snapSourceEnabled,input.checked));
+    body.querySelectorAll("[data-snap-source-up]").forEach(button=>button.onclick=()=>moveSource(button.dataset.snapSourceUp,-1));
+    body.querySelectorAll("[data-snap-source-down]").forEach(button=>button.onclick=()=>moveSource(button.dataset.snapSourceDown,1));
+    const temporary=body.querySelector("[data-snap-source-temporary]");if(temporary)temporary.onchange=()=>setTemporaryExternalExcluded(temporary.checked);
+  }
 
   function ensureHud(){
     if(hud)return hud;
@@ -373,6 +457,7 @@
 
   function startCommand(name="Edit",options={}){
     active=true;commandName=String(name||"Edit");
+    temporaryExternalExcluded=options.exclude_source_mesh===true;
     sourceCandidates=[];rankedCandidates=[];current=null;acquired=[];hoverId=null;lastCursor=null;lastPointer=null;
     snapOptions={through_snap:options.through_snap===true};
     setTrackingModes({
@@ -386,6 +471,7 @@
 
   function endCommand(){
     active=false;commandName="";sourceCandidates=[];rankedCandidates=[];current=null;acquired=[];hoverId=null;lastCursor=null;lastPointer=null;
+    temporaryExternalExcluded=false;renderSourcePanel();
     clearHoverTimer();
     if(helperGroup?.parent)helperGroup.parent.remove(helperGroup);helperGroup=null;
     if(hud)hud.style.display="none";
@@ -428,17 +514,20 @@
   async function install(){
     if(installed)return;installed=true;
     try{snap=await import(SNAP_ENGINE_URL);}catch(error){console.error("Snap Tracking runtime failed to load",error);return;}
-    ensureHud();
+    loadSourcePreferences();
+    ensureHud();ensureSourcePanel();renderSourcePanel();
     canvas()?.addEventListener("pointermove",onPointerMove,true);
     window.addEventListener("tubebender-tolerance-change",()=>{if(active)rebuild(lastCursor,lastPointer);});
     window.addEventListener("keydown",onKeyDown,true);
     window.TubeBenderSnapTracking=Object.freeze({
       startCommand,endCommand,setCandidates,setTrackingModes,setSnapOptions,cycle,pinCurrent,clearReferences,
+      setSourceEnabled,setSourceOrder,setTemporaryExternalExcluded,
+      sourcePreferences:()=>clone(sourcePreferences),temporaryExternalExcluded:()=>temporaryExternalExcluded,
       acquireCurrent:()=>current?acquireCandidate(current):false,
       currentCandidate:()=>current?clone(current):null,
       candidates:()=>rankedCandidates.map(clone),
       references:()=>acquired.map((r)=>({candidate:clone(r.candidate),pinned:r.pinned===true})),
-      state:()=>({active,command:commandName,modes:{...modes},snapOptions:{...snapOptions}})
+      state:()=>({active,command:commandName,modes:{...modes},snapOptions:{...snapOptions},sourcePreferences:clone(sourcePreferences),temporaryExternalExcluded})
     });
   }
 
