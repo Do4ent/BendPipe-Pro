@@ -191,11 +191,14 @@
     const exact=normalizedObjectById(id);if(!exact)return false;
     const fitted=fittedOriginalFor(exact);
     if(!fitted)return false;
-    if("uiHiddenIn3D" in fitted)fitted.uiHiddenIn3D=!visible;
-    if("visible" in fitted)fitted.visible=visible!==false;
-    if(exact.kind==="EditableMeshInstance"){
-      fitted.visible=visible!==false;exact.visible=true;
+    if(fitted.kind==="EditableMeshInstance"){
+      fitted.visible=visible!==false;
+    }else{
+      fitted.uiHiddenIn3D=visible===false;
+      fitted.visible=true;
     }
+    if(exact.kind==="EditableMeshInstance")exact.visible=true;
+    else{exact.uiHiddenIn3D=false;exact.visible=true;}
     exact.normalization_compare={...(exact.normalization_compare??{}),fitted_object_id:String(fitted.id),enabled:visible!==false};
     try{eng()?.save?.();eng()?.renderAll?.();window.refreshProjectTree?.();}catch{}
     return true;
