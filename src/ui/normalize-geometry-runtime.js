@@ -1,6 +1,7 @@
 (()=>{
   const NORMALIZE_URL="__TB_NORMALIZE_FITTED_GEOMETRY_MODULE_URL__";
-  let installed=false,domain=null,panel=null,toggle=null;
+  const BATCH_URL="__TB_BATCH_NORMALIZE_MODULE_URL__";
+  let installed=false,domain=null,batchDomain=null,panel=null,toggle=null,batchPreview=null;
   const eng=()=>window.TubeBenderEngineering??null;
   const ctx=()=>window.TubeBenderObjectContext??null;
   const refApi=()=>window.TubeBenderReferenceSceneUi??null;
@@ -62,6 +63,97 @@
   }
   function canNormalizeTarget(target){return !!target&&domain?.isFittedGeometry?.(target.object)===true;}
   function normalizedTargets(){return selectedTargets().filter(canNormalizeTarget);}
+
+  function toleranceProfile(){
+    return window.TubeBenderToleranceProfile?.profile?.()??project()?.geometry_tolerance_profile??{};
+  }
+  function batchCandidates(){
+    return normalizedTargets().map(target=>({
+      id:String(target.id),
+      label:String(target.object?.name??target.object?.label??target.id),
+      geometry:clone(target.object),
+      selected:true
+    }));
+  }
+  function buildBatchPreview(){
+    const candidates=batchCandidates();
+    if(!candidates.length){toast("Нет выбранной Fitted-геометрии для Batch Normalize");batchPreview=null;render();return false;}
+    try{
+      batchPreview=batchDomain.buildBatchNormalizePreview(candidates,{tolerance_profile:toleranceProfile()});
+      render();return batchPreview;
+    }catch(error){toast(error?.message??error);return false;}
+  }
+  function batchTargetMap(){
+    return new Map(normalizedTargets().map(target=>[String(target.id),target]));
+  }
+  function patchForBatchItem(target,item){
+    if(item.target_value==null||!item.field)return null;
+    const value=Number(item.target_value);if(!Number.isFinite(value))return null;
+    const object=target?.object??{};
+    const patch={};
+    if(item.field==="radius_mm"){
+      if("radius_mm" in object)patch.radius_mm=value;
+      else if("clr" in object)patch.clr=value;
+      else if("radius" in object)patch.radius=value;
+      else patch.radius_mm=value;
+    }else if(item.field==="diameter_mm"){
+      if("diameter_mm" in object)patch.diameter_mm=value;
+      else if("outer_diameter_mm" in object)patch.outer_diameter_mm=value;
+      else if("od_mm" in object)patch.od_mm=value;
+      else patch.diameter_mm=value;
+    }else if(item.field==="length_mm"){
+      if("length_mm" in object)patch.length_mm=value;
+      else if("L" in object)patch.L=value;
+      else if("length" in object)patch.length=value;
+      else patch.length_mm=value;
+    }else if(item.field==="angle_deg"){
+      if("angle_deg" in object)patch.angle_deg=value;
+      else if("angle" in object)patch.angle=value;
+      else if("sweep_deg" in object)patch.sweep_deg=value;
+      else patch.angle_deg=value;
+    }
+    return patch;
+  }
+  function applyBatchPreview(){
+    if(!batchPreview){toast("Сначала создайте Batch Normalize Preview");return false;}
+    const plan=batchDomain.batchNormalizePlan(batchPreview);
+    if(!plan.selected_count){toast("В Batch Normalize не выбраны элементы");return false;}
+    const targetMap=batchTargetMap(),created=[];
+    const mutate=()=>{
+      for(const item of plan.items){
+        const target=targetMap.get(String(item.id));
+        if(!target)throw new Error("Batch Normalize target not found: "+item.id);
+        created.push(normalizeTarget(target,{
+          note:"Batch Normalize · nominal "+String(item.target_value??"n/a"),
+          patch:patchForBatchItem(target,item)
+        }));
+      }
+      return true;
+    };
+    const command=eng()?.modelCommand;
+    let ok;
+    try{ok=typeof command==="function"?command("Batch Normalize Fitted → Exact",mutate):mutate();}
+    catch(error){toast(error?.message??error);return false;}
+    if(ok===false)return false;
+    try{eng()?.save?.();eng()?.renderAll?.();window.refreshProjectTree?.();}catch{}
+    const keys=created.map(item=>item.kind==="tube"?"tube:"+encodeURIComponent(item.id):"mesh:"+encodeURIComponent(item.id));
+    if(keys.length)ctx()?.replaceSelectionKeys?.(keys);
+    const applied=batchPreview;batchPreview=null;
+    toast("Batch Normalize: создано Exact объектов "+created.length);
+    render();
+    try{window.dispatchEvent(new CustomEvent("tubebender-batch-normalize",{detail:{created:created.map(item=>({kind:item.kind,id:item.id})),preview:clone(applied)}}));}catch{}
+    return Object.freeze(created.map(item=>Object.freeze({kind:item.kind,id:item.id,correction:clone(item.result.correction)})));
+  }
+  function setBatchSelection(id,selected){
+    if(!batchPreview)return false;
+    batchPreview=batchDomain.setBatchPreviewSelection(batchPreview,[id],selected);
+    render();return true;
+  }
+  function setBatchNominal(groupId,value){
+    if(!batchPreview)return false;
+    try{batchPreview=batchDomain.setBatchNominal(batchPreview,groupId,value);render();return true;}
+    catch(error){toast(error?.message??error);return false;}
+  }
 
   function prepareTubeExact(source){
     const exact=clone(source);
@@ -209,7 +301,7 @@
   function ensurePanel(){
     if(panel)return panel;
     const style=document.createElement("style");style.id="tbNormalizeGeometryStyles";
-    style.textContent='#tbNormalizeGeometryToggle{position:fixed;right:344px;top:54px;z-index:120368;background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:6px;padding:6px 10px;cursor:pointer}#tbNormalizeGeometryPanel{position:fixed;right:14px;top:88px;width:min(390px,calc(100vw - 28px));max-height:calc(100vh - 110px);z-index:120361;display:none;background:rgba(13,22,32,.985);color:#edf4fb;border:1px solid #41566f;border-radius:9px;box-shadow:0 14px 40px rgba(0,0,0,.45);font:12px system-ui}#tbNormalizeGeometryPanel.open{display:block}.tb-norm-head{display:flex;gap:6px;align-items:center;padding:8px 10px;border-bottom:1px solid #304154}.tb-norm-head .grow{flex:1}.tb-norm-body{padding:9px}.tb-norm-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.tb-norm-actions button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:4px;padding:5px 8px;cursor:pointer}.tb-norm-note{color:#93a7bb;line-height:1.4}';
+    style.textContent='#tbNormalizeGeometryToggle{position:fixed;right:344px;top:54px;z-index:120368;background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:6px;padding:6px 10px;cursor:pointer}#tbNormalizeGeometryPanel{position:fixed;right:14px;top:88px;width:min(390px,calc(100vw - 28px));max-height:calc(100vh - 110px);z-index:120361;display:none;background:rgba(13,22,32,.985);color:#edf4fb;border:1px solid #41566f;border-radius:9px;box-shadow:0 14px 40px rgba(0,0,0,.45);font:12px system-ui}#tbNormalizeGeometryPanel.open{display:block}.tb-norm-head{display:flex;gap:6px;align-items:center;padding:8px 10px;border-bottom:1px solid #304154}.tb-norm-head .grow{flex:1}.tb-norm-body{padding:9px}.tb-norm-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.tb-norm-actions button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:4px;padding:5px 8px;cursor:pointer}.tb-norm-note{color:#93a7bb;line-height:1.4}.tb-batch-group{margin-top:9px;border:1px solid #304154;border-radius:5px;overflow:hidden}.tb-batch-title{padding:6px 7px;background:#172433}.tb-batch-row{display:grid;grid-template-columns:24px minmax(90px,1fr) 80px 80px;gap:5px;padding:5px 7px;align-items:center}.tb-batch-row.out{background:rgba(180,72,55,.18);color:#ffb3a7}.tb-batch-row input[type=number]{width:76px;background:#09131c;color:#fff;border:1px solid #40536a;border-radius:3px;padding:3px}';
     document.head.appendChild(style);
     toggle=document.createElement("button");toggle.id="tbNormalizeGeometryToggle";toggle.textContent="Normalize";document.body.appendChild(toggle);
     panel=document.createElement("section");panel.id="tbNormalizeGeometryPanel";
@@ -219,16 +311,39 @@
     panel.querySelector("[data-norm-close]").onclick=()=>panel.classList.remove("open");
     return panel;
   }
+  function batchPreviewHtml(){
+    if(!batchPreview)return "";
+    return '<div style="margin-top:10px"><b>Batch Normalize Preview</b> · '+batchPreview.candidate_count+' candidates · '+batchPreview.out_of_tolerance_count+' out of tolerance</div>'+
+      batchPreview.groups.map(group=>
+        '<div class="tb-batch-group"><div class="tb-batch-title">'+String(group.feature_type)+' · '+String(group.field??"unmeasured")+
+        ' · nominal <input type="number" step="0.001" data-batch-nominal="'+String(group.id)+'" value="'+String(group.nominal_value??0)+'"> · tol '+String(group.tolerance)+'</div>'+
+        group.members.map(member=>
+          '<label class="tb-batch-row '+(member.out_of_tolerance?'out':'')+'"><input type="checkbox" data-batch-member="'+String(member.id)+'" '+(member.selected?'checked':'')+'>'+
+          '<span>'+String(member.label)+'</span><span>'+String(member.source_value??"—")+'</span><span>Δ '+(member.deviation==null?'—':Number(member.deviation).toFixed(4))+'</span></label>'
+        ).join("")+'</div>'
+      ).join("")+
+      '<div class="tb-norm-actions"><button data-batch-apply>Применить выбранные</button><button data-batch-cancel>Отмена</button></div>';
+  }
+  function bindBatchPreview(body){
+    body.querySelectorAll("[data-batch-member]").forEach(input=>input.onchange=()=>setBatchSelection(input.dataset.batchMember,input.checked));
+    body.querySelectorAll("[data-batch-nominal]").forEach(input=>input.onchange=()=>setBatchNominal(input.dataset.batchNominal,Number(input.value)));
+    body.querySelector("[data-batch-apply]")?.addEventListener("click",applyBatchPreview);
+    body.querySelector("[data-batch-cancel]")?.addEventListener("click",()=>{batchPreview=null;render();});
+  }
   function render(){
-    if(!domain)return;
+    if(!domain||!batchDomain)return;
     const root=ensurePanel(),body=root.querySelector("[data-norm-body]");
     const targets=selectedTargets(),fitted=targets.filter(canNormalizeTarget);
     const normalized=targets.map(t=>t.object).filter(o=>o?.normalization_provenance?.operation==="FittedToExact");
     body.innerHTML='<div class="tb-norm-note">Normalize создаёт новый Exact editable object. Source и Fitted остаются неизменными; correction и Fitted snapshot сохраняются в provenance.</div>'+
       '<div style="margin-top:8px">Selected: '+targets.length+' · Fitted: '+fitted.length+' · Exact normalized: '+normalized.length+'</div>'+
       '<div class="tb-norm-actions"><button data-norm-run '+(!fitted.length?'disabled':'')+'>Сделать точной / Normalize Geometry</button>'+
-      (normalized.length===1?'<button data-norm-compare>Compare with Fitted</button>':'')+'</div>';
+      '<button data-batch-preview '+(!fitted.length?'disabled':'')+'>Batch Normalize Preview</button>'+
+      (normalized.length===1?'<button data-norm-compare>Compare with Fitted</button>':'')+'</div>'+
+      batchPreviewHtml();
     body.querySelector("[data-norm-run]")?.addEventListener("click",()=>normalizeSelected());
+    body.querySelector("[data-batch-preview]")?.addEventListener("click",buildBatchPreview);
+    bindBatchPreview(body);
     body.querySelector("[data-norm-compare]")?.addEventListener("click",()=>{
       const obj=normalized[0];compareNormalized(obj.id,{visible:!(obj.normalization_compare?.enabled===true)});
       render();
@@ -236,12 +351,14 @@
   }
   async function install(){
     if(installed)return;installed=true;
-    try{domain=await import(NORMALIZE_URL);}catch(error){console.error("Normalize Geometry runtime failed",error);return;}
+    try{[domain,batchDomain]=await Promise.all([import(NORMALIZE_URL),import(BATCH_URL)]);}catch(error){console.error("Normalize Geometry runtime failed",error);return;}
     ensurePanel();render();
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
     window.TubeBenderNormalizeGeometry=Object.freeze({
       normalizeSelected,normalizeTarget,compareNormalized,correctionFor,
-      canNormalizeTarget,selectedTargets,normalizedTargets,render,domain
+      buildBatchPreview,applyBatchPreview,setBatchSelection,setBatchNominal,
+      batchPreview:()=>clone(batchPreview),
+      canNormalizeTarget,selectedTargets,normalizedTargets,render,domain,batchDomain
     });
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
