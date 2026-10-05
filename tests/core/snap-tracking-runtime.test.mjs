@@ -80,3 +80,13 @@ test("question 83: existing Tab cycling applies to Tangent and Perpendicular ran
   assert.match(code,/rankedCandidates=Array\.from/);
   assert.match(code,/cycle\(event\.shiftKey\?-1:1\)/);
 });
+
+
+test("question 84: tracking separates Real Projected and Closest 3D intersection candidates",()=>{
+  assert.match(code,/function currentWorkingPlane\(\)/);
+  assert.match(code,/lineLineIntersectionCandidates/);
+  assert.match(code,/include_projected:true/);
+  assert.match(code,/include_closest:true/);
+  assert.match(code,/working_plane:currentWorkingPlane\(\)/);
+  assert.match(code,/\.\.\.sourceCandidates,\.\.\.virtual,\.\.\.contextual/);
+});
