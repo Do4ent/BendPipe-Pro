@@ -3,10 +3,11 @@
   const RIGID_TRANSFORM_URL="__TB_RIGID_TRANSFORM_MODULE_URL__";
   const DYNAMIC_INPUT_URL="__TB_DYNAMIC_INPUT_MODULE_URL__";
   const TRANSFORM_COMMANDS_URL="__TB_TRANSFORM_COMMANDS_MODULE_URL__";
+  const COPY_DEPENDENCIES_URL="__TB_COPY_DEPENDENCIES_MODULE_URL__";
   const DECIMAL_PREF_KEY="tubebender.dynamicInput.decimalSeparator";
-  let straightRun=null,rigidTransform=null,dynamicInput=null,transformCommands=null,installed=false,panel=null,button=null,activeTool="copy",snapCommandTool=null;
+  let straightRun=null,rigidTransform=null,dynamicInput=null,transformCommands=null,copyDependencies=null,installed=false,panel=null,button=null,activeTool="copy",snapCommandTool=null;
   let copyPreviewGroup=null;
-  const copySession={active:false,mode:"single",base:null,targets:[],pendingPoint:null,sourceIds:[],sourceMeshEntries:[]};
+  const copySession={active:false,mode:"single",base:null,targets:[],pendingPoint:null,sourceIds:[],sourceMeshEntries:[],externalPolicy:null};
   const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
   const clone=(v)=>v==null?v:structuredClone(v);
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,(ch)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -1035,7 +1036,7 @@
   }
   async function install(){
     if(installed)return;installed=true;
-    try{[straightRun,rigidTransform,dynamicInput,transformCommands]=await Promise.all([import(STRAIGHT_RUN_URL),import(RIGID_TRANSFORM_URL),import(DYNAMIC_INPUT_URL),import(TRANSFORM_COMMANDS_URL)]);}catch(error){console.error("Editing UI failed to load",error);return;}
+    try{[straightRun,rigidTransform,dynamicInput,transformCommands,copyDependencies]=await Promise.all([import(STRAIGHT_RUN_URL),import(RIGID_TRANSFORM_URL),import(DYNAMIC_INPUT_URL),import(TRANSFORM_COMMANDS_URL),import(COPY_DEPENDENCIES_URL)]);}catch(error){console.error("Editing UI failed to load",error);return;}
     ensureShell();
     document.getElementById("threeCanvas")?.addEventListener("click",onCopyCanvasClick,true);
     window.addEventListener("keydown",onCopyKeyDown,true);
