@@ -27,6 +27,7 @@ const layersRuntimePath = path.join(root, "src", "ui", "layers-runtime.js");
 const groupsRuntimePath = path.join(root, "src", "ui", "groups-runtime.js");
 const assembliesRuntimePath = path.join(root, "src", "ui", "assemblies-runtime.js");
 const constraintsRuntimePath = path.join(root, "src", "ui", "constraints-runtime.js");
+const toleranceProfileRuntimePath = path.join(root, "src", "ui", "tolerance-profile-runtime.js");
 const associativeArrayRuntimePath = path.join(root, "src", "ui", "associative-array-runtime.js");
 const associativeMirrorRuntimePath = path.join(root, "src", "ui", "associative-mirror-runtime.js");
 const transformStackRuntimePath = path.join(root, "src", "ui", "transform-stack-runtime.js");
@@ -44,6 +45,7 @@ const geometricConstraintsDomainPath = path.join(root, "src", "domain", "constra
 const constraintInferenceDomainPath = path.join(root, "src", "domain", "constraints", "constraint-inference.mjs");
 const constraintDofDomainPath = path.join(root, "src", "domain", "constraints", "constraint-dof-analysis.mjs");
 const autoConstrainDomainPath = path.join(root, "src", "domain", "constraints", "auto-constrain.mjs");
+const toleranceProfileDomainPath = path.join(root, "src", "domain", "geometry", "tolerance-profile.mjs");
 const geometryMeasurementsDomainPath = path.join(root, "src", "domain", "measurements", "geometry-measurements.mjs");
 const dimensionsDomainPath = path.join(root, "src", "domain", "measurements", "dimensions.mjs");
 const equipmentRuntimeBridgePath = path.join(root, "src", "ui", "equipment-runtime-bridge.js");
@@ -2525,6 +2527,13 @@ const constraintsRuntime = fs.readFileSync(constraintsRuntimePath, "utf8")
 const bundledConstraintsRuntime =
   `<script data-tubebender-bundled="constraints-runtime">\n${constraintsRuntime}\n</script>`;
 
+const toleranceProfileDomainUrl = moduleDataUrl(toleranceProfileDomainPath);
+const toleranceProfileRuntime = fs.readFileSync(toleranceProfileRuntimePath, "utf8")
+  .replace("__TB_TOLERANCE_PROFILE_MODULE_URL__", toleranceProfileDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledToleranceProfileRuntime =
+  `<script data-tubebender-bundled="tolerance-profile-runtime">\n${toleranceProfileRuntime}\n</script>`;
+
 const associativeArrayRuntime = fs.readFileSync(associativeArrayRuntimePath, "utf8")
   .replace("__TB_TRANSFORM_COMMANDS_MODULE_URL__", transformCommandsDomainUrl)
   .replace("__TB_RIGID_TRANSFORM_MODULE_URL__", legacyRigidTransformDomainUrl)
@@ -2627,6 +2636,8 @@ output =
   bundledAssembliesRuntime +
   "\n" +
   bundledConstraintsRuntime +
+  "\n" +
+  bundledToleranceProfileRuntime +
   "\n" +
   bundledMaterialLibraryUi +
   "\n" +
@@ -2919,6 +2930,7 @@ process.stdout.write(
       bundledGroupsRuntime: true,
       bundledAssembliesRuntime: true,
       bundledConstraintsRuntime: true,
+      bundledToleranceProfileRuntime: true,
       bundledAssociativeArrays: true,
       bundledAssociativeMirrors: true,
       bundledTransformStacks: true,
