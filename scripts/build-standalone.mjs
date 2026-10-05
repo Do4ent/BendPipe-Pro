@@ -2571,6 +2571,7 @@ const bundledDeleteDependenciesRuntime =
 const associativeArrayRuntime = fs.readFileSync(associativeArrayRuntimePath, "utf8")
   .replace("__TB_TRANSFORM_COMMANDS_MODULE_URL__", transformCommandsDomainUrl)
   .replace("__TB_RIGID_TRANSFORM_MODULE_URL__", legacyRigidTransformDomainUrl)
+  .replace("__TB_DYNAMIC_INPUT_MODULE_URL__", dynamicInputDomainUrl)
   .replace(/<\/script/gi, "<\\/script");
 const bundledAssociativeArrayRuntime =
   `<script data-tubebender-bundled="associative-array-runtime">\n${associativeArrayRuntime}\n</script>`;
