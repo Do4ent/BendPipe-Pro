@@ -9,6 +9,7 @@
     ref:"ref:",
     mesh:"mesh:",
     group:"group:",
+    projectAssembly:"project-assembly:",
     tube:"tube:",
     row:"row:",
     end:"end:",
@@ -20,6 +21,7 @@
   function refKey(sceneId,nodeId){return PREFIX.ref+enc(sceneId)+":"+enc(nodeId);}
   function meshKey(instanceId){return PREFIX.mesh+enc(instanceId);}
   function groupKey(groupId){return PREFIX.group+enc(groupId);}
+  function projectAssemblyKey(assemblyId){return PREFIX.projectAssembly+enc(assemblyId);}
   function tubeKey(tubeId){return PREFIX.tube+enc(tubeId);}
   function endKey(tubeId){return PREFIX.end+enc(tubeId);}
   function rowKey(tubeId,rowIndex){return PREFIX.row+enc(tubeId)+":"+String(Number(rowIndex));}
@@ -38,6 +40,9 @@
     }
     if(text.startsWith(PREFIX.group)){
       return {kind:"group",groupId:dec(text.slice(PREFIX.group.length))};
+    }
+    if(text.startsWith(PREFIX.projectAssembly)){
+      return {kind:"project-assembly",assemblyId:dec(text.slice(PREFIX.projectAssembly.length))};
     }
     if(text.startsWith(PREFIX.tube)){
       return {kind:"tube",tubeId:dec(text.slice(PREFIX.tube.length))};
@@ -66,6 +71,7 @@
   }
   function refApi(){return window.TubeBenderReferenceSceneUi??null;}
   function groupsApi(){return window.TubeBenderGroups??null;}
+  function assembliesApi(){return window.TubeBenderAssemblies??null;}
   function layerApi(){return window.TubeBenderLayers??null;}
   function lockApi(){return window.TubeBenderObjectLocks??null;}
   function lockAllowed(action,{notify=true}={}){
@@ -165,6 +171,8 @@
 
   function keyForTreeRow(row){
     if(!row)return null;
+    if(row.matches?.("[data-project-assembly]"))return projectAssemblyKey(row.dataset.projectAssembly);
+    if(row.matches?.("[data-assembly-member-key]"))return String(row.dataset.assemblyMemberKey||"")||null;
     if(row.matches?.("[data-project-group]"))return groupKey(row.dataset.projectGroup);
     if(row.matches?.("[data-group-member-key]"))return String(row.dataset.groupMemberKey||"")||null;
     if(row.matches?.("[data-ref-node]")){
@@ -199,7 +207,7 @@
 
   function treeRowFromTarget(target){
     return target?.closest?.(
-      "[data-project-group],[data-group-member-key],[data-ref-node],[data-import-mesh-instance],[data-tree-tube],[data-tree-row],[data-tree-end],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
+      "[data-project-assembly],[data-assembly-member-key],[data-project-group],[data-group-member-key],[data-ref-node],[data-import-mesh-instance],[data-tree-tube],[data-tree-row],[data-tree-end],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
     )??null;
   }
 
@@ -643,7 +651,7 @@
       node.removeAttribute("aria-selected");
     });
     for(const row of host.querySelectorAll(
-      "[data-ref-node],[data-tree-tube],[data-tree-row],[data-tree-end],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
+      "[data-project-assembly],[data-assembly-member-key],[data-project-group],[data-group-member-key],[data-ref-node],[data-tree-tube],[data-tree-row],[data-tree-end],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
     )){
       const key=keyForTreeRow(row);
       if(key&&selected.has(key)){
@@ -657,7 +665,10 @@
     const entries=selectionEntries();
     if(!entries.length)return false;
     const groups=entries.filter(entry=>entry.kind==="group");
-    if(groups.length)return groups.length===entries.length;
+    const projectAssemblies=entries.filter(entry=>entry.kind==="project-assembly");
+    if(groups.length||projectAssemblies.length){
+      return groups.length===entries.length||projectAssemblies.length===entries.length;
+    }
     return entries.every((entry)=>{
       if(entry.kind==="ref"||entry.kind==="mesh-instance")return true;
       if(entry.kind!=="tube")return false;
@@ -1018,6 +1029,9 @@
     if(!lockAllowed("move"))return false;
     if(entries.every(entry=>entry.kind==="group")){
       return groupsApi()?.moveGroups?.(entries.map(entry=>entry.groupId),delta)??false;
+    }
+    if(entries.every(entry=>entry.kind==="project-assembly")){
+      return assembliesApi()?.moveAssemblies?.(entries.map(entry=>entry.assemblyId),delta)??false;
     }
     const p=project();
     if(!p)return false;
@@ -1635,7 +1649,7 @@
   function projectTreeRows(host){
     if(!host)return [];
     return [...host.querySelectorAll(
-      "[data-project-group],[data-group-member-key],[data-tree-tube],[data-tree-row],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin],[data-ref-scene-row],[data-ref-node]"
+      "[data-project-assembly],[data-assembly-member-key],[data-project-group],[data-group-member-key],[data-tree-tube],[data-tree-row],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin],[data-ref-scene-row],[data-ref-node]"
     )];
   }
 
