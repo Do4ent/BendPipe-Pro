@@ -36,6 +36,7 @@
   const editing=()=>window.TubeBenderEditing??null;
   const snapTracking=()=>window.TubeBenderSnapTracking??null;
   const lockApi=()=>window.TubeBenderObjectLocks??null;
+  const interaction=()=>window.TubeBenderInteractionPriority??null;
   const scale=()=>typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
   const canvas=()=>document.getElementById("threeCanvas");
   const entries=()=>context()?.selectionEntries?.()??[];
@@ -472,7 +473,7 @@
     }
     if(!startHit)return false;
     if(handle.kind!=="pivot")ensurePreview();
-    drag={handle:{...handle},pivot,basis,planeNormal,startHit,startVector,deltaMm:{x:0,y:0,z:0},angleRad:0};
+    drag={handle:{...handle},pivot,basis,planeNormal,startHit,startVector,deltaMm:{x:0,y:0,z:0},angleRad:0,started:false,pointerStart:{x:event.clientX,y:event.clientY,pointerType:event.pointerType}};
     try{if(controls)controls.enabled=false;}catch{}
     snapTracking()?.startCommand?.("transform-gizmo",{ortho:settings.ortho,polar:settings.polar,polar_increment_deg:settings.polarStep});
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();
@@ -480,6 +481,11 @@
   }
   function updateDrag(event){
     if(!drag)return false;
+    if(!drag.started){
+      const ready=interaction()?.movementExceeded?.(drag.pointerStart,event)??Math.hypot(Number(event.clientX)-Number(drag.pointerStart.x),Number(event.clientY)-Number(drag.pointerStart.y))>4;
+      if(!ready){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();return true;}
+      drag.started=true;
+    }
     const current=planeHit(event,drag.planeNormal,drag.pivot);if(!current)return false;
     const snapped=snapPointScene();
     const handle=drag.handle,s=scale();
@@ -588,7 +594,7 @@
     try{if(controls)controls.enabled=true;}catch{}
     snapTracking()?.endCommand?.();
     let ok=true;
-    if(!cancel){
+    if(!cancel&&state.started){
       if(state.handle.kind==="pivot"){
         if(pivotState.temporary){settings.pivotMode="temporary";saveSettings();}
       }else if(state.handle.kind==="rotate")ok=commitRotate(axisVector(state.handle,state.basis),state.pivot,state.angleRad);
