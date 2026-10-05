@@ -1,5 +1,13 @@
 const clone=(v)=>v==null?v:structuredClone(v);
 const EPS=1e-12;
+function freeze(value){
+  if(Array.isArray(value))return Object.freeze(value.map(freeze));
+  if(value&&typeof value==="object"&&!Object.isFrozen(value)){
+    for(const key of Object.keys(value))value[key]=freeze(value[key]);
+    return Object.freeze(value);
+  }
+  return value;
+}
 function makeId(prefix="assembly"){
   const uuid=globalThis.crypto?.randomUUID?.();
   return uuid?prefix+"-"+uuid:prefix+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10);
