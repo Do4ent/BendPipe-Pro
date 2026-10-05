@@ -1,7 +1,8 @@
 (()=>{
   const GROUPS_URL="__TB_GROUPS_MODULE_URL__";
   const RIGID_URL="__TB_GROUP_RIGID_MODULE_URL__";
-  let installed=false,groups=null,rigid=null,panel=null,toggle=null,observer=null,treeScheduled=false;
+  const COPY_DEPENDENCIES_URL="__TB_COPY_DEPENDENCIES_MODULE_URL__";
+  let installed=false,groups=null,rigid=null,copyDependencies=null,panel=null,toggle=null,observer=null,treeScheduled=false;
   const ctx=()=>window.TubeBenderObjectContext??null;
   const eng=()=>window.TubeBenderEngineering??null;
   const refApi=()=>window.TubeBenderReferenceSceneUi??null;
@@ -255,73 +256,86 @@
     while(used.has(name))name=String(base||"Tube")+" Copy "+n++;
     return name;
   }
+  function groupCopyDependencySources(groupId){
+    const out=[],seen=new Set();
+    for(const ref of leafRefs(groupId)){
+      const object=objectForLeafRef(ref);
+      if(!object?.id||seen.has(String(object.id)))continue;
+      seen.add(String(object.id));out.push(object);
+    }
+    return out;
+  }
+  function groupCopyChoice(groupId,externalPolicy){
+    const sources=groupCopyDependencySources(groupId);
+    const plan=copyDependencies.buildCopyDependencyPlan(sources);
+    if(plan.requires_external_choice&&!["Keep","Detach"].includes(String(externalPolicy??""))){
+      const error=new Error("Внешние зависимости группы требуют явного выбора Keep или Detach");
+      error.code="EXTERNAL_DEPENDENCY_CHOICE_REQUIRED";throw error;
+    }
+    return {sources,plan,externalPolicy};
+  }
   function cloneTubeForGroup(source,offset,idMap){
-    let copy=clone(source);
+    let copy=clone(source);copy.__copy_source_id=String(source.id);
     const moved=rigid.translateLegacyTubeRigid(copy,offset);
     if(moved.status!=="exact")throw new Error(moved.reason??"Group Copy failed");
-    copy=clone(moved.tube);
-    const oldId=String(source.id),newId=makeId("tube");
-    copy.id=newId;idMap.set(oldId,newId);copy.name=uniqueTubeName(source.name);copy.partNumber="";
+    copy=clone(moved.tube);copy.__copy_source_id=String(source.id);
+    const oldId=String(source.id),newId=idMap.get(oldId)??makeId("tube");
+    idMap.set(oldId,newId);copy.id=newId;copy.name=uniqueTubeName(source.name);copy.partNumber="";
     if(Array.isArray(copy.rows))copy.rows=copy.rows.map(row=>({...row,elementId:row?.elementId?makeId("element"):row?.elementId}));
     delete copy.array_member;delete copy.mirror_member;delete copy.transform_stack_member;delete copy.lock_state;
     return copy;
   }
-  function remapTubeDependencies(tube,idMap){
-    if(tube?.engineering?.ports){
-      for(const port of Object.values(tube.engineering.ports)){
-        const old=String(port?.ownerObjectId??port?.externalRefId??"");
-        if(old&&idMap.has(old)){
-          const next=idMap.get(old);
-          if(port.ownerObjectId)port.ownerObjectId=next;
-          if(port.externalRefId)port.externalRefId=next;
-        }
-      }
-    }
-  }
   function cloneDimension(dim,idMap){
-    const copy=clone(dim);copy.id=makeId("dimension");
-    if(Array.isArray(copy.references))copy.references=copy.references.map(ref=>({...ref,object_id:idMap.get(String(ref.object_id))??ref.object_id}));
+    const copy=clone(dim),oldId=String(dim.id);
+    copy.__copy_source_id=oldId;copy.id=idMap.get(oldId)??makeId("dimension");idMap.set(oldId,String(copy.id));
     return copy;
   }
-  function cloneConstruction(ref,offset){
+  function cloneConstruction(ref,offset,idMap){
     const source=(project()?.construction_geometry??[]).find(x=>String(x?.id)===String(ref.id));
     if(!source)return null;
-    const copy=clone(source);copy.id=makeId("construction");
+    const copy=clone(source),oldId=String(source.id);
+    copy.__copy_source_id=oldId;copy.id=idMap.get(oldId)??makeId("construction");idMap.set(oldId,String(copy.id));
     const key=copy.position_mm?"position_mm":copy.origin?"origin":null;
     if(key){
       const p=copy[key]??{};copy[key]={x:Number(p.x||0)+offset.x,y:Number(p.y||0)+offset.y,z:Number(p.z||0)+offset.z};
     }
     project().construction_geometry=[...(project().construction_geometry??[]),copy];
-    return {kind:"construction",id:String(copy.id)};
+    return {kind:"construction",id:String(copy.id),copy};
   }
-  function copyGroupGraph(groupId,offset,name=null){
+  function copyGroupGraph(groupId,offset,name=null,externalPolicy=null){
     const source=groupById(groupId);if(!source)throw new Error("Group not found");
-    const idMap=new Map(),memberMap=new Map(),leaves=leafRefs(groupId);
-    // Geometry first so associative references and dimensions can be remapped in a second pass.
+    const choice=groupCopyChoice(groupId,externalPolicy);
+    const idMap=new Map(),memberMap=new Map(),leaves=leafRefs(groupId),copies=[];
+    // Preallocate IDs so all internal references can be remapped deterministically.
+    for(const object of choice.sources)idMap.set(String(object.id),makeId(
+      (project()?.engineering_dimensions??[]).includes(object)?"dimension":
+      (project()?.construction_geometry??[]).includes(object)?"construction":"object"
+    ));
     for(const ref of leaves){
       if(ref.kind==="tube"){
         const tube=tubeById(ref.id);if(!tube)continue;
-        const copied=cloneTubeForGroup(tube,offset,idMap);project().tubes.push(copied);
+        if(!idMap.has(String(tube.id)))idMap.set(String(tube.id),makeId("tube"));
+        const copied=cloneTubeForGroup(tube,offset,idMap);project().tubes.push(copied);copies.push(copied);
         memberMap.set(groups.groupMemberKey(ref),{kind:"tube",id:String(copied.id)});
       }else if(ref.kind==="mesh-instance"){
         const copied=refApi()?.copyEditableMeshInstance?.(project(),ref.id,{offset_mm:offset});
-        if(copied)memberMap.set(groups.groupMemberKey(ref),{kind:"mesh-instance",id:String(copied.id)});
+        if(copied){
+          idMap.set(String(ref.id),String(copied.id));copied.__copy_source_id=String(ref.id);copies.push(copied);
+          memberMap.set(groups.groupMemberKey(ref),{kind:"mesh-instance",id:String(copied.id)});
+        }
       }else if(ref.kind==="ref"){
         const copied=refApi()?.createEditableMeshInstanceByRef?.(project(),ref.scene_id,ref.node_id,{position_mm:offset});
         if(copied)memberMap.set(groups.groupMemberKey(ref),{kind:"mesh-instance",id:String(copied.id)});
       }else if(ref.kind==="construction"){
-        const mapped=cloneConstruction(ref,offset);if(mapped)memberMap.set(groups.groupMemberKey(ref),mapped);
+        const mapped=cloneConstruction(ref,offset,idMap);
+        if(mapped){copies.push(mapped.copy);memberMap.set(groups.groupMemberKey(ref),{kind:"construction",id:mapped.id});}
       }
     }
-    for(const newId of idMap.values()){
-      const tube=tubeById(newId);if(tube)remapTubeDependencies(tube,idMap);
-    }
-    // Non-geometric references are cloned after all object IDs are known.
     for(const ref of leaves){
       if(ref.kind==="dimension"){
         const dim=(project().engineering_dimensions??[]).find(x=>String(x?.id)===String(ref.id));
         if(dim){
-          const copied=cloneDimension(dim,idMap);
+          const copied=cloneDimension(dim,idMap);copies.push(copied);
           project().engineering_dimensions=[...(project().engineering_dimensions??[]),copied];
           memberMap.set(groups.groupMemberKey(ref),{kind:"dimension",id:String(copied.id)});
         }
@@ -330,6 +344,7 @@
         memberMap.set(groups.groupMemberKey(ref),{...clone(ref),tube_id:String(mappedTube)});
       }
     }
+    copyDependencies.applyCopyDependencyBatch(copies,idMap,choice.plan,{external_policy:choice.externalPolicy});
     const copyRecursive=(oldId,isTop=false)=>{
       const old=groupById(oldId);if(!old)throw new Error("Nested Group not found");
       const created=groups.createGroup(project(),{
@@ -351,22 +366,24 @@
     };
     return copyRecursive(groupId,true);
   }
-  function copyGroup(groupId,{offset_mm={x:0,y:0,z:0},name=null}={}){
+  function copyGroup(groupId,{offset_mm={x:0,y:0,z:0},name=null,external_policy=null}={}){
     const source=groupById(groupId);if(!source)return false;
     if(permissionForEntry({kind:"group",groupId},"copy").allowed===false){toast("Объект заблокирован");return false;}
     const offset={x:Number(offset_mm.x)||0,y:Number(offset_mm.y)||0,z:Number(offset_mm.z)||0};
     let created=null;
-    const ok=command("Copy Group",()=>{created=copyGroupGraph(groupId,offset,name);return true;});
+    let choice;try{choice=groupCopyChoice(groupId,external_policy);}catch(error){toast(error.message);return false;}
+    const ok=command("Copy Group",()=>{created=copyGroupGraph(groupId,offset,name,choice.externalPolicy);return true;});
     if(ok&&created)ctx()?.replaceSelectionKeys?.(["group:"+encodeURIComponent(created.id)]);
     return ok?created?.id:false;
   }
-  function arrayGroup(groupId,{count=2,step_mm={x:100,y:0,z:0}}={}){
+  function arrayGroup(groupId,{count=2,step_mm={x:100,y:0,z:0},external_policy=null}={}){
     const n=Math.trunc(Number(count));if(!(n>=2)){toast("Count должен быть ≥ 2");return false;}
     if(permissionForEntry({kind:"group",groupId},"array").allowed===false){toast("Объект заблокирован");return false;}
+    let choice;try{choice=groupCopyChoice(groupId,external_policy);}catch(error){toast(error.message);return false;}
     const step={x:Number(step_mm.x)||0,y:Number(step_mm.y)||0,z:Number(step_mm.z)||0},created=[];
     const ok=command("Array Group",()=>{
       for(let index=1;index<n;index++){
-        const group=copyGroupGraph(groupId,{x:step.x*index,y:step.y*index,z:step.z*index},(groupById(groupId)?.name??"Group")+" ["+(index+1)+"]");
+        const group=copyGroupGraph(groupId,{x:step.x*index,y:step.y*index,z:step.z*index},(groupById(groupId)?.name??"Group")+" ["+(index+1)+"]",choice.externalPolicy);
         created.push(String(group.id));
       }
       return true;
@@ -446,7 +463,7 @@
     if(!groups)return;const p=project();if(!p)return;const root=ensurePanel(),body=root.querySelector("[data-group-body]");
     const list=groups.ensureGroupState(p),selected=entries().find(entry=>entry.kind==="group"),selectedId=selected?.groupId??list[0]?.id??"",g=selectedId?groupById(selectedId):null;
     const opts='<option value="">—</option>'+list.map(item=>'<option value="'+esc(item.id)+'" '+(String(item.id)===String(selectedId)?'selected':'')+'>'+esc(item.name)+'</option>').join("");
-    body.innerHTML='<div class="tb-group-grid"><label>Group</label><select data-group-select>'+opts+'</select><label>Name</label><input data-group-name value="'+esc(g?.name??"Group")+'"><label>Visible</label><input data-group-visible type="checkbox" '+(g?.visible!==false?'checked':'')+'><label>Lock</label><select data-group-lock><option>Unlocked</option><option '+(g?.lock_state?.mode==="Position"?'selected':'')+'>Position</option><option '+(g?.lock_state?.mode==="Object"?'selected':'')+'>Object</option></select><label>Move XYZ</label><input data-group-move value="0;0;0"><label>Rotate axis</label><select data-group-axis><option>X</option><option>Y</option><option selected>Z</option></select><label>Rotate °</label><input data-group-angle value="0"><label>Array count</label><input data-group-count value="3"><label>Array step XYZ</label><input data-group-step value="100;0;0"></div>'+
+    body.innerHTML='<div class="tb-group-grid"><label>Group</label><select data-group-select>'+opts+'</select><label>Name</label><input data-group-name value="'+esc(g?.name??"Group")+'"><label>Visible</label><input data-group-visible type="checkbox" '+(g?.visible!==false?'checked':'')+'><label>Lock</label><select data-group-lock><option>Unlocked</option><option '+(g?.lock_state?.mode==="Position"?'selected':'')+'>Position</option><option '+(g?.lock_state?.mode==="Object"?'selected':'')+'>Object</option></select><label>Move XYZ</label><input data-group-move value="0;0;0"><label>Rotate axis</label><select data-group-axis><option>X</option><option>Y</option><option selected>Z</option></select><label>Rotate °</label><input data-group-angle value="0"><label>Array count</label><input data-group-count value="3"><label>Array step XYZ</label><input data-group-step value="100;0;0"><label>External dependencies</label><select data-group-external-policy><option value="">— выберите при наличии внешних связей —</option><option value="Detach">Detach external</option><option value="Keep">Keep external</option></select></div>'+
       '<div class="tb-group-actions"><button data-group-create>Создать из выбора</button><button data-group-rename '+(!g?'disabled':'')+'>Rename</button><button data-group-add '+(!g?'disabled':'')+'>Add selection</button><button data-group-remove '+(!g?'disabled':'')+'>Remove selection</button><button data-group-ungroup '+(!g?'disabled':'')+'>Ungroup</button></div>'+
       '<div class="tb-group-actions"><button data-group-move-run '+(!g?'disabled':'')+'>Move</button><button data-group-rotate-run '+(!g?'disabled':'')+'>Rotate</button><button data-group-copy-run '+(!g?'disabled':'')+'>Copy</button><button data-group-array-run '+(!g?'disabled':'')+'>Array</button></div><div class="tb-group-note">Group — логическая структура: геометрия и внутренние зависимости объектов не объединяются и не теряются.</div>';
     body.querySelector("[data-group-select]").onchange=e=>{ctx()?.replaceSelectionKeys?.(e.target.value?["group:"+encodeURIComponent(e.target.value)]:[]);renderPanel();};
@@ -465,15 +482,16 @@
       const axis=axisName==="X"?{x:1,y:0,z:0}:axisName==="Y"?{x:0,y:1,z:0}:{x:0,y:0,z:1};
       rotateGroup(g.id,{axis,angle_deg:Number(body.querySelector("[data-group-angle]").value.replace(",","."))||0});
     };
-    body.querySelector("[data-group-copy-run]").onclick=()=>copyGroup(g.id,{offset_mm:vec("[data-group-step]")});
-    body.querySelector("[data-group-array-run]").onclick=()=>arrayGroup(g.id,{count:Number(body.querySelector("[data-group-count]").value),step_mm:vec("[data-group-step]")});
+    const externalPolicy=()=>body.querySelector("[data-group-external-policy]")?.value||null;
+    body.querySelector("[data-group-copy-run]").onclick=()=>copyGroup(g.id,{offset_mm:vec("[data-group-step]"),external_policy:externalPolicy()});
+    body.querySelector("[data-group-array-run]").onclick=()=>arrayGroup(g.id,{count:Number(body.querySelector("[data-group-count]").value),step_mm:vec("[data-group-step]"),external_policy:externalPolicy()});
   }
   function observe(){
     observer?.disconnect?.();observer=new MutationObserver(()=>scheduleTree());observer.observe(document.body,{childList:true,subtree:true});
   }
   async function install(){
     if(installed)return;installed=true;
-    try{[groups,rigid]=await Promise.all([import(GROUPS_URL),import(RIGID_URL)]);}catch(error){console.error("Groups runtime failed",error);return;}
+    try{[groups,rigid,copyDependencies]=await Promise.all([import(GROUPS_URL),import(RIGID_URL),import(COPY_DEPENDENCIES_URL)]);}catch(error){console.error("Groups runtime failed",error);return;}
     groups.ensureGroupState(project());ensurePanel();renderTree();renderPanel();applyVisibility();observe();
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))renderPanel();});
     window.addEventListener("tubebender-layer-change",()=>applyVisibility());
