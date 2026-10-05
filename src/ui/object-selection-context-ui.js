@@ -1584,14 +1584,15 @@
     let key=keyForTreeRow(row);
     if(!key)return;
     const direct=!!(event.ctrlKey||event.metaKey);
+    let grouped=false;
     if(row.matches("[data-group-member-key]")&&!direct){
-      key=groupKey(row.dataset.groupOwner);
+      key=groupKey(row.dataset.groupOwner);grouped=true;
     }else if(!row.matches("[data-project-group]")&&!direct){
       const parsed=parseKey(key);
       const group=parsed?groupsApi()?.primaryGroupForEntry?.(parsed):null;
-      if(group)key=groupKey(group.id);
+      if(group){key=groupKey(group.id);grouped=true;}
     }
-    if(row.matches("[data-ref-node]")&&!groupsApi()?.primaryGroupForEntry?.(parseKey(key))){
+    if(row.matches("[data-ref-node]")&&!grouped){
       const replaceNonReference=!(event.ctrlKey||event.metaKey||event.shiftKey);
       setTimeout(()=>{
         adoptReferenceSelection({
