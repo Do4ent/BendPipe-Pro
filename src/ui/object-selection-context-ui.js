@@ -8,6 +8,7 @@
   const PREFIX={
     ref:"ref:",
     mesh:"mesh:",
+    group:"group:",
     tube:"tube:",
     row:"row:",
     end:"end:",
@@ -18,6 +19,7 @@
   function dec(value){try{return decodeURIComponent(String(value??""));}catch{return String(value??"");}}
   function refKey(sceneId,nodeId){return PREFIX.ref+enc(sceneId)+":"+enc(nodeId);}
   function meshKey(instanceId){return PREFIX.mesh+enc(instanceId);}
+  function groupKey(groupId){return PREFIX.group+enc(groupId);}
   function tubeKey(tubeId){return PREFIX.tube+enc(tubeId);}
   function endKey(tubeId){return PREFIX.end+enc(tubeId);}
   function rowKey(tubeId,rowIndex){return PREFIX.row+enc(tubeId)+":"+String(Number(rowIndex));}
@@ -33,6 +35,9 @@
     }
     if(text.startsWith(PREFIX.mesh)){
       return {kind:"mesh-instance",instanceId:dec(text.slice(PREFIX.mesh.length))};
+    }
+    if(text.startsWith(PREFIX.group)){
+      return {kind:"group",groupId:dec(text.slice(PREFIX.group.length))};
     }
     if(text.startsWith(PREFIX.tube)){
       return {kind:"tube",tubeId:dec(text.slice(PREFIX.tube.length))};
@@ -60,6 +65,7 @@
     catch{return null;}
   }
   function refApi(){return window.TubeBenderReferenceSceneUi??null;}
+  function groupsApi(){return window.TubeBenderGroups??null;}
   function layerApi(){return window.TubeBenderLayers??null;}
   function lockApi(){return window.TubeBenderObjectLocks??null;}
   function lockAllowed(action,{notify=true}={}){
@@ -159,6 +165,8 @@
 
   function keyForTreeRow(row){
     if(!row)return null;
+    if(row.matches?.("[data-project-group]"))return groupKey(row.dataset.projectGroup);
+    if(row.matches?.("[data-group-member-key]"))return String(row.dataset.groupMemberKey||"")||null;
     if(row.matches?.("[data-ref-node]")){
       return refKey(row.dataset.refScene,row.dataset.refNode);
     }
@@ -191,7 +199,7 @@
 
   function treeRowFromTarget(target){
     return target?.closest?.(
-      "[data-ref-node],[data-import-mesh-instance],[data-tree-tube],[data-tree-row],[data-tree-end],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
+      "[data-project-group],[data-group-member-key],[data-ref-node],[data-import-mesh-instance],[data-tree-tube],[data-tree-row],[data-tree-end],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
     )??null;
   }
 
@@ -558,7 +566,7 @@
     const host=document.getElementById("tbProjectTree");
     if(!host||!key)return null;
     for(const row of host.querySelectorAll(
-      "[data-ref-node],[data-tree-tube],[data-tree-row],[data-tree-end],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
+      "[data-project-group],[data-group-member-key],[data-ref-node],[data-tree-tube],[data-tree-row],[data-tree-end],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin]"
     )){
       if(keyForTreeRow(row)===key)return row;
     }
@@ -1541,11 +1549,11 @@
     try{if(controls?.shouldSuppressSelection?.())return;}catch{}
     const picked=pick3D(event);
     if(!picked)return;
-    setSelectedKey(picked.key,{
-      additive:!!(event.ctrlKey||event.metaKey),
-      toggle:!!(event.ctrlKey||event.metaKey)
-    });
-    revealTreeKey(picked.key);
+    const direct=!!(event.ctrlKey||event.metaKey);
+    const group=!direct?groupsApi()?.primaryGroupForEntry?.(picked.entry):null;
+    const key=group?groupKey(group.id):picked.key;
+    setSelectedKey(key,{additive:direct,toggle:direct});
+    revealTreeKey(key);
   }
 
   function onCanvasContext(event){
@@ -1573,9 +1581,17 @@
     if(!projectTreeForEvent(event))return;
     const row=treeRowFromTarget(event.target);
     if(!row)return;
-    const key=keyForTreeRow(row);
+    let key=keyForTreeRow(row);
     if(!key)return;
-    if(row.matches("[data-ref-node]")){
+    const direct=!!(event.ctrlKey||event.metaKey);
+    if(row.matches("[data-group-member-key]")&&!direct){
+      key=groupKey(row.dataset.groupOwner);
+    }else if(!row.matches("[data-project-group]")&&!direct){
+      const parsed=parseKey(key);
+      const group=parsed?groupsApi()?.primaryGroupForEntry?.(parsed):null;
+      if(group)key=groupKey(group.id);
+    }
+    if(row.matches("[data-ref-node]")&&!groupsApi()?.primaryGroupForEntry?.(parseKey(key))){
       const replaceNonReference=!(event.ctrlKey||event.metaKey||event.shiftKey);
       setTimeout(()=>{
         adoptReferenceSelection({
@@ -1612,7 +1628,7 @@
   function projectTreeRows(host){
     if(!host)return [];
     return [...host.querySelectorAll(
-      "[data-tree-tube],[data-tree-row],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin],[data-ref-scene-row],[data-ref-node]"
+      "[data-project-group],[data-group-member-key],[data-tree-tube],[data-tree-row],[data-tree-assembly],[data-tree-assembly-part],[data-tree-origin],[data-ref-scene-row],[data-ref-node]"
     )];
   }
 
