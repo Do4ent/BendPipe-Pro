@@ -1044,6 +1044,7 @@
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))renderPanel();});
     window.addEventListener("tubebender-layer-change",()=>applyVisibility());
     window.TubeBenderAssemblies=Object.freeze({
+      openPanel:()=>{ensurePanel().classList.add("open");renderPanel();},
       createFromSelection,addSelection,removeSelection,rename,setFixed,setVisible,setLock,dissolve,setOrigin,
       moveAssembly,moveAssemblies,rotateAssembly,applyAssemblyFrame,syncAssemblyLocals,
       moveEditEntries,rotateEditEntries,canHandleEditEntries,
