@@ -26,6 +26,7 @@ const objectLockRuntimePath = path.join(root, "src", "ui", "object-lock-runtime.
 const layersRuntimePath = path.join(root, "src", "ui", "layers-runtime.js");
 const groupsRuntimePath = path.join(root, "src", "ui", "groups-runtime.js");
 const assembliesRuntimePath = path.join(root, "src", "ui", "assemblies-runtime.js");
+const constraintsRuntimePath = path.join(root, "src", "ui", "constraints-runtime.js");
 const associativeArrayRuntimePath = path.join(root, "src", "ui", "associative-array-runtime.js");
 const associativeMirrorRuntimePath = path.join(root, "src", "ui", "associative-mirror-runtime.js");
 const transformStackRuntimePath = path.join(root, "src", "ui", "transform-stack-runtime.js");
@@ -39,6 +40,7 @@ const objectLocksDomainPath = path.join(root, "src", "domain", "editing", "objec
 const layersDomainPath = path.join(root, "src", "domain", "project", "layers.mjs");
 const groupsDomainPath = path.join(root, "src", "domain", "project", "groups.mjs");
 const assembliesDomainPath = path.join(root, "src", "domain", "project", "assemblies.mjs");
+const geometricConstraintsDomainPath = path.join(root, "src", "domain", "constraints", "geometric-constraints.mjs");
 const geometryMeasurementsDomainPath = path.join(root, "src", "domain", "measurements", "geometry-measurements.mjs");
 const dimensionsDomainPath = path.join(root, "src", "domain", "measurements", "dimensions.mjs");
 const equipmentRuntimeBridgePath = path.join(root, "src", "ui", "equipment-runtime-bridge.js");
@@ -826,6 +828,13 @@ output=output.replace(
   "      tbHistoryCancel(token);\n"+
   "      if(token?.before)tbHistoryRestore(token.before);\n"+
   "      ptToast(lockViolation.message||'Объект заблокирован');\n"+
+  "      return false;\n"+
+  "    }\n"+
+  "    const geometricConstraintResult=window.TubeBenderConstraints?.validateProject?.({update:true})??{ok:true};\n"+
+  "    if(geometricConstraintResult?.ok===false){\n"+
+  "      tbHistoryCancel(token);\n"+
+  "      if(token?.before)tbHistoryRestore(token.before);\n"+
+  "      ptToast('Изменение отменено: геометрический Constraint нарушен');\n"+
   "      return false;\n"+
   "    }\n"+
   "    tbHistoryCommit(token);\n"+
@@ -2498,6 +2507,13 @@ const assembliesRuntime = fs.readFileSync(assembliesRuntimePath, "utf8")
 const bundledAssembliesRuntime =
   `<script data-tubebender-bundled="assemblies-runtime">\n${assembliesRuntime}\n</script>`;
 
+const geometricConstraintsDomainUrl = moduleDataUrl(geometricConstraintsDomainPath);
+const constraintsRuntime = fs.readFileSync(constraintsRuntimePath, "utf8")
+  .replace("__TB_GEOMETRIC_CONSTRAINTS_MODULE_URL__", geometricConstraintsDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledConstraintsRuntime =
+  `<script data-tubebender-bundled="constraints-runtime">\n${constraintsRuntime}\n</script>`;
+
 const associativeArrayRuntime = fs.readFileSync(associativeArrayRuntimePath, "utf8")
   .replace("__TB_TRANSFORM_COMMANDS_MODULE_URL__", transformCommandsDomainUrl)
   .replace("__TB_RIGID_TRANSFORM_MODULE_URL__", legacyRigidTransformDomainUrl)
@@ -2598,6 +2614,8 @@ output =
   bundledGroupsRuntime +
   "\n" +
   bundledAssembliesRuntime +
+  "\n" +
+  bundledConstraintsRuntime +
   "\n" +
   bundledMaterialLibraryUi +
   "\n" +
@@ -2889,6 +2907,7 @@ process.stdout.write(
       bundledLayersRuntime: true,
       bundledGroupsRuntime: true,
       bundledAssembliesRuntime: true,
+      bundledConstraintsRuntime: true,
       bundledAssociativeArrays: true,
       bundledAssociativeMirrors: true,
       bundledTransformStacks: true,
