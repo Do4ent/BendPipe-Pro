@@ -7,6 +7,7 @@
   const lockApi=()=>window.TubeBenderObjectLocks??null;
   const layerApi=()=>window.TubeBenderLayers??null;
   const groupsApi=()=>window.TubeBenderGroups??null;
+  const normalizeApi=()=>window.TubeBenderNormalizeGeometry??null;
   const assembliesApi=()=>window.TubeBenderAssemblies??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const entries=()=>ctx()?.selectionEntries?.()??[];
@@ -193,7 +194,17 @@
     const count=targets.length;
     const lockModes=new Set((lockApi()?.selectionTargets?.()??[]).map((target)=>String(target.mode??"Unlocked")));
     const lockSummary=lockModes.size===1?(lockModes.has("Object")?"🔒 Lock Object":lockModes.has("Position")?"📍 Lock Position":"Unlocked"):"Mixed lock";
+    const normalizable=normalizeApi()?.normalizedTargets?.()??[];
+    const selectedObjects=normalizeApi()?.selectedTargets?.()??[];
+    const normalized=selectedObjects.map(target=>target.object).filter(object=>object?.normalization_provenance?.operation==="FittedToExact");
+    const normalizeActions=(normalizable.length||normalized.length===1)
+      ?'<div class="tb-prop-edit-row"><label>Geometry</label><span>'+
+        (normalizable.length?'<button data-property-normalize>Fitted → Exact</button>':'')+
+        (normalized.length===1?'<button data-property-compare-normalized>Compare Fitted</button>':'')+
+        '</span></div>'
+      :'';
     return '<div class="tb-prop-edit-card"><div class="tb-prop-edit-title">Редактирование'+(count>1?' · '+count+' объектов':'')+' <span class="tb-prop-kind">· '+lockSummary+'</span></div>'+
+      normalizeActions+
       '<div class="tb-prop-edit-row"><label>Lock</label><span><button data-property-lock="Object">🔒 Object</button><button data-property-lock="Position">📍 Position</button><button data-property-lock="Unlocked">🔓 Unlock</button></span></div>'+
       fields.map(field=>{
         if(field.type==="boolean"){
@@ -209,6 +220,12 @@
   }
   function bindEditableFields(){
     if(!panel)return;
+    panel.querySelector("[data-property-normalize]")?.addEventListener("click",()=>{normalizeApi()?.normalizeSelected?.();render(true);});
+    panel.querySelector("[data-property-compare-normalized]")?.addEventListener("click",()=>{
+      const target=(normalizeApi()?.selectedTargets?.()??[]).find(item=>item.object?.normalization_provenance?.operation==="FittedToExact");
+      if(target)normalizeApi()?.compareNormalized?.(target.object.id,{visible:!(target.object.normalization_compare?.enabled===true)});
+      render(true);
+    });
     panel.querySelectorAll("[data-property-lock]").forEach(button=>{
       button.onclick=()=>{
         const mode=button.dataset.propertyLock;
@@ -282,6 +299,9 @@
       ["P2 Assembly anchor",assemblyPortAnchorLabel(tube?.engineering?.ports?.P2)],
       ["Layer",layerInfoForEntry({kind:"tube",tubeId:tube.id}).layer],
       ["Style",layerInfoForEntry({kind:"tube",tubeId:tube.id}).style],
+      ["Geometry status",tube.geometry_status??(tube.normalization_provenance?.operation==="FittedToExact"?"Exact":null)],
+      ["Normalized from",tube.normalized_from_fitted_id],
+      ["Max correction",tube.normalization_provenance?.correction?.max_abs_correction],
       ["Assembly context",assemblyEditContextLabel()]
     ].filter((row)=>row[1]!=null);
   }
@@ -418,6 +438,7 @@
     window.addEventListener("tubebender-lock-change",()=>render(true));
     window.addEventListener("tubebender-layer-change",()=>render(true));
     window.addEventListener("tubebender-group-change",()=>render(true));
+    window.addEventListener("tubebender-normalize-geometry",()=>render(true));
     window.addEventListener("tubebender-assembly-change",()=>render(true));
     window.addEventListener("tubebender-assembly-edit-change",()=>render(true));
     window.addEventListener("tubebender-snap-change",()=>{if(panel?.classList.contains("open"))render(false);});
