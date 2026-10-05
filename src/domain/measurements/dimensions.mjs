@@ -27,7 +27,9 @@ function normalizeReference(ref,index){
     object_id:requiredString(ref.object_id,`reference ${index} object_id`),
     subentity_id:ref.subentity_id==null?null:String(ref.subentity_id),
     snap_type:ref.snap_type==null?null:String(ref.snap_type),
-    role:ref.role==null?null:String(ref.role)
+    role:ref.role==null?null:String(ref.role),
+    assembly_context:clone(ref.assembly_context??null),
+    cross_assembly:ref.cross_assembly===true
   });
 }
 export const DEFAULT_DIMENSION_FORMAT=freeze({
@@ -150,7 +152,8 @@ export function createDimension(input={}, {dimensionId=null}={}){
     target_value:finiteOrNull(input.target_value,"dimension target_value"),
     status:input.status??"NeedsUpdate",
     visible:input.visible!==false,
-    note:input.note==null?null:String(input.note)
+    note:input.note==null?null:String(input.note),
+    cross_assembly:clone(input.cross_assembly??null)
   });
 }
 export function updateDimensionStyle(dimension,patch={}){
