@@ -731,6 +731,7 @@
       return false;
     }
     const makeFixed=!selectedEnd.fixed;
+    if(makeFixed&&fittedApi()?.confirmUsage?.("TubeFixation",selectedEnd.tube)!==true)return false;
     const mutate=()=>{
       const result=api.setEndConstraint(selectedEnd.tube,makeFixed);
       if(result?.ok===false){
