@@ -9,7 +9,7 @@
 
   function targetFromEntry(entry){
     if(!entry)return null;
-    if(["tube","row","origin","end"].includes(entry.kind))return {kind:"tube",id:String(entry.tubeId)};
+    if(entry.kind==="tube")return {kind:"tube",id:String(entry.tubeId)};
     if(entry.kind==="mesh-instance")return {kind:"mesh-instance",id:String(entry.instanceId)};
     if(entry.kind==="dimension")return {kind:"dimension",id:String(entry.dimensionId??entry.id)};
     if(entry.kind==="construction")return {kind:"construction",id:String(entry.constructionId??entry.id)};
