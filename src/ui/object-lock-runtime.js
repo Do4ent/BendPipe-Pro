@@ -29,6 +29,10 @@
       const instance=meshById(entry.instanceId);
       return instance?{kind:"mesh-instance",id:String(instance.id),object:instance,label:instance.name??instance.id,entry}:null;
     }
+    if(entry.kind==="group"){
+      const group=window.TubeBenderGroups?.groupById?.(entry.groupId);
+      return group?{kind:"group",id:String(group.id),object:group,label:group.name??group.id,entry}:null;
+    }
     return null;
   }
 
@@ -65,6 +69,8 @@
   }
 
   function permissionForEntry(entry,action){
+    const groupPermission=window.TubeBenderGroups?.permissionForEntry?.(entry,action);
+    if(groupPermission&&groupPermission.allowed===false)return groupPermission;
     const layerPermission=window.TubeBenderLayers?.permissionForEntry?.(entry,action);
     if(layerPermission&&layerPermission.allowed===false)return layerPermission;
     const targets=effectiveLockTargets(entry);
@@ -147,6 +153,7 @@
   }
 
   function treeEntry(row){
+    if(row.matches("[data-project-group]"))return {kind:"group",groupId:String(row.dataset.projectGroup)};
     if(row.matches("[data-import-mesh-instance]"))return {kind:"mesh-instance",instanceId:String(row.dataset.importMeshInstance)};
     if(row.matches("[data-tree-tube]"))return {kind:"tube",tubeId:String(row.dataset.treeTube)};
     const active=String(eng()?.activeTube?.()?.id??"");
@@ -160,7 +167,7 @@
   function decorateTree(){
     if(typeof document==="undefined"||!policy)return;
     const root=document.getElementById("tbProjectTree")??document;
-    for(const row of root.querySelectorAll("[data-tree-tube],[data-tree-row],[data-tree-origin],[data-tree-end],[data-import-mesh-instance]")){
+    for(const row of root.querySelectorAll("[data-project-group],[data-tree-tube],[data-tree-row],[data-tree-origin],[data-tree-end],[data-import-mesh-instance]")){
       const entry=treeEntry(row),badge=ensureBadge(row);
       const mode=entry?entryLockMode(entry):"Unlocked";
       badge.textContent=lockIcon(mode);
