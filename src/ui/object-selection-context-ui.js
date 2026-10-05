@@ -1027,6 +1027,9 @@
     const entries=selectionEntries();
     if(!entries.length||!canMoveSelection())return false;
     if(!lockAllowed("move"))return false;
+    if(assembliesApi()?.editing?.()&&assembliesApi()?.canHandleEditEntries?.(entries)){
+      return assembliesApi()?.moveEditEntries?.(entries,delta)??false;
+    }
     if(entries.every(entry=>entry.kind==="group")){
       return groupsApi()?.moveGroups?.(entries.map(entry=>entry.groupId),delta)??false;
     }
