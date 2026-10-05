@@ -6,6 +6,7 @@
   const refApi=()=>window.TubeBenderReferenceSceneUi??null;
   const lockApi=()=>window.TubeBenderObjectLocks??null;
   const layerApi=()=>window.TubeBenderLayers??null;
+  const groupsApi=()=>window.TubeBenderGroups??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const entries=()=>ctx()?.selectionEntries?.()??[];
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -107,6 +108,18 @@
             if(value===true)instance.source_visible=true;
           }},
           ...sharedLayerFields(instance)
+        }
+      }:null;
+    }
+    if(entry.kind==="group"){
+      const group=groupsApi()?.groupById?.(entry.groupId);
+      return group?{
+        key:"group:"+String(group.id),
+        entry,
+        object:group,
+        fields:{
+          name:{label:"Имя",type:"text",get:()=>String(group.name??""),set:(value)=>{group.name=String(value??"").trim();}},
+          visible:{label:"Видимый",type:"boolean",get:()=>group.visible!==false,set:(value)=>{group.visible=value===true;}}
         }
       }:null;
     }
@@ -265,6 +278,17 @@
         {name:"Объект",rows},{name:"Родительская труба",rows:commonTubeProps(tube).slice(0,6)}
       ]};
     }
+    if(entry.kind==="group"){
+      const group=groupsApi()?.groupById?.(entry.groupId);
+      const descendants=group?groupsApi()?.domain?.groupDescendantIds?.(p,group.id)??[]:[];
+      return {title:group?.name??"Group",kind:"group",groups:[
+        {name:"Group",rows:[
+          ["ID",group?.id],["Имя",group?.name],["Members",group?.members?.length??0],
+          ["Nested groups",descendants.length],["Visible",group?.visible!==false],["Lock",lockLabelForEntry(entry)]
+        ]},
+        {name:"Семантика",rows:[["Тип","Logical Group"],["Geometry merged",false],["Dependencies preserved",true]]}
+      ]};
+    }
     if(entry.kind==="assembly"||entry.kind==="assembly-part"){
       return {title:entry.kind==="assembly"?"Assembly":"Assembly Part",kind:entry.kind,groups:[{name:"Связь",rows:[
         ["Assembly ID",entry.assemblyId],["Part",entry.part??entry.partId],["Tube ID",entry.tubeId],["Row",entry.rowIndex]
@@ -345,6 +369,7 @@
     window.addEventListener("tubebender-selection-change",()=>render(true));
     window.addEventListener("tubebender-lock-change",()=>render(true));
     window.addEventListener("tubebender-layer-change",()=>render(true));
+    window.addEventListener("tubebender-group-change",()=>render(true));
     window.addEventListener("tubebender-snap-change",()=>{if(panel?.classList.contains("open"))render(false);});
     window.TubeBenderProperties=Object.freeze({open,close,refresh:()=>render(true),snapshot,describe,editableTargets,commonEditableFields,applyCommonProperty});
   }
