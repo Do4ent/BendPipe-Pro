@@ -43,6 +43,7 @@ export function formatNumericInput(value,{decimal_separator="auto",locale=null,m
 }
 function normalizeDecimal(text){return String(text??"").trim().replace(/(\d),(\d)/g,"$1.$2");}
 function replaceUnits(expr,kind){
+  if(kind==="scalar")return expr;
   const units=kind==="angle"?ANGLE_UNITS:LENGTH_UNITS;
   return expr.replace(/(\d+(?:\.\d+)?)(?:\s*)(mm|cm|inch|in|m|deg|rad|°)/gi,(_m,num,unit)=>{
     const key=String(unit).toLowerCase(),factor=units[key]??units[unit];
