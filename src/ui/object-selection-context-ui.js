@@ -655,7 +655,10 @@
 
   function canMoveSelection(){
     const entries=selectionEntries();
-    return entries.length>0&&entries.every((entry)=>{
+    if(!entries.length)return false;
+    const groups=entries.filter(entry=>entry.kind==="group");
+    if(groups.length)return groups.length===entries.length;
+    return entries.every((entry)=>{
       if(entry.kind==="ref"||entry.kind==="mesh-instance")return true;
       if(entry.kind!=="tube")return false;
       const tube=tubeById(entry.tubeId);
@@ -1013,6 +1016,9 @@
     const entries=selectionEntries();
     if(!entries.length||!canMoveSelection())return false;
     if(!lockAllowed("move"))return false;
+    if(entries.every(entry=>entry.kind==="group")){
+      return groupsApi()?.moveGroups?.(entries.map(entry=>entry.groupId),delta)??false;
+    }
     const p=project();
     if(!p)return false;
 
