@@ -64,3 +64,19 @@ test("question 54: all suitable snap candidates are visible and active virtual t
   assert.match(code,/setSnapOptions/);
   assert.match(code,/through_snap:snapOptions\.through_snap/);
 });
+
+
+test("question 83: contextual Tangent and Perpendicular candidates use acquired anchor and all solutions",()=>{
+  assert.match(code,/function contextualGeometryCandidates\(event\)/);
+  assert.match(code,/perpendicularSnapCandidate/);
+  assert.match(code,/tangentSnapCandidates/);
+  assert.match(code,/perpendicularCircleSnapCandidates/);
+  assert.match(code,/source_anchor:clone\(anchorRef\.candidate\)/);
+  assert.match(code,/contextual_types:\["LineAxis","Intersection","Tangent","Perpendicular"\]/);
+});
+
+test("question 83: existing Tab cycling applies to Tangent and Perpendicular ranked solutions",()=>{
+  assert.match(code,/const all=\[\.\.\.sourceCandidates,\.\.\.virtual,\.\.\.contextual\]/);
+  assert.match(code,/rankedCandidates=Array\.from/);
+  assert.match(code,/cycle\(event\.shiftKey\?-1:1\)/);
+});
