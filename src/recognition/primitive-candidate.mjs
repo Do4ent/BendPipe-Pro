@@ -44,11 +44,17 @@ function lineFit(points){
 export function recognizeSinglePrimitiveCandidate(
   points,
   {
-    line_tolerance_mm=0.1,
-    arc_radial_tolerance_mm=0.1,
-    arc_plane_tolerance_mm=0.1
+    line_tolerance_mm=null,
+    arc_radial_tolerance_mm=null,
+    arc_plane_tolerance_mm=null,
+    tolerance_profile=null,
+    evidence=[]
   }={}
 ){
+  const profile=tolerance_profile&&typeof tolerance_profile==="object"?tolerance_profile:{};
+  line_tolerance_mm=line_tolerance_mm==null?Number(profile.linear_tolerance_mm??0.1):Number(line_tolerance_mm);
+  arc_radial_tolerance_mm=arc_radial_tolerance_mm==null?Number(profile.circle_arc_fit_tolerance_mm??0.1):Number(arc_radial_tolerance_mm);
+  arc_plane_tolerance_mm=arc_plane_tolerance_mm==null?Number(profile.coplanar_tolerance_mm??profile.circle_arc_fit_tolerance_mm??0.1):Number(arc_plane_tolerance_mm);
   if(!Array.isArray(points))throw new TypeError("points must be an array");
   const src=points.map(p3);
 
@@ -71,12 +77,19 @@ export function recognizeSinglePrimitiveCandidate(
       primitive:Object.freeze({
         type:"LINE",
         truth_category:"inferred",
+        geometry_status:"Fitted",
+        fitting_error:Object.freeze({mm:line.maxError,deg:0}),
+        confidence:clamp(1-(line_tolerance_mm>0?line.maxError/line_tolerance_mm:0),0,1),
+        evidence:Object.freeze((Array.isArray(evidence)?evidence:[evidence]).filter(Boolean).map(item=>
+          item&&typeof item==="object"?Object.freeze(structuredClone(item)):String(item)
+        )),
         start:freezePoint(line.start),
         end:freezePoint(line.end),
         direction:freezePoint(direction.map(v=>v/l)),
         length_mm:line.length,
         max_fit_error_mm:line.maxError,
         tolerance_mm:line_tolerance_mm,
+        tolerance_profile:tolerance_profile?Object.freeze(structuredClone(profile)):null,
         reason:"One straight primitive fits all ordered polyline points within explicit tolerance; canonical acceptance is still required."
       })
     });
@@ -85,7 +98,9 @@ export function recognizeSinglePrimitiveCandidate(
   if(src.length>=3){
     const arc=fitCircularArcCandidate(src,{
       radial_tolerance_mm:arc_radial_tolerance_mm,
-      plane_tolerance_mm:arc_plane_tolerance_mm
+      plane_tolerance_mm:arc_plane_tolerance_mm,
+      tolerance_profile:profile,
+      evidence
     });
     if(arc.accepted_candidate){
       return Object.freeze({
@@ -94,6 +109,11 @@ export function recognizeSinglePrimitiveCandidate(
         primitive:Object.freeze({
           type:"BEND",
           truth_category:"inferred",
+          geometry_status:arc.geometry_status??"Fitted",
+          fitting_error:arc.fitting_error??Object.freeze({mm:Math.max(arc.max_radial_error_mm??0,arc.max_plane_error_mm??0),deg:0}),
+          confidence:arc.confidence??1,
+          evidence:arc.evidence??Object.freeze([]),
+          tolerance_profile:tolerance_profile?Object.freeze(structuredClone(profile)):null,
           center:arc.center,
           plane_normal:arc.plane_normal,
           start_point:arc.start_point,
