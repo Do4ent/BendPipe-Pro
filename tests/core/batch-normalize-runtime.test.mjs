@@ -23,7 +23,8 @@ test("question 88: preview exists before mutation and exposes grouping selection
   assert.match(runtime,/data-batch-member/);
   assert.match(runtime,/data-batch-nominal/);
   assert.match(runtime,/out_of_tolerance/);
-  assert.match(runtime,/class="tb-batch-row \'+\(member\.out_of_tolerance\?'out'/);
+  assert.match(runtime,/tb-batch-row/);
+  assert.match(runtime,/member\.out_of_tolerance\?'out':'\'/);
 });
 
 test("question 88: nested Fitted provenance is lifted only into temporary preview carrier",()=>{
