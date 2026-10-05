@@ -9,6 +9,7 @@
   const groupsApi=()=>window.TubeBenderGroups??null;
   const normalizeApi=()=>window.TubeBenderNormalizeGeometry??null;
   const assembliesApi=()=>window.TubeBenderAssemblies??null;
+  const arraysApi=()=>window.TubeBenderAssociativeArrays??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const entries=()=>ctx()?.selectionEntries?.()??[];
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -197,6 +198,10 @@
     const normalizable=normalizeApi()?.normalizedTargets?.()??[];
     const selectedObjects=normalizeApi()?.selectedTargets?.()??[];
     const normalized=selectedObjects.map(target=>target.object).filter(object=>object?.normalization_provenance?.operation==="FittedToExact");
+    const arrayDefs=[...new Map(targets.map(target=>arrayDefinitionForTube(target.object)).filter(Boolean).map(def=>[String(def.id),def])).values()];
+    const arrayAction=arrayDefs.length===1
+      ?'<div class="tb-prop-edit-row"><label>Associative Array</label><span><button data-property-edit-array>Edit Array / formulas / grips</button></span></div>'
+      :'';
     const normalizeActions=(normalizable.length||normalized.length===1)
       ?'<div class="tb-prop-edit-row"><label>Geometry</label><span>'+
         (normalizable.length?'<button data-property-normalize>Fitted → Exact</button>':'')+
@@ -205,6 +210,7 @@
       :'';
     return '<div class="tb-prop-edit-card"><div class="tb-prop-edit-title">Редактирование'+(count>1?' · '+count+' объектов':'')+' <span class="tb-prop-kind">· '+lockSummary+'</span></div>'+
       normalizeActions+
+      arrayAction+
       '<div class="tb-prop-edit-row"><label>Lock</label><span><button data-property-lock="Object">🔒 Object</button><button data-property-lock="Position">📍 Position</button><button data-property-lock="Unlocked">🔓 Unlock</button></span></div>'+
       fields.map(field=>{
         if(field.type==="boolean"){
@@ -220,6 +226,7 @@
   }
   function bindEditableFields(){
     if(!panel)return;
+    panel.querySelector("[data-property-edit-array]")?.addEventListener("click",()=>window.TubeBenderEditing?.open?.("array"));
     panel.querySelector("[data-property-normalize]")?.addEventListener("click",()=>{normalizeApi()?.normalizeSelected?.();render(true);});
     panel.querySelector("[data-property-compare-normalized]")?.addEventListener("click",()=>{
       const target=(normalizeApi()?.selectedTargets?.()??[]).find(item=>item.object?.normalization_provenance?.operation==="FittedToExact");
@@ -276,6 +283,29 @@
     return String(anchor.assembly_id)+" · local ("+
       [p.x,p.y,p.z].map(value=>Number(value).toFixed(3)).join(", ")+")";
   }
+  function arrayDefinitionForTube(tube){
+    if(!tube)return null;
+    const api=arraysApi(),memberId=tube?.array_member?.array_id;
+    if(memberId)return api?.definitionById?.(memberId)??null;
+    const defs=(api?.definitions?.()??[]).filter(def=>(def.source_tube_ids??[]).some(id=>String(id)===String(tube.id)));
+    return defs.length===1?defs[0]:null;
+  }
+  function arrayRoleForTube(tube,def){
+    if(!tube||!def)return null;
+    if(String(tube?.array_member?.array_id??"")===String(def.id))return "Derived member #"+String(tube.array_member.member_index??"?");
+    if((def.source_tube_ids??[]).some(id=>String(id)===String(tube.id)))return "Source";
+    return null;
+  }
+  function arrayDetailsRows(tube){
+    const def=arrayDefinitionForTube(tube);if(!def)return [];
+    let evaluated=null;
+    try{evaluated=arraysApi()?.evaluatedParameters?.(def,project())??null;}
+    catch(error){evaluated={error:String(error?.message??error)};}
+    return [
+      ["Array",def.name??def.id],["Array ID",def.id],["Array type",def.type],["Array role",arrayRoleForTube(tube,def)],
+      ["Array status",def.status],["Evaluated parameters",evaluated],["Formulas",def.parameter_formulas??{}]
+    ].filter(row=>row[1]!=null);
+  }
   function commonTubeProps(tube){
     if(!tube)return [];
     return [
@@ -310,9 +340,11 @@
     if(!entry)return {title:"Неизвестный объект",kind:"unknown",groups:[]};
     if(entry.kind==="tube"){
       const tube=findTube(entry.tubeId);
+      const arrayRows=arrayDetailsRows(tube);
       return {title:tube?.name??"Tube",kind:"tube",groups:[
         {name:"Общие",rows:commonTubeProps(tube)},
-        {name:"Геометрия",rows:[["Элементов",tube?.rows?.length??0],["CLR bends",(tube?.rows??[]).filter(r=>r?.type==="BEND").length]]}
+        {name:"Геометрия",rows:[["Элементов",tube?.rows?.length??0],["CLR bends",(tube?.rows??[]).filter(r=>r?.type==="BEND").length]]},
+        ...(arrayRows.length?[{name:"Associative Array",rows:arrayRows}]:[])
       ]};
     }
     if(["row","origin","end"].includes(entry.kind)){
@@ -442,6 +474,7 @@
     window.addEventListener("tubebender-assembly-change",()=>render(true));
     window.addEventListener("tubebender-assembly-edit-change",()=>render(true));
     window.addEventListener("tubebender-snap-change",()=>{if(panel?.classList.contains("open"))render(false);});
+    window.addEventListener("tubebender-array-change",()=>render(true));
     window.TubeBenderProperties=Object.freeze({open,close,refresh:()=>render(true),snapshot,describe,editableTargets,commonEditableFields,applyCommonProperty});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
