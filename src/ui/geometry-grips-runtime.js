@@ -5,6 +5,7 @@
   const ctx=()=>window.TubeBenderObjectContext??null;
   const snap=()=>window.TubeBenderSnapTracking??null;
   const screenSpace=()=>window.TubeBenderScreenSpace??null;
+  const interaction=()=>window.TubeBenderInteractionPriority??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const entries=()=>ctx()?.selectionEntries?.()??[];
   const canvas=()=>document.getElementById("threeCanvas");
@@ -367,12 +368,18 @@
     if(handle.readOnly||!handle.edit){toast(handle.label+": опорный grip; редактирование этой точки неоднозначно");return false;}
     if(!canEdit(selection))return false;
     snap()?.startCommand?.("geometry-grip",{ortho:handle.edit==="line-length"||handle.edit==="line-mid-length",polar:String(handle.edit).startsWith("bend-")});
-    drag={handle,selectionKey:{tubeId:String(selection.tube.id),rowIndex:selection.rowIndex},patch:null};
+    drag={handle,selectionKey:{tubeId:String(selection.tube.id),rowIndex:selection.rowIndex},patch:null,started:false,pointerStart:{x:event.clientX,y:event.clientY,pointerType:event.pointerType}};
     try{if(controls)controls.enabled=false;}catch{}
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();return true;
   }
   function update(event){
-    if(!drag)return false;const selection=selectedGeometry();if(!selection||String(selection.tube.id)!==drag.selectionKey.tubeId)return false;
+    if(!drag)return false;
+    if(!drag.started){
+      const ready=interaction()?.movementExceeded?.(drag.pointerStart,event)??Math.hypot(Number(event.clientX)-Number(drag.pointerStart.x),Number(event.clientY)-Number(drag.pointerStart.y))>4;
+      if(!ready){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();return true;}
+      drag.started=true;
+    }
+    const selection=selectedGeometry();if(!selection||String(selection.tube.id)!==drag.selectionKey.tubeId)return false;
     const p=currentPointerPoint(event,drag.handle),patch=patchFromPoint(selection,drag.handle,p);if(!patch)return false;
     drag.patch=patch;renderPreview(selection,drag.handle,patch);setPanelPreview(drag.handle,patch);
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();return true;
@@ -427,7 +434,7 @@
   }
   function finish(event,{cancel=false}={}){
     if(!drag)return false;const state=drag;drag=null;clearPreview();snap()?.endCommand?.();try{if(controls)controls.enabled=true;}catch{}
-    const selection=selectedGeometry();let ok=true;if(!cancel&&selection&&state.patch)ok=commitPatch(selection,state.handle,state.patch,{label:"3D Geometry grip"});
+    const selection=selectedGeometry();let ok=true;if(!cancel&&state.started&&selection&&state.patch)ok=commitPatch(selection,state.handle,state.patch,{label:"3D Geometry grip"});
     suppressUntil=Date.now()+120;rebuild();event?.preventDefault?.();event?.stopPropagation?.();event?.stopImmediatePropagation?.();return ok;
   }
   function exactPatch(selection,handle,raw){
