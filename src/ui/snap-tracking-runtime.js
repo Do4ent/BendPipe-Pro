@@ -140,16 +140,51 @@
     return rays;
   }
 
+  function currentWorkingPlane(){
+    let p=null;try{p=window.TubeBenderEngineering?.activeProject?.()??null;}catch{}
+    const plane=p?.working_plane??p?.workingPlane??null;
+    const point=plane?.point??plane?.origin??{x:0,y:0,z:0};
+    const normal=plane?.normal??{x:0,y:0,z:1};
+    return {point:{x:Number(point.x)||0,y:Number(point.y)||0,z:Number(point.z)||0},normal:{x:Number(normal.x)||0,y:Number(normal.y)||0,z:Number(normal.z)||1}};
+  }
   function contextualGeometryCandidates(event){
     if(!acquired.length||!snap)return [];
     const anchorRef=acquired.find(ref=>ref.pinned===true)??acquired[0];
     const sourcePoint=anchorRef?.candidate?.point;
     if(!sourcePoint)return [];
+    const sourcePrimitive=anchorRef?.candidate?.metadata?.primitive??null;
     const out=[];
     for(const candidate of sourceCandidates){
       const primitive=candidate?.metadata?.primitive;
       if(!primitive)continue;
       if(primitive.kind==="segment"&&primitive.start&&primitive.direction){
+        if(sourcePrimitive?.kind==="segment"&&sourcePrimitive.start&&sourcePrimitive.direction&&String(candidate.id)!==String(anchorRef?.candidate?.id)){
+          try{
+            const relationCandidates=snap.lineLineIntersectionCandidates({
+              lineA:{point:sourcePrimitive.start,direction:sourcePrimitive.direction},
+              lineB:{point:primitive.start,direction:primitive.direction},
+              working_plane:currentWorkingPlane(),
+              object_id:String(anchorRef?.candidate?.object_id??"lineA")+"|"+String(candidate.object_id??"lineB"),
+              source:candidate.source,
+              tolerance_mm:.01,
+              include_projected:true,
+              include_closest:true
+            });
+            for(const hit of relationCandidates){
+              out.push({
+                ...hit,
+                screen_distance_px:worldToScreenDistance(new THREE.Vector3(hit.point.x,hit.point.y,hit.point.z),event),
+                metadata:{
+                  ...hit.metadata,
+                  source_anchor:clone(anchorRef.candidate),
+                  target_candidate_id:candidate.id,
+                  target_subentity_id:candidate.subentity_id??null,
+                  working_plane:currentWorkingPlane()
+                }
+              });
+            }
+          }catch{}
+        }
         try{
           const hit=snap.perpendicularSnapCandidate({
             point:sourcePoint,
