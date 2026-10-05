@@ -10,6 +10,7 @@
   const api=()=>window.TubeBenderEngineering??null;
   const context=()=>window.TubeBenderObjectContext??null;
   const snapTracking=()=>window.TubeBenderSnapTracking??null;
+  const assembliesApi=()=>window.TubeBenderAssemblies??null;
   const project=()=>{try{return api()?.activeProject?.()??null;}catch{return null;}};
   const readonly=()=>{try{return api()?.readonly?.()===true;}catch{return false;}};
   const toast=(m)=>{try{api()?.toast?.(String(m??""));}catch{}};
@@ -59,29 +60,57 @@
   function selectionSignature(entries=selectionEntries()){
     return JSON.stringify(entries.map((e)=>({kind:e.kind,tubeId:e.tubeId,rowIndex:e.rowIndex,assemblyId:e.assemblyId})));
   }
+  function referenceAssemblyContext(objectId,worldPoint=null){
+    return assembliesApi()?.contextForObjectId?.(objectId,worldPoint)??{
+      space:"project",assembly_id:null,assembly_path:[],local_point_mm:worldPoint?clone(worldPoint):null,world_point_mm:worldPoint?clone(worldPoint):null
+    };
+  }
+  function enrichReference(ref,worldPoint=null){
+    const context=ref?.assembly_context??referenceAssemblyContext(ref?.object_id,worldPoint);
+    return {...clone(ref),assembly_context:clone(context),cross_assembly:ref?.cross_assembly===true};
+  }
+  function decorateMeasurementResult(result){
+    if(!result?.ok)return result;
+    const refs=(result.references??[]).map(ref=>enrichReference(ref));
+    const relation=assembliesApi()?.crossAssemblyForContexts?.(refs.map(ref=>ref.assembly_context))??{
+      cross_assembly:false,relation_space:"Project",assembly_ids:[],contexts:refs.map(ref=>ref.assembly_context)
+    };
+    const marked=refs.map(ref=>({...ref,cross_assembly:relation.cross_assembly===true}));
+    return {
+      ...result,
+      references:marked,
+      cross_assembly:clone(relation),
+      title:String(result.title??"")+(relation.cross_assembly?" · ↔ Cross-Assembly":"")
+    };
+  }
+
   function refFromEntry(entry){
     if(entry.kind==="row"){
       const row=rowFor(entry);
-      return {
+      const ref={
         object_id:String(entry.tubeId),
         subentity_id:String(row?.elementId??("row:"+entry.rowIndex)),
         snap_type:row?.type==="LINE"?"Line/Axis":"Tangent",
         role:"measurement"
       };
+      return enrichReference(ref);
     }
     if(entry.kind==="tube"){
-      return {object_id:String(entry.tubeId),subentity_id:null,snap_type:null,role:"measurement"};
+      return enrichReference({object_id:String(entry.tubeId),subentity_id:null,snap_type:null,role:"measurement"});
     }
-    return {object_id:String(entry.tubeId??entry.sceneId??"unknown"),subentity_id:null,snap_type:null,role:"measurement"};
+    return enrichReference({object_id:String(entry.tubeId??entry.sceneId??"unknown"),subentity_id:null,snap_type:null,role:"measurement"});
   }
 
   function snapReference(candidate,role){
-    return {
+    const point=candidate?.point??null;
+    return enrichReference({
       object_id:String(candidate?.object_id??"snap"),
       subentity_id:candidate?.subentity_id==null?String(candidate?.id??"point"):String(candidate.subentity_id),
       snap_type:candidate?.type==null?null:String(candidate.type),
-      role:String(role??"measurement")
-    };
+      role:String(role??"measurement"),
+      assembly_context:clone(candidate?.metadata?.assembly_context??null),
+      cross_assembly:candidate?.metadata?.cross_assembly===true
+    },point);
   }
   function quickPoint(candidate){
     const p=candidate?.point;
@@ -171,7 +200,7 @@
     const pointValue=quickPoint(candidate);
     if(!pointValue){toast("Нет активной Snap-точки");return false;}
     quick.points.push({point:pointValue,candidate:clone(candidate)});
-    quick.result=buildQuickSegment();
+    quick.result=decorateMeasurementResult(buildQuickSegment());
     renderQuickPreview();render();
     return true;
   }
@@ -364,7 +393,7 @@
       '<tr><td>'+esc(name)+'</td><td><b>'+esc(formatted(value,unit))+'</b></td></tr>'
     ).join("");
     body.innerHTML=
-      '<div class="tb-measure-title">'+esc(result.title)+'</div>'+
+      '<div class="tb-measure-title">'+esc(result.title)+(result.cross_assembly?.cross_assembly?' <span title="Межсборочная связь">↔ Cross-Assembly</span>':'')+'</div>'+
       '<div class="tb-measure-value">'+esc(formatted(result.primary_value,result.primary_unit))+'</div>'+
       '<table class="tb-measure-table">'+rows+'</table>'+
       '<div class="tb-measure-note" style="margin-top:8px">Formula: <span class="tb-result-formula">MEASURE'+
@@ -443,6 +472,7 @@
       mode:"Reference",
       references:lastResult.references,
       value:lastResult.primary_value,
+      cross_assembly:clone(lastResult.cross_assembly??null),
       status:"Valid",
       format:{
         length_decimals:s.length_decimals,
@@ -463,7 +493,7 @@
   function render(){
     if(!panel||!geometry||!dimensions)return;
     const body=$(".tb-measure-body",panel),entries=selectionEntries();
-    const result=quick.active&&quick.result?quick.result:buildMeasurement(entries);
+    const result=quick.active&&quick.result?quick.result:decorateMeasurementResult(buildMeasurement(entries));
     lastResult=result;
     renderResultsPanel(result);
     const s=settings();
@@ -481,7 +511,7 @@
         settingsHtml(s,count);
     }else{
       const rows=result.details.map(([name,value,unit])=>'<tr><td>'+esc(name)+'</td><td><b>'+esc(formatted(value,unit))+'</b></td></tr>').join("");
-      body.innerHTML=quickHtml+'<div class="tb-measure-result"><div class="tb-measure-title">'+esc(result.title)+'</div><div class="tb-measure-value">'+esc(formatted(result.primary_value,result.primary_unit))+'</div><table class="tb-measure-table">'+rows+'</table>'+
+      body.innerHTML=quickHtml+'<div class="tb-measure-result"><div class="tb-measure-title">'+esc(result.title)+(result.cross_assembly?.cross_assembly?' <span title="Межсборочная связь">↔ Cross-Assembly</span>':'')+'</div><div class="tb-measure-value">'+esc(formatted(result.primary_value,result.primary_unit))+'</div><table class="tb-measure-table">'+rows+'</table>'+
         '<div class="tb-measure-actions"><button data-save-dimension>Сохранить как размер</button></div></div>'+settingsHtml(s,count);
       $("[data-save-dimension]",body).onclick=saveCurrentDimension;
     }
