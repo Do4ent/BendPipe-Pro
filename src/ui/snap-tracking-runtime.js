@@ -10,6 +10,9 @@
   let snapOptions={through_snap:false};
 
   const context=()=>window.TubeBenderObjectContext??null;
+  const toleranceApi=()=>window.TubeBenderToleranceProfile??null;
+  const toleranceProfile=()=>toleranceApi()?.profile?.()??null;
+  const snapSettings=(base={})=>toleranceApi()?.snapSettings?.(base)??base;
   const now=()=>globalThis.performance?.now?.()??Date.now();
   const clone=(v)=>v==null?v:structuredClone(v);
   const canvas=()=>document.getElementById("threeCanvas");
@@ -88,7 +91,7 @@
   }
 
   function pointerWorldPoint(event){
-    const direct=snap?.selectBestSnapCandidate?.(sourceCandidates);
+    const direct=snap?.selectBestSnapCandidate?.(sourceCandidates,snapSettings());
     if(direct?.point)return clone(direct.point);
     if(!event||!acquired.length||typeof THREE==="undefined"||typeof camera==="undefined")return lastCursor;
     const c=canvas(),rect=c?.getBoundingClientRect?.();
@@ -166,7 +169,7 @@
               working_plane:currentWorkingPlane(),
               object_id:String(anchorRef?.candidate?.object_id??"lineA")+"|"+String(candidate.object_id??"lineB"),
               source:candidate.source,
-              tolerance_mm:.01,
+              tolerance_mm:Number(toleranceProfile()?.linear_tolerance_mm??0.01),
               include_projected:true,
               include_closest:true
             });
@@ -252,7 +255,7 @@
       out.push({...base,screen_distance_px:worldToScreenDistance(base.point,event)});
     }
     for(let i=0;i<rays.length;i++)for(let j=i+1;j<rays.length;j++){
-      const hit=snap.intersectObjectSnapTrackingRays(rays[i],rays[j],{tolerance_mm:0.01,object_id:"tracking-"+i+"-"+j});
+      const hit=snap.intersectObjectSnapTrackingRays(rays[i],rays[j],{tolerance_mm:Number(toleranceProfile()?.linear_tolerance_mm??0.01),object_id:"tracking-"+i+"-"+j});
       if(hit)out.push({...hit,screen_distance_px:worldToScreenDistance(hit.point,event)});
     }
     return out;
@@ -331,10 +334,10 @@
     const virtual=trackingCandidates(lastCursor,lastPointer);
     const contextual=contextualGeometryCandidates(lastPointer);
     const all=[...sourceCandidates,...virtual,...contextual];
-    rankedCandidates=Array.from(snap?.rankSnapCandidates?.(all,{through_snap:snapOptions.through_snap}, {contextual_types:["LineAxis","Intersection","Tangent","Perpendicular"],through_snap:snapOptions.through_snap})??[]);
+    rankedCandidates=Array.from(snap?.rankSnapCandidates?.(all,snapSettings({through_snap:snapOptions.through_snap}), {contextual_types:["LineAxis","Intersection","Tangent","Perpendicular"],through_snap:snapOptions.through_snap})??[]);
     const previousId=current?.id;
     current=rankedCandidates.find((c)=>String(c.id)===String(previousId))??rankedCandidates[0]??null;
-    const direct=snap?.selectBestSnapCandidate?.(sourceCandidates)??null;
+    const direct=snap?.selectBestSnapCandidate?.(sourceCandidates,snapSettings())??null;
     scheduleHoverAcquire(direct);
     renderHelpers(lastCursor);renderHud();dispatch();
     return current;
@@ -349,7 +352,7 @@
 
   function cycle(direction=1){
     if(!active||rankedCandidates.length<2)return current;
-    current=snap.cycleSnapCandidate(rankedCandidates,current?.id,direction,{through_snap:snapOptions.through_snap}, {contextual_types:["LineAxis","Intersection"],through_snap:snapOptions.through_snap})??current;
+    current=snap.cycleSnapCandidate(rankedCandidates,current?.id,direction,snapSettings({through_snap:snapOptions.through_snap}), {contextual_types:["LineAxis","Intersection"],through_snap:snapOptions.through_snap})??current;
     renderHelpers(lastCursor);renderHud();dispatch();
     return current;
   }
@@ -427,6 +430,7 @@
     try{snap=await import(SNAP_ENGINE_URL);}catch(error){console.error("Snap Tracking runtime failed to load",error);return;}
     ensureHud();
     canvas()?.addEventListener("pointermove",onPointerMove,true);
+    window.addEventListener("tubebender-tolerance-change",()=>{if(active)rebuild(lastCursor,lastPointer);});
     window.addEventListener("keydown",onKeyDown,true);
     window.TubeBenderSnapTracking=Object.freeze({
       startCommand,endCommand,setCandidates,setTrackingModes,setSnapOptions,cycle,pinCurrent,clearReferences,
