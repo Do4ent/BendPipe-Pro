@@ -35,7 +35,7 @@ test("question 92: Group Copy uses the same explicit policy",()=>{
   assert.match(groups,/COPY_DEPENDENCIES_URL/);
   assert.match(groups,/groupCopyChoice/);
   assert.match(groups,/data-group-external-policy/);
-  assert.match(groups,/external_policy:null/);
+  assert.match(groups,/external_policy=null/);
   assert.match(groups,/applyCopyDependencyPolicy/);
   assert.match(groups,/remapTubeDependencies/);
 });
