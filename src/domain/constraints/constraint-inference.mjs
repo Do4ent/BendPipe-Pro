@@ -62,13 +62,13 @@ export function inferConstraintSuggestions({
       if(pa&&pb){
         const d=dist(pa,pb);
         if(d<=t.point_mm)add(suggestion("Coincident",[refs[i],refs[j]],1-d/Math.max(t.point_mm,1e-12),{distance_mm:d}));
-        const ca=center(a),cb=center(b),ra=radius(a),rb=radius(b);
-        if(ca&&cb&&ra!=null&&rb!=null){
-          const cd=dist(ca,cb);
-          if(cd<=t.point_mm)add(suggestion("Concentric",[refs[i],refs[j]],1-cd/Math.max(t.point_mm,1e-12),{center_distance_mm:cd}));
-          const tangentError=Math.min(Math.abs(cd-(ra+rb)),Math.abs(cd-Math.abs(ra-rb)));
-          if(tangentError<=t.tangent_mm)add(suggestion("Tangent",[refs[i],refs[j]],1-tangentError/Math.max(t.tangent_mm,1e-12),{tangent_error_mm:tangentError}));
-        }
+      }
+      const ca=center(a),cb=center(b),ra=radius(a),rb=radius(b);
+      if(ca&&cb&&ra!=null&&rb!=null){
+        const cd=dist(ca,cb);
+        if(cd<=t.point_mm)add(suggestion("Concentric",[refs[i],refs[j]],1-cd/Math.max(t.point_mm,1e-12),{center_distance_mm:cd}));
+        const tangentError=Math.min(Math.abs(cd-(ra+rb)),Math.abs(cd-Math.abs(ra-rb)));
+        if(tangentError<=t.tangent_mm)add(suggestion("Tangent",[refs[i],refs[j]],1-tangentError/Math.max(t.tangent_mm,1e-12),{tangent_error_mm:tangentError}));
       }
       if(da&&db){
         const pe=parallelError(da,db);
