@@ -56,7 +56,8 @@ test("question 87: normalized Exact geometry no longer triggers Fitted driving w
     fitted_geometry:fitted,
     exact_geometry:{geometry_status:"Exact",value:10}
   }).exact_geometry;
-  assert.equal(isFittedGeometry(normalized),true,"provenance intentionally contains Fitted snapshot");
+  assert.equal(isFittedGeometry(normalized),false,"normalized Exact is authoritative; Fitted snapshot is provenance only");
+  assert.equal(normalized.normalization_provenance.fitted_snapshot.geometry_status,"Fitted");
   const usage=assessFittedGeometryUsage(normalized,"GeometricConstraint");
   assert.equal(usage.has_fitted_geometry,false);
   assert.equal(usage.requires_confirmation,false);
