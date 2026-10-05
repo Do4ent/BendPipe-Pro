@@ -76,6 +76,7 @@
   function assembliesApi(){return window.TubeBenderAssemblies??null;}
   function layerApi(){return window.TubeBenderLayers??null;}
   function lockApi(){return window.TubeBenderObjectLocks??null;}
+  function deleteDependencyApi(){return window.TubeBenderDeleteDependencies??null;}
   function lockAllowed(action,{notify=true}={}){
     const api=lockApi();
     return typeof api?.canSelection==="function"?api.canSelection(action,{notify}):true;
