@@ -239,6 +239,61 @@
     if(ref.kind==="assembly")return assemblyById(ref.id);
     return null;
   }
+  function refForObjectId(objectId){
+    const id=String(objectId??"");
+    if(!id)return null;
+    if(tubeById(id))return {kind:"tube",id};
+    if(meshById(id))return {kind:"mesh-instance",id};
+    if((project()?.construction_geometry??[]).some(item=>String(item?.id)===id))return {kind:"construction",id};
+    if((project()?.engineering_dimensions??[]).some(item=>String(item?.id)===id))return {kind:"dimension",id};
+    if(assemblyById(id))return {kind:"assembly",id};
+    return null;
+  }
+  function contextForRef(ref,worldPoint=null){
+    if(!ref)return assemblies.crossAssemblyMetadata([]).contexts?.[0]??{
+      space:"project",assembly_id:null,assembly_path:[],local_point_mm:worldPoint?clone(worldPoint):null,world_point_mm:worldPoint?clone(worldPoint):null
+    };
+    return assemblies.assemblyContextForMember(project(),ref,{world_point:worldPoint});
+  }
+  function contextForObjectId(objectId,worldPoint=null){
+    const ref=refForObjectId(objectId);
+    if(ref)return contextForRef(ref,worldPoint);
+    const point=worldPoint&&[worldPoint.x,worldPoint.y,worldPoint.z].every(Number.isFinite)?clone(worldPoint):null;
+    return {space:"project",assembly_id:null,assembly_path:[],local_point_mm:point,world_point_mm:point};
+  }
+  function crossAssemblyForContexts(contexts){return assemblies.crossAssemblyMetadata(contexts);}
+  function decorateAssociativeReferences(references=[]){
+    const refs=(references??[]).map(ref=>{
+      const point=ref?.point??ref?.world_point_mm??null;
+      const context=ref?.assembly_context??contextForObjectId(ref?.object_id,point);
+      return {...clone(ref),assembly_context:clone(context)};
+    });
+    const relation=assemblies.crossAssemblyMetadata(refs.map(ref=>ref.assembly_context));
+    return {references:refs,cross_assembly:relation};
+  }
+  function registerCrossAssemblyLink({id=null,type="Associative",references=[],payload={}}={}){
+    const p=project();if(!p)throw new Error("No active project");
+    const decorated=decorateAssociativeReferences(references);
+    const link={
+      id:String(id??("cross-link-"+(globalThis.crypto?.randomUUID?.()??Date.now().toString(36)))),
+      type:String(type),
+      references:decorated.references,
+      cross_assembly:decorated.cross_assembly,
+      payload:clone(payload),
+      status:"Valid"
+    };
+    const mutate=()=>{
+      if(!Array.isArray(p.cross_assembly_links))p.cross_assembly_links=[];
+      const index=p.cross_assembly_links.findIndex(item=>String(item?.id)===String(link.id));
+      if(index>=0)p.cross_assembly_links[index]=clone(link);else p.cross_assembly_links.push(clone(link));
+      return true;
+    };
+    const ok=eng()?.modelCommand?eng().modelCommand("Сохранить межсборочную связь",mutate):mutate();
+    if(ok===false)return false;
+    try{eng()?.save?.();}catch{}
+    return clone(link);
+  }
+
   function tubeDirection(tube){
     if(tube?.startVector&&[tube.startVector.x,tube.startVector.y,tube.startVector.z].every(Number.isFinite))return clone(tube.startVector);
     if(tube?.startAxis==="Y")return {x:0,y:1,z:0};
@@ -834,6 +889,7 @@
       enterEdit,exitEdit,exitAllEdit,editing,activeEditAssembly,breadcrumb,resolveInteraction,assemblyForEditEntry,
       renderTree,renderPanel,applyVisibility,applyEditContext,assemblyById,parentAssemblyForEntry,containingAssembliesForEntry,
       directTubeAssembly,syncTubePortConstraints,captureTubeEndConstraint,resolveTubeEndConstraintTarget,clearTubePortConstraint,
+      refForObjectId,contextForRef,contextForObjectId,crossAssemblyForContexts,decorateAssociativeReferences,registerCrossAssemblyLink,
       permissionForEntry,canSelection,domain:assemblies
     });
   }
