@@ -1,5 +1,5 @@
 const clone=v=>v==null?v:structuredClone(v);
-const DIRECT_KEYS=new Set(["ownerObjectId","externalRefId","external_ref_id"]);
+const DIRECT_KEYS=new Set(["ownerObjectId","externalRefId","external_ref_id","sourceGeometryId","editableGeometryId","source_geometry_id","editable_geometry_id"]);
 function refValue(value){return typeof value==="string"&&value.trim()?value.trim():null;}
 function walk(value,path,out){
   if(!value||typeof value!=="object")return;
