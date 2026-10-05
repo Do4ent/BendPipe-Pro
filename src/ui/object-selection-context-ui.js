@@ -846,6 +846,8 @@
       '<button type="button" data-object-action="break-mesh-link">⛓̸ <span>Разорвать Source Link</span></button>'+
       '<button type="button" class="anchor-end" data-object-action="anchor-end">⚓ <span>Зафиксировать</span></button>'+
       '<button type="button" class="diagnose" data-object-action="diagnose">? <span>Что не правильно?</span></button>'+
+      '<button type="button" data-object-action="normalize-geometry">◎ <span>Fitted → Exact / Normalize</span></button>'+
+      '<button type="button" data-object-action="compare-normalized">⇄ <span>Compare with Fitted</span></button>'+
       '<div class="tb-object-context-separator"></div>'+
       '<button type="button" data-object-action="lock-object">🔒 <span>Lock Object</span></button>'+
       '<button type="button" data-object-action="lock-position">📍 <span>Lock Position</span></button>'+
@@ -863,6 +865,11 @@
       else if(action==="diagnose")openInvalidElementDiagnosis();
       else if(action==="compare-source")toggleMeshSourceCompare();
       else if(action==="break-mesh-link")breakSelectedMeshLinks();
+      else if(action==="normalize-geometry")normalizeApi()?.normalizeSelected?.();
+      else if(action==="compare-normalized"){
+        const target=(normalizeApi()?.selectedTargets?.()??[]).find(item=>item.object?.normalization_provenance?.operation==="FittedToExact");
+        if(target)normalizeApi()?.compareNormalized?.(target.object.id,{visible:!(target.object.normalization_compare?.enabled===true)});
+      }
       else if(action==="lock-object")lockApi()?.lockObject?.();
       else if(action==="lock-position")lockApi()?.lockPosition?.();
       else if(action==="unlock-object")lockApi()?.unlockSelection?.();
@@ -912,6 +919,19 @@
       diagnose.title=diagnosis
         ?diagnosis.issues.join("\n")
         :"Доступно только для некорректного элемента трубы";
+    }
+    const normalizable=normalizeApi()?.normalizedTargets?.()??[];
+    const normalizeButton=menu.querySelector('[data-object-action="normalize-geometry"]');
+    const compareNormalizedButton=menu.querySelector('[data-object-action="compare-normalized"]');
+    const normalizeTargets=normalizeApi()?.selectedTargets?.()??[];
+    const normalizedSelected=normalizeTargets.filter(target=>target.object?.normalization_provenance?.operation==="FittedToExact");
+    if(normalizeButton){
+      normalizeButton.hidden=endSelection||normalizable.length===0;
+      normalizeButton.disabled=normalizable.length===0;
+    }
+    if(compareNormalizedButton){
+      compareNormalizedButton.hidden=endSelection||normalizedSelected.length!==1;
+      compareNormalizedButton.disabled=normalizedSelected.length!==1;
     }
     const meshEntries=entries.filter((entry)=>entry.kind==="mesh-instance");
     const compareSource=menu.querySelector('[data-object-action="compare-source"]');
