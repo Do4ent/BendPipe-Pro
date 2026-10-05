@@ -23,7 +23,7 @@
     if(ok===false)return false;
     try{eng()?.save?.();eng()?.renderAll?.();}catch{}
     try{window.refreshProjectTree?.();}catch{}
-    renderTree();applyVisibility();renderPanel();
+    renderTree();applyVisibility();applyEditContext();renderPanel();renderBreadcrumb();
     try{window.dispatchEvent(new CustomEvent("tubebender-assembly-change",{detail:{project_id:String(project()?.id??"")}}));}catch{}
     return true;
   }
@@ -126,18 +126,26 @@
     if(active){
       const allowed=(active.members??[]).some(member=>member.ref.kind==="assembly"&&String(member.ref.id)===String(target.id));
       if(!allowed){toast("Вложенная Assembly не принадлежит текущему уровню");return false;}
+      editPath.push(String(target.id));
     }else{
       const parents=assemblies.assembliesContainingMember(project(),{kind:"assembly",id:target.id},{includeAncestors:true});
-      if(parents.length){
-        const top=parents[parents.length-1];
-        if(String(top.id)!==String(target.id))return enterEdit(top.id)&&enterEdit(target.id);
+      const chain=[...parents].reverse().map(item=>String(item.id));
+      chain.push(String(target.id));
+      editPath.length=0;
+      for(let index=0;index<chain.length;index++){
+        const id=chain[index],current=assemblyById(id);if(!current)continue;
+        if(index>0){
+          const parent=assemblyById(chain[index-1]);
+          const direct=(parent?.members??[]).some(member=>member.ref.kind==="assembly"&&String(member.ref.id)===id);
+          if(!direct)continue;
+        }
+        editPath.push(id);
       }
     }
-    editPath.push(String(target.id));
     ctx()?.clearSelection?.();
     applyEditContext();renderTree();renderPanel();renderBreadcrumb();
     try{window.dispatchEvent(new CustomEvent("tubebender-assembly-edit-change",{detail:{path:[...editPath],breadcrumb:breadcrumb()}}));}catch{}
-    return true;
+    return editPath.at(-1)===String(target.id);
   }
   function exitEdit(){
     if(!editPath.length)return false;
@@ -723,6 +731,15 @@
     if(installed)return;installed=true;
     try{[assemblies,rigid]=await Promise.all([import(ASSEMBLIES_URL),import(RIGID_URL)]);}catch(error){console.error("Assemblies runtime failed",error);return;}
     assemblies.ensureAssemblyState(project());ensurePanel();ensureBreadcrumb();renderTree();renderPanel();applyVisibility();applyEditContext();renderBreadcrumb();observe();
+    if(typeof update3D==="function"&&!update3D._tbAssemblyEdit){
+      const original=update3D;
+      update3D=function(...args){
+        const result=original.apply(this,args);
+        try{applyVisibility();applyEditContext();}catch(error){console.warn("Assembly edit context:",error);}
+        return result;
+      };
+      update3D._tbAssemblyEdit=true;
+    }
     window.addEventListener("keydown",(event)=>{
       if(event.key==="Escape"&&editing()&&!event.target?.matches?.("input,textarea,select")){
         event.preventDefault();exitEdit();
