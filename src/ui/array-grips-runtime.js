@@ -96,6 +96,7 @@
       const basis=circularBasis(params,source),radius=params.radius_mm==null?vec(source.origin).sub(basis.center).sub(basis.axial).length():Math.max(0,Number(params.radius_mm)||0);
       const total=Number(params.total_angle_deg)||360,initial=Number(params.initial_angle_deg)||0,sign=params.clockwise?-1:1;
       out.push({kind:"radius",field:"radius_mm",point:polarPoint(basis,radius,0),basis,radius,label:"Radius"});
+      out.push({kind:"circular-axis",field:"axis",point:basis.center.clone().add(basis.axial).add(basis.axis.clone().multiplyScalar(Math.max(radius*.5,50))),axis:basis.axis,basis,radius,label:"Axis direction"});
       out.push({kind:"initial-angle",field:"initial_angle_deg",point:polarPoint(basis,radius,sign*initial),basis,radius,label:"Initial angle"});
       out.push({kind:"total-angle",field:"total_angle_deg",point:polarPoint(basis,radius,sign*(initial+total)),basis,radius,label:"Total angle"});
       out.push({kind:"count",field:"count",point:polarPoint(basis,radius,sign*(initial+total*.5)).add(basis.axis.clone().multiplyScalar(Math.max(radius*.12,20))),basis,radius,label:"Count"});
@@ -112,7 +113,7 @@
       const p=mmToScene(d.point),s=visualScale(p);
       let h;
       if(d.kind.includes("count"))h=cube(p,0xffd65a,d,s);
-      else if(d.kind.includes("direction"))h=cone(p,vec(d.axis),0x5cc8ff,d,s);
+      else if(d.kind.includes("direction")||d.kind==="circular-axis")h=cone(p,vec(d.axis),0x5cc8ff,d,s);
       else if(d.kind==="clockwise")h=cube(p,0xff7bd1,d,s);
       else h=sphere(p,d.kind==="radius"?0x70e89b:d.kind==="initial-angle"?0xc89bff:d.kind==="total-angle"?0xff9c5c:0x62d8ff,d,s);
       g.add(h);
@@ -160,6 +161,9 @@
     }
     if(d.kind==="direction"){
       const direction=vec(current).sub(vec(source.origin));if(direction.lengthSq()<1e-12)return null;direction.normalize();return {direction:{x:direction.x,y:direction.y,z:direction.z}};
+    }
+    if(d.kind==="circular-axis"){
+      const direction=vec(current).sub(d.basis.center).sub(d.basis.axial);if(direction.lengthSq()<1e-12)return null;direction.normalize();return {axis:{x:direction.x,y:direction.y,z:direction.z}};
     }
     if(d.kind==="matrix-direction"){
       const direction=vec(current).sub(vec(source.origin));if(direction.lengthSq()<1e-12)return null;direction.normalize();
@@ -263,7 +267,7 @@
     if(d.kind==="radius")return {radius_mm:Math.max(0,n)};
     if(d.kind==="initial-angle")return {initial_angle_deg:n};
     if(d.kind==="total-angle")return {total_angle_deg:n};
-    throw new Error("Для Direction используйте drag grip; CW/CCW переключается отдельной ручкой");
+    throw new Error("Для Direction/Axis используйте drag grip; CW/CCW переключается отдельной ручкой");
   }
   function applyExact(){
     const def=activeDefinition();if(!def||!activeHandle){toast("Выберите Array grip");return false;}
@@ -285,7 +289,7 @@
     const input=panel.querySelector("[data-array-grip-value]");
     if(def&&activeHandle){
       const v=handleCurrentValue(def,activeHandle);if(v!=null&&Number.isFinite(Number(v)))input.value=String(v);
-      input.disabled=["direction","matrix-direction","clockwise"].includes(activeHandle.kind);
+      input.disabled=["direction","matrix-direction","circular-axis","clockwise"].includes(activeHandle.kind);
     }else{input.value="";input.disabled=true;}
   }
   function onDown(event){if(event.button!==0||drag)return;const picked=pick(event);if(picked)begin(event,picked);}
