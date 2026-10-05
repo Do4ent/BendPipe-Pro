@@ -14,6 +14,8 @@
   const context=()=>window.TubeBenderObjectContext??null;
   const snapTracking=()=>window.TubeBenderSnapTracking??null;
   const referenceApi=()=>window.TubeBenderReferenceSceneUi??null;
+  const lockApi=()=>window.TubeBenderObjectLocks??null;
+  const lockAllowed=(action)=>lockApi()?.canSelection?.(action,{notify:true})!==false;
   const project=()=>{try{return api()?.activeProject?.()??null;}catch{return null;}};
   const stateValue=()=>{try{return api()?.getState?.()??null;}catch{return null;}};
   const readonly=()=>{try{return api()?.readonly?.()===true;}catch{return false;}};
@@ -258,6 +260,7 @@
       (copySession.mode==="multiple"?" · Enter завершает серию · Backspace отменяет последнюю точку":" · одна целевая точка завершает команду");
   }
   function setCopyBase(point,body=null){
+    if(!lockAllowed("copy"))return false;
     const tubes=selectedWholeTubes(),meshes=selectedMeshSources();
     if(tubes.length&&meshes.length){toast("Copy: не смешивайте трубы и mesh instances в одной операции");return false;}
     if(!tubes.length&&!meshes.length){toast("Для Copy выберите целую трубу, Source mesh или Editable Mesh Instance");return false;}
@@ -457,6 +460,7 @@
     });
   }
   function createMeshArray(body){
+    if(!lockAllowed("array"))return false;
     const meshEntries=selectedMeshSources();
     if(!meshEntries.length){toast("Для Mesh Array выберите Source mesh или Editable Mesh Instance");return false;}
     if(selectedWholeTubes().length){toast("Mesh Array не смешивает трубы и mesh instances");return false;}
@@ -572,6 +576,7 @@
       :"Invalid: "+preview.error;
   }
   function splitSelected(body){
+    if(!lockAllowed("geometry"))return false;
     const selected=selectedSingleLine();
     if(!selected){toast("Для Split выберите один прямой участок LINE");return false;}
     const mode=$("[data-split-mode]",body).value;
@@ -595,6 +600,7 @@
   }
 
   function commitRigidRotation(tubes,{axis,angle_deg,centerResolver,label="Повернуть выбранные трубы"}={}){
+    if(!lockAllowed("rotate"))return false;
     if(!Array.isArray(tubes)||!tubes.length){toast("Для Rotate выберите одну или несколько целых труб");return false;}
     const angle=Number(angle_deg);
     if(!Number.isFinite(angle)){toast("Угол Rotate должен быть числом");return false;}
@@ -697,6 +703,7 @@
     return {plane_point:point,plane_normal:normal};
   }
   function createMirrorFromSelection(body){
+    if(!lockAllowed("mirror"))return false;
     const tubes=selectedWholeTubes();
     if(!tubes.length){toast("Для Mirror выберите одну или несколько целых труб");return false;}
     const runtime=mirrorRuntime();
@@ -764,6 +771,7 @@
     return id?stackRuntime()?.definitionById?.(id)??null:null;
   }
   function createTransformStackFromSelection(){
+    if(!lockAllowed("transform-stack"))return false;
     const tubes=selectedWholeTubes();
     if(!tubes.length){toast("Для Transform Stack выберите одну или несколько целых труб");return false;}
     const runtime=stackRuntime();
@@ -774,6 +782,7 @@
     });
   }
   function stackAddOperation(body,kind){
+    if(!lockAllowed("transform-stack"))return false;
     const runtime=stackRuntime(),def=stackSelectedDefinition(body);
     if(!runtime||!def){toast("Выберите Transform Stack");return false;}
     try{
@@ -823,6 +832,7 @@
 
   function arrayRuntime(){return window.TubeBenderAssociativeArrays??null;}
   function createArrayFromSelection(body){
+    if(!lockAllowed("array"))return false;
     const tubes=selectedWholeTubes();
     if(!tubes.length){toast("Для Array выберите одну или несколько исходных целых труб");return false;}
     const runtime=arrayRuntime();
@@ -866,6 +876,7 @@
     }catch(error){toast(error.message);return false;}
   }
   function arrayAction(body,action){
+    if(!lockAllowed("array"))return false;
     const runtime=arrayRuntime(),id=$("[data-array-existing]",body)?.value;
     if(!runtime||!id){toast("Выберите существующий Array");return false;}
     if(action==="break"){
