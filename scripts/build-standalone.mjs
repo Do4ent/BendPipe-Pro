@@ -30,6 +30,7 @@ const constraintsRuntimePath = path.join(root, "src", "ui", "constraints-runtime
 const toleranceProfileRuntimePath = path.join(root, "src", "ui", "tolerance-profile-runtime.js");
 const fittedGeometryRuntimePath = path.join(root, "src", "ui", "fitted-geometry-runtime.js");
 const normalizeGeometryRuntimePath = path.join(root, "src", "ui", "normalize-geometry-runtime.js");
+const deleteDependenciesRuntimePath = path.join(root, "src", "ui", "delete-dependencies-runtime.js");
 const associativeArrayRuntimePath = path.join(root, "src", "ui", "associative-array-runtime.js");
 const associativeMirrorRuntimePath = path.join(root, "src", "ui", "associative-mirror-runtime.js");
 const transformStackRuntimePath = path.join(root, "src", "ui", "transform-stack-runtime.js");
@@ -52,6 +53,7 @@ const toleranceProfileDomainPath = path.join(root, "src", "domain", "geometry", 
 const fittedGeometryPolicyDomainPath = path.join(root, "src", "domain", "geometry", "fitted-geometry-policy.mjs");
 const normalizeFittedGeometryDomainPath = path.join(root, "src", "domain", "geometry", "normalize-fitted-geometry.mjs");
 const batchNormalizeFittedDomainPath = path.join(root, "src", "domain", "geometry", "batch-normalize-fitted.mjs");
+const deleteDependenciesDomainPath = path.join(root, "src", "domain", "project", "delete-dependencies.mjs");
 const geometryMeasurementsDomainPath = path.join(root, "src", "domain", "measurements", "geometry-measurements.mjs");
 const dimensionsDomainPath = path.join(root, "src", "domain", "measurements", "dimensions.mjs");
 const equipmentRuntimeBridgePath = path.join(root, "src", "ui", "equipment-runtime-bridge.js");
@@ -2559,6 +2561,13 @@ const normalizeGeometryRuntime = fs.readFileSync(normalizeGeometryRuntimePath, "
 const bundledNormalizeGeometryRuntime =
   `<script data-tubebender-bundled="normalize-geometry-runtime">\n${normalizeGeometryRuntime}\n</script>`;
 
+const deleteDependenciesDomainUrl = moduleDataUrl(deleteDependenciesDomainPath);
+const deleteDependenciesRuntime = fs.readFileSync(deleteDependenciesRuntimePath, "utf8")
+  .replace("__TB_DELETE_DEPENDENCIES_MODULE_URL__", deleteDependenciesDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledDeleteDependenciesRuntime =
+  `<script data-tubebender-bundled="delete-dependencies-runtime">\n${deleteDependenciesRuntime}\n</script>`;
+
 const associativeArrayRuntime = fs.readFileSync(associativeArrayRuntimePath, "utf8")
   .replace("__TB_TRANSFORM_COMMANDS_MODULE_URL__", transformCommandsDomainUrl)
   .replace("__TB_RIGID_TRANSFORM_MODULE_URL__", legacyRigidTransformDomainUrl)
@@ -2667,6 +2676,8 @@ output =
   bundledFittedGeometryRuntime +
   "\n" +
   bundledNormalizeGeometryRuntime +
+  "\n" +
+  bundledDeleteDependenciesRuntime +
   "\n" +
   bundledMaterialLibraryUi +
   "\n" +
@@ -2962,6 +2973,7 @@ process.stdout.write(
       bundledToleranceProfileRuntime: true,
       bundledFittedGeometryRuntime: true,
       bundledNormalizeGeometryRuntime: true,
+      bundledDeleteDependenciesRuntime: true,
       bundledAssociativeArrays: true,
       bundledAssociativeMirrors: true,
       bundledTransformStacks: true,
