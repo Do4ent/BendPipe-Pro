@@ -60,6 +60,7 @@
     catch{return null;}
   }
   function refApi(){return window.TubeBenderReferenceSceneUi??null;}
+  function layerApi(){return window.TubeBenderLayers??null;}
   function lockApi(){return window.TubeBenderObjectLocks??null;}
   function lockAllowed(action,{notify=true}={}){
     const api=lockApi();
@@ -130,6 +131,11 @@
 
   function setSelectedKey(key,{additive=false,toggle=false}={}){
     if(!key)return;
+    const candidate=parseKey(key);
+    if(candidate&&layerApi()?.entryVisibility?.(candidate)?.selectable===false){
+      try{if(typeof ptToast==="function")ptToast("Слой заморожен");}catch{}
+      return;
+    }
     if(!additive){
       selected.clear();
       refApi()?.clearSelection?.();
@@ -197,6 +203,7 @@
   }
 
   function skip3DHit(object){
+    if(layerApi()?.is3DObjectInteractive?.(object)===false)return true;
     let item=object;
     while(item){
       const data=item.userData??{};
@@ -1773,6 +1780,7 @@
     clearSelection,
     replaceSelectionKeys,
     selectionKeys:()=>Object.freeze([...selected]),
+    parseSelectionKey:parseKey,
     selectionEntries,
     applyAction,
     applyMove,
