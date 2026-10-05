@@ -7,6 +7,7 @@
   const lockApi=()=>window.TubeBenderObjectLocks??null;
   const layerApi=()=>window.TubeBenderLayers??null;
   const groupsApi=()=>window.TubeBenderGroups??null;
+  const assembliesApi=()=>window.TubeBenderAssemblies??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const entries=()=>ctx()?.selectionEntries?.()??[];
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -120,6 +121,19 @@
         fields:{
           name:{label:"Имя",type:"text",get:()=>String(group.name??""),set:(value)=>{group.name=String(value??"").trim();}},
           visible:{label:"Видимый",type:"boolean",get:()=>group.visible!==false,set:(value)=>{group.visible=value===true;}}
+        }
+      }:null;
+    }
+    if(entry.kind==="project-assembly"){
+      const assembly=assembliesApi()?.assemblyById?.(entry.assemblyId);
+      return assembly?{
+        key:"project-assembly:"+String(assembly.id),
+        entry,
+        object:assembly,
+        fields:{
+          name:{label:"Имя",type:"text",get:()=>String(assembly.name??""),set:(value)=>{assembly.name=String(value??"").trim();}},
+          visible:{label:"Видимый",type:"boolean",get:()=>assembly.visible!==false,set:(value)=>{assembly.visible=value===true;}},
+          fixed:{label:"Fixed",type:"boolean",get:()=>assembly.fixed===true,set:(value)=>{assembly.fixed=value===true;}}
         }
       }:null;
     }
@@ -289,6 +303,23 @@
         {name:"Семантика",rows:[["Тип","Logical Group"],["Geometry merged",false],["Dependencies preserved",true]]}
       ]};
     }
+    if(entry.kind==="project-assembly"){
+      const assembly=assembliesApi()?.assemblyById?.(entry.assemblyId);
+      const descendants=assembly?assembliesApi()?.domain?.assemblyDescendantIds?.(p,assembly.id)??[]:[];
+      return {title:assembly?.name??"Assembly",kind:"project-assembly",groups:[
+        {name:"Assembly",rows:[
+          ["ID",assembly?.id],["Имя",assembly?.name],["Members",assembly?.members?.length??0],
+          ["Nested assemblies",descendants.length],["Visible",assembly?.visible!==false],
+          ["Fixed",assembly?.fixed===true],["Lock",lockLabelForEntry(entry)]
+        ]},
+        {name:"Local coordinate system",rows:[
+          ["Origin",assembly?.frame?.origin_mm],["Quaternion",assembly?.frame?.rotation_quaternion]
+        ]},
+        {name:"Семантика",rows:[
+          ["Тип","Constructive Assembly"],["Local coordinates",true],["Geometry merged",false],["Dependencies preserved",true]
+        ]}
+      ]};
+    }
     if(entry.kind==="assembly"||entry.kind==="assembly-part"){
       return {title:entry.kind==="assembly"?"Assembly":"Assembly Part",kind:entry.kind,groups:[{name:"Связь",rows:[
         ["Assembly ID",entry.assemblyId],["Part",entry.part??entry.partId],["Tube ID",entry.tubeId],["Row",entry.rowIndex]
@@ -370,6 +401,7 @@
     window.addEventListener("tubebender-lock-change",()=>render(true));
     window.addEventListener("tubebender-layer-change",()=>render(true));
     window.addEventListener("tubebender-group-change",()=>render(true));
+    window.addEventListener("tubebender-assembly-change",()=>render(true));
     window.addEventListener("tubebender-snap-change",()=>{if(panel?.classList.contains("open"))render(false);});
     window.TubeBenderProperties=Object.freeze({open,close,refresh:()=>render(true),snapshot,describe,editableTargets,commonEditableFields,applyCommonProperty});
   }
