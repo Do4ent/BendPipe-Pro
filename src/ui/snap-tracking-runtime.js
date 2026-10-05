@@ -33,8 +33,8 @@
   const snapSettings=(base={})=>{
     const merged={
       ...base,
-      source_priority:{...sourcePriorityMap(),...(base.source_priority??{})},
-      source_enabled:{...sourceEnabledMap(),...(base.source_enabled??{})}
+      source_priority:{...(base.source_priority??{}),...sourcePriorityMap()},
+      source_enabled:{...(base.source_enabled??{}),...sourceEnabledMap()}
     };
     return toleranceApi()?.snapSettings?.(merged)??merged;
   };
