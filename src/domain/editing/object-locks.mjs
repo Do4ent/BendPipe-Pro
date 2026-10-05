@@ -16,7 +16,7 @@ export function lockStateOf(target){
 }
 
 const ALWAYS_ALLOWED=new Set(["view","measure","snap","show","hide","transparent","isolate","compare","copy-read"]);
-const POSITION_BLOCKED=new Set(["move","rotate","scale","position","orientation","transform"]);
+const POSITION_BLOCKED=new Set(["move","rotate","scale","position","orientation","transform","transform-stack"]);
 const OBJECT_BLOCKED=new Set([
   "move","rotate","scale","position","orientation","transform",
   "delete","properties","geometry","technology","tooling",
