@@ -86,8 +86,13 @@ export function createGroup(project,{id=null,name="Group",members=[],visible=tru
   };
   if(groupById(project,group.id))throw new Error("Group id already exists");
   project.groups.push(group);
-  addGroupMembers(project,group.id,members);
-  return group;
+  try{
+    addGroupMembers(project,group.id,members);
+    return group;
+  }catch(error){
+    project.groups=project.groups.filter(item=>String(item?.id)!==String(group.id));
+    throw error;
+  }
 }
 export function addGroupMembers(project,groupId,members=[]){
   const group=groupById(project,groupId);if(!group)throw new Error("Group not found");
