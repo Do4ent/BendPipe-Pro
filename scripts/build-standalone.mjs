@@ -23,6 +23,7 @@ const editingUiPath = path.join(root, "src", "ui", "editing-ui.js");
 const snapTrackingRuntimePath = path.join(root, "src", "ui", "snap-tracking-runtime.js");
 const transformGizmoRuntimePath = path.join(root, "src", "ui", "transform-gizmo-runtime.js");
 const geometryGripsRuntimePath = path.join(root, "src", "ui", "geometry-grips-runtime.js");
+const screenSpaceDisplayRuntimePath = path.join(root, "src", "ui", "screen-space-display-runtime.js");
 const propertiesPanelRuntimePath = path.join(root, "src", "ui", "properties-panel-runtime.js");
 const objectLockRuntimePath = path.join(root, "src", "ui", "object-lock-runtime.js");
 const layersRuntimePath = path.join(root, "src", "ui", "layers-runtime.js");
@@ -2470,6 +2471,11 @@ const dimensionGripsRuntime = fs.readFileSync(dimensionGripsRuntimePath, "utf8")
 const bundledDimensionGripsRuntime =
   `<script data-tubebender-bundled="dimension-grips-runtime">\n${dimensionGripsRuntime}\n</script>`;
 
+const screenSpaceDisplayRuntime = fs.readFileSync(screenSpaceDisplayRuntimePath, "utf8")
+  .replace(/<\/script/gi, "<\\/script");
+const bundledScreenSpaceDisplayRuntime =
+  `<script data-tubebender-bundled="screen-space-display-runtime">\n${screenSpaceDisplayRuntime}\n</script>`;
+
 const straightRunDomainUrl = moduleDataUrl(straightRunDomainPath);
 const legacyRigidTransformDomainUrl = moduleDataUrl(legacyRigidTransformDomainPath);
 const dynamicInputDomainUrl = moduleDataUrl(dynamicInputDomainPath);
@@ -2668,6 +2674,8 @@ output =
   bundledMaterialManufacturingBridge +
   "\n" +
   bundledMeasurementsUi +
+  "\n" +
+  bundledScreenSpaceDisplayRuntime +
   "\n" +
   bundledDimensionGripsRuntime +
   "\n" +
@@ -2989,6 +2997,7 @@ process.stdout.write(
       currentProjectDwfxImport: true,
       bundledMaterialLibrary: true,
       bundledMeasurementsUi: true,
+      bundledScreenSpaceDisplay: true,
       bundledDimensionGrips: true,
       bundledEditingUi: true,
       bundledSnapTrackingRuntime: true,
