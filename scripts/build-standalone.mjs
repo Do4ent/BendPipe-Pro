@@ -18,6 +18,7 @@ const projectTubeBarLayoutFixPath = path.join(root, "src", "ui", "project-tube-b
 const materialLibraryUiPath = path.join(root, "src", "ui", "material-library-ui.js");
 const materialManufacturingBridgePath = path.join(root, "src", "ui", "material-manufacturing-bridge.js");
 const measurementsUiPath = path.join(root, "src", "ui", "measurements-ui.js");
+const dimensionGripsRuntimePath = path.join(root, "src", "ui", "dimension-grips-runtime.js");
 const editingUiPath = path.join(root, "src", "ui", "editing-ui.js");
 const snapTrackingRuntimePath = path.join(root, "src", "ui", "snap-tracking-runtime.js");
 const transformGizmoRuntimePath = path.join(root, "src", "ui", "transform-gizmo-runtime.js");
@@ -2461,6 +2462,13 @@ const measurementsUi = fs.readFileSync(measurementsUiPath, "utf8")
 const bundledMeasurementsUi =
   `<script data-tubebender-bundled="measurements-ui">\n${measurementsUi}\n</script>`;
 
+const dimensionGripsRuntime = fs.readFileSync(dimensionGripsRuntimePath, "utf8")
+  .replace("__TB_DIMENSION_GRIPS_DIMENSIONS_URL__", dimensionsDomainUrl)
+  .replace("__TB_DIMENSION_GRIPS_DYNAMIC_INPUT_URL__", dynamicInputDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledDimensionGripsRuntime =
+  `<script data-tubebender-bundled="dimension-grips-runtime">\n${dimensionGripsRuntime}\n</script>`;
+
 const straightRunDomainUrl = moduleDataUrl(straightRunDomainPath);
 const legacyRigidTransformDomainUrl = moduleDataUrl(legacyRigidTransformDomainPath);
 const dynamicInputDomainUrl = moduleDataUrl(dynamicInputDomainPath);
@@ -2653,6 +2661,8 @@ output =
   bundledMaterialManufacturingBridge +
   "\n" +
   bundledMeasurementsUi +
+  "\n" +
+  bundledDimensionGripsRuntime +
   "\n" +
   bundledAssociativeArrayRuntime +
   "\n" +
@@ -2970,6 +2980,7 @@ process.stdout.write(
       currentProjectDwfxImport: true,
       bundledMaterialLibrary: true,
       bundledMeasurementsUi: true,
+      bundledDimensionGrips: true,
       bundledEditingUi: true,
       bundledSnapTrackingRuntime: true,
       bundledTransformGizmo: true,
