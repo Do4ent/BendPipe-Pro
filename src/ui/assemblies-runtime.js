@@ -293,6 +293,13 @@
     try{eng()?.save?.();}catch{}
     return clone(link);
   }
+  function decorateConstructionGeometry(object,references=[]){
+    if(!object||typeof object!=="object")throw new TypeError("Construction object is required");
+    const decorated=decorateAssociativeReferences(references);
+    object.associative_references=decorated.references.map(clone);
+    object.cross_assembly=clone(decorated.cross_assembly);
+    return object;
+  }
 
   function tubeDirection(tube){
     if(tube?.startVector&&[tube.startVector.x,tube.startVector.y,tube.startVector.z].every(Number.isFinite))return clone(tube.startVector);
@@ -889,7 +896,7 @@
       enterEdit,exitEdit,exitAllEdit,editing,activeEditAssembly,breadcrumb,resolveInteraction,assemblyForEditEntry,
       renderTree,renderPanel,applyVisibility,applyEditContext,assemblyById,parentAssemblyForEntry,containingAssembliesForEntry,
       directTubeAssembly,syncTubePortConstraints,captureTubeEndConstraint,resolveTubeEndConstraintTarget,clearTubePortConstraint,
-      refForObjectId,contextForRef,contextForObjectId,crossAssemblyForContexts,decorateAssociativeReferences,registerCrossAssemblyLink,
+      refForObjectId,contextForRef,contextForObjectId,crossAssemblyForContexts,decorateAssociativeReferences,registerCrossAssemblyLink,decorateConstructionGeometry,
       permissionForEntry,canSelection,domain:assemblies
     });
   }
