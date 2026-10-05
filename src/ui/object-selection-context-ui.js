@@ -340,19 +340,31 @@
   function snapCandidateRecord({id,type,source,objectId,subentityId,world,event,canvas,label}){
     if(!world)return null;
     const scale=typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
+    const point={x:world.x/scale,y:world.y/scale,z:world.z/scale};
+    const assembly_context=assembliesApi()?.contextForObjectId?.(objectId,point)??{
+      space:"project",assembly_id:null,assembly_path:[],local_point_mm:{...point},world_point_mm:{...point}
+    };
+    const activeAssembly=assembliesApi()?.activeEditAssembly?.()??null;
+    const crossAssembly=!!activeAssembly&&String(assembly_context?.assembly_id??"project-root")!==String(activeAssembly.id);
     return {
       id:String(id),
       type:String(type),
       source:String(source||"Editable"),
       object_id:objectId==null?null:String(objectId),
       subentity_id:subentityId==null?null:String(subentityId),
-      point:{x:world.x/scale,y:world.y/scale,z:world.z/scale},
+      point,
       screen_distance_px:snapScreenDistance(world,event,canvas),
       visible:true,
       virtual:false,
       fitted:false,
       confidence:1,
-      label:String(label||type)
+      label:String(label||type)+(crossAssembly?" · ↔ Assembly":""),
+      metadata:{
+        assembly_context,
+        cross_assembly:crossAssembly,
+        source_assembly_id:assembly_context?.assembly_id??null,
+        active_assembly_id:activeAssembly?.id??null
+      }
     };
   }
 
