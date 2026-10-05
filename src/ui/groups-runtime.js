@@ -78,15 +78,40 @@
     const direct=directGroupsForEntry(entry);
     return direct[0]??null;
   }
+  function objectForLeafRef(ref){
+    if(ref.kind==="tube")return tubeById(ref.id);
+    if(ref.kind==="mesh-instance")return meshById(ref.id);
+    if(ref.kind==="dimension")return (project()?.engineering_dimensions??[]).find(x=>String(x?.id)===String(ref.id))??null;
+    if(ref.kind==="construction")return (project()?.construction_geometry??[]).find(x=>String(x?.id)===String(ref.id))??null;
+    return null;
+  }
+  function directLeafPermission(ref,action){
+    const entry=entryFromRef(ref);
+    const layerPermission=entry?window.TubeBenderLayers?.permissionForEntry?.(entry,action):null;
+    if(layerPermission&&layerPermission.allowed===false)return layerPermission;
+    const object=objectForLeafRef(ref),policy=window.TubeBenderObjectLocks?.policy;
+    if(object&&policy){
+      const permission=policy.lockPermission(object,action);
+      if(!permission.allowed)return permission;
+    }
+    return {allowed:true,code:"GROUP_MEMBER_ALLOWED",reason:null};
+  }
   function permissionForEntry(entry,action){
     const list=entry?.kind==="group"
       ?[groupById(entry.groupId),...groups.groupDescendantIds(project(),entry.groupId).map(groupById)].filter(Boolean)
       :containingGroupsForEntry(entry);
     const policy=window.TubeBenderObjectLocks?.policy;
-    if(!policy)return {allowed:true,code:"GROUP_ALLOWED",reason:null};
-    for(const group of list){
-      const permission=policy.lockPermission(group,action);
-      if(!permission.allowed)return {...permission,group_id:String(group.id)};
+    if(policy){
+      for(const group of list){
+        const permission=policy.lockPermission(group,action);
+        if(!permission.allowed)return {...permission,group_id:String(group.id)};
+      }
+    }
+    if(entry?.kind==="group"){
+      for(const ref of leafRefs(entry.groupId)){
+        const permission=directLeafPermission(ref,action);
+        if(!permission.allowed)return permission;
+      }
     }
     return {allowed:true,code:"GROUP_ALLOWED",reason:null};
   }
@@ -202,11 +227,22 @@
       refApi()?.rotateEditableMeshInstanceAxis?.(project(),ref.id,{axis,angle_deg:angleDeg});
     }
   }
-  function moveGroup(groupId,delta){
-    if(permissionForEntry({kind:"group",groupId},"move").allowed===false){toast("Объект заблокирован");return false;}
+  function moveGroups(groupIds,delta){
+    const ids=[...new Set((groupIds??[]).map(String).filter(Boolean))];
+    if(!ids.length)return false;
+    for(const id of ids){
+      const permission=permissionForEntry({kind:"group",groupId:id},"move");
+      if(!permission.allowed){toast(permission.reason||"Объект заблокирован");return false;}
+    }
     const d={x:Number(delta?.x)||0,y:Number(delta?.y)||0,z:Number(delta?.z)||0};
-    return command("Move Group",()=>{for(const ref of leafRefs(groupId))moveLeaf(ref,d,groupId);return true;});
+    const refs=new Map();
+    for(const id of ids)for(const ref of leafRefs(id))refs.set(groups.groupMemberKey(ref),{ref,root:id});
+    return command(ids.length>1?"Move Groups":"Move Group",()=>{
+      for(const {ref,root} of refs.values())moveLeaf(ref,d,root);
+      return true;
+    });
   }
+  function moveGroup(groupId,delta){return moveGroups([groupId],delta);}
   function rotateGroup(groupId,{axis={x:0,y:0,z:1},angle_deg=0,center=null}={}){
     if(permissionForEntry({kind:"group",groupId},"rotate").allowed===false){toast("Объект заблокирован");return false;}
     const pivot=center??groupPivot(groupId),angle=Number(angle_deg);
@@ -439,7 +475,7 @@
     window.addEventListener("tubebender-layer-change",()=>applyVisibility());
     window.TubeBenderGroups=Object.freeze({
       createFromSelection,rename,addSelection,removeSelection,ungroup,setVisible,setLock,
-      moveGroup,rotateGroup,copyGroup,arrayGroup,renderTree,renderPanel,applyVisibility,
+      moveGroup,moveGroups,rotateGroup,copyGroup,arrayGroup,renderTree,renderPanel,applyVisibility,
       groupById,leafRefs,directGroupsForEntry,containingGroupsForEntry,primaryGroupForEntry,permissionForEntry,canSelection,
       domain:groups
     });
