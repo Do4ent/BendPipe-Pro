@@ -138,9 +138,19 @@
       errors:Object.freeze(errors),warnings:Object.freeze(warnings)
     });
   }
+  function technologyGeometryAssessment(tube){
+    const guard=window.TubeBenderFittedGeometry;
+    return guard?.assessment?.("TechnologyCalculation",tube)??{allowed:true,requires_confirmation:false,has_fitted_geometry:false,fitted_evidence:[]};
+  }
+  function confirmTechnologyCalculation(tube,{preview_confirmed=false}={}){
+    const guard=window.TubeBenderFittedGeometry;
+    if(!guard?.confirmUsage)return true;
+    return guard.confirmUsage("TechnologyCalculation",tube,{preview_confirmed})===true;
+  }
   window.TubeBenderEquipmentRuntime=Object.freeze({
     resolveMachineProfile,resolveMachineInstance,resolveToolingSet,resolveToolingInstance,
     toolingCorrectionDeg,effectiveMachine,assignmentCheck,
-    activeMachineSetup,machineSetupOffsetMm,machineSetupExtensions,machineSetupCheck
+    activeMachineSetup,machineSetupOffsetMm,machineSetupExtensions,machineSetupCheck,
+    technologyGeometryAssessment,confirmTechnologyCalculation
   });
 })();
