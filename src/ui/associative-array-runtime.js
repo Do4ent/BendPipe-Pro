@@ -16,6 +16,19 @@
   }
   function sub(a,b){return {x:a.x-b.x,y:a.y-b.y,z:a.z-b.z};}
   function byId(p,id){return (p?.tubes??[]).find((t)=>String(t?.id)===String(id))??null;}
+  function lockMode(object){return String(object?.lock_state?.mode??object?.lock_mode??"Unlocked");}
+  function assertUnlockedObject(object){
+    if(lockMode(object)==="Object"){
+      const error=new Error("Объект заблокирован");error.code="OBJECT_LOCKED";throw error;
+    }
+  }
+  function assertArrayEditable(def){assertUnlockedObject(def);}
+  function assertSourcesEditable(ids,p){
+    for(const id of ids){
+      const tube=byId(p,id);
+      if(tube)assertUnlockedObject(tube);
+    }
+  }
   function definitions(p=project()){
     if(!p)return [];
     if(!Array.isArray(p.associative_arrays))p.associative_arrays=[];
@@ -203,6 +216,7 @@
   }
   function addArray(input,p=project()){
     if(!p)throw new Error("No active project");
+    assertSourcesEditable(input?.source_tube_ids??[],p);
     const def=createDefinition(input);
     definitions(p).push(clone(def));
     synchronize(p);
@@ -211,6 +225,7 @@
   function suppressMember(arrayId,index,suppressed=true,p=project()){
     const def=definitions(p).find((x)=>String(x.id)===String(arrayId));
     if(!def)throw new Error("Associative Array not found");
+    assertArrayEditable(def);
     const i=Math.trunc(Number(index));if(!(i>0))throw new Error("Source member cannot be suppressed");
     const set=new Set(def.suppressed_members??[]);
     if(suppressed)set.add(i);else set.delete(i);
@@ -223,6 +238,7 @@
     if(!p)throw new Error("No active project");
     const def=definitions(p).find((x)=>String(x.id)===String(arrayId));
     if(!def)throw new Error("Associative Array not found");
+    assertArrayEditable(def);
     const i=Math.trunc(Number(index));if(!(i>0))throw new Error("Source member cannot be detached");
     const matches=(p.tubes??[]).filter((tube)=>{
       const m=tube?.array_member;
