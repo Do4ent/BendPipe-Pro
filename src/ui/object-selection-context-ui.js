@@ -1663,9 +1663,14 @@
     return true;
   }
 
+  function resolvePickedAssembly(picked){
+    if(!picked)return null;
+    return assembliesApi()?.resolveInteraction?.(picked.entry,picked.key);
+  }
   function resolveSelectionCandidate(candidate,{direct=false}={}){
     if(!candidate)return null;
-    const assemblyResolved=assembliesApi()?.resolveInteraction?.(candidate.entry,candidate.key);
+    const picked=candidate;
+    const assemblyResolved=resolvePickedAssembly(picked);
     if(assemblyResolved?.blocked)return null;
     let key=assemblyResolved?.handled?assemblyResolved.key:candidate.key;
     let entry=assemblyResolved?.handled?parseKey(key):candidate.entry;
