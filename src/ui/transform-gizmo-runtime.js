@@ -32,13 +32,17 @@
   function saveSettings(){try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch{}}
   const context=()=>window.TubeBenderObjectContext??null;
   const engineering=()=>window.TubeBenderEngineering??null;
+  const assembliesApi=()=>window.TubeBenderAssemblies??null;
   const editing=()=>window.TubeBenderEditing??null;
   const snapTracking=()=>window.TubeBenderSnapTracking??null;
   const lockApi=()=>window.TubeBenderObjectLocks??null;
   const scale=()=>typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
   const canvas=()=>document.getElementById("threeCanvas");
   const entries=()=>context()?.selectionEntries?.()??[];
-  const wholeEntries=()=>entries().filter((entry)=>entry.kind==="tube"||entry.kind==="ref"||entry.kind==="mesh-instance");
+  const wholeEntries=()=>entries().filter((entry)=>
+    entry.kind==="tube"||entry.kind==="ref"||entry.kind==="mesh-instance"||
+    (entry.kind==="project-assembly"&&assembliesApi()?.editing?.())
+  );
   const project=()=>{try{return engineering()?.activeProject?.()??null;}catch{return null;}};
   const referenceApi=()=>window.TubeBenderReferenceSceneUi??null;
   const tubeById=(id)=>(project()?.tubes??[]).find((tube)=>String(tube?.id)===String(id))??null;
@@ -75,6 +79,18 @@
   }
   function currentBasis(){
     if(typeof THREE==="undefined")return null;
+    if(assembliesApi()?.editing?.()){
+      const frame=assembliesApi()?.activeEditAssembly?.()?.frame;
+      const qv=frame?.rotation_quaternion;
+      if(qv){
+        const q=new THREE.Quaternion(Number(qv.x)||0,Number(qv.y)||0,Number(qv.z)||0,Number.isFinite(Number(qv.w))?Number(qv.w):1).normalize();
+        return {
+          x:new THREE.Vector3(1,0,0).applyQuaternion(q).normalize(),
+          y:new THREE.Vector3(0,1,0).applyQuaternion(q).normalize(),
+          z:new THREE.Vector3(0,0,1).applyQuaternion(q).normalize()
+        };
+      }
+    }
     if(settings.cs==="local"){
       const first=wholeEntries().find((entry)=>entry.kind==="tube");
       const tube=first?tubeById(first.tubeId):null;
@@ -106,6 +122,13 @@
       if(entry.kind==="tube")tubes.add(String(entry.tubeId));
       if(entry.kind==="ref")refs.add(String(entry.sceneId)+"|"+String(entry.nodeId));
       if(entry.kind==="mesh-instance")meshes.add(String(entry.instanceId));
+      if(entry.kind==="project-assembly"){
+        const api=assembliesApi(),p=project();
+        for(const member of api?.domain?.leafAssemblyMembers?.(p,entry.assemblyId)??[]){
+          if(member.ref?.kind==="tube")tubes.add(String(member.ref.id));
+          if(member.ref?.kind==="mesh-instance")meshes.add(String(member.ref.id));
+        }
+      }
     }
     return {tubes,refs,meshes};
   }
@@ -212,6 +235,7 @@
   function canRotate(){
     const list=wholeEntries();
     if(!list.length)return false;
+    if(assembliesApi()?.editing?.()&&assembliesApi()?.canHandleEditEntries?.(list))return true;
     const tubes=list.every((entry)=>entry.kind==="tube");
     const meshes=list.every((entry)=>entry.kind==="ref"||entry.kind==="mesh-instance");
     return tubes||meshes;
@@ -509,6 +533,14 @@
     if(Math.abs(angleRad)<1e-10)return true;
     const selected=wholeEntries();
     const angleDeg=THREE.MathUtils.radToDeg(angleRad);
+    if(assembliesApi()?.editing?.()&&assembliesApi()?.canHandleEditEntries?.(selected)){
+      const s=scale();
+      return assembliesApi()?.rotateEditEntries?.(selected,{
+        axis:{x:axis.x,y:axis.y,z:axis.z},
+        pivot:{x:pivot.x/s,y:pivot.y/s,z:pivot.z/s},
+        angle_deg:angleDeg
+      })!==false;
+    }
     if(selected.every((entry)=>entry.kind==="tube")){
       const s=scale();
       return editing()?.rotateSelectedDirect?.({
