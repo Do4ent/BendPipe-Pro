@@ -24,6 +24,7 @@ const transformGizmoRuntimePath = path.join(root, "src", "ui", "transform-gizmo-
 const propertiesPanelRuntimePath = path.join(root, "src", "ui", "properties-panel-runtime.js");
 const objectLockRuntimePath = path.join(root, "src", "ui", "object-lock-runtime.js");
 const layersRuntimePath = path.join(root, "src", "ui", "layers-runtime.js");
+const groupsRuntimePath = path.join(root, "src", "ui", "groups-runtime.js");
 const associativeArrayRuntimePath = path.join(root, "src", "ui", "associative-array-runtime.js");
 const associativeMirrorRuntimePath = path.join(root, "src", "ui", "associative-mirror-runtime.js");
 const transformStackRuntimePath = path.join(root, "src", "ui", "transform-stack-runtime.js");
@@ -35,6 +36,7 @@ const snapEngineDomainPath = path.join(root, "src", "domain", "snapping", "snap-
 const transformCommandsDomainPath = path.join(root, "src", "domain", "editing", "transform-commands.mjs");
 const objectLocksDomainPath = path.join(root, "src", "domain", "editing", "object-locks.mjs");
 const layersDomainPath = path.join(root, "src", "domain", "project", "layers.mjs");
+const groupsDomainPath = path.join(root, "src", "domain", "project", "groups.mjs");
 const geometryMeasurementsDomainPath = path.join(root, "src", "domain", "measurements", "geometry-measurements.mjs");
 const dimensionsDomainPath = path.join(root, "src", "domain", "measurements", "dimensions.mjs");
 const equipmentRuntimeBridgePath = path.join(root, "src", "ui", "equipment-runtime-bridge.js");
@@ -2472,6 +2474,15 @@ const layersRuntime = fs.readFileSync(layersRuntimePath, "utf8")
 const bundledLayersRuntime =
   `<script data-tubebender-bundled="layers-runtime">\n${layersRuntime}\n</script>`;
 
+const groupsDomainUrl = moduleDataUrl(groupsDomainPath);
+const groupsRigidDomainUrl = moduleDataUrl(legacyRigidTransformDomainPath);
+const groupsRuntime = fs.readFileSync(groupsRuntimePath, "utf8")
+  .replace("__TB_GROUPS_MODULE_URL__", groupsDomainUrl)
+  .replace("__TB_GROUP_RIGID_MODULE_URL__", groupsRigidDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledGroupsRuntime =
+  `<script data-tubebender-bundled="groups-runtime">\n${groupsRuntime}\n</script>`;
+
 const associativeArrayRuntime = fs.readFileSync(associativeArrayRuntimePath, "utf8")
   .replace("__TB_TRANSFORM_COMMANDS_MODULE_URL__", transformCommandsDomainUrl)
   .replace("__TB_RIGID_TRANSFORM_MODULE_URL__", legacyRigidTransformDomainUrl)
@@ -2568,6 +2579,8 @@ output =
   bundledObjectLockRuntime +
   "\n" +
   bundledLayersRuntime +
+  "\n" +
+  bundledGroupsRuntime +
   "\n" +
   bundledMaterialLibraryUi +
   "\n" +
@@ -2857,6 +2870,7 @@ process.stdout.write(
       bundledPropertiesPanel: true,
       bundledObjectLocks: true,
       bundledLayersRuntime: true,
+      bundledGroupsRuntime: true,
       bundledAssociativeArrays: true,
       bundledAssociativeMirrors: true,
       bundledTransformStacks: true,
