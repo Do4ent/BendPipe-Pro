@@ -1570,10 +1570,23 @@
     const picked=pick3D(event);
     if(!picked)return;
     const direct=!!(event.ctrlKey||event.metaKey);
-    const group=!direct?groupsApi()?.primaryGroupForEntry?.(picked.entry):null;
-    const key=group?groupKey(group.id):picked.key;
+    const assemblyResolved=assembliesApi()?.resolveInteraction?.(picked.entry,picked.key);
+    if(assemblyResolved?.blocked)return;
+    let key=assemblyResolved?.handled?assemblyResolved.key:picked.key;
+    if(!assemblyResolved?.handled){
+      const group=!direct?groupsApi()?.primaryGroupForEntry?.(picked.entry):null;
+      if(group)key=groupKey(group.id);
+    }
     setSelectedKey(key,{additive:direct,toggle:direct});
     revealTreeKey(key);
+  }
+  function onCanvasDoubleClick(event){
+    if(event.button!==0)return;
+    const picked=pick3D(event);if(!picked)return;
+    const target=assembliesApi()?.assemblyForEditEntry?.(picked.entry);
+    if(!target)return;
+    event.preventDefault();event.stopPropagation();
+    assembliesApi()?.enterEdit?.(target.id);
   }
 
   function onCanvasContext(event){
@@ -1604,15 +1617,20 @@
     let key=keyForTreeRow(row);
     if(!key)return;
     const direct=!!(event.ctrlKey||event.metaKey);
+    const original=parseKey(key);
+    const assemblyResolved=original?assembliesApi()?.resolveInteraction?.(original,key):null;
+    if(assemblyResolved?.blocked)return;
     let grouped=false;
-    if(row.matches("[data-group-member-key]")&&!direct){
+    if(assemblyResolved?.handled){
+      key=assemblyResolved.key;
+    }else if(row.matches("[data-group-member-key]")&&!direct){
       key=groupKey(row.dataset.groupOwner);grouped=true;
     }else if(!row.matches("[data-project-group]")&&!direct){
       const parsed=parseKey(key);
       const group=parsed?groupsApi()?.primaryGroupForEntry?.(parsed):null;
       if(group){key=groupKey(group.id);grouped=true;}
     }
-    if(row.matches("[data-ref-node]")&&!grouped){
+    if(row.matches("[data-ref-node]")&&!grouped&&!assemblyResolved?.handled){
       const replaceNonReference=!(event.ctrlKey||event.metaKey||event.shiftKey);
       setTimeout(()=>{
         adoptReferenceSelection({
@@ -1622,10 +1640,16 @@
       },0);
       return;
     }
-    setSelectedKey(key,{
-      additive:!!(event.ctrlKey||event.metaKey),
-      toggle:!!(event.ctrlKey||event.metaKey)
-    });
+    setSelectedKey(key,{additive:direct,toggle:direct});
+  }
+  function onTreeDoubleClick(event){
+    if(!projectTreeForEvent(event))return;
+    const row=treeRowFromTarget(event.target);if(!row)return;
+    const key=keyForTreeRow(row),entry=key?parseKey(key):null;
+    const target=entry?assembliesApi()?.assemblyForEditEntry?.(entry):null;
+    if(!target)return;
+    event.preventDefault();event.stopPropagation();
+    assembliesApi()?.enterEdit?.(target.id);
   }
 
   function onTreeContext(event){
@@ -1752,10 +1776,12 @@
     canvas?.addEventListener("pointermove",(event)=>{if(areaSelection)updateAreaSelection(event);},true);
     canvas?.addEventListener("pointerup",(event)=>{if(areaSelection)finishAreaSelection(event);},true);
         canvas?.addEventListener("click",onCanvasClick);
+    canvas?.addEventListener("dblclick",onCanvasDoubleClick);
     canvas?.addEventListener("contextmenu",onCanvasContext);
     // Project tree is built dynamically by buildShell(), so bind through
     // document instead of capturing a possibly non-existent tree element.
     document.addEventListener("click",onTreeClick);
+    document.addEventListener("dblclick",onTreeDoubleClick);
     document.addEventListener("contextmenu",onTreeContext,true);
     document.addEventListener("pointerdown",(event)=>{
       if(contextMenu?.style.display==="block"&&!event.target.closest("#tbObjectContextMenu"))hideContextMenu();
