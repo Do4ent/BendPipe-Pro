@@ -60,6 +60,11 @@
     catch{return null;}
   }
   function refApi(){return window.TubeBenderReferenceSceneUi??null;}
+  function lockApi(){return window.TubeBenderObjectLocks??null;}
+  function lockAllowed(action,{notify=true}={}){
+    const api=lockApi();
+    return typeof api?.canSelection==="function"?api.canSelection(action,{notify}):true;
+  }
   function tubeById(id){
     return (project()?.tubes??[]).find((tube)=>String(tube?.id)===String(id))??null;
   }
@@ -656,6 +661,7 @@
   function toggleEndConstraint(){
     const selectedEnd=endConstraintSelection();
     if(!selectedEnd)return false;
+    if(!lockAllowed("anchor"))return false;
     const api=window.TubeBenderEngineering;
     if(typeof api?.setEndConstraint!=="function"){
       if(typeof ptToast==="function")ptToast("Связь конца трубы недоступна");
@@ -777,6 +783,10 @@
       '<button type="button" class="anchor-end" data-object-action="anchor-end">⚓ <span>Зафиксировать</span></button>'+
       '<button type="button" class="diagnose" data-object-action="diagnose">? <span>Что не правильно?</span></button>'+
       '<div class="tb-object-context-separator"></div>'+
+      '<button type="button" data-object-action="lock-object">🔒 <span>Lock Object</span></button>'+
+      '<button type="button" data-object-action="lock-position">📍 <span>Lock Position</span></button>'+
+      '<button type="button" data-object-action="unlock-object">🔓 <span>Разблокировать</span></button>'+
+      '<div class="tb-object-context-separator"></div>'+
       '<button type="button" class="danger" data-object-action="delete">🗑 <span>Удалить</span></button>';
     document.body.appendChild(menu);
     menu.addEventListener("click",(event)=>{
@@ -789,6 +799,9 @@
       else if(action==="diagnose")openInvalidElementDiagnosis();
       else if(action==="compare-source")toggleMeshSourceCompare();
       else if(action==="break-mesh-link")breakSelectedMeshLinks();
+      else if(action==="lock-object")lockApi()?.lockObject?.();
+      else if(action==="lock-position")lockApi()?.lockPosition?.();
+      else if(action==="unlock-object")lockApi()?.unlockSelection?.();
       else applyAction(action);
     });
     contextMenu=menu;
@@ -849,9 +862,27 @@
       breakMesh.hidden=!meshOnly||!linkedMeshes.length;
       breakMesh.disabled=!meshOnly||!linkedMeshes.length;
     }
+    const lockTargets=lockApi()?.selectionTargets?.()??[];
+    const lockObjectButton=menu.querySelector('[data-object-action="lock-object"]');
+    const lockPositionButton=menu.querySelector('[data-object-action="lock-position"]');
+    const unlockButton=menu.querySelector('[data-object-action="unlock-object"]');
+    const hasLockTarget=lockTargets.length>0;
+    const modes=new Set(lockTargets.map((target)=>String(target.mode??"Unlocked")));
+    if(lockObjectButton){
+      lockObjectButton.hidden=!hasLockTarget;
+      lockObjectButton.disabled=!hasLockTarget||(modes.size===1&&modes.has("Object"));
+    }
+    if(lockPositionButton){
+      lockPositionButton.hidden=!hasLockTarget;
+      lockPositionButton.disabled=!hasLockTarget||(modes.size===1&&modes.has("Position"));
+    }
+    if(unlockButton){
+      unlockButton.hidden=!hasLockTarget;
+      unlockButton.disabled=!hasLockTarget||(modes.size===1&&modes.has("Unlocked"));
+    }
     const move=menu.querySelector('[data-object-action="move"]');
     if(move){
-      const allowed=hasSelection&&!endSelection&&source==="3d"&&canMoveSelection();
+      const allowed=hasSelection&&!endSelection&&source==="3d"&&canMoveSelection()&&lockAllowed("move",{notify:false});
       move.hidden=!!endSelection||!hasSelection||source!=="3d";
       move.disabled=!allowed;
       move.title=allowed
@@ -936,6 +967,7 @@
   function breakSelectedMeshLinks(){
     const p=project(),meshEntries=selectionEntries().filter((entry)=>entry.kind==="mesh-instance");
     if(!p||!meshEntries.length)return false;
+    if(!lockAllowed("break-link"))return false;
     const mutate=()=>{
       for(const entry of meshEntries){
         refApi()?.breakEditableMeshInstanceLink?.(p,entry.instanceId);
@@ -965,6 +997,7 @@
   function applyMove(delta){
     const entries=selectionEntries();
     if(!entries.length||!canMoveSelection())return false;
+    if(!lockAllowed("move"))return false;
     const p=project();
     if(!p)return false;
 
@@ -1360,6 +1393,7 @@
     const p=project();
     if(!p)return;
     if(action!=="show-all"&&!entries.length)return;
+    if(action==="delete"&&!lockAllowed("delete"))return;
 
     const mutate=()=>{
       if(typeof syncActiveTubeFromState==="function")syncActiveTubeFromState();
