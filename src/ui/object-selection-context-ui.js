@@ -878,6 +878,56 @@
     };
     return {...(profiles[type]??{title:type,edit:false,transform:false,visibility:true,properties:true,delete:true,isolate:false,transparent:false}),type,single};
   }
+  function contextBlockedReason(action,profile,entries=selectionEntries()){
+    if(action==="edit-object"){
+      if(profile.type==="ref")return "Source / Reference доступен только для чтения";
+      if(profile.type==="multi")return "Для Edit выберите один объект";
+      if(profile.type==="end")return "Для конца трубы используйте фиксацию P2";
+      return "Редактирование недоступно для этого типа объекта";
+    }
+    if(action==="transform-object"||action==="move"){
+      if(["line","bend","row"].includes(profile.type))return "Transform применяется к целому объекту, а не к подэлементу";
+      if(profile.type==="end")return "Положение конца определяется геометрией трубы";
+      return "Transform недоступен для текущего выбора";
+    }
+    if(action==="hide"||action==="show"||action==="isolate"||action==="transparent"){
+      if(profile.type==="end")return "Видимость управляется родительским объектом";
+      if(profile.type==="group"||profile.type==="project-assembly")return "Для контейнера доступен Show / Hide, но не этот режим";
+      return "Режим видимости недоступен для текущего выбора";
+    }
+    if(action==="properties")return "Свойства недоступны для текущего выбора";
+    if(action==="delete"){
+      if(profile.type==="end")return "Конец трубы нельзя удалить отдельно";
+      if(profile.type==="assembly")return "Внутренний Tube Assembly удаляется через родительский объект";
+      return "Удаление недоступно для текущего выбора";
+    }
+    return "Команда недоступна для текущего выбора";
+  }
+  function actionPermission(action,profile){
+    const map={
+      "edit-object":["tube","line","bend","row"].includes(profile.type)?"geometry":"properties",
+      "transform-object":"transform",
+      properties:"properties",
+      delete:"delete",
+      hide:"hide",show:"show",isolate:"isolate",transparent:"transparent"
+    };
+    const permissionAction=map[action];
+    if(!permissionAction)return {allowed:true,reason:null};
+    const permission=lockApi()?.permissionForSelection?.(permissionAction);
+    return permission??{allowed:true,reason:null};
+  }
+  function setContextButtonAvailability(menu,action,{allowed,reason="",visible=true}={}){
+    const button=menu.querySelector('[data-object-action="'+action+'"]');if(!button)return;
+    button.hidden=visible===false;
+    button.disabled=allowed!==true;
+    button.title=allowed===true?"":String(reason||"Команда недоступна");
+    button.dataset.blockReason=allowed===true?"":String(reason||"Команда недоступна");
+    let reasonNode=button.querySelector(".tb-context-reason");
+    if(!reasonNode){reasonNode=document.createElement("small");reasonNode.className="tb-context-reason";button.appendChild(reasonNode);}
+    reasonNode.textContent=allowed===true?"":String(reason||"Недоступно");
+    reasonNode.hidden=allowed===true;
+  }
+
   function openContextEdit(entries=selectionEntries()){
     if(entries.length!==1)return false;
     const entry=entries[0];
@@ -1023,9 +1073,13 @@
       transparent:profile.transparent,
       delete:profile.delete
     };
-    for(const [action,visible] of Object.entries(contextualVisibility)){
-      const button=menu.querySelector('[data-object-action="'+action+'"]');
-      if(button)button.hidden=!hasSelection||visible!==true;
+    for(const [action,supported] of Object.entries(contextualVisibility)){
+      const permission=actionPermission(action,profile);
+      const allowed=hasSelection&&supported===true&&permission.allowed!==false;
+      const reason=permission.allowed===false
+        ?String(permission.reason||"Объект заблокирован")
+        :contextBlockedReason(action,profile,entries);
+      setContextButtonAvailability(menu,action,{allowed,reason,visible:hasSelection});
     }
     const endSelection=hasSelection?endConstraintSelection(entries):null;
     const anchorEnd=menu.querySelector('[data-object-action="anchor-end"]');
@@ -1041,9 +1095,6 @@
         :"";
     }
     if(endSelection){
-      for(const button of menu.querySelectorAll("[data-object-action]")){
-        if(button.dataset.objectAction!=="anchor-end")button.hidden=true;
-      }
       if(title)title.textContent="Конец трубы";
     }
     const diagnosis=hasSelection?invalidElementDiagnosis(entries):null;
@@ -1109,12 +1160,17 @@
     }
     const move=menu.querySelector('[data-object-action="move"]');
     if(move){
-      const allowed=hasSelection&&!endSelection&&source==="3d"&&canMoveSelection()&&lockAllowed("move",{notify:false});
-      move.hidden=!!endSelection||!hasSelection||source!=="3d";
+      const permission=lockApi()?.permissionForSelection?.("move")??{allowed:true,reason:null};
+      const allowed=hasSelection&&!endSelection&&canMoveSelection()&&permission.allowed!==false;
+      move.hidden=!hasSelection;
       move.disabled=!allowed;
       move.title=allowed
         ?"Переместить выбранные объекты на ΔX / ΔY / ΔZ"
-        :"Перемещение доступно для целых труб и импортированных компонентов";
+        :String(permission.reason||contextBlockedReason("move",profile,entries));
+      move.dataset.blockReason=allowed?"":move.title;
+      let reasonNode=move.querySelector(".tb-context-reason");
+      if(!reasonNode){reasonNode=document.createElement("small");reasonNode.className="tb-context-reason";move.appendChild(reasonNode);}
+      reasonNode.textContent=allowed?"":move.title;reasonNode.hidden=allowed;
     }
     menu.style.display="block";
     const margin=8;
@@ -2085,6 +2141,7 @@
       '.tb-object-context-menu button{display:flex;width:100%;align-items:center;gap:9px;text-align:left;border:0;border-radius:4px;background:transparent;color:#e6eef8;padding:7px 9px;cursor:pointer}'+
       '.tb-object-context-menu button:hover:not(:disabled){background:#233750}'+
       '.tb-object-context-menu button:disabled{opacity:.4;cursor:not-allowed}'+
+      '.tb-object-context-menu .tb-context-reason{margin-left:auto;max-width:155px;text-align:right;color:#8296aa;font-size:9px;line-height:1.15;font-weight:400}'+
       '.tb-object-context-menu button.diagnose{color:#ffb4b4}'+
       '.tb-object-context-menu button.diagnose:hover:not(:disabled){background:#4a232a;color:#ffd4d4}'+
       '.tb-object-issues-panel{position:fixed;z-index:120010;display:none;width:min(430px,calc(100vw - 24px));max-height:min(520px,calc(100vh - 24px));overflow:auto;background:#101927;border:1px solid #65414a;border-radius:9px;box-shadow:0 18px 45px rgba(0,0,0,.62);font:12px/1.4 Segoe UI,Arial,sans-serif;color:#e6eef8}'+
