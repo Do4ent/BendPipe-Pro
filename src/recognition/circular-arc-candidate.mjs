@@ -58,11 +58,20 @@ function unwrapAngles(values){
 export function fitCircularArcCandidate(
   points,
   {
-    radial_tolerance_mm=0.1,
-    plane_tolerance_mm=0.1,
-    collinear_tolerance=1e-9
+    radial_tolerance_mm=null,
+    plane_tolerance_mm=null,
+    collinear_tolerance=1e-9,
+    tolerance_profile=null,
+    evidence=[]
   }={}
 ){
+  const profile=tolerance_profile&&typeof tolerance_profile==="object"?tolerance_profile:{};
+  radial_tolerance_mm=radial_tolerance_mm==null
+    ?Number(profile.circle_arc_fit_tolerance_mm??0.1)
+    :Number(radial_tolerance_mm);
+  plane_tolerance_mm=plane_tolerance_mm==null
+    ?Number(profile.coplanar_tolerance_mm??profile.circle_arc_fit_tolerance_mm??0.1)
+    :Number(plane_tolerance_mm);
   if(!Array.isArray(points))throw new TypeError("points must be an array");
   if(points.length<3){
     return Object.freeze({
@@ -137,6 +146,20 @@ export function fitCircularArcCandidate(
     production_ready:false,
     accepted_candidate:accepted,
     truth_category:"inferred",
+    geometry_status:"Fitted",
+    fitting_error:Object.freeze({
+      mm:Math.max(maxRadialError,maxPlaneError),
+      radial_mm:maxRadialError,
+      coplanar_mm:maxPlaneError,
+      deg:0
+    }),
+    confidence:clamp(1-Math.max(
+      radial_tolerance_mm>0?maxRadialError/radial_tolerance_mm:0,
+      plane_tolerance_mm>0?maxPlaneError/plane_tolerance_mm:0
+    ),0,1),
+    evidence:Object.freeze((Array.isArray(evidence)?evidence:[evidence]).filter(Boolean).map(item=>
+      item&&typeof item==="object"?Object.freeze(structuredClone(item)):String(item)
+    )),
     center:freezePoint(center),
     plane_normal:freezePoint(normal),
     start_point:freezePoint(src[0]),
@@ -151,7 +174,8 @@ export function fitCircularArcCandidate(
     angular_reversals:reversals,
     tolerances:Object.freeze({
       radial_tolerance_mm,
-      plane_tolerance_mm
+      plane_tolerance_mm,
+      source_profile:tolerance_profile?Object.freeze(structuredClone(profile)):null
     }),
     reason:accepted
       ?"Circular arc candidate fits the ordered polyline evidence within explicit tolerances; canonical acceptance is still required."
