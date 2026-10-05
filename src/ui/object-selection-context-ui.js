@@ -399,8 +399,8 @@
           special={type:"Vertex",item,label:"Vertex"};
           break;
         }
-        if(data.tubeEnd===true){special={type:"Endpoint",item,label:"Endpoint"};objectId=data.tubeId??objectId;break;}
-        if(data.originPoint===true){special={type:"Node",item,label:"Node"};objectId=data.tubeId??objectId;break;}
+        if(data.tubeEnd===true){special={type:"Endpoint",item,label:"Endpoint"};objectId=data.tubeId??activeTubeId()??objectId;break;}
+        if(data.originPoint===true){special={type:"Node",item,label:"Node"};objectId=data.tubeId??activeTubeId()??objectId;break;}
         if(data.tubeId){source="Tube";objectId=String(data.tubeId);}
         item=item.parent;
       }
