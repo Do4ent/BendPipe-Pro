@@ -25,7 +25,7 @@ test("question 90: intra-object Snap priority follows accepted CAD order",()=>{
     c("intersection","Intersection"),
     c("endpoint","Endpoint"),
     c("node","Node")
-  ]);
+  ],{enabled:{Tangent:true,Perpendicular:true,Nearest:true}});
   assert.deepEqual(ranked.map(x=>x.type),[
     "Endpoint","Node","Intersection","Center","Midpoint",
     "Perpendicular","Tangent","LineAxis","Plane","Nearest"
@@ -40,7 +40,7 @@ test("question 90: virtual Intersection does not outrank real geometric snaps",(
     c("axis","LineAxis"),
     c("plane","Plane"),
     c("nearest","Nearest")
-  ]);
+  ],{enabled:{Nearest:true}});
   assert.deepEqual(ranked.map(x=>x.id),[
     "center","mid","axis","plane","virtual-intersection","nearest"
   ]);
@@ -52,14 +52,15 @@ test("question 90: Tab cycling follows ranked candidates and wraps",()=>{
     c("center","Center"),
     c("endpoint","Endpoint")
   ];
-  const first=cycleSnapCandidate(candidates,null,1);
+  const settings={enabled:{Nearest:true}};
+  const first=cycleSnapCandidate(candidates,null,1,settings);
   assert.equal(first.id,"endpoint");
-  const second=cycleSnapCandidate(candidates,"endpoint",1);
+  const second=cycleSnapCandidate(candidates,"endpoint",1,settings);
   assert.equal(second.id,"center");
-  const third=cycleSnapCandidate(candidates,"center",1);
+  const third=cycleSnapCandidate(candidates,"center",1,settings);
   assert.equal(third.id,"nearest");
-  const wrapped=cycleSnapCandidate(candidates,"nearest",1);
+  const wrapped=cycleSnapCandidate(candidates,"nearest",1,settings);
   assert.equal(wrapped.id,"endpoint");
-  const reverse=cycleSnapCandidate(candidates,"endpoint",-1);
+  const reverse=cycleSnapCandidate(candidates,"endpoint",-1,settings);
   assert.equal(reverse.id,"nearest");
 });
