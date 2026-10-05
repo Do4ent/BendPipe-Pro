@@ -4,6 +4,7 @@
   let dimensions=null,dynamicInput=null,installed=false,root=null,activeId=null,drag=null,editor=null,suppressUntil=0;
   const eng=()=>window.TubeBenderEngineering??null;
   const snap=()=>window.TubeBenderSnapTracking??null;
+  const screenSpace=()=>window.TubeBenderScreenSpace??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const canvas=()=>document.getElementById("threeCanvas");
   const clone=v=>v==null?v:structuredClone(v);
@@ -86,8 +87,10 @@
   }
   function grip(point,color,dimensionId,kind,index=null){
     const p=mmToScene(point);if(!p)return null;
-    const s=visualScale(p),mesh=new THREE.Mesh(new THREE.SphereGeometry(.07*s,14,10),new THREE.MeshBasicMaterial({color,depthTest:false,depthWrite:false}));
-    mesh.position.copy(p);return tag(mesh,{dimensionId,dimensionGrip:kind,referenceIndex:index});
+    const base=.07,mesh=new THREE.Mesh(new THREE.SphereGeometry(base,14,10),new THREE.MeshBasicMaterial({color,depthTest:false,depthWrite:false}));
+    mesh.position.copy(p);tag(mesh,{dimensionId,dimensionGrip:kind,referenceIndex:index});
+    if(screenSpace()?.register)screenSpace().register(mesh,"dimension",base);else mesh.scale.setScalar(visualScale(p));
+    return mesh;
   }
   function canvasTexture(text,color){
     const c=document.createElement("canvas"),ctx=c.getContext("2d"),dpr=Math.max(1,window.devicePixelRatio||1);
@@ -99,8 +102,10 @@
     const p=mmToScene(point);if(!p)return null;
     const text=dimensions?.formatDimensionValue?.(dimension)??String(dimension?.value??"—"),made=canvasTexture(text,color);
     const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:made.texture,transparent:true,depthTest:false,depthWrite:false}));
-    sprite.position.copy(p);const s=visualScale(p);sprite.scale.set(1.8*s*made.aspect,1.8*s,1);
-    return tag(sprite,{dimensionId:String(dimension.id),dimensionText:true,dimensionPart:"text"});
+    sprite.position.copy(p);tag(sprite,{dimensionId:String(dimension.id),dimensionText:true,dimensionPart:"text"});
+    if(screenSpace()?.register)screenSpace().register(sprite,"dimension-text",1,{mode:"sprite",aspect:made.aspect});
+    else{const s=visualScale(p);sprite.scale.set(1.8*s*made.aspect,1.8*s,1);}
+    return sprite;
   }
   function renderDimension(group,dimension){
     if(dimension?.visible===false)return;
