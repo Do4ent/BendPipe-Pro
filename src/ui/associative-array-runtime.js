@@ -117,6 +117,9 @@
     return p.associative_arrays;
   }
   function sourceIds(def){return [...new Set((def?.source_tube_ids??[]).map(String).filter(Boolean))];}
+  function dispatchArrayChange(arrayId,reason){
+    try{window.dispatchEvent(new CustomEvent("tubebender-array-change",{detail:{array_id:String(arrayId??""),reason:String(reason??"change")}}));}catch{}
+  }
   function memberKey(arrayId,sourceId,index){return String(arrayId)+"|"+String(sourceId)+"|"+String(index);}
   function existingMemberMap(p,arrayId){
     const map=new Map();
@@ -320,6 +323,7 @@
     const def=createDefinition(input);
     definitions(p).push(clone(def));
     synchronize(p);
+    dispatchArrayChange(def.id,"create");
     return def;
   }
   function definitionById(arrayId,p=project()){
@@ -341,6 +345,7 @@
     }
     evaluatedParameters(def,p);
     def.status="NeedsSync";synchronize(p);
+    dispatchArrayChange(def.id,"parameters");
     return def;
   }
   function previewParameters(arrayId,patch={},options={},p=project()){
@@ -379,6 +384,7 @@
     def.suppressed_members=[...set].sort((a,b)=>a-b);
     def.status="NeedsSync";
     synchronize(p);
+    dispatchArrayChange(def.id,suppressed?"suppress":"restore");
     return def;
   }
   function detachMember(arrayId,index,{source_tube_id=null}={},p=project()){
@@ -402,6 +408,7 @@
     def.suppressed_members=[...suppressed].sort((a,b)=>a-b);
     def.status="NeedsSync";
     synchronize(p);
+    dispatchArrayChange(def.id,"detach");
     return matches.map((tube)=>String(tube.id));
   }
 
@@ -415,6 +422,7 @@
       tube.source_link_detached=true;
     }
     const [removed]=p.associative_arrays.splice(index,1);
+    dispatchArrayChange(arrayId,"break");
     return removed;
   }
   function deleteArray(arrayId,{deleteMembers=true}={},p=project()){
@@ -427,6 +435,7 @@
     }else{
       for(const tube of p.tubes??[])if(String(tube?.array_member?.array_id??"")===String(arrayId))delete tube.array_member;
     }
+    dispatchArrayChange(arrayId,"delete");
     return true;
   }
   function isDerivedTube(tube){return tube?.array_member?.derived_readonly===true;}
