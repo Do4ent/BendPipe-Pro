@@ -174,7 +174,22 @@
     const snapRef=snapReference(lastSnap);
     if(snapRef&&!refs.some(ref=>sameRef(ref,snapRef)))refs.push(snapRef);
     const resolved=refs.map(ref=>resolvedForInference(ref,lastSnap));
-    inferenceSuggestions=Array.from(inference.inferConstraintSuggestions({references:refs,resolved}));
+    const generic=Array.from(inference.inferConstraintSuggestions({references:refs,resolved}));
+    const contextualType=["Tangent","Perpendicular"].includes(String(lastSnap?.type))?String(lastSnap.type):String(lastSnap?.metadata?.constraint_type??"");
+    const snapTarget=snapReference(lastSnap),sourceRef=refs.find(ref=>!snapTarget||!sameRef(ref,snapTarget));
+    const direct=contextualType&&snapTarget&&sourceRef
+      ? [{
+          id:"infer:contextual:"+contextualType+":"+String(sourceRef.object_id)+"|"+String(sourceRef.subentity_id??"")+"->"+String(snapTarget.object_id)+"|"+String(snapTarget.subentity_id??""),
+          type:contextualType,
+          references:[clone(sourceRef),clone(snapTarget)],
+          score:1,
+          evidence:{contextual_snap:true,virtual:lastSnap?.virtual===true},
+          inferred:true,
+          requires_confirmation:true
+        }]
+      : [];
+    const map=new Map([...direct,...generic].map(item=>[String(item.id),item]));
+    inferenceSuggestions=[...map.values()].sort((a,b)=>Number(b.score)-Number(a.score));
     renderInferenceHint();refreshDoF();
     return inferenceSuggestions;
   }
