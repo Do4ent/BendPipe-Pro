@@ -33,6 +33,12 @@ export function axisAngleQuaternion(axisValue,angleDeg){
   const half=finite(angleDeg,"angle_deg")*Math.PI/360,s=Math.sin(half)/len;
   return normalizeQuaternion({x:axis.x*s,y:axis.y*s,z:axis.z*s,w:Math.cos(half)});
 }
+export function quaternionAxisAngle(value){
+  const q=normalizeQuaternion(value),w=Math.max(-1,Math.min(1,q.w));
+  const angle=2*Math.acos(w),s=Math.sqrt(Math.max(0,1-w*w));
+  if(s<EPS||Math.abs(angle)<EPS)return Object.freeze({axis:Object.freeze({x:1,y:0,z:0}),angle_deg:0});
+  return Object.freeze({axis:Object.freeze({x:q.x/s,y:q.y/s,z:q.z/s}),angle_deg:angle*180/Math.PI});
+}
 export function eulerQuaternion({x=0,y=0,z=0}={}){
   const rx=axisAngleQuaternion({x:1,y:0,z:0},x);
   const ry=axisAngleQuaternion({x:0,y:1,z:0},y);
@@ -116,6 +122,8 @@ export function ensureAssemblyState(project){
     assembly.frame={...normalizeAssemblyFrame(assembly.frame??{})};
     assembly.members=(assembly.members??[]).map(member=>({...normalizeAssemblyMember(member),ref:{...normalizeAssemblyMember(member).ref},local:{...normalizeAssemblyMember(member).local}}));
     assembly.fixed=assembly.fixed===true;
+    assembly.visible=assembly.visible!==false;
+    if(assembly.lock_state?.mode!=="Object"&&assembly.lock_state?.mode!=="Position")delete assembly.lock_state;
   }
   return project.assemblies;
 }
@@ -143,7 +151,7 @@ export function wouldCreateAssemblyCycle(project,parentId,childId){
   const parent=String(parentId),child=String(childId);
   return parent===child||assemblyDescendantIds(project,child).includes(parent);
 }
-export function createAssembly(project,{id=null,name="Assembly",frame={},members=[],fixed=false}={}){
+export function createAssembly(project,{id=null,name="Assembly",frame={},members=[],fixed=false,visible=true}={}){
   ensureAssemblyState(project);
   const assembly={
     id:String(id??makeId()),
@@ -151,7 +159,8 @@ export function createAssembly(project,{id=null,name="Assembly",frame={},members
     name:String(name??"Assembly").trim()||"Assembly",
     frame:{...normalizeAssemblyFrame(frame)},
     members:[],
-    fixed:fixed===true
+    fixed:fixed===true,
+    visible:visible!==false
   };
   if(assemblyById(project,assembly.id))throw new Error("Assembly id already exists");
   project.assemblies.push(assembly);
@@ -202,6 +211,35 @@ export function leafAssemblyMembers(project,assemblyId){
   };
   visit(root.id);return Object.freeze([...result.values()].map(member=>Object.freeze(member)));
 }
+export function assembliesContainingMember(project,memberRef,{includeAncestors=true}={}){
+  const key=assemblyMemberKey(memberRef),direct=[];
+  for(const assembly of ensureAssemblyState(project)){
+    if((assembly.members??[]).some(member=>assemblyMemberKey(member.ref)===key))direct.push(assembly);
+  }
+  if(!includeAncestors)return Object.freeze(direct);
+  const result=new Map(direct.map(item=>[String(item.id),item]));
+  let changed=true;
+  while(changed){
+    changed=false;
+    for(const assembly of ensureAssemblyState(project)){
+      for(const member of assembly.members??[]){
+        if(member.ref?.kind==="assembly"&&result.has(String(member.ref.id))&&!result.has(String(assembly.id))){
+          result.set(String(assembly.id),assembly);changed=true;
+        }
+      }
+    }
+  }
+  return Object.freeze([...result.values()]);
+}
+export function setAssemblyMemberLocal(project,assemblyId,memberRef,local={}){
+  const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
+  const key=assemblyMemberKey(memberRef);
+  const index=(assembly.members??[]).findIndex(member=>assemblyMemberKey(member.ref)===key);
+  if(index<0)throw new Error("Assembly member not found");
+  const next=normalizeAssemblyMember({ref:assembly.members[index].ref,local});
+  assembly.members[index]={ref:{...next.ref},local:{...next.local}};
+  return assembly.members[index];
+}
 export function renameAssembly(project,assemblyId,name){
   const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
   const text=String(name??"").trim();if(!text)throw new Error("Assembly name is required");
@@ -210,6 +248,18 @@ export function renameAssembly(project,assemblyId,name){
 export function setAssemblyFixed(project,assemblyId,fixed){
   const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
   assembly.fixed=fixed===true;return assembly;
+}
+export function setAssemblyVisibility(project,assemblyId,visible){
+  const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
+  assembly.visible=visible!==false;return assembly;
+}
+export function setAssemblyLock(project,assemblyId,mode="Unlocked"){
+  const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
+  const value=String(mode);
+  if(value==="Unlocked")delete assembly.lock_state;
+  else if(value==="Object"||value==="Position")assembly.lock_state={mode:value};
+  else throw new RangeError("Assembly lock mode must be Unlocked, Position or Object");
+  return assembly;
 }
 export function setAssemblyFrame(project,assemblyId,frame){
   const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
