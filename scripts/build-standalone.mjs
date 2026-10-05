@@ -29,6 +29,7 @@ const assembliesRuntimePath = path.join(root, "src", "ui", "assemblies-runtime.j
 const constraintsRuntimePath = path.join(root, "src", "ui", "constraints-runtime.js");
 const toleranceProfileRuntimePath = path.join(root, "src", "ui", "tolerance-profile-runtime.js");
 const fittedGeometryRuntimePath = path.join(root, "src", "ui", "fitted-geometry-runtime.js");
+const normalizeGeometryRuntimePath = path.join(root, "src", "ui", "normalize-geometry-runtime.js");
 const associativeArrayRuntimePath = path.join(root, "src", "ui", "associative-array-runtime.js");
 const associativeMirrorRuntimePath = path.join(root, "src", "ui", "associative-mirror-runtime.js");
 const transformStackRuntimePath = path.join(root, "src", "ui", "transform-stack-runtime.js");
@@ -48,6 +49,7 @@ const constraintDofDomainPath = path.join(root, "src", "domain", "constraints", 
 const autoConstrainDomainPath = path.join(root, "src", "domain", "constraints", "auto-constrain.mjs");
 const toleranceProfileDomainPath = path.join(root, "src", "domain", "geometry", "tolerance-profile.mjs");
 const fittedGeometryPolicyDomainPath = path.join(root, "src", "domain", "geometry", "fitted-geometry-policy.mjs");
+const normalizeFittedGeometryDomainPath = path.join(root, "src", "domain", "geometry", "normalize-fitted-geometry.mjs");
 const geometryMeasurementsDomainPath = path.join(root, "src", "domain", "measurements", "geometry-measurements.mjs");
 const dimensionsDomainPath = path.join(root, "src", "domain", "measurements", "dimensions.mjs");
 const equipmentRuntimeBridgePath = path.join(root, "src", "ui", "equipment-runtime-bridge.js");
@@ -2543,6 +2545,13 @@ const fittedGeometryRuntime = fs.readFileSync(fittedGeometryRuntimePath, "utf8")
 const bundledFittedGeometryRuntime =
   `<script data-tubebender-bundled="fitted-geometry-runtime">\n${fittedGeometryRuntime}\n</script>`;
 
+const normalizeFittedGeometryDomainUrl = moduleDataUrl(normalizeFittedGeometryDomainPath);
+const normalizeGeometryRuntime = fs.readFileSync(normalizeGeometryRuntimePath, "utf8")
+  .replace("__TB_NORMALIZE_FITTED_GEOMETRY_MODULE_URL__", normalizeFittedGeometryDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledNormalizeGeometryRuntime =
+  `<script data-tubebender-bundled="normalize-geometry-runtime">\n${normalizeGeometryRuntime}\n</script>`;
+
 const associativeArrayRuntime = fs.readFileSync(associativeArrayRuntimePath, "utf8")
   .replace("__TB_TRANSFORM_COMMANDS_MODULE_URL__", transformCommandsDomainUrl)
   .replace("__TB_RIGID_TRANSFORM_MODULE_URL__", legacyRigidTransformDomainUrl)
@@ -2649,6 +2658,8 @@ output =
   bundledToleranceProfileRuntime +
   "\n" +
   bundledFittedGeometryRuntime +
+  "\n" +
+  bundledNormalizeGeometryRuntime +
   "\n" +
   bundledMaterialLibraryUi +
   "\n" +
@@ -2943,6 +2954,7 @@ process.stdout.write(
       bundledConstraintsRuntime: true,
       bundledToleranceProfileRuntime: true,
       bundledFittedGeometryRuntime: true,
+      bundledNormalizeGeometryRuntime: true,
       bundledAssociativeArrays: true,
       bundledAssociativeMirrors: true,
       bundledTransformStacks: true,
