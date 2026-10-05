@@ -1039,7 +1039,10 @@
     $(".tb-edit-tools",panel).onclick=(e)=>{const b=e.target.closest("[data-tool]");if(!b||b.disabled)return;if(activeTool==="copy"&&b.dataset.tool!=="copy"){resetCopySession();copySession.active=false;}activeTool=b.dataset.tool;render();};
     return panel;
   }
-  function open(){ensureShell().classList.add("open");render();}
+  function open(tool=null){
+    if(tool&&["copy","move","split","rotate","mirror","array","stack"].includes(String(tool)))activeTool=String(tool);
+    ensureShell().classList.add("open");render();
+  }
   function close(){panel?.classList.remove("open");resetCopySession();copySession.active=false;snapTracking()?.endCommand?.();snapCommandTool=null;}
   function render(){
     if(!panel||!straightRun)return;
