@@ -74,14 +74,16 @@ function classifyAxis(variableName){
   return {object_id,axis,variable:variableName};
 }
 export function analyzeConstraintDoF(project,{
-  include_disabled=false
+  include_disabled=false,
+  object_ids=[]
 }={}){
   const constraints=Array.isArray(project?.geometric_constraints)?project.geometric_constraints:[];
   const active=constraints.filter(c=>include_disabled||c?.enabled!==false);
   const invalid=active.filter(c=>["LostReference","Error","Invalid"].includes(String(c?.status)));
   const conflicts=active.filter(c=>String(c?.status)==="Conflict");
   const refs=active.flatMap(c=>c?.references??[]);
-  const ids=[...new Set(refs.map(r=>String(r?.object_id??"")).filter(Boolean))];
+  const scopedIds=(object_ids??[]).map(String).filter(Boolean);
+  const ids=[...new Set([...refs.map(r=>String(r?.object_id??"")).filter(Boolean),...scopedIds])];
   const variableSet=new Set();
   for(const id of ids)for(const axis of RIGID_AXES)variableSet.add(variable(id,axis));
   for(const c of active)if(c?.type==="Equal")for(const ref of c.references??[])variableSet.add(scalarVariable(ref));
