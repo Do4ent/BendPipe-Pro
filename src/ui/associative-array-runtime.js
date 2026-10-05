@@ -59,7 +59,7 @@
         if(dep===name)throw new Error("Array formula cycle: "+name+" -> "+name);
         if(dep in formulas||rawParameterValue(def,dep)!=null)vars[dep]=resolve(dep);
       }
-      const kind=FORMULA_FIELDS[name]==="angle"?"angle":"length";
+      const kind=FORMULA_FIELDS[name]??"length";
       const value=dynamicInput.evaluateNumericInput(expression,{kind,variables:vars});
       visiting.delete(name);resolved[name]=value;return value;
     };
@@ -68,7 +68,11 @@
   }
   function evaluatedParameters(def,p=project()){
     const params=clone(def?.parameters??{}),values=evaluateFormulaFields(def,p);
-    const value=(name,fallback)=>name in values?values[name]:(Number(rawParameterValue(def,name))||fallback);
+    const value=(name,fallback)=>{
+      if(name in values)return values[name];
+      const raw=Number(rawParameterValue(def,name));
+      return Number.isFinite(raw)?raw:fallback;
+    };
     if(def?.type==="Linear"){
       params.count=Math.max(1,Math.trunc(value("count",1)));
       params.step=value("step",0);
