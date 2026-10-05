@@ -4,6 +4,7 @@
   const ctx=()=>window.TubeBenderObjectContext??null;
   const eng=()=>window.TubeBenderEngineering??null;
   const refApi=()=>window.TubeBenderReferenceSceneUi??null;
+  const lockApi=()=>window.TubeBenderObjectLocks??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const entries=()=>ctx()?.selectionEntries?.()??[];
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -84,6 +85,7 @@
     return String(input.value??"");
   }
   function applyCommonProperty(fieldName,input){
+    if(lockApi()?.canSelection?.("properties",{notify:true})===false)return false;
     const {targets,fields}=commonEditableFields();
     const field=fields.find(item=>item.name===fieldName);
     if(!field||!targets.length)return false;
@@ -111,7 +113,10 @@
     if(!targets.length)return '<div class="tb-prop-empty">Для этого типа свойства доступны только для просмотра.</div>';
     if(!fields.length)return '<div class="tb-prop-empty">У выбранных объектов нет общих редактируемых свойств.</div>';
     const count=targets.length;
-    return '<div class="tb-prop-edit-card"><div class="tb-prop-edit-title">Редактирование'+(count>1?' · '+count+' объектов':'')+'</div>'+
+    const lockModes=new Set((lockApi()?.selectionTargets?.()??[]).map((target)=>String(target.mode??"Unlocked")));
+    const lockSummary=lockModes.size===1?(lockModes.has("Object")?"🔒 Lock Object":lockModes.has("Position")?"📍 Lock Position":"Unlocked"):"Mixed lock";
+    return '<div class="tb-prop-edit-card"><div class="tb-prop-edit-title">Редактирование'+(count>1?' · '+count+' объектов':'')+' <span class="tb-prop-kind">· '+lockSummary+'</span></div>'+
+      '<div class="tb-prop-edit-row"><label>Lock</label><span><button data-property-lock="Object">🔒 Object</button><button data-property-lock="Position">📍 Position</button><button data-property-lock="Unlocked">🔓 Unlock</button></span></div>'+
       fields.map(field=>{
         if(field.type==="boolean"){
           return '<div class="tb-prop-edit-row"><label>'+esc(field.label)+'</label><span><input type="checkbox" data-property-field="'+esc(field.name)+'" data-property-type="boolean" '+(field.value===true?'checked ':'')+'data-property-mixed="'+(field.mixed?'1':'0')+'"><button data-property-apply="'+esc(field.name)+'">Применить</button></span></div>';
@@ -122,6 +127,15 @@
   }
   function bindEditableFields(){
     if(!panel)return;
+    panel.querySelectorAll("[data-property-lock]").forEach(button=>{
+      button.onclick=()=>{
+        const mode=button.dataset.propertyLock;
+        if(mode==="Object")lockApi()?.lockObject?.();
+        else if(mode==="Position")lockApi()?.lockPosition?.();
+        else lockApi()?.unlockSelection?.();
+        render(true);
+      };
+    });
     panel.querySelectorAll('[data-property-field][data-property-type="boolean"]').forEach(input=>{
       input.indeterminate=input.dataset.propertyMixed==="1";
       input.addEventListener("change",()=>{input.indeterminate=false;input.dataset.propertyMixed="0";});
@@ -140,6 +154,10 @@
     });
   }
 
+  function lockLabelForEntry(entry){
+    const status=lockApi()?.statusForEntry?.(entry);
+    return status?.mode==="Object"?"🔒 Lock Object":status?.mode==="Position"?"📍 Lock Position":"Unlocked";
+  }
   function commonTubeProps(tube){
     if(!tube)return [];
     return [
@@ -155,7 +173,8 @@
       ["Material",tube.material_profile_id],
       ["Import",tube.currentProjectImport?.source_format??tube.importEvidence?.source?.format],
       ["Source file",tube.currentProjectImport?.source_file??tube.importEvidence?.source?.file],
-      ["Readonly",tube.readonly===true]
+      ["Readonly",tube.readonly===true],
+      ["Lock",lockLabelForEntry({kind:"tube",tubeId:tube.id})]
     ];
   }
   function describe(entry){
@@ -201,6 +220,7 @@
       return {title:instance?.name??"Editable Mesh Instance",kind:"mesh-instance",groups:[
         {name:"Instance",rows:[
           ["ID",instance?.id],["Link",instance?.link_status],["Visible",instance?.visible!==false],
+          ["Lock",lockLabelForEntry(entry)],
           ["Position",instance?.transform?.position_mm],["Rotation",instance?.transform?.rotation_deg]
         ]},
         {name:"Source",rows:[
@@ -257,6 +277,7 @@
   function install(){
     if(installed)return;installed=true;ensurePanel();render(true);
     window.addEventListener("tubebender-selection-change",()=>render(true));
+    window.addEventListener("tubebender-lock-change",()=>render(true));
     window.addEventListener("tubebender-snap-change",()=>{if(panel?.classList.contains("open"))render(false);});
     window.TubeBenderProperties=Object.freeze({open,close,refresh:()=>render(true),snapshot,describe,editableTargets,commonEditableFields,applyCommonProperty});
   }
