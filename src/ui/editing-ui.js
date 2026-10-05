@@ -15,6 +15,7 @@
   const snapTracking=()=>window.TubeBenderSnapTracking??null;
   const referenceApi=()=>window.TubeBenderReferenceSceneUi??null;
   const lockApi=()=>window.TubeBenderObjectLocks??null;
+  const fittedApi=()=>window.TubeBenderFittedGeometry??null;
   const lockAllowed=(action)=>lockApi()?.canSelection?.(action,{notify:true})!==false;
   const project=()=>{try{return api()?.activeProject?.()??null;}catch{return null;}};
   const stateValue=()=>{try{return api()?.getState?.()??null;}catch{return null;}};
@@ -864,6 +865,13 @@
         parameters={count,total_angle_deg,axis,center,rotate_elements};
       }
       const name=$("[data-array-name]",body).value.trim()||type+" Array";
+      const axisEvidence={
+        type,
+        axis_source:"Explicit UI axis / direction",
+        geometry_status:"Exact",
+        parameters:clone(parameters)
+      };
+      if(fittedApi()?.confirmUsage?.("ArrayAxis",axisEvidence)!==true)return false;
       return commit("Создать ассоциативный массив",()=>{
         runtime.addArray({
           type,
