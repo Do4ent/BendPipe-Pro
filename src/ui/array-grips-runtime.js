@@ -39,18 +39,23 @@
   }
   function material(color,opacity=.95){return new THREE.MeshBasicMaterial({color,transparent:opacity<1,opacity,depthTest:false,depthWrite:false});}
   function sphere(point,color,data,size=1){
-    const mesh=new THREE.Mesh(new THREE.SphereGeometry(.07*size,14,10),material(color));
-    mesh.position.copy(point);return tag(mesh,data);
+    const base=.07,mesh=new THREE.Mesh(new THREE.SphereGeometry(base,14,10),material(color));
+    mesh.position.copy(point);tag(mesh,data);
+    if(screenSpace()?.register)screenSpace().register(mesh,"array",base);else mesh.scale.setScalar(size);
+    return mesh;
   }
   function cube(point,color,data,size=1){
-    const mesh=new THREE.Mesh(new THREE.BoxGeometry(.12*size,.12*size,.12*size),material(color));
-    mesh.position.copy(point);return tag(mesh,data);
+    const base=.06,mesh=new THREE.Mesh(new THREE.BoxGeometry(base*2,base*2,base*2),material(color));
+    mesh.position.copy(point);tag(mesh,data);
+    if(screenSpace()?.register)screenSpace().register(mesh,"array",base);else mesh.scale.setScalar(size);
+    return mesh;
   }
   function cone(point,direction,color,data,size=1){
-    const mesh=new THREE.Mesh(new THREE.ConeGeometry(.075*size,.20*size,14),material(color));
+    const base=.075,mesh=new THREE.Mesh(new THREE.ConeGeometry(base,.20,14),material(color));
     mesh.position.copy(point);
-    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),unit(direction));
-    return tag(mesh,data);
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),unit(direction));tag(mesh,data);
+    if(screenSpace()?.register)screenSpace().register(mesh,"array",base);else mesh.scale.setScalar(size);
+    return mesh;
   }
   function line(a,b,color){
     const geometry=new THREE.BufferGeometry().setFromPoints([a,b]);
@@ -196,7 +201,7 @@
     const g=new THREE.Group();g.name="Array Grip Preview";g.userData={helper:true,objectSelectionHelper:true,arrayGripPreview:true};
     for(const member of data.members??[]){
       const p=mmToScene(member.origin),s=visualScale(p);
-      const m=new THREE.Mesh(new THREE.SphereGeometry(.045*s,10,8),material(0x59e6ff,.35));m.position.copy(p);m.userData={helper:true,objectSelectionHelper:true,arrayGripPreview:true};g.add(m);
+      const base=.045,m=new THREE.Mesh(new THREE.SphereGeometry(base,10,8),material(0x59e6ff,.35));m.position.copy(p);m.userData={helper:true,objectSelectionHelper:true,arrayGripPreview:true};g.add(m);if(screenSpace()?.register)screenSpace().register(m,"array",base);else m.scale.setScalar(s);
     }
     pipeGroup.add(g);previewGroup=g;
     if(panel){
