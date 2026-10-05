@@ -394,11 +394,21 @@
       let item=hit.object,source="Editable",objectId=hit.object?.uuid??"object",special=null;
       while(item){
         const data=item.userData??{};
+        if(data.referenceEditableInstanceId){
+          source="MeshFitted";
+          objectId=String(data.referenceEditableInstanceId);
+          special={type:"Vertex",item,label:"Mesh Vertex"};
+          break;
+        }
         if(data.referenceNodeId&&data.referenceSceneId){
           source="SourceReference";
           objectId=String(data.referenceSceneId)+":"+String(data.referenceNodeId);
           special={type:"Vertex",item,label:"Vertex"};
           break;
+        }
+        if(data.constructionId||data.constructionGeometryId){
+          source="Construction";
+          objectId=String(data.constructionId??data.constructionGeometryId);
         }
         if(data.tubeEnd===true){special={type:"Endpoint",item,label:"Endpoint"};objectId=data.tubeId??activeTubeId()??objectId;break;}
         if(data.originPoint===true){special={type:"Node",item,label:"Node"};objectId=data.tubeId??activeTubeId()??objectId;break;}
