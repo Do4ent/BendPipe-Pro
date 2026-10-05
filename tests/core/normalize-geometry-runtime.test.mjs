@@ -29,7 +29,9 @@ test("question 87: Normalize is one History command and creates new IDs",()=>{
 
 test("question 87: Source and Fitted chain plus correction are retained",()=>{
   assert.match(runtime,/sourceChain/);
-  assert.match(runtime,/source_geometry/);
+  assert.match(runtime,/source_file/);
+  assert.match(runtime,/source_link/);
+  assert.match(runtime,/import_source/);
   assert.match(runtime,/normalization_provenance/);
   assert.match(runtime,/correctionFor/);
   assert.match(runtime,/Compare with Fitted/);
