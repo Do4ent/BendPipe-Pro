@@ -15,6 +15,7 @@
   let temporaryExternalExcluded=false;
 
   const context=()=>window.TubeBenderObjectContext??null;
+  const screenSpace=()=>window.TubeBenderScreenSpace??null;
   const toleranceApi=()=>window.TubeBenderToleranceProfile??null;
   const toleranceProfile=()=>toleranceApi()?.profile?.()??null;
   function sourcePriorityMap(){
@@ -352,11 +353,11 @@
     if(!active)return;
     const group=new THREE.Group();group.userData={helper:true,snapTrackingHelper:true};
     const scale=sceneScale(),rayLength=5000*scale;
-    const pointGeometry=new THREE.SphereGeometry(Math.max(.035,3*scale),12,8);
+    const pointRadius=Math.max(.035,3*scale),pointGeometry=new THREE.SphereGeometry(pointRadius,12,8);
     for(const ref of acquired){
       const p=ref.candidate.point;
       const marker=new THREE.Mesh(pointGeometry,new THREE.MeshBasicMaterial({color:ref.pinned?0xffd54a:0x52d6ff,depthTest:false,depthWrite:false}));
-      marker.position.set(p.x*scale,p.y*scale,p.z*scale);marker.renderOrder=9900;marker.userData={helper:true,snapTrackingReference:true};group.add(marker);
+      marker.position.set(p.x*scale,p.y*scale,p.z*scale);marker.renderOrder=9900;marker.userData={helper:true,snapTrackingReference:true};group.add(marker);screenSpace()?.register?.(marker,"snap",pointRadius,{multiplier:ref.pinned?1.2:1});
     }
     for(const ray of trackingRays(cursor)){
       const a=ray.anchor,d=ray.direction;
@@ -396,6 +397,7 @@
         snapCandidateIndex:index
       };
       group.add(marker);
+      screenSpace()?.register?.(marker,"snap",radius,{multiplier:isCurrent?1.45:isThrough?1.15:1});
     });
     pipeGroup.add(group);helperGroup=group;
     try{if(typeof markViewerDirty==="function")markViewerDirty();}catch{}
