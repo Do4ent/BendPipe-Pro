@@ -34,7 +34,8 @@ test("question 100 LMB empty drag remains Orbit and short click remains selectio
   assert.ok(legacy.includes("if (!this._gestureMoved && totalMove <= tolerance) return;"));
   assert.ok(legacy.includes("const isTap = !cancelled"));
   assert.ok(legacy.includes("this._tapHandler"));
-  assert.ok(interaction.includes("if(button===0)"));
+  assert.ok(interaction.includes("if(button!==0)return false"));
+  assert.ok(interaction.includes("return !editHandleAt(event)"));
 });
 
 test("question 100 MMB is Pan while RMB is reserved for context menu",()=>{
