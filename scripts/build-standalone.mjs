@@ -24,6 +24,7 @@ const snapTrackingRuntimePath = path.join(root, "src", "ui", "snap-tracking-runt
 const transformGizmoRuntimePath = path.join(root, "src", "ui", "transform-gizmo-runtime.js");
 const geometryGripsRuntimePath = path.join(root, "src", "ui", "geometry-grips-runtime.js");
 const screenSpaceDisplayRuntimePath = path.join(root, "src", "ui", "screen-space-display-runtime.js");
+const interactionPriorityRuntimePath = path.join(root, "src", "ui", "interaction-priority-runtime.js");
 const propertiesPanelRuntimePath = path.join(root, "src", "ui", "properties-panel-runtime.js");
 const objectLockRuntimePath = path.join(root, "src", "ui", "object-lock-runtime.js");
 const layersRuntimePath = path.join(root, "src", "ui", "layers-runtime.js");
@@ -2476,6 +2477,11 @@ const screenSpaceDisplayRuntime = fs.readFileSync(screenSpaceDisplayRuntimePath,
 const bundledScreenSpaceDisplayRuntime =
   `<script data-tubebender-bundled="screen-space-display-runtime">\n${screenSpaceDisplayRuntime}\n</script>`;
 
+const interactionPriorityRuntime = fs.readFileSync(interactionPriorityRuntimePath, "utf8")
+  .replace(/<\/script/gi, "<\\/script");
+const bundledInteractionPriorityRuntime =
+  `<script data-tubebender-bundled="interaction-priority-runtime">\n${interactionPriorityRuntime}\n</script>`;
+
 const straightRunDomainUrl = moduleDataUrl(straightRunDomainPath);
 const legacyRigidTransformDomainUrl = moduleDataUrl(legacyRigidTransformDomainPath);
 const dynamicInputDomainUrl = moduleDataUrl(dynamicInputDomainPath);
@@ -2649,6 +2655,47 @@ const bundledReproducibilityRuntime =
 if (!output.includes("</body>")) {
   throw new Error("Standalone source HTML is missing </body>");
 }
+const interactionOrbitDownAnchor =
+  "  down(e){\n"+
+  "    if (!this.enabled) return;\n"+
+  "    if (e.pointerType === 'mouse' && ![0,1,2].includes(e.button)) return;\n"+
+  "    e.preventDefault();";
+if(!output.includes(interactionOrbitDownAnchor)){
+  throw new Error("SimpleOrbitControls down anchor missing for interaction priority");
+}
+output=output.replace(
+  interactionOrbitDownAnchor,
+  "  down(e){\n"+
+  "    if (!this.enabled) return;\n"+
+  "    if (e.pointerType === 'mouse' && ![0,1,2].includes(e.button)) return;\n"+
+  "    if (e.pointerType === 'mouse' && Number(e.button) === 2) return;\n"+
+  "    if (window.TubeBenderInteractionPriority?.shouldOrbitStart?.(e) === false) return;\n"+
+  "    e.preventDefault();"
+);
+output=output.replace(
+  "this._mode = (p.pointerType === 'mouse' && (p.button === 1 || p.button === 2 || e.shiftKey)) ? 'pan' : 'rotate';",
+  "this._mode = (p.pointerType === 'mouse' && (p.button === 1 || e.shiftKey)) ? 'pan' : 'rotate';"
+);
+output=output.replace(
+  "this._mode = remaining.pointerType === 'mouse' && (remaining.button === 1 || remaining.button === 2) ? 'pan' : 'rotate';",
+  "this._mode = remaining.pointerType === 'mouse' && remaining.button === 1 ? 'pan' : 'rotate';"
+);
+const interactionCancelAnchor =
+  "  pointerTolerance(pointerType){\n"+
+  "    return pointerType === 'touch' ? this.touchTapTolerance : this.mouseTapTolerance;\n"+
+  "  }";
+if(!output.includes(interactionCancelAnchor)){
+  throw new Error("SimpleOrbitControls pointerTolerance anchor missing");
+}
+output=output.replace(
+  interactionCancelAnchor,
+  interactionCancelAnchor+"\n\n"+
+  "  cancelGesture(){\n"+
+  "    for(const id of this._pointers.keys()){try{this.domElement.releasePointerCapture?.(id);}catch{}}\n"+
+  "    this._pointers.clear();this._mode='none';this._primaryPointerId=null;this._lastSingle=null;this._pinchDistance=0;this._pinchCenter=null;this._gestureMoved=false;this._hadMultiplePointers=false;this._tapCandidate=null;this._suppressSelectionUntil=performance.now()+120;return true;\n"+
+  "  }"
+);
+
 const finalBodyCloseIndex = output.lastIndexOf("</body>");
 if (finalBodyCloseIndex < 0) {
   throw new Error("Standalone source HTML is missing the final </body>");
@@ -2676,6 +2723,8 @@ output =
   bundledMeasurementsUi +
   "\n" +
   bundledScreenSpaceDisplayRuntime +
+  "\n" +
+  bundledInteractionPriorityRuntime +
   "\n" +
   bundledDimensionGripsRuntime +
   "\n" +
@@ -2998,6 +3047,7 @@ process.stdout.write(
       bundledMaterialLibrary: true,
       bundledMeasurementsUi: true,
       bundledScreenSpaceDisplay: true,
+      bundledInteractionPriority: true,
       bundledDimensionGrips: true,
       bundledEditingUi: true,
       bundledSnapTrackingRuntime: true,
