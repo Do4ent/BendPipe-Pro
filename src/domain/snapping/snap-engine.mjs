@@ -19,6 +19,15 @@ export const DEFAULT_SOURCE_PRIORITY=Object.freeze({
   Grid:5
 });
 
+export const DEFAULT_SOURCE_ENABLED=Object.freeze({
+  Editable:true,
+  Tube:true,
+  Construction:true,
+  SourceReference:true,
+  MeshFitted:true,
+  Grid:true
+});
+
 export const DEFAULT_SNAP_SETTINGS=Object.freeze({
   cursor_radius_px:12,
   point_tolerance_mm:0.01,
@@ -34,7 +43,10 @@ export const DEFAULT_SNAP_SETTINGS=Object.freeze({
   through_snap:false,
   show_all_candidates:true,
   snap_priority:DEFAULT_SNAP_PRIORITY,
-  source_priority:DEFAULT_SOURCE_PRIORITY
+  source_priority:DEFAULT_SOURCE_PRIORITY,
+  source_enabled:DEFAULT_SOURCE_ENABLED,
+  restrict_to_layer_id:null,
+  restrict_to_assembly_id:null
 });
 
 function freeze(value){
@@ -73,6 +85,7 @@ export function normalizeSnapSettings(input={}){
   const enabled={...DEFAULT_SNAP_SETTINGS.enabled,...(input.enabled??{})};
   const snap_priority={...DEFAULT_SNAP_PRIORITY,...(input.snap_priority??{})};
   const source_priority={...DEFAULT_SOURCE_PRIORITY,...(input.source_priority??{})};
+  const source_enabled={...DEFAULT_SOURCE_ENABLED,...(input.source_enabled??{})};
   return freeze({
     cursor_radius_px:Math.max(1,finite(input.cursor_capture_radius_px??input.cursor_radius_px??profile.cursor_capture_radius_px??DEFAULT_SNAP_SETTINGS.cursor_radius_px,"cursor_radius_px")),
     cursor_capture_radius_px:Math.max(1,finite(input.cursor_capture_radius_px??input.cursor_radius_px??profile.cursor_capture_radius_px??DEFAULT_SNAP_SETTINGS.cursor_radius_px,"cursor_capture_radius_px")),
@@ -86,7 +99,10 @@ export function normalizeSnapSettings(input={}){
     through_snap:input.through_snap===true,
     show_all_candidates:input.show_all_candidates!==false,
     snap_priority,
-    source_priority
+    source_priority,
+    source_enabled,
+    restrict_to_layer_id:input.restrict_to_layer_id==null||input.restrict_to_layer_id===""?null:String(input.restrict_to_layer_id),
+    restrict_to_assembly_id:input.restrict_to_assembly_id==null||input.restrict_to_assembly_id===""?null:String(input.restrict_to_assembly_id)
   });
 }
 
@@ -121,6 +137,18 @@ function candidateAllowed(candidate,settings,{contextual_types=[],through_snap=n
     contextual_types.includes(candidate.type)||
     (candidate.type==="Nearest"&&nearest_override);
   if(!enabled)return false;
+  if(settings.source_enabled[candidate.source]===false)return false;
+  if(settings.restrict_to_layer_id!=null){
+    const layerId=String(candidate.metadata?.layer_id??"");
+    if(layerId!==String(settings.restrict_to_layer_id))return false;
+  }
+  if(settings.restrict_to_assembly_id!=null){
+    const target=String(settings.restrict_to_assembly_id);
+    const context=candidate.metadata?.assembly_context??{};
+    const assemblyId=String(context.assembly_id??"");
+    const path=Array.isArray(context.assembly_path)?context.assembly_path.map(String):[];
+    if(assemblyId!==target&&!path.includes(target))return false;
+  }
   if(candidate.screen_distance_px>settings.cursor_radius_px)return false;
   const throughEnabled=through_snap==null?settings.through_snap:through_snap===true;
   if(!candidate.visible&&!throughEnabled&&!candidate.through)return false;
