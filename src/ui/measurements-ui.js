@@ -15,6 +15,9 @@
   const project=()=>{try{return api()?.activeProject?.()??null;}catch{return null;}};
   const readonly=()=>{try{return api()?.readonly?.()===true;}catch{return false;}};
   const toast=(m)=>{try{api()?.toast?.(String(m??""));}catch{}};
+  function dispatchDimensionChange(dimensionId,reason){
+    try{window.dispatchEvent(new CustomEvent("tubebender-dimension-change",{detail:{dimension_id:String(dimensionId??""),reason:String(reason??"change")}}));}catch{}
+  }
 
   function tubeById(id){
     return (project()?.tubes??[]).find((tube)=>String(tube?.id)===String(id))??null;
@@ -485,7 +488,7 @@
       return true;
     };
     const ok=api()?.modelCommand?api().modelCommand("Изменить стиль постоянных размеров",mutate):mutate();
-    if(ok!==false){api()?.save?.();render();}
+    if(ok!==false){api()?.save?.();dispatchDimensionChange("","style");render();}
   }
   function savedDimensions(){
     const p=project();return Array.isArray(p?.engineering_dimensions)?p.engineering_dimensions:[];
@@ -516,7 +519,7 @@
       return true;
     };
     const ok=api()?.modelCommand?api().modelCommand("Сохранить Reference Dimension",mutate):mutate();
-    if(ok!==false){api()?.save?.();toast("Размер сохранён в проект");render();renderResultsPanel(lastResult);}
+    if(ok!==false){api()?.save?.();dispatchDimensionChange(d.id,"create-reference");toast("Размер сохранён в проект");render();renderResultsPanel(lastResult);}
   }
   function saveCurrentDrivingDimension(){
     if(readonly()){toast("Проект открыт только для просмотра");return false;}
@@ -543,7 +546,7 @@
     });
     const mutate=()=>{p.engineering_dimensions=[...savedDimensions(),clone(d)];return true;};
     const ok=api()?.modelCommand?api().modelCommand("Сохранить Driving Dimension",mutate):mutate();
-    if(ok!==false){api()?.save?.();toast("Driving Dimension сохранён");render();renderResultsPanel(lastResult);}
+    if(ok!==false){api()?.save?.();dispatchDimensionChange(d.id,"create-driving");toast("Driving Dimension сохранён");render();renderResultsPanel(lastResult);}
     return ok!==false;
   }
 
