@@ -28,7 +28,7 @@ test("question 97 whole tube exposes P1 P2 and main nodes",()=>{
 
 test("question 97 LINE exposes start midpoint and end grips",()=>{
   for(const token of [
-    'kind:"line-start"',
+    'descriptorForSharedNode(g,selection.rowIndex,start,"LINE start","line-start")',
     'kind:"line-mid"',
     'label:"LINE midpoint / length"',
     'kind:"line-end"',
@@ -38,7 +38,7 @@ test("question 97 LINE exposes start midpoint and end grips",()=>{
 
 test("question 97 BEND exposes tangency nodes center CLR angle and plane grip",()=>{
   for(const token of [
-    'kind:"bend-tangent-in"',
+    'descriptorForSharedNode(g,selection.rowIndex,start,"BEND tangency in","bend-tangent-in")',
     'kind:"bend-tangent-out"',
     'kind:"bend-center"',
     'kind:"bend-radius"',
@@ -62,7 +62,7 @@ test("question 97 Snap Ortho Polar are selected from grip semantics",()=>{
 
 test("question 97 local rebuild changes only the targeted row scalar",()=>{
   assert.ok(runtime.includes("const index=Number(handle.targetRowIndex??selection.rowIndex)"));
-  assert.ok(runtime.includes("const row=rowFor(selection.tube,index)"));
+  assert.ok(runtime.includes("row=rowFor(selection.tube,index)"));
   assert.ok(runtime.includes('handle.edit==="line-length"||handle.edit==="line-mid-length"'));
   assert.ok(runtime.includes('handle.edit==="bend-angle"'));
   assert.ok(runtime.includes('handle.edit==="bend-radius"'));
