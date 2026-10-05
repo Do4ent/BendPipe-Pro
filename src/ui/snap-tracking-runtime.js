@@ -140,6 +140,74 @@
     return rays;
   }
 
+  function contextualGeometryCandidates(event){
+    if(!acquired.length||!snap)return [];
+    const anchorRef=acquired.find(ref=>ref.pinned===true)??acquired[0];
+    const sourcePoint=anchorRef?.candidate?.point;
+    if(!sourcePoint)return [];
+    const out=[];
+    for(const candidate of sourceCandidates){
+      const primitive=candidate?.metadata?.primitive;
+      if(!primitive)continue;
+      if(primitive.kind==="segment"&&primitive.start&&primitive.direction){
+        try{
+          const hit=snap.perpendicularSnapCandidate({
+            point:sourcePoint,
+            line_point:primitive.start,
+            line_direction:primitive.direction,
+            object_id:candidate.object_id,
+            source:candidate.source,
+            parameter_min:primitive.parameter_min??0,
+            parameter_max:primitive.parameter_max,
+            subentity_id:String(candidate.subentity_id??"segment")+":perpendicular"
+          });
+          out.push({
+            ...hit,
+            screen_distance_px:worldToScreenDistance(new THREE.Vector3(hit.point.x,hit.point.y,hit.point.z),event),
+            metadata:{
+              ...hit.metadata,
+              source_anchor:clone(anchorRef.candidate),
+              target_candidate_id:candidate.id,
+              target_subentity_id:candidate.subentity_id??null
+            }
+          });
+        }catch{}
+      }else if(primitive.kind==="circle"&&primitive.center&&Number.isFinite(Number(primitive.radius_mm))){
+        const common={
+          point:sourcePoint,
+          center:primitive.center,
+          radius_mm:Number(primitive.radius_mm),
+          normal:primitive.normal??{x:0,y:0,z:1},
+          object_id:candidate.object_id,
+          source:candidate.source,
+          subentity_id:String(candidate.subentity_id??"circle"),
+          arc_start_deg:primitive.arc_start_deg,
+          arc_end_deg:primitive.arc_end_deg,
+          arc_basis_x:primitive.arc_basis_x
+        };
+        try{
+          for(const hit of snap.tangentSnapCandidates(common)){
+            out.push({
+              ...hit,
+              screen_distance_px:worldToScreenDistance(new THREE.Vector3(hit.point.x,hit.point.y,hit.point.z),event),
+              metadata:{...hit.metadata,source_anchor:clone(anchorRef.candidate),target_candidate_id:candidate.id,target_subentity_id:candidate.subentity_id??null}
+            });
+          }
+        }catch{}
+        try{
+          for(const hit of snap.perpendicularCircleSnapCandidates(common)){
+            out.push({
+              ...hit,
+              screen_distance_px:worldToScreenDistance(new THREE.Vector3(hit.point.x,hit.point.y,hit.point.z),event),
+              metadata:{...hit.metadata,source_anchor:clone(anchorRef.candidate),target_candidate_id:candidate.id,target_subentity_id:candidate.subentity_id??null}
+            });
+          }
+        }catch{}
+      }
+    }
+    return out;
+  }
+
   function trackingCandidates(cursor,event){
     if(!cursor||!acquired.length)return [];
     const rays=trackingRays(cursor),out=[];
@@ -226,8 +294,9 @@
   function rebuild(cursor=lastCursor,event=lastPointer){
     lastCursor=cursor??lastCursor;lastPointer=event??lastPointer;
     const virtual=trackingCandidates(lastCursor,lastPointer);
-    const all=[...sourceCandidates,...virtual];
-    rankedCandidates=Array.from(snap?.rankSnapCandidates?.(all,{through_snap:snapOptions.through_snap}, {contextual_types:["LineAxis","Intersection"],through_snap:snapOptions.through_snap})??[]);
+    const contextual=contextualGeometryCandidates(lastPointer);
+    const all=[...sourceCandidates,...virtual,...contextual];
+    rankedCandidates=Array.from(snap?.rankSnapCandidates?.(all,{through_snap:snapOptions.through_snap}, {contextual_types:["LineAxis","Intersection","Tangent","Perpendicular"],through_snap:snapOptions.through_snap})??[]);
     const previousId=current?.id;
     current=rankedCandidates.find((c)=>String(c.id)===String(previousId))??rankedCandidates[0]??null;
     const direct=snap?.selectBestSnapCandidate?.(sourceCandidates)??null;
