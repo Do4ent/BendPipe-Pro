@@ -41,6 +41,7 @@ const layersDomainPath = path.join(root, "src", "domain", "project", "layers.mjs
 const groupsDomainPath = path.join(root, "src", "domain", "project", "groups.mjs");
 const assembliesDomainPath = path.join(root, "src", "domain", "project", "assemblies.mjs");
 const geometricConstraintsDomainPath = path.join(root, "src", "domain", "constraints", "geometric-constraints.mjs");
+const constraintInferenceDomainPath = path.join(root, "src", "domain", "constraints", "constraint-inference.mjs");
 const geometryMeasurementsDomainPath = path.join(root, "src", "domain", "measurements", "geometry-measurements.mjs");
 const dimensionsDomainPath = path.join(root, "src", "domain", "measurements", "dimensions.mjs");
 const equipmentRuntimeBridgePath = path.join(root, "src", "ui", "equipment-runtime-bridge.js");
@@ -809,6 +810,7 @@ output=output.replace(
   "  try{\n"+
   "    const result=mutate();\n"+
   "    if(result===false){tbHistoryCancel(token);return false;}\n"+
+  "    const inferredConstraintResult=window.TubeBenderConstraints?.materializeInferenceForCommand?.({label})??null;\n"+
   "    const fixedEndResult=fixedEndGuard?window.TubeBenderEngineering?.enforceFixedEndConstraint?.(fixedEndGuard):null;\n"+
   "    if(fixedEndResult?.ok===false){\n"+
   "      tbHistoryCancel(token);\n"+
@@ -2508,8 +2510,10 @@ const bundledAssembliesRuntime =
   `<script data-tubebender-bundled="assemblies-runtime">\n${assembliesRuntime}\n</script>`;
 
 const geometricConstraintsDomainUrl = moduleDataUrl(geometricConstraintsDomainPath);
+const constraintInferenceDomainUrl = moduleDataUrl(constraintInferenceDomainPath);
 const constraintsRuntime = fs.readFileSync(constraintsRuntimePath, "utf8")
   .replace("__TB_GEOMETRIC_CONSTRAINTS_MODULE_URL__", geometricConstraintsDomainUrl)
+  .replace("__TB_CONSTRAINT_INFERENCE_MODULE_URL__", constraintInferenceDomainUrl)
   .replace(/<\/script/gi, "<\\/script");
 const bundledConstraintsRuntime =
   `<script data-tubebender-bundled="constraints-runtime">\n${constraintsRuntime}\n</script>`;
