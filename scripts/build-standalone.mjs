@@ -23,6 +23,7 @@ const snapTrackingRuntimePath = path.join(root, "src", "ui", "snap-tracking-runt
 const transformGizmoRuntimePath = path.join(root, "src", "ui", "transform-gizmo-runtime.js");
 const propertiesPanelRuntimePath = path.join(root, "src", "ui", "properties-panel-runtime.js");
 const objectLockRuntimePath = path.join(root, "src", "ui", "object-lock-runtime.js");
+const layersRuntimePath = path.join(root, "src", "ui", "layers-runtime.js");
 const associativeArrayRuntimePath = path.join(root, "src", "ui", "associative-array-runtime.js");
 const associativeMirrorRuntimePath = path.join(root, "src", "ui", "associative-mirror-runtime.js");
 const transformStackRuntimePath = path.join(root, "src", "ui", "transform-stack-runtime.js");
@@ -33,6 +34,7 @@ const dynamicInputDomainPath = path.join(root, "src", "domain", "editing", "dyna
 const snapEngineDomainPath = path.join(root, "src", "domain", "snapping", "snap-engine.mjs");
 const transformCommandsDomainPath = path.join(root, "src", "domain", "editing", "transform-commands.mjs");
 const objectLocksDomainPath = path.join(root, "src", "domain", "editing", "object-locks.mjs");
+const layersDomainPath = path.join(root, "src", "domain", "project", "layers.mjs");
 const geometryMeasurementsDomainPath = path.join(root, "src", "domain", "measurements", "geometry-measurements.mjs");
 const dimensionsDomainPath = path.join(root, "src", "domain", "measurements", "dimensions.mjs");
 const equipmentRuntimeBridgePath = path.join(root, "src", "ui", "equipment-runtime-bridge.js");
@@ -2463,6 +2465,13 @@ const objectLockRuntime = fs.readFileSync(objectLockRuntimePath, "utf8")
 const bundledObjectLockRuntime =
   `<script data-tubebender-bundled="object-lock-runtime">\n${objectLockRuntime}\n</script>`;
 
+const layersDomainUrl = moduleDataUrl(layersDomainPath);
+const layersRuntime = fs.readFileSync(layersRuntimePath, "utf8")
+  .replace("__TB_LAYERS_MODULE_URL__", layersDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledLayersRuntime =
+  `<script data-tubebender-bundled="layers-runtime">\n${layersRuntime}\n</script>`;
+
 const associativeArrayRuntime = fs.readFileSync(associativeArrayRuntimePath, "utf8")
   .replace("__TB_TRANSFORM_COMMANDS_MODULE_URL__", transformCommandsDomainUrl)
   .replace("__TB_RIGID_TRANSFORM_MODULE_URL__", legacyRigidTransformDomainUrl)
@@ -2557,6 +2566,8 @@ output =
   bundledPropertiesPanelRuntime +
   "\n" +
   bundledObjectLockRuntime +
+  "\n" +
+  bundledLayersRuntime +
   "\n" +
   bundledMaterialLibraryUi +
   "\n" +
@@ -2845,6 +2856,7 @@ process.stdout.write(
       bundledTransformGizmo: true,
       bundledPropertiesPanel: true,
       bundledObjectLocks: true,
+      bundledLayersRuntime: true,
       bundledAssociativeArrays: true,
       bundledAssociativeMirrors: true,
       bundledTransformStacks: true,
