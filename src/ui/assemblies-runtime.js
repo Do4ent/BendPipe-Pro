@@ -301,6 +301,160 @@
     return object;
   }
 
+  function q78ReferenceWorldPoint(ref){
+    const context=ref?.assembly_context??null;
+    if(context?.assembly_id&&context?.local_point_mm){
+      const a=assemblyById(context.assembly_id);
+      if(a)return assemblies.localToWorldPoint(a.frame,context.local_point_mm);
+    }
+    const objectId=String(ref?.object_id??"");
+    const tube=tubeById(objectId);
+    if(tube){
+      const sub=String(ref?.subentity_id??"");
+      if(sub==="P1")return clone(tube?.engineering?.ports?.P1?.position??tube.origin??null);
+      if(sub==="P2")return clone(tube?.engineering?.ports?.P2?.position??null);
+      if(tube.origin)return clone(tube.origin);
+    }
+    const mesh=meshById(objectId);
+    if(mesh?.transform?.position_mm)return clone(mesh.transform.position_mm);
+    const world=context?.world_point_mm??ref?.world_point_mm??ref?.point??null;
+    return world&&[world.x,world.y,world.z].every(Number.isFinite)?clone(world):null;
+  }
+  function q78Distance(a,b){
+    return Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z);
+  }
+  function q78Angle(a,b,c){
+    const u={x:a.x-b.x,y:a.y-b.y,z:a.z-b.z},v={x:c.x-b.x,y:c.y-b.y,z:c.z-b.z};
+    const lu=Math.hypot(u.x,u.y,u.z),lv=Math.hypot(v.x,v.y,v.z);
+    if(!(lu>1e-12&&lv>1e-12))return null;
+    const cos=Math.max(-1,Math.min(1,(u.x*v.x+u.y*v.y+u.z*v.z)/(lu*lv)));
+    return Math.acos(cos)*180/Math.PI;
+  }
+  function q78Measure(kind,references=[]){
+    const points=references.map(q78ReferenceWorldPoint);
+    const text=String(kind??"").toLowerCase();
+    if(points.length>=2&&points[0]&&points[1]&&(text.includes("distance")||text.includes("length")||text.includes("coincident")||text.includes("point-point"))){
+      return q78Distance(points[0],points[1]);
+    }
+    if(points.length>=3&&points[0]&&points[1]&&points[2]&&text.includes("angle")){
+      return q78Angle(points[0],points[1],points[2]);
+    }
+    return null;
+  }
+  function q78UpdateReferenceContexts(references=[]){
+    for(const ref of references??[]){
+      const point=q78ReferenceWorldPoint(ref);
+      if(point&&ref?.assembly_context){
+        ref.assembly_context.world_point_mm=clone(point);
+      }
+      if(point&&Object.prototype.hasOwnProperty.call(ref??{},"world_point_mm"))ref.world_point_mm=clone(point);
+      if(point&&Object.prototype.hasOwnProperty.call(ref??{},"point"))ref.point=clone(point);
+    }
+  }
+  function q78RelationAssemblyIds(item){
+    const ids=item?.cross_assembly?.assembly_ids??item?.cross_assembly?.contexts?.map(x=>x?.assembly_id)??[];
+    return new Set((ids??[]).map(String).filter(Boolean));
+  }
+  function q78MovedAssemblyIds(rootIds=[]){
+    const ids=new Set();
+    for(const raw of rootIds){
+      const id=String(raw);ids.add(id);
+      for(const child of assemblies.assemblyDescendantIds(project(),id)??[])ids.add(String(child));
+    }
+    return ids;
+  }
+  function q78Relevant(item,movedIds){
+    const relation=q78RelationAssemblyIds(item);
+    if(!relation.size)return false;
+    let touches=false,outside=false;
+    for(const id of relation){if(movedIds.has(id))touches=true;else outside=true;}
+    return touches&&outside;
+  }
+  function q78ConstraintSpec(item){
+    const payload=item?.payload??{};
+    const type=String(item?.type??item?.kind??payload?.type??payload?.kind??payload?.constraint_kind??"");
+    const lower=type.toLowerCase();
+    const driving=item?.mode==="Driving"||payload?.mode==="Driving"||payload?.driving===true||lower.includes("constraint")||lower.includes("coincident")||lower.includes("driving");
+    const targetRaw=item?.target_value??payload?.target_value??payload?.target_value_mm??payload?.expected_distance_mm??payload?.distance_mm;
+    const target=lower.includes("coincident")?0:Number(targetRaw);
+    const angle=lower.includes("angle");
+    const toleranceRaw=angle?(payload?.tolerance_deg??item?.tolerance_deg):(payload?.tolerance_mm??item?.tolerance_mm);
+    const tolerance=Number.isFinite(Number(toleranceRaw))?Math.max(0,Number(toleranceRaw)):(angle?1e-6:1e-6);
+    return {type,driving,target:Number.isFinite(target)?target:null,tolerance};
+  }
+  function q78ValidateAfterAssemblyTransform(rootIds=[]){
+    const p=project(),movedIds=q78MovedAssemblyIds(rootIds),conflicts=[],updated=[];
+    for(const dim of p?.engineering_dimensions??[]){
+      if(!q78Relevant(dim,movedIds))continue;
+      q78UpdateReferenceContexts(dim.references);
+      const value=q78Measure(dim.kind,dim.references);
+      if(value!=null&&Number.isFinite(value)){
+        dim.value=value;
+        if(dim.mode==="Driving"){
+          const target=Number(dim.target_value??dim.value);
+          const tolerance=/angle/i.test(String(dim.kind))?1e-6:1e-6;
+          if(!Number.isFinite(target)||Math.abs(value-target)>tolerance){
+            dim.status="Conflict";conflicts.push({kind:"Dimension",id:dim.id,value,target,tolerance});
+          }else dim.status="Valid";
+        }else dim.status="Valid";
+        updated.push({kind:"Dimension",id:dim.id,value});
+      }else if(dim.mode==="Driving"){
+        dim.status="Conflict";
+        conflicts.push({kind:"Dimension",id:dim.id,reason:"Driving cross-Assembly dimension cannot be resolved"});
+      }
+    }
+    for(const link of p?.cross_assembly_links??[]){
+      if(!q78Relevant(link,movedIds))continue;
+      q78UpdateReferenceContexts(link.references);
+      const spec=q78ConstraintSpec(link);
+      const value=q78Measure(spec.type,link.references);
+      if(spec.driving){
+        if(value==null||!Number.isFinite(value)||spec.target==null){
+          link.status="Conflict";
+          conflicts.push({kind:"CrossAssemblyLink",id:link.id,reason:"Cross-Assembly constraint cannot be resolved fail-closed"});
+        }else if(Math.abs(value-spec.target)>spec.tolerance){
+          link.status="Conflict";
+          conflicts.push({kind:"CrossAssemblyLink",id:link.id,value,target:spec.target,tolerance:spec.tolerance});
+        }else{
+          link.status="Valid";link.value=value;
+        }
+      }else{
+        link.status="Valid";
+        if(value!=null&&Number.isFinite(value))link.value=value;
+      }
+      updated.push({kind:"CrossAssemblyLink",id:link.id,value:value??null});
+    }
+    return {ok:conflicts.length===0,conflicts,updated,moved_assembly_ids:[...movedIds]};
+  }
+  function q78RestoreProject(snapshot){
+    const p=project();if(!p||!snapshot)return false;
+    for(const key of Object.keys(p))delete p[key];
+    Object.assign(p,clone(snapshot));
+    try{eng()?.reloadActiveTube?.();}catch{}
+    return true;
+  }
+  function q78GuardedAssemblyTransform(label,rootIds,mutate){
+    const p=project(),snapshot=clone(p);
+    return command(label,()=>{
+      const result=mutate();
+      if(result===false){q78RestoreProject(snapshot);return false;}
+      const validation=q78ValidateAfterAssemblyTransform(rootIds);
+      if(!validation.ok){
+        q78RestoreProject(snapshot);
+        toast("Перемещение Assembly отменено: конфликт межсборочных constraints");
+        return false;
+      }
+      p.last_cross_assembly_validation={
+        status:"Valid",
+        operation:String(label),
+        moved_assembly_ids:validation.moved_assembly_ids,
+        updated:validation.updated,
+        checked_at:new Date().toISOString()
+      };
+      return result;
+    });
+  }
+
   function tubeDirection(tube){
     if(tube?.startVector&&[tube.startVector.x,tube.startVector.y,tube.startVector.z].every(Number.isFinite))return clone(tube.startVector);
     if(tube?.startAxis==="Y")return {x:0,y:1,z:0};
@@ -658,7 +812,7 @@
       if(!permission.allowed){toast(permission.reason);return false;}
     }
     const d={x:Number(delta?.x)||0,y:Number(delta?.y)||0,z:Number(delta?.z)||0};
-    return command(roots.length>1?"Move Assemblies":"Move Assembly",()=>{
+    return q78GuardedAssemblyTransform(roots.length>1?"Move Assemblies":"Move Assembly",roots,()=>{
       for(const id of roots){
         const a=assemblyById(id),f=a.frame;
         applyAssemblyFrame(id,{origin_mm:{x:f.origin_mm.x+d.x,y:f.origin_mm.y+d.y,z:f.origin_mm.z+d.z},rotation_quaternion:f.rotation_quaternion});
@@ -671,7 +825,7 @@
     const permission=permissionForEntry({kind:"project-assembly",assemblyId:id},"rotate");
     if(!permission.allowed){toast(permission.reason);return false;}
     const angle=Number(angle_deg);if(!Number.isFinite(angle)){toast("Угол Rotate должен быть числом");return false;}
-    return command("Rotate Assembly",()=>{
+    return q78GuardedAssemblyTransform("Rotate Assembly",[id],()=>{
       const a=assemblyById(id),q=assemblies.axisAngleQuaternion(axis,angle);
       applyAssemblyFrame(id,{origin_mm:a.frame.origin_mm,rotation_quaternion:assemblies.multiplyQuaternions(q,a.frame.rotation_quaternion)});
       return true;
