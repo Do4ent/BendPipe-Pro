@@ -64,7 +64,7 @@ test("question 73: Ungroup preserves member references and replaces nested occur
   const project={};
   const child=createGroup(project,{name:"Child",members:[{kind:"tube",id:"a"},{kind:"tube",id:"b"}]});
   const parent=createGroup(project,{name:"Parent",members:[{kind:"group",id:child.id},{kind:"tube",id:"c"}]});
-  const before=[...child.members.map(structuredClone)];
+  const before=child.members.map((ref)=>structuredClone(ref));
   const released=ungroup(project,child.id);
   assert.deepEqual(released,before);
   assert.equal(groupById(project,child.id),null);
