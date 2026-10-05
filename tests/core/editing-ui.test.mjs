@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const uiPath=path.join(root,"src","ui","editing-ui.js");
 const code=fs.readFileSync(uiPath,"utf8");
+const dependencyCode=fs.readFileSync(path.join(root,"src","domain","editing","copy-dependencies.mjs"),"utf8");
 
 test("Editing UI remains valid classic JavaScript",()=>{
   assert.doesNotThrow(()=>new vm.Script(code,{filename:"editing-ui.js"}));
@@ -16,13 +17,17 @@ test("Editing UI remains valid classic JavaScript",()=>{
   assert.match(code,/Редактирование/);
 });
 
-test("Copy creates independent tube and element identities and detaches external geometry links",()=>{
-  assert.match(code,/copy\.id=makeId\("tube"\)/);
+test("Copy creates independent identities, remaps internal links and requires explicit external-link policy",()=>{
+  assert.match(code,/const idMap=new Map\(list\.map\(source=>\[String\(source\.id\),makeId\("tube"\)\]\)\)/);
+  assert.match(code,/copy\.id=idMap\.get\(String\(source\.id\)\)/);
   assert.match(code,/elementId:row\?\.elementId\?makeId\("element"\)/);
+  assert.match(code,/data-copy-external-policy/);
+  assert.match(code,/requireCopyExternalChoice/);
   assert.match(code,/source_link_detached=true/);
-  assert.match(code,/port\.externalRefId=""/);
-  assert.match(code,/ports\.P2\)copy\.engineering\.ports\.P2\.locked=false/);
-  assert.match(code,/ports\.P1\)copy\.engineering\.ports\.P1\.locked=true/);
+  assert.match(code,/ports\?\.P1\)copy\.engineering\.ports\.P1\.locked=true/);
+  assert.match(dependencyCode,/EXTERNAL_DEPENDENCY_CHOICE_REQUIRED/);
+  assert.match(dependencyCode,/external_policy==="Detach"/);
+  assert.match(dependencyCode,/external_policy==="Keep"/);
 });
 
 test("Move reuses the existing selection-aware atomic move implementation",()=>{
