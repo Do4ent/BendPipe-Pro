@@ -346,7 +346,13 @@
   function previewParameters(arrayId,patch={},options={},p=project()){
     const sourceDef=definitionById(arrayId,p);if(!sourceDef)throw new Error("Associative Array not found");
     const def=clone(sourceDef);def.parameters={...(def.parameters??{}),...clone(patch)};
-    if(options.formulas)def.parameter_formulas={...(def.parameter_formulas??{}),...clone(options.formulas)};
+    if(options.formulas){
+      def.parameter_formulas={...(def.parameter_formulas??{})};
+      for(const [name,formula] of Object.entries(options.formulas)){
+        const text=String(formula??"").trim();
+        if(text)def.parameter_formulas[name]=text;else delete def.parameter_formulas[name];
+      }
+    }
     const count=memberCount(def,p),members=[];
     for(const sourceId of sourceIds(def)){
       const source=byId(p,sourceId);if(!source)continue;
@@ -439,6 +445,7 @@
     window.TubeBenderAssociativeArrays=Object.freeze({
       createDefinition,addArray,synchronize,suppressMember,detachMember,breakArray,deleteArray,
       definitionById,updateParameters,previewParameters,setParameterFormula,evaluatedParameters,
+      formulaFields:Object.freeze({...FORMULA_FIELDS}),
       definitions:()=>definitions(),isDerivedTube
     });
   }
