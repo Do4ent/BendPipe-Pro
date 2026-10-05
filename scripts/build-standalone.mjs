@@ -470,7 +470,8 @@ const fixedEndEngineeringHelpers =
   "  if(!t)return null;\n"+
   "  const p2=t?.engineering?.ports?.P2;\n"+
   "  if(!p2?.locked||!p2.position)return null;\n"+
-  "  return {tubeId:String(t.id),target:deep(p2.position),rows:(tubeRows(t)||[]).map((row,index)=>({key:String(row?.elementId||('#'+index)),signature:fixedEndRowSignature(row,index)}))};\n"+
+  "  const assemblyConstraint=window.TubeBenderAssemblies?.captureTubeEndConstraint?.(t)??null;\n"+
+  "  return {tubeId:String(t.id),target:deep(p2.position),assemblyConstraint:assemblyConstraint?deep(assemblyConstraint):null,rows:(tubeRows(t)||[]).map((row,index)=>({key:String(row?.elementId||('#'+index)),signature:fixedEndRowSignature(row,index)}))};\n"+
   "}\n"+
   "function fixedEndDistance(a,b){return Math.hypot(n(a?.x)-n(b?.x),n(a?.y)-n(b?.y),n(a?.z)-n(b?.z));}\n"+
   "function fixedEndInvert3(m){\n"+
@@ -484,24 +485,27 @@ const fixedEndEngineeringHelpers =
   "  if(!t)return {ok:false,message:'Труба не найдена'};\n"+
   "  ensureTubeEngineering(t,projectForTube(t)||activeProject());\n"+
   "  const p2=t.engineering.ports.P2;\n"+
-  "  if(!fixed){p2.locked=false;rebuildRouteGraph(t,false);return {ok:true,fixed:false};}\n"+
+  "  if(!fixed){p2.locked=false;try{window.TubeBenderAssemblies?.clearTubePortConstraint?.(t,'P2');}catch{}rebuildRouteGraph(t,false);return {ok:true,fixed:false};}\n"+
   "  const g=geometryForTube(t);if(!g?.endPosition)return {ok:false,message:'Не удалось определить конец трубы'};\n"+
   "  p2.position={x:round(g.endPosition.x/GEOM_SCALE,6),y:round(g.endPosition.y/GEOM_SCALE,6),z:round(g.endPosition.z/GEOM_SCALE,6)};\n"+
-  "  p2.direction=vecAxis(g.endDirection);p2.locked=true;rebuildRouteGraph(t,false);\n"+
-  "  return {ok:true,fixed:true,position:deep(p2.position)};\n"+
+  "  p2.direction=vecAxis(g.endDirection);p2.locked=true;try{window.TubeBenderAssemblies?.syncTubePortConstraints?.(t);}catch{}rebuildRouteGraph(t,false);\n"+
+  "  return {ok:true,fixed:true,position:deep(p2.position),assemblyConstraint:deep(p2.assembly_constraint??null)};\n"+
   "}\n"+
   "function enforceFixedEndConstraint(guard){\n"+
   "  if(!guard?.tubeId||!guard?.target)return {ok:true,adjustedRows:[]};\n"+
   "  const t=fixedEndFindTube(guard.tubeId);if(!t)return {ok:false,message:'Изменение отменено: зафиксированная труба не найдена'};\n"+
-  "  const p2=t?.engineering?.ports?.P2;if(!p2?.locked)return {ok:true,adjustedRows:[]};p2.position=deep(guard.target);\n"+
+  "  const p2=t?.engineering?.ports?.P2;if(!p2?.locked)return {ok:true,adjustedRows:[]};\n"+
+  "  const assemblyResolved=guard.assemblyConstraint?window.TubeBenderAssemblies?.resolveTubeEndConstraintTarget?.(guard.assemblyConstraint,t):null;\n"+
+  "  if(guard.assemblyConstraint&&!assemblyResolved?.position)return {ok:false,message:'Изменение отменено: локальная фиксация P2 потеряла родительскую Assembly'};\n"+
+  "  const target=assemblyResolved?.position??guard.target;p2.position=deep(target);\n"+
   "  const rows=tubeRows(t)||[],before=new Map((guard.rows||[]).map(item=>[String(item.key),item.signature])),changed=new Set();\n"+
   "  rows.forEach((row,index)=>{const key=String(row?.elementId||('#'+index));if(before.get(key)!==fixedEndRowSignature(row,index))changed.add(key);});\n"+
   "  let g=geometryForTube(t);if(!g?.endPosition)return {ok:false,message:'Изменение отменено: не удалось вычислить конец трубы'};\n"+
   "  let current={x:g.endPosition.x/GEOM_SCALE,y:g.endPosition.y/GEOM_SCALE,z:g.endPosition.z/GEOM_SCALE};\n"+
-  "  if(fixedEndDistance(current,guard.target)<=0.02){rebuildRouteGraph(t,false);return {ok:true,adjustedRows:[]};}\n"+
+  "  if(fixedEndDistance(current,target)<=0.02){rebuildRouteGraph(t,false);return {ok:true,adjustedRows:[],target:deep(target),space:assemblyResolved?'assembly-local':'world'};}\n"+
   "  const candidates=(g.elements||[]).filter(el=>el.type==='LINE').map(el=>({el,row:rows[el.rowIndex],rowIndex:el.rowIndex})).filter(item=>{const key=String(item.row?.elementId||('#'+item.rowIndex));return item.row&&!changed.has(key)&&item.row.standardDependent!==true&&!item.row.assemblyId&&Number.isFinite(Number(item.row.L));});\n"+
   "  if(!candidates.length)return {ok:false,message:'Изменение невозможно: нет свободного прямого участка для сохранения зафиксированного конца'};\n"+
-  "  const delta=new THREE.Vector3(n(guard.target.x)-current.x,n(guard.target.y)-current.y,n(guard.target.z)-current.z);\n"+
+  "  const delta=new THREE.Vector3(n(target.x)-current.x,n(target.y)-current.y,n(target.z)-current.z);\n"+
   "  const m=[1e-9,0,0,0,1e-9,0,0,0,1e-9];\n"+
   "  for(const item of candidates){const v=item.el.direction.clone().normalize();item.dir=v;m[0]+=v.x*v.x;m[1]+=v.x*v.y;m[2]+=v.x*v.z;m[3]+=v.y*v.x;m[4]+=v.y*v.y;m[5]+=v.y*v.z;m[6]+=v.z*v.x;m[7]+=v.z*v.y;m[8]+=v.z*v.z;}\n"+
   "  const inv=fixedEndInvert3(m);if(!inv)return {ok:false,message:'Изменение невозможно: недостаточно степеней свободы для сохранения конца'};\n"+
@@ -509,9 +513,9 @@ const fixedEndEngineeringHelpers =
   "  const originals=[],straightIndexes=straightRowIndexes(rows),firstStraight=straightIndexes[0]??-1,lastStraight=straightIndexes.length?straightIndexes[straightIndexes.length-1]:-1,minInternal=Math.max(0,n(pipeAt(t.diameterIndex)?.Lmin,0));\n"+
   "  for(const item of candidates){const correction=item.dir.dot(z),oldLength=n(item.row.L),next=oldLength+correction,minimum=(item.rowIndex===firstStraight||item.rowIndex===lastStraight)?0.001:minInternal;if(!Number.isFinite(next)||next<minimum-1e-6||next>MAX_STOCK_LENGTH+1e-6)return {ok:false,message:'Изменение невозможно: для фиксации конца потребовалась бы недопустимая длина прямого участка'};originals.push({row:item.row,L:item.row.L,LFormula:item.row.LFormula,rowIndex:item.rowIndex});item.row.L=round(next,6);item.row.LFormula=String(item.row.L);}\n"+
   "  if(String(t.id)===String(state.activeTubeId))t.rows=state.rows;\n"+
-  "  g=geometryForTube(t);current={x:g.endPosition.x/GEOM_SCALE,y:g.endPosition.y/GEOM_SCALE,z:g.endPosition.z/GEOM_SCALE};const residual=fixedEndDistance(current,guard.target);\n"+
+  "  g=geometryForTube(t);current={x:g.endPosition.x/GEOM_SCALE,y:g.endPosition.y/GEOM_SCALE,z:g.endPosition.z/GEOM_SCALE};const residual=fixedEndDistance(current,target);\n"+
   "  if(residual>0.05){originals.forEach(item=>{item.row.L=item.L;item.row.LFormula=item.LFormula;});return {ok:false,message:'Изменение невозможно: зафиксированный конец нельзя сохранить с текущими направлениями участков'};}\n"+
-  "  rebuildRouteGraph(t,false);return {ok:true,adjustedRows:originals.map(item=>item.rowIndex),residualMm:round(residual,6),target:deep(guard.target)};\n"+
+  "  rebuildRouteGraph(t,false);return {ok:true,adjustedRows:originals.map(item=>item.rowIndex),residualMm:round(residual,6),target:deep(target),space:assemblyResolved?'assembly-local':'world',assemblyId:assemblyResolved?.assembly_id??null};\n"+
   "}\n";
 output=output.replace(
   fixedEndEngineeringExportAnchor,
