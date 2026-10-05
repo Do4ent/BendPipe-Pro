@@ -11,6 +11,7 @@
   const context=()=>window.TubeBenderObjectContext??null;
   const snapTracking=()=>window.TubeBenderSnapTracking??null;
   const assembliesApi=()=>window.TubeBenderAssemblies??null;
+  const fittedGuard=()=>window.TubeBenderFittedGeometry??null;
   const project=()=>{try{return api()?.activeProject?.()??null;}catch{return null;}};
   const readonly=()=>{try{return api()?.readonly?.()===true;}catch{return false;}};
   const toast=(m)=>{try{api()?.toast?.(String(m??""));}catch{}};
@@ -38,6 +39,30 @@
     if(!v)return null;
     const x=Number(v.x??v[0]),y=Number(v.y??v[1]),z=Number(v.z??v[2]);
     return [x,y,z].every(Number.isFinite)?{x,y,z}:null;
+  }
+  function geometryProvenance(...values){
+    for(const value of values){
+      if(!value||typeof value!=="object")continue;
+      const status=String(value.geometry_status??value.geometryStatus??(value.fitted===true?"Fitted":"")).trim();
+      if(status==="Fitted"||status==="Exact"){
+        return {
+          geometry_status:status,
+          fitting_error:clone(value.fitting_error??value.fit_error??(Number.isFinite(Number(value.max_fit_error_mm))?{mm:Number(value.max_fit_error_mm),deg:0}:null)),
+          confidence:value.confidence==null?null:Number(value.confidence),
+          evidence:clone(value.evidence??value.geometry_evidence??null)
+        };
+      }
+      const nested=value.primitive??value.recognition??value.geometry_evidence??value.importEvidence?.geometry??null;
+      if(nested&&nested!==value){
+        const found=geometryProvenance(nested);
+        if(found)return found;
+      }
+    }
+    return null;
+  }
+  function withGeometryProvenance(ref,...sources){
+    const provenance=geometryProvenance(...sources);
+    return provenance?{...ref,...provenance}:ref;
   }
   function directionFromEntry(entry){
     const el=elementFor(entry);
@@ -93,10 +118,10 @@
         snap_type:row?.type==="LINE"?"Line/Axis":"Tangent",
         role:"measurement"
       };
-      return enrichReference(ref);
+      return enrichReference(withGeometryProvenance(ref,row,elementFor(entry),tubeById(entry.tubeId)));
     }
     if(entry.kind==="tube"){
-      return enrichReference({object_id:String(entry.tubeId),subentity_id:null,snap_type:null,role:"measurement"});
+      return enrichReference(withGeometryProvenance({object_id:String(entry.tubeId),subentity_id:null,snap_type:null,role:"measurement"},tubeById(entry.tubeId)));
     }
     return enrichReference({object_id:String(entry.tubeId??entry.sceneId??"unknown"),subentity_id:null,snap_type:null,role:"measurement"});
   }
@@ -109,7 +134,11 @@
       snap_type:candidate?.type==null?null:String(candidate.type),
       role:String(role??"measurement"),
       assembly_context:clone(candidate?.metadata?.assembly_context??null),
-      cross_assembly:candidate?.metadata?.cross_assembly===true
+      cross_assembly:candidate?.metadata?.cross_assembly===true,
+      geometry_status:String(candidate?.geometry_status??(candidate?.fitted===true?"Fitted":"Exact")),
+      fitting_error:clone(candidate?.fitting_error??null),
+      confidence:candidate?.confidence==null?null:Number(candidate.confidence),
+      evidence:clone(candidate?.evidence??candidate?.metadata?.evidence??null)
     },point);
   }
   function quickPoint(candidate){
@@ -489,6 +518,34 @@
     const ok=api()?.modelCommand?api().modelCommand("Сохранить Reference Dimension",mutate):mutate();
     if(ok!==false){api()?.save?.();toast("Размер сохранён в проект");render();renderResultsPanel(lastResult);}
   }
+  function saveCurrentDrivingDimension(){
+    if(readonly()){toast("Проект открыт только для просмотра");return false;}
+    if(!lastResult?.ok)return false;
+    if(fittedGuard()?.confirmUsage?.("DrivingDimension",lastResult.references)!==true)return false;
+    const p=project();if(!p)return false;
+    const s=settings(),kind=lastResult.kind,target=Number(lastResult.primary_value);
+    if(!Number.isFinite(target)){toast("Driving Dimension требует числовое значение");return false;}
+    const d=dimensions.createDimension({
+      kind,
+      mode:"Driving",
+      references:lastResult.references,
+      value:target,
+      target_value:target,
+      cross_assembly:clone(lastResult.cross_assembly??null),
+      status:"Valid",
+      format:{
+        length_decimals:s.length_decimals,
+        angle_decimals:s.angle_decimals,
+        trailing_zeros:s.trailing_zeros
+      },
+      style:clone(s.dimension_style),
+      note:lastResult.title+" · Driving"
+    });
+    const mutate=()=>{p.engineering_dimensions=[...savedDimensions(),clone(d)];return true;};
+    const ok=api()?.modelCommand?api().modelCommand("Сохранить Driving Dimension",mutate):mutate();
+    if(ok!==false){api()?.save?.();toast("Driving Dimension сохранён");render();renderResultsPanel(lastResult);}
+    return ok!==false;
+  }
 
   function render(){
     if(!panel||!geometry||!dimensions)return;
@@ -512,8 +569,9 @@
     }else{
       const rows=result.details.map(([name,value,unit])=>'<tr><td>'+esc(name)+'</td><td><b>'+esc(formatted(value,unit))+'</b></td></tr>').join("");
       body.innerHTML=quickHtml+'<div class="tb-measure-result"><div class="tb-measure-title">'+esc(result.title)+(result.cross_assembly?.cross_assembly?' <span title="Межсборочная связь">↔ Cross-Assembly</span>':'')+'</div><div class="tb-measure-value">'+esc(formatted(result.primary_value,result.primary_unit))+'</div><table class="tb-measure-table">'+rows+'</table>'+
-        '<div class="tb-measure-actions"><button data-save-dimension>Сохранить как размер</button></div></div>'+settingsHtml(s,count);
+        '<div class="tb-measure-actions"><button data-save-dimension>Сохранить Reference Dimension</button><button data-save-driving-dimension>Сохранить Driving Dimension</button></div></div>'+settingsHtml(s,count);
       $("[data-save-dimension]",body).onclick=saveCurrentDimension;
+      $("[data-save-driving-dimension]",body).onclick=saveCurrentDrivingDimension;
     }
     $("[data-quick-start]",body)?.addEventListener("click",startQuickMeasure);
     $("[data-quick-clear]",body)?.addEventListener("click",clearQuickMeasure);
@@ -559,7 +617,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,refresh:render,buildMeasurement,savedDimensions,
+      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
