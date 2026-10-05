@@ -5,6 +5,7 @@
   const eng=()=>window.TubeBenderEngineering??null;
   const snap=()=>window.TubeBenderSnapTracking??null;
   const screenSpace=()=>window.TubeBenderScreenSpace??null;
+  const interaction=()=>window.TubeBenderInteractionPriority??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const canvas=()=>document.getElementById("threeCanvas");
   const clone=v=>v==null?v:structuredClone(v);
@@ -189,12 +190,18 @@
     if(!anchor)return false;
     if(data.dimensionGrip==="reference")snap()?.startCommand?.("dimension-reference",{ortho:false,polar:false});
     const start=pointerPlaneHit(event,anchor);
-    drag={dimensionId:String(dimension.id),kind:data.dimensionGrip,referenceIndex:data.referenceIndex,start,anchor:clone(anchor),preview:null};
+    drag={dimensionId:String(dimension.id),kind:data.dimensionGrip,referenceIndex:data.referenceIndex,start,anchor:clone(anchor),preview:null,started:false,pointerStart:{x:event.clientX,y:event.clientY,pointerType:event.pointerType}};
     try{if(controls)controls.enabled=false;}catch{}
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();return true;
   }
   function updateDrag(event){
-    if(!drag)return false;const d=dimensionById(drag.dimensionId);if(!d)return false;
+    if(!drag)return false;
+    if(!drag.started){
+      const ready=interaction()?.movementExceeded?.(drag.pointerStart,event)??Math.hypot(Number(event.clientX)-Number(drag.pointerStart.x),Number(event.clientY)-Number(drag.pointerStart.y))>4;
+      if(!ready){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();return true;}
+      drag.started=true;
+    }
+    const d=dimensionById(drag.dimensionId);if(!d)return false;
     if(drag.kind==="reference"){
       const candidate=snap()?.currentCandidate?.(),p=finitePoint(candidate?.point);
       drag.preview=p;renderReferencePreview(drag.dimensionId,drag.referenceIndex,p);return true;
@@ -217,7 +224,7 @@
     if(!drag)return false;const state=drag;drag=null;clearPreview();try{if(controls)controls.enabled=true;}catch{}
     const referenceCandidate=state.kind==="reference"?(snap()?.currentCandidate?.()??null):null;
     if(state.kind==="reference")snap()?.endCommand?.();
-    let ok=true;if(!cancel){
+    let ok=true;if(!cancel&&state.started){
       if(state.kind==="reference"){
         if(referenceCandidate){
           ok=commit(state.dimensionId,"Переназначить Snap размера",dimension=>dimensions.replaceDimensionReference(dimension,state.referenceIndex,snapReference(referenceCandidate,dimension.references[state.referenceIndex])));
