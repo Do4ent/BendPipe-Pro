@@ -231,6 +231,35 @@ export function assembliesContainingMember(project,memberRef,{includeAncestors=t
   }
   return Object.freeze([...result.values()]);
 }
+export function assemblyContextForMember(project,memberRef,{world_point=null}={}){
+  const chain=[...assembliesContainingMember(project,memberRef,{includeAncestors:true})].reverse();
+  const direct=chain.at(-1)??null;
+  const point=world_point==null?null:point3(world_point,"world_point");
+  return freeze({
+    space:direct?"assembly":"project",
+    assembly_id:direct?String(direct.id):null,
+    assembly_path:chain.map(item=>String(item.id)),
+    local_point_mm:point==null?null:direct?worldToLocalPoint(direct.frame,point):point3(point,"project_point"),
+    world_point_mm:point==null?null:point3(point,"world_point")
+  });
+}
+export function crossAssemblyMetadata(contexts=[]){
+  const normalized=(contexts??[]).filter(Boolean).map(context=>({
+    space:String(context.space??(context.assembly_id?"assembly":"project")),
+    assembly_id:context.assembly_id==null?null:String(context.assembly_id),
+    assembly_path:Array.isArray(context.assembly_path)?context.assembly_path.map(String):[],
+    local_point_mm:context.local_point_mm==null?null:point3(context.local_point_mm,"local_point_mm"),
+    world_point_mm:context.world_point_mm==null?null:point3(context.world_point_mm,"world_point_mm")
+  }));
+  const keys=[...new Set(normalized.map(context=>context.assembly_id?"assembly:"+context.assembly_id:"project-root"))];
+  const cross=keys.length>1;
+  return freeze({
+    cross_assembly:cross,
+    relation_space:cross?"CrossAssembly":keys[0]?.startsWith("assembly:")?"SameAssembly":"Project",
+    assembly_ids:[...new Set(normalized.map(context=>context.assembly_id).filter(Boolean))],
+    contexts:normalized
+  });
+}
 export function setAssemblyMemberLocal(project,assemblyId,memberRef,local={}){
   const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
   const key=assemblyMemberKey(memberRef);
