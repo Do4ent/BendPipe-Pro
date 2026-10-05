@@ -34,6 +34,7 @@
   const engineering=()=>window.TubeBenderEngineering??null;
   const editing=()=>window.TubeBenderEditing??null;
   const snapTracking=()=>window.TubeBenderSnapTracking??null;
+  const lockApi=()=>window.TubeBenderObjectLocks??null;
   const scale=()=>typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
   const canvas=()=>document.getElementById("threeCanvas");
   const entries=()=>context()?.selectionEntries?.()??[];
@@ -427,6 +428,8 @@
 
   function beginDrag(event,picked){
     const handle=picked?.handle;if(!handle)return false;
+    if(handle.kind==="rotate"&&lockApi()?.canSelection?.("rotate",{notify:true})===false)return false;
+    if((handle.kind==="move-axis"||handle.kind==="move-plane")&&lockApi()?.canSelection?.("move",{notify:true})===false)return false;
     const pivot=pivotScene(),basis=currentBasis();if(!pivot||!basis)return false;
     activeHandle={...handle};updatePanel();
     let planeNormal,startHit,startVector=null;
@@ -586,6 +589,8 @@
   }
   function applyNumeric(){
     if(!activeHandle){toast("Сначала выберите ось, плоскость или кольцо Gizmo");return false;}
+    if(activeHandle.kind==="rotate"&&lockApi()?.canSelection?.("rotate",{notify:true})===false)return false;
+    if((activeHandle.kind==="move-axis"||activeHandle.kind==="move-plane")&&lockApi()?.canSelection?.("move",{notify:true})===false)return false;
     const a=parseNumber(panel?.querySelector("[data-gizmo-a]")?.value);
     const b=parseNumber(panel?.querySelector("[data-gizmo-b]")?.value);
     if(a==null||(activeHandle.kind==="move-plane"&&b==null)){toast("Введите числовое значение Gizmo");return false;}
