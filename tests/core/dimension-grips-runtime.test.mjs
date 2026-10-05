@@ -18,7 +18,7 @@ test("question 96 dimension grips runtime is valid and bundled",()=>{
 });
 
 test("question 96 renders text line and extension reference grips",()=>{
-  for(const token of ['dimensionText:true','"dimension-line"','dimensionGrip:"text"','dimensionGrip:"line"','dimensionGrip:"reference"']){
+  for(const token of ['dimensionText:true','"dimension-line"','grip(textPos','grip(linePos','"reference",index']){
     assert.ok(runtime.includes(token),token);
   }
 });
