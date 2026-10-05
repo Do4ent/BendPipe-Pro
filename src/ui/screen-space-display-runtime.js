@@ -63,18 +63,20 @@
   function sizeAt(localPoint,category="grip",pixels=null){
     return worldUnitsPerPixel(localPoint)*Math.max(1,Number(pixels??categoryPixels(category))||1);
   }
-  function register(object,category="grip",baseSize=1){
+  function register(object,category="grip",baseSize=1,options={}){
     if(!object||typeof object!=="object")return object;
-    object.userData={...(object.userData??{}),tbScreenSpace:{category:String(category),baseSize:Math.max(1e-9,Number(baseSize)||1)}};
+    object.userData={...(object.userData??{}),tbScreenSpace:{category:String(category),baseSize:Math.max(1e-9,Number(baseSize)||1),mode:String(options.mode??"uniform"),aspect:Math.max(1e-9,Number(options.aspect)||1)}};
     registry.add(object);updateObject(object);return object;
   }
   function unregister(object){registry.delete(object);return object;}
   function updateObject(object){
     const meta=object?.userData?.tbScreenSpace;if(!meta)return false;
-    if(!object.parent){registry.delete(object);return false;}
+    if(!object.parent)return false;
     const desired=sizeAt(object.position,meta.category),factor=desired/Math.max(1e-9,Number(meta.baseSize)||1);
     if(!Number.isFinite(factor)||factor<=0)return false;
-    object.scale.setScalar(factor);return true;
+    if(meta.mode==="sprite")object.scale.set(factor*meta.aspect,factor,1);
+    else object.scale.setScalar(factor);
+    return true;
   }
   function tick(){
     for(const object of [...registry])updateObject(object);
@@ -112,7 +114,7 @@
       );
       marker.position.copy(point);marker.renderOrder=13620;
       marker.userData={helper:true,objectSelectionHelper:true,constraintMarker:true,constraintId:String(constraint.id??"")};
-      register(marker,"constraint",1);group.add(marker);
+      group.add(marker);register(marker,"constraint",1);
     }
     if(group.children.length){pipeGroup.add(group);constraintGroup=group;}
     try{if(typeof markViewerDirty==="function")markViewerDirty();}catch{}
