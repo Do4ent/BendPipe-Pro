@@ -274,6 +274,27 @@ export function removeAssembly(project,assemblyId){
   }
   return true;
 }
+function rebaseAssemblyMemberLocal(project,member,fromFrame,toFrame){
+  const next=clone(member),local=next.local??{};
+  let worldPosition=null,worldRotation=null,worldDirection=null;
+  if(next.ref?.kind==="assembly"){
+    const child=assemblyById(project,next.ref.id);
+    if(child){
+      worldPosition=child.frame?.origin_mm??null;
+      worldRotation=child.frame?.rotation_quaternion??null;
+    }
+  }else{
+    if(local.position_mm!=null)worldPosition=localToWorldPoint(fromFrame,local.position_mm);
+    if(local.rotation_quaternion!=null)worldRotation=localToWorldQuaternion(fromFrame,local.rotation_quaternion);
+    if(local.direction!=null)worldDirection=rotateVectorByQuaternion(local.direction,fromFrame?.rotation_quaternion??{});
+  }
+  next.local={
+    position_mm:worldPosition==null?null:worldToLocalPoint(toFrame,worldPosition),
+    rotation_quaternion:worldRotation==null?null:worldToLocalQuaternion(toFrame,worldRotation),
+    direction:worldDirection==null?null:rotateVectorByQuaternion(worldDirection,conjugateQuaternion(toFrame?.rotation_quaternion??{}))
+  };
+  return normalizeAssemblyMember(next);
+}
 export function dissolveAssembly(project,assemblyId){
   const assembly=assemblyById(project,assemblyId);if(!assembly)return false;
   const members=(assembly.members??[]).map(clone);
@@ -281,10 +302,12 @@ export function dissolveAssembly(project,assemblyId){
     if(String(parent.id)===String(assembly.id))continue;
     const next=[];
     for(const member of parent.members??[]){
-      if(member.ref.kind==="assembly"&&String(member.ref.id)===String(assembly.id))next.push(...members.map(clone));
-      else next.push(member);
+      if(member.ref.kind==="assembly"&&String(member.ref.id)===String(assembly.id)){
+        next.push(...members.map(child=>rebaseAssemblyMemberLocal(project,child,assembly.frame,parent.frame)));
+      }else next.push(member);
     }
-    parent.members=[...new Map(next.map(member=>[assemblyMemberKey(member.ref),member])).values()];
+    parent.members=[...new Map(next.map(member=>[assemblyMemberKey(member.ref),member])).values()]
+      .map(member=>({ref:{...member.ref},local:{...member.local}}));
   }
   project.assemblies=project.assemblies.filter(item=>String(item.id)!==String(assembly.id));
   return Object.freeze(members.map(Object.freeze));
