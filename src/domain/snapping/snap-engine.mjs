@@ -6,8 +6,15 @@ export const SNAP_TYPES=Object.freeze([
 ]);
 
 export const DEFAULT_SNAP_PRIORITY=Object.freeze({
-  Node:0,Vertex:0,Endpoint:1,Intersection:2,Center:3,Midpoint:4,
-  Tangent:5,Perpendicular:6,LineAxis:7,Plane:8,Nearest:9,Grid:10
+  Node:0,Vertex:0,Endpoint:0,
+  Intersection:1,
+  Center:2,
+  Midpoint:3,
+  Tangent:4,Perpendicular:4,
+  LineAxis:5,
+  Plane:6,
+  Nearest:7,
+  Grid:8
 });
 
 export const DEFAULT_SOURCE_PRIORITY=Object.freeze({
@@ -157,9 +164,21 @@ function candidateAllowed(candidate,settings,{contextual_types=[],through_snap=n
   return true;
 }
 
+function effectiveSnapTypePriority(candidate,settings){
+  const base=settings.snap_priority[candidate.type]??999;
+  // Question 90: only a real Intersection belongs directly behind exact
+  // nodes/endpoints. Projected/virtual intersections are fallback geometry
+  // and must not outrank Center/Midpoint/tangent/perpendicular/axis/plane.
+  if(candidate.type==="Intersection"&&candidate.virtual===true){
+    const plane=settings.snap_priority.Plane??6;
+    const nearest=settings.snap_priority.Nearest??7;
+    return plane+(nearest-plane)*0.5;
+  }
+  return base;
+}
 function rankTuple(candidate,settings){
   const source=settings.source_priority[candidate.source]??999;
-  const type=settings.snap_priority[candidate.type]??999;
+  const type=effectiveSnapTypePriority(candidate,settings);
   const real=candidate.virtual?1:0;
   const exact=candidate.fitted?1:0;
   const distance=candidate.screen_distance_px;
