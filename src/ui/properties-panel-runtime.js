@@ -5,6 +5,7 @@
   const eng=()=>window.TubeBenderEngineering??null;
   const refApi=()=>window.TubeBenderReferenceSceneUi??null;
   const lockApi=()=>window.TubeBenderObjectLocks??null;
+  const layerApi=()=>window.TubeBenderLayers??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const entries=()=>ctx()?.selectionEntries?.()??[];
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -29,6 +30,53 @@
     }
     return null;
   }
+  function setObjectStyleValue(object,key,value){
+    const domain=layerApi()?.domain;
+    const next={...(object?.object_style??{})};
+    next[key]=value==null||value===""?null:value;
+    object.object_style=domain?.normalizeObjectStyle?{...domain.normalizeObjectStyle(next)}:next;
+  }
+  function sharedLayerFields(object){
+    const available=layerApi()?.layers?.()??[];
+    return {
+      layer_id:{
+        label:"Layer",type:"select",
+        options:available.map(layer=>({value:String(layer.id),label:String(layer.name)})),
+        get:()=>String(object?.layer_id??""),
+        set:(value)=>{
+          if(!layerApi()?.layerById?.(value))throw new Error("Layer not found");
+          object.layer_id=String(value);
+        }
+      },
+      color_override:{
+        label:"Color override",type:"text",
+        get:()=>String(object?.object_style?.color??""),
+        set:(value)=>{
+          const text=String(value??"").trim();
+          if(text&&!/^#[0-9a-f]{6}$/i.test(text))throw new Error("Color override: используйте #RRGGBB или пусто (ByLayer)");
+          setObjectStyleValue(object,"color",text||null);
+        }
+      },
+      linetype_override:{
+        label:"Linetype override",type:"select",
+        options:[{value:"",label:"ByLayer"},...((layerApi()?.domain?.LINETYPES??[]).map(type=>({value:type,label:type})))],
+        get:()=>String(object?.object_style?.linetype??""),
+        set:(value)=>setObjectStyleValue(object,"linetype",String(value??"")||null)
+      },
+      lineweight_override:{
+        label:"Lineweight override",type:"text",
+        get:()=>object?.object_style?.lineweight_mm==null?"":String(object.object_style.lineweight_mm),
+        set:(value)=>{
+          const text=String(value??"").trim();
+          if(text===""){setObjectStyleValue(object,"lineweight_mm",null);return;}
+          const n=Number(text);
+          if(!Number.isFinite(n)||n<0||n>5)throw new Error("Lineweight должен быть 0…5 mm или пусто (ByLayer)");
+          setObjectStyleValue(object,"lineweight_mm",n);
+        }
+      }
+    };
+  }
+
   function editableTarget(entry){
     if(!entry)return null;
     if(entry.kind==="tube"){
@@ -39,7 +87,8 @@
         object:tube,
         fields:{
           name:{label:"Имя",type:"text",get:()=>String(tube.name??""),set:(value)=>{tube.name=String(value??"").trim();}},
-          partNumber:{label:"Part number",type:"text",get:()=>String(tube.partNumber??tube.part_number??""),set:(value)=>{tube.partNumber=String(value??"").trim();}}
+          partNumber:{label:"Part number",type:"text",get:()=>String(tube.partNumber??tube.part_number??""),set:(value)=>{tube.partNumber=String(value??"").trim();}},
+          ...sharedLayerFields(tube)
         }
       }:null;
     }
@@ -56,7 +105,8 @@
             if(instance.link_status==="detached"&&value===true)throw new Error("Detached mesh instance has no Source link");
             instance.compare_source=value===true;
             if(value===true)instance.source_visible=true;
-          }}
+          }},
+          ...sharedLayerFields(instance)
         }
       }:null;
     }
@@ -77,7 +127,7 @@
     return {targets,fields:names.map(name=>{
       const specs=targets.map(target=>target.fields[name]),values=specs.map(spec=>spec.get());
       const first=values[0],mixed=values.some(value=>value!==first);
-      return {name,label:specs[0].label,type:specs[0].type,value:mixed?MIXED:first,mixed};
+      return {name,label:specs[0].label,type:specs[0].type,options:specs[0].options??null,value:mixed?MIXED:first,mixed};
     })};
   }
   function parsePropertyInput(field,input){
@@ -105,6 +155,7 @@
     if(ok===false)return false;
     try{eng()?.save?.();eng()?.renderAll?.();}catch{}
     try{window.refreshProjectTree?.();}catch{}
+    try{layerApi()?.applyAll?.();}catch{}
     render(true);
     return true;
   }
@@ -120,6 +171,10 @@
       fields.map(field=>{
         if(field.type==="boolean"){
           return '<div class="tb-prop-edit-row"><label>'+esc(field.label)+'</label><span><input type="checkbox" data-property-field="'+esc(field.name)+'" data-property-type="boolean" '+(field.value===true?'checked ':'')+'data-property-mixed="'+(field.mixed?'1':'0')+'"><button data-property-apply="'+esc(field.name)+'">Применить</button></span></div>';
+        }
+        if(field.type==="select"){
+          const options=(field.options??[]).map(option=>'<option value="'+esc(option.value)+'" '+(!field.mixed&&String(option.value)===String(field.value)?'selected':'')+'>'+esc(option.label)+'</option>').join("");
+          return '<div class="tb-prop-edit-row"><label>'+esc(field.label)+'</label><span><select data-property-field="'+esc(field.name)+'" data-property-type="select">'+(field.mixed?'<option value="" selected disabled>— разные значения —</option>':'')+options+'</select><button data-property-apply="'+esc(field.name)+'">Применить</button></span></div>';
         }
         return '<div class="tb-prop-edit-row"><label>'+esc(field.label)+'</label><span><input data-property-field="'+esc(field.name)+'" data-property-type="text" value="'+(field.mixed?'':esc(field.value))+'" placeholder="'+(field.mixed?'— разные значения —':'')+'"><button data-property-apply="'+esc(field.name)+'">Применить</button></span></div>';
       }).join("")+
@@ -154,6 +209,14 @@
     });
   }
 
+  function layerInfoForEntry(entry){
+    const layer=layerApi()?.entryLayer?.(entry);
+    const style=layerApi()?.currentStyleForEntry?.(entry);
+    return {
+      layer:layer?.name??"—",
+      style:style?String(style.color)+" · "+String(style.linetype)+" · "+String(style.lineweight_mm)+" mm":"—"
+    };
+  }
   function lockLabelForEntry(entry){
     const status=lockApi()?.statusForEntry?.(entry);
     return status?.mode==="Object"?"🔒 Lock Object":status?.mode==="Position"?"📍 Lock Position":"Unlocked";
@@ -174,7 +237,9 @@
       ["Import",tube.currentProjectImport?.source_format??tube.importEvidence?.source?.format],
       ["Source file",tube.currentProjectImport?.source_file??tube.importEvidence?.source?.file],
       ["Readonly",tube.readonly===true],
-      ["Lock",lockLabelForEntry({kind:"tube",tubeId:tube.id})]
+      ["Lock",lockLabelForEntry({kind:"tube",tubeId:tube.id})],
+      ["Layer",layerInfoForEntry({kind:"tube",tubeId:tube.id}).layer],
+      ["Style",layerInfoForEntry({kind:"tube",tubeId:tube.id}).style]
     ];
   }
   function describe(entry){
@@ -221,6 +286,7 @@
         {name:"Instance",rows:[
           ["ID",instance?.id],["Link",instance?.link_status],["Visible",instance?.visible!==false],
           ["Lock",lockLabelForEntry(entry)],
+          ["Layer",layerInfoForEntry(entry).layer],["Style",layerInfoForEntry(entry).style],
           ["Position",instance?.transform?.position_mm],["Rotation",instance?.transform?.rotation_deg]
         ]},
         {name:"Source",rows:[
@@ -278,6 +344,7 @@
     if(installed)return;installed=true;ensurePanel();render(true);
     window.addEventListener("tubebender-selection-change",()=>render(true));
     window.addEventListener("tubebender-lock-change",()=>render(true));
+    window.addEventListener("tubebender-layer-change",()=>render(true));
     window.addEventListener("tubebender-snap-change",()=>{if(panel?.classList.contains("open"))render(false);});
     window.TubeBenderProperties=Object.freeze({open,close,refresh:()=>render(true),snapshot,describe,editableTargets,commonEditableFields,applyCommonProperty});
   }
