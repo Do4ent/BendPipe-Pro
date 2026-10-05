@@ -42,6 +42,7 @@ const groupsDomainPath = path.join(root, "src", "domain", "project", "groups.mjs
 const assembliesDomainPath = path.join(root, "src", "domain", "project", "assemblies.mjs");
 const geometricConstraintsDomainPath = path.join(root, "src", "domain", "constraints", "geometric-constraints.mjs");
 const constraintInferenceDomainPath = path.join(root, "src", "domain", "constraints", "constraint-inference.mjs");
+const constraintDofDomainPath = path.join(root, "src", "domain", "constraints", "constraint-dof-analysis.mjs");
 const geometryMeasurementsDomainPath = path.join(root, "src", "domain", "measurements", "geometry-measurements.mjs");
 const dimensionsDomainPath = path.join(root, "src", "domain", "measurements", "dimensions.mjs");
 const equipmentRuntimeBridgePath = path.join(root, "src", "ui", "equipment-runtime-bridge.js");
@@ -839,6 +840,7 @@ output=output.replace(
   "      ptToast('Изменение отменено: геометрический Constraint нарушен');\n"+
   "      return false;\n"+
   "    }\n"+
+  "    try{window.TubeBenderConstraints?.refreshDoF?.();window.dispatchEvent(new CustomEvent('tubebender-constraints-change'));}catch{}\n"+
   "    tbHistoryCommit(token);\n"+
   "    if(fixedEndResult?.adjustedRows?.length){try{syncActiveTubeFromState();save();renderAll();}catch{}}\n"+
   "    return result===undefined?true:result;\n"+
@@ -2511,9 +2513,11 @@ const bundledAssembliesRuntime =
 
 const geometricConstraintsDomainUrl = moduleDataUrl(geometricConstraintsDomainPath);
 const constraintInferenceDomainUrl = moduleDataUrl(constraintInferenceDomainPath);
+const constraintDofDomainUrl = moduleDataUrl(constraintDofDomainPath);
 const constraintsRuntime = fs.readFileSync(constraintsRuntimePath, "utf8")
   .replace("__TB_GEOMETRIC_CONSTRAINTS_MODULE_URL__", geometricConstraintsDomainUrl)
   .replace("__TB_CONSTRAINT_INFERENCE_MODULE_URL__", constraintInferenceDomainUrl)
+  .replace("__TB_CONSTRAINT_DOF_MODULE_URL__", constraintDofDomainUrl)
   .replace(/<\/script/gi, "<\\/script");
 const bundledConstraintsRuntime =
   `<script data-tubebender-bundled="constraints-runtime">\n${constraintsRuntime}\n</script>`;
