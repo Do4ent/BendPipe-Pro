@@ -250,15 +250,22 @@
     const command=eng()?.modelCommand;
     const mutate=()=>{
       if(handle.kind==="origin"){
-        const old=clone(selection.tube.origin??{x:0,y:0,z:0});
-        return boundAllowed(selection,()=>{selection.tube.origin=clone(patch.origin);},()=>{selection.tube.origin=old;});
+        const state=eng()?.getState?.(),active=String(state?.activeTubeId??"")===String(selection.tube.id);
+        const old=clone(active?(state?.origin??selection.tube.origin??{x:0,y:0,z:0}):(selection.tube.origin??{x:0,y:0,z:0}));
+        return boundAllowed(selection,()=>{
+          if(active)state.origin=clone(patch.origin);
+          selection.tube.origin=clone(patch.origin);
+        },()=>{
+          if(active)state.origin=clone(old);
+          selection.tube.origin=clone(old);
+        });
       }
       const row=rowFor(selection.tube,selection.rowIndex);if(!row)return false;
-      const old={L:row.L,LFormula:row.LFormula,angle:row.angle,angleFormula:row.angleFormula,clr:row.clr,clrSource:row.clrSource};
+      const old={L:row.L,LFormula:row.LFormula,angle:row.angle,angleFormula:row.angleFormula,clr:row.clr,clrFormula:row.clrFormula,clrSource:row.clrSource};
       const apply=()=>{
         if(handle.kind==="line-length"){row.L=Number(patch.value.toFixed(6));row.LFormula=formula??String(row.L);}
         else if(handle.kind==="bend-angle"){row.angle=Number(patch.value.toFixed(6));row.angleFormula=formula??String(row.angle);}
-        else if(handle.kind==="bend-radius"){row.clr=Number(patch.value.toFixed(6));row.clrSource=formula?"formula_geometry_grip":"geometry_grip";}
+        else if(handle.kind==="bend-radius"){row.clr=Number(patch.value.toFixed(6));row.clrFormula=formula??String(row.clr);row.clrSource=formula?"formula_geometry_grip":"geometry_grip";}
       };
       const rollback=()=>Object.assign(row,old);
       return boundAllowed(selection,apply,rollback);
