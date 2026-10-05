@@ -65,14 +65,14 @@
   }
   function register(object,category="grip",baseSize=1,options={}){
     if(!object||typeof object!=="object")return object;
-    object.userData={...(object.userData??{}),tbScreenSpace:{category:String(category),baseSize:Math.max(1e-9,Number(baseSize)||1),mode:String(options.mode??"uniform"),aspect:Math.max(1e-9,Number(options.aspect)||1)}};
+    object.userData={...(object.userData??{}),tbScreenSpace:{category:String(category),baseSize:Math.max(1e-9,Number(baseSize)||1),mode:String(options.mode??"uniform"),aspect:Math.max(1e-9,Number(options.aspect)||1),multiplier:Math.max(.1,Number(options.multiplier)||1)}};
     registry.add(object);updateObject(object);return object;
   }
   function unregister(object){registry.delete(object);return object;}
   function updateObject(object){
     const meta=object?.userData?.tbScreenSpace;if(!meta)return false;
     if(!object.parent)return false;
-    const desired=sizeAt(object.position,meta.category),factor=desired/Math.max(1e-9,Number(meta.baseSize)||1);
+    const desired=sizeAt(object.position,meta.category)*Math.max(.1,Number(meta.multiplier)||1),factor=desired/Math.max(1e-9,Number(meta.baseSize)||1);
     if(!Number.isFinite(factor)||factor<=0)return false;
     if(meta.mode==="sprite")object.scale.set(factor*meta.aspect,factor,1);
     else object.scale.setScalar(factor);
