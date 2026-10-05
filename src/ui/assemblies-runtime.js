@@ -16,8 +16,8 @@
   const tubeById=(id)=>(project()?.tubes??[]).find(t=>String(t?.id)===String(id))??null;
   const meshById=(id)=>refApi()?.meshInstanceById?.(project(),id)??null;
   const assemblyById=(id)=>assemblies?.assemblyById?.(project(),id)??null;
-  function command(label,mutate){
-    const fn=eng()?.modelCommand;let ok;
+  function command(label,mutate,{wholeObject=false}={}){
+    const fn=wholeObject?(eng()?.wholeObjectCommand??eng()?.modelCommand):eng()?.modelCommand;let ok;
     try{ok=typeof fn==="function"?fn(label,mutate):mutate();}
     catch(error){toast(error?.message??error);return false;}
     if(ok===false)return false;
@@ -54,6 +54,75 @@
   function directAssembliesForRef(ref){
     if(!ref||ref.kind==="source-ref")return [];
     return assemblies.assembliesContainingMember(project(),ref,{includeAncestors:false});
+  }
+  function directTubeAssembly(tubeOrId){
+    const id=String(typeof tubeOrId==="object"?tubeOrId?.id:tubeOrId??"");
+    if(!id)return null;
+    return directAssembliesForRef({kind:"tube",id})[0]??null;
+  }
+  function portWorldPosition(tube,portName){
+    const port=tube?.engineering?.ports?.[portName];
+    if(port?.position&&[port.position.x,port.position.y,port.position.z].every(Number.isFinite))return clone(port.position);
+    if(portName==="P1"&&tube?.origin)return clone(tube.origin);
+    return null;
+  }
+  function setPortAssemblyConstraint(tube,portName,parent,worldPosition){
+    const port=tube?.engineering?.ports?.[portName];if(!port)return null;
+    if(!parent||!worldPosition){delete port.assembly_constraint;return null;}
+    const constraint={
+      schema:"assembly_port_constraint_v1",
+      assembly_id:String(parent.id),
+      local_position_mm:{...assemblies.worldToLocalPoint(parent.frame,worldPosition)}
+    };
+    port.assembly_constraint=constraint;
+    return constraint;
+  }
+  function syncTubePortConstraints(tubeOrId){
+    const tube=typeof tubeOrId==="object"?tubeOrId:tubeById(tubeOrId);
+    if(!tube?.engineering?.ports)return null;
+    const parent=directTubeAssembly(tube);
+    const p1=tube.engineering.ports.P1,p2=tube.engineering.ports.P2;
+    if(p1){
+      p1.locked=true;
+      const world=portWorldPosition(tube,"P1")??clone(tube.origin??{x:0,y:0,z:0});
+      p1.position=clone(world);
+      setPortAssemblyConstraint(tube,"P1",parent,world);
+    }
+    if(p2){
+      if(p2.locked===true)setPortAssemblyConstraint(tube,"P2",parent,portWorldPosition(tube,"P2"));
+      else delete p2.assembly_constraint;
+    }
+    return {assembly_id:parent?String(parent.id):null,p1:clone(p1?.assembly_constraint??null),p2:clone(p2?.assembly_constraint??null)};
+  }
+  function captureTubeEndConstraint(tubeOrId){
+    const tube=typeof tubeOrId==="object"?tubeOrId:tubeById(tubeOrId);
+    const p2=tube?.engineering?.ports?.P2;
+    if(!tube||p2?.locked!==true||!p2?.position)return null;
+    const parent=directTubeAssembly(tube);if(!parent)return null;
+    const stored=p2.assembly_constraint;
+    return clone(stored&&String(stored.assembly_id)===String(parent.id)&&stored.local_position_mm
+      ?stored
+      :{schema:"assembly_port_constraint_v1",assembly_id:String(parent.id),local_position_mm:{...assemblies.worldToLocalPoint(parent.frame,p2.position)}});
+  }
+  function resolveTubeEndConstraintTarget(constraint,tubeOrId=null){
+    if(!constraint?.assembly_id||!constraint?.local_position_mm)return null;
+    const parent=assemblyById(constraint.assembly_id);if(!parent)return null;
+    const tube=tubeOrId?(typeof tubeOrId==="object"?tubeOrId:tubeById(tubeOrId)):null;
+    if(tube){
+      const directParent=directTubeAssembly(tube);
+      if(!directParent||String(directParent.id)!==String(parent.id))return null;
+    }
+    return {
+      space:"assembly-local",
+      assembly_id:String(parent.id),
+      local_position_mm:clone(constraint.local_position_mm),
+      position:{...assemblies.localToWorldPoint(parent.frame,constraint.local_position_mm)}
+    };
+  }
+  function clearTubePortConstraint(tubeOrId,portName="P2"){
+    const tube=typeof tubeOrId==="object"?tubeOrId:tubeById(tubeOrId),port=tube?.engineering?.ports?.[portName];
+    if(port)delete port.assembly_constraint;
+    return !!port;
   }
   function containingAssembliesForEntry(entry){
     const ref=refFromEntry(entry);if(!ref||ref.kind==="source-ref")return [];
@@ -219,6 +288,7 @@
       const pose=memberPose(member.ref);
       if(!pose)continue;
       assemblies.setAssemblyMemberLocal(project(),assembly.id,member.ref,localFromPose(assembly.frame,pose));
+      if(member.ref.kind==="tube")syncTubePortConstraints(member.ref.id);
     }
   }
   function selectionRefs(){
@@ -276,7 +346,11 @@
   function removeSelection(assemblyId){
     let refs;try{refs=selectionRefs();}catch(error){toast(error.message);return false;}
     if(!refs.length){toast("Нет компонентов для удаления");return false;}
-    return command("Удалить компоненты из Assembly",()=>{assemblies.removeAssemblyMembers(project(),assemblyId,refs);return true;});
+    return command("Удалить компоненты из Assembly",()=>{
+      assemblies.removeAssemblyMembers(project(),assemblyId,refs);
+      for(const ref of refs)if(ref.kind==="tube")syncTubePortConstraints(ref.id);
+      return true;
+    });
   }
   function rename(assemblyId,name){
     return command("Переименовать Assembly",()=>{assemblies.renameAssembly(project(),assemblyId,name);return true;});
@@ -467,7 +541,7 @@
         }else translateLeafDirect(ref,d);
       }
       syncAssemblyLocals(active.id);return true;
-    });
+    },{wholeObject:true});
   }
   function rotateEditEntries(list,{axis,pivot,angle_deg}={}){
     const active=activeEditAssembly(),refs=editRefsForEntries(list);
@@ -483,7 +557,7 @@
         }else rotateLeafDirect(ref,axis,center,angle);
       }
       syncAssemblyLocals(active.id);return true;
-    });
+    },{wholeObject:true});
   }
 
   function transformDescendantFrames(rootId,oldFrame,newFrame){
@@ -552,7 +626,13 @@
     });
   }
   function dissolve(id){
-    return command("Dissolve Assembly",()=>assemblies.dissolveAssembly(project(),id)!==false);
+    return command("Dissolve Assembly",()=>{
+      const leaves=assemblies.leafAssemblyMembers(project(),id).map(member=>clone(member.ref));
+      const result=assemblies.dissolveAssembly(project(),id);
+      if(result===false)return false;
+      for(const ref of leaves)if(ref.kind==="tube")syncTubePortConstraints(ref.id);
+      return true;
+    });
   }
   function hiddenLeafKeys(){
     const hidden=new Set();
@@ -753,6 +833,7 @@
       moveEditEntries,rotateEditEntries,canHandleEditEntries,
       enterEdit,exitEdit,exitAllEdit,editing,activeEditAssembly,breadcrumb,resolveInteraction,assemblyForEditEntry,
       renderTree,renderPanel,applyVisibility,applyEditContext,assemblyById,parentAssemblyForEntry,containingAssembliesForEntry,
+      directTubeAssembly,syncTubePortConstraints,captureTubeEndConstraint,resolveTubeEndConstraintTarget,clearTubePortConstraint,
       permissionForEntry,canSelection,domain:assemblies
     });
   }
