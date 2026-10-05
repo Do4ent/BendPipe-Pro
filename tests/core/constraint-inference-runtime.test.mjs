@@ -58,3 +58,12 @@ test("question 80: inference domain is bundled into standalone runtime",()=>{
   assert.match(build,/__TB_CONSTRAINT_INFERENCE_MODULE_URL__/);
   assert.match(build,/constraintInferenceDomainUrl/);
 });
+
+
+test("question 83: contextual Tangent Perpendicular snap proposes matching Constraint first",()=>{
+  assert.match(runtime,/\["Tangent","Perpendicular"\]\.includes\(String\(lastSnap\?\.type\)\)/);
+  assert.match(runtime,/id:"infer:contextual:"\+contextualType/);
+  assert.match(runtime,/type:contextualType/);
+  assert.match(runtime,/evidence:\{contextual_snap:true,virtual:lastSnap\?\.virtual===true\}/);
+  assert.match(runtime,/score:1/);
+});
