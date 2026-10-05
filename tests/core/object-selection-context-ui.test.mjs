@@ -342,3 +342,14 @@ test("question 53: 3D hover exposes exact snap candidate seeds for tracking",()=
   assert.match(code,/type:"Vertex"/);
   assert.match(code,/snapCandidatesAtEvent,/);
 });
+
+
+test("question 83: 3D hit seeds expose finite segment and circle arc primitives",()=>{
+  const code=fs.readFileSync(path.join(root,"src","ui","object-selection-context-ui.js"),"utf8");
+  assert.match(code,/primitive:\{kind:"segment"/);
+  assert.match(code,/parameter_min:0,parameter_max:length/);
+  assert.match(code,/geometry\?\.type==="TorusGeometry"/);
+  assert.match(code,/primitive:\{kind:"circle"/);
+  assert.match(code,/arc_start_deg:0,arc_end_deg:arcDeg/);
+  assert.match(code,/metadata=\{\}/);
+});
