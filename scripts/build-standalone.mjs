@@ -32,6 +32,7 @@ const fittedGeometryRuntimePath = path.join(root, "src", "ui", "fitted-geometry-
 const normalizeGeometryRuntimePath = path.join(root, "src", "ui", "normalize-geometry-runtime.js");
 const deleteDependenciesRuntimePath = path.join(root, "src", "ui", "delete-dependencies-runtime.js");
 const associativeArrayRuntimePath = path.join(root, "src", "ui", "associative-array-runtime.js");
+const arrayGripsRuntimePath = path.join(root, "src", "ui", "array-grips-runtime.js");
 const associativeMirrorRuntimePath = path.join(root, "src", "ui", "associative-mirror-runtime.js");
 const transformStackRuntimePath = path.join(root, "src", "ui", "transform-stack-runtime.js");
 const transformStackDomainPath = path.join(root, "src", "domain", "editing", "transform-stack.mjs");
@@ -2576,6 +2577,11 @@ const associativeArrayRuntime = fs.readFileSync(associativeArrayRuntimePath, "ut
 const bundledAssociativeArrayRuntime =
   `<script data-tubebender-bundled="associative-array-runtime">\n${associativeArrayRuntime}\n</script>`;
 
+const arrayGripsRuntime = fs.readFileSync(arrayGripsRuntimePath, "utf8")
+  .replace(/<\/script/gi, "<\\/script");
+const bundledArrayGripsRuntime =
+  `<script data-tubebender-bundled="array-grips-runtime">\n${arrayGripsRuntime}\n</script>`;
+
 const associativeMirrorRuntime = fs.readFileSync(associativeMirrorRuntimePath, "utf8")
   .replace("__TB_RIGID_TRANSFORM_MODULE_URL__", legacyRigidTransformDomainUrl)
   .replace(/<\/script/gi, "<\\/script");
@@ -2649,6 +2655,8 @@ output =
   bundledMeasurementsUi +
   "\n" +
   bundledAssociativeArrayRuntime +
+  "\n" +
+  bundledArrayGripsRuntime +
   "\n" +
   bundledAssociativeMirrorRuntime +
   "\n" +
@@ -2976,6 +2984,7 @@ process.stdout.write(
       bundledNormalizeGeometryRuntime: true,
       bundledDeleteDependenciesRuntime: true,
       bundledAssociativeArrays: true,
+      bundledArrayGrips: true,
       bundledAssociativeMirrors: true,
       bundledTransformStacks: true,
       materialManufacturingCompensation: true,
