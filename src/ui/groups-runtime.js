@@ -123,17 +123,21 @@
     return command(mode==="Unlocked"?"Разблокировать Group":mode==="Object"?"Lock Object Group":"Lock Position Group",()=>{groups.setGroupLock(project(),groupId,mode);return true;});
   }
   function leafRefs(groupId){return groups.leafGroupMembers(project(),groupId);}
-  function replaceGroupMemberRef(oldRef,newRef){
-    const oldKey=groups.groupMemberKey(oldRef);
-    for(const group of groups.ensureGroupState(project())){
+  function replaceGroupMemberRefInTree(rootGroupId,oldRef,newRef){
+    const oldKey=groups.groupMemberKey(oldRef),visited=new Set();
+    const visit=(id)=>{
+      if(visited.has(String(id)))return;visited.add(String(id));
+      const group=groupById(id);if(!group)return;
       group.members=(group.members??[]).map(ref=>groups.groupMemberKey(ref)===oldKey?clone(newRef):ref);
-    }
+      for(const ref of group.members??[])if(ref.kind==="group")visit(ref.id);
+    };
+    visit(rootGroupId);
   }
-  function convertRefToMesh(ref){
+  function convertRefToMesh(ref,rootGroupId){
     const created=refApi()?.ensureEditableMeshInstanceByRef?.(project(),ref.scene_id,ref.node_id);
     if(!created)throw new Error("Не удалось создать Editable Mesh Instance для Source");
     const next={kind:"mesh-instance",id:String(created.id)};
-    replaceGroupMemberRef(ref,next);
+    replaceGroupMemberRefInTree(rootGroupId,ref,next);
     return next;
   }
   function applyTubeResult(tube,result){
@@ -141,8 +145,8 @@
     for(const key of Object.keys(tube))delete tube[key];
     Object.assign(tube,clone(result.tube));
   }
-  function moveLeaf(ref,delta){
-    if(ref.kind==="ref")ref=convertRefToMesh(ref);
+  function moveLeaf(ref,delta,rootGroupId){
+    if(ref.kind==="ref")ref=convertRefToMesh(ref,rootGroupId);
     if(ref.kind==="tube"){
       const tube=tubeById(ref.id);if(!tube)return;
       applyTubeResult(tube,rigid.translateLegacyTubeRigid(tube,delta));return;
@@ -184,8 +188,8 @@
       z:center.z+p.z*c+cross.z*s+u.z*dot*(1-c)
     };
   }
-  function rotateLeaf(ref,axis,center,angleDeg){
-    if(ref.kind==="ref")ref=convertRefToMesh(ref);
+  function rotateLeaf(ref,axis,center,angleDeg,rootGroupId){
+    if(ref.kind==="ref")ref=convertRefToMesh(ref,rootGroupId);
     if(ref.kind==="tube"){
       const tube=tubeById(ref.id);if(!tube)return;
       applyTubeResult(tube,rigid.rotateLegacyTubeRigid(tube,{axis,center,angle_deg:angleDeg}));return;
@@ -201,13 +205,13 @@
   function moveGroup(groupId,delta){
     if(permissionForEntry({kind:"group",groupId},"move").allowed===false){toast("Объект заблокирован");return false;}
     const d={x:Number(delta?.x)||0,y:Number(delta?.y)||0,z:Number(delta?.z)||0};
-    return command("Move Group",()=>{for(const ref of leafRefs(groupId))moveLeaf(ref,d);return true;});
+    return command("Move Group",()=>{for(const ref of leafRefs(groupId))moveLeaf(ref,d,groupId);return true;});
   }
   function rotateGroup(groupId,{axis={x:0,y:0,z:1},angle_deg=0,center=null}={}){
     if(permissionForEntry({kind:"group",groupId},"rotate").allowed===false){toast("Объект заблокирован");return false;}
     const pivot=center??groupPivot(groupId),angle=Number(angle_deg);
     if(!Number.isFinite(angle))return false;
-    return command("Rotate Group",()=>{for(const ref of leafRefs(groupId))rotateLeaf(ref,axis,pivot,angle);return true;});
+    return command("Rotate Group",()=>{for(const ref of leafRefs(groupId))rotateLeaf(ref,axis,pivot,angle,groupId);return true;});
   }
   function uniqueTubeName(base){
     const used=new Set((project()?.tubes??[]).map(t=>String(t?.name??"")));
@@ -243,63 +247,98 @@
     if(Array.isArray(copy.references))copy.references=copy.references.map(ref=>({...ref,object_id:idMap.get(String(ref.object_id))??ref.object_id}));
     return copy;
   }
+  function cloneConstruction(ref,offset){
+    const source=(project()?.construction_geometry??[]).find(x=>String(x?.id)===String(ref.id));
+    if(!source)return null;
+    const copy=clone(source);copy.id=makeId("construction");
+    const key=copy.position_mm?"position_mm":copy.origin?"origin":null;
+    if(key){
+      const p=copy[key]??{};copy[key]={x:Number(p.x||0)+offset.x,y:Number(p.y||0)+offset.y,z:Number(p.z||0)+offset.z};
+    }
+    project().construction_geometry=[...(project().construction_geometry??[]),copy];
+    return {kind:"construction",id:String(copy.id)};
+  }
+  function copyGroupGraph(groupId,offset,name=null){
+    const source=groupById(groupId);if(!source)throw new Error("Group not found");
+    const idMap=new Map(),memberMap=new Map(),leaves=leafRefs(groupId);
+    // Geometry first so associative references and dimensions can be remapped in a second pass.
+    for(const ref of leaves){
+      if(ref.kind==="tube"){
+        const tube=tubeById(ref.id);if(!tube)continue;
+        const copied=cloneTubeForGroup(tube,offset,idMap);project().tubes.push(copied);
+        memberMap.set(groups.groupMemberKey(ref),{kind:"tube",id:String(copied.id)});
+      }else if(ref.kind==="mesh-instance"){
+        const copied=refApi()?.copyEditableMeshInstance?.(project(),ref.id,{offset_mm:offset});
+        if(copied)memberMap.set(groups.groupMemberKey(ref),{kind:"mesh-instance",id:String(copied.id)});
+      }else if(ref.kind==="ref"){
+        const copied=refApi()?.createEditableMeshInstanceByRef?.(project(),ref.scene_id,ref.node_id,{position_mm:offset});
+        if(copied)memberMap.set(groups.groupMemberKey(ref),{kind:"mesh-instance",id:String(copied.id)});
+      }else if(ref.kind==="construction"){
+        const mapped=cloneConstruction(ref,offset);if(mapped)memberMap.set(groups.groupMemberKey(ref),mapped);
+      }
+    }
+    for(const newId of idMap.values()){
+      const tube=tubeById(newId);if(tube)remapTubeDependencies(tube,idMap);
+    }
+    // Non-geometric references are cloned after all object IDs are known.
+    for(const ref of leaves){
+      if(ref.kind==="dimension"){
+        const dim=(project().engineering_dimensions??[]).find(x=>String(x?.id)===String(ref.id));
+        if(dim){
+          const copied=cloneDimension(dim,idMap);
+          project().engineering_dimensions=[...(project().engineering_dimensions??[]),copied];
+          memberMap.set(groups.groupMemberKey(ref),{kind:"dimension",id:String(copied.id)});
+        }
+      }else if(ref.kind==="assembly"||ref.kind==="assembly-part"){
+        const mappedTube=idMap.get(String(ref.tube_id))??ref.tube_id;
+        memberMap.set(groups.groupMemberKey(ref),{...clone(ref),tube_id:String(mappedTube)});
+      }
+    }
+    const copyRecursive=(oldId,isTop=false)=>{
+      const old=groupById(oldId);if(!old)throw new Error("Nested Group not found");
+      const created=groups.createGroup(project(),{
+        name:isTop?(name??old.name+" Copy"):old.name+" Copy",
+        members:[],
+        visible:old.visible!==false
+      });
+      if(old.lock_state?.mode)created.lock_state=clone(old.lock_state);
+      for(const ref of old.members??[]){
+        if(ref.kind==="group"){
+          const child=copyRecursive(ref.id,false);
+          groups.addGroupMembers(project(),created.id,[{kind:"group",id:child.id}]);
+        }else{
+          const mapped=memberMap.get(groups.groupMemberKey(ref));
+          if(mapped)groups.addGroupMembers(project(),created.id,[mapped]);
+        }
+      }
+      return created;
+    };
+    return copyRecursive(groupId,true);
+  }
   function copyGroup(groupId,{offset_mm={x:0,y:0,z:0},name=null}={}){
     const source=groupById(groupId);if(!source)return false;
     if(permissionForEntry({kind:"group",groupId},"copy").allowed===false){toast("Объект заблокирован");return false;}
     const offset={x:Number(offset_mm.x)||0,y:Number(offset_mm.y)||0,z:Number(offset_mm.z)||0};
-    let newTopId=null;
-    const mutate=()=>{
-      const idMap=new Map(),memberMap=new Map();
-      const leaves=leafRefs(groupId);
-      for(const ref of leaves){
-        if(ref.kind==="tube"){
-          const tube=tubeById(ref.id);if(!tube)continue;
-          const copy=cloneTubeForGroup(tube,offset,idMap);project().tubes.push(copy);
-          memberMap.set(groups.groupMemberKey(ref),{kind:"tube",id:String(copy.id)});
-        }else if(ref.kind==="mesh-instance"){
-          const copy=refApi()?.copyEditableMeshInstance?.(project(),ref.id,{offset_mm:offset});
-          if(copy)memberMap.set(groups.groupMemberKey(ref),{kind:"mesh-instance",id:String(copy.id)});
-        }else if(ref.kind==="ref"){
-          const copy=refApi()?.createEditableMeshInstanceByRef?.(project(),ref.scene_id,ref.node_id,{position_mm:offset});
-          if(copy)memberMap.set(groups.groupMemberKey(ref),{kind:"mesh-instance",id:String(copy.id)});
-        }else if(ref.kind==="dimension"){
-          const dim=(project().engineering_dimensions??[]).find(x=>String(x?.id)===String(ref.id));
-          if(dim){
-            const copied=cloneDimension(dim,idMap);
-            project().engineering_dimensions=[...(project().engineering_dimensions??[]),copied];
-            memberMap.set(groups.groupMemberKey(ref),{kind:"dimension",id:String(copied.id)});
-          }
-        }
-      }
-      for(const newId of idMap.values()){const tube=tubeById(newId);if(tube)remapTubeDependencies(tube,idMap);}
-      const copyRecursive=(oldId,isTop=false)=>{
-        const old=groupById(oldId);if(!old)throw new Error("Group not found");
-        const newGroup=groups.createGroup(project(),{name:isTop?(name??old.name+" Copy"):old.name+" Copy",members:[]});
-        for(const ref of old.members??[]){
-          if(ref.kind==="group"){
-            const child=copyRecursive(ref.id,false);groups.addGroupMembers(project(),newGroup.id,[{kind:"group",id:child.id}]);
-          }else{
-            const mapped=memberMap.get(groups.groupMemberKey(ref));
-            if(mapped)groups.addGroupMembers(project(),newGroup.id,[mapped]);
-          }
-        }
-        return newGroup;
-      };
-      newTopId=copyRecursive(groupId,true).id;return true;
-    };
-    const ok=command("Copy Group",mutate);
-    if(ok&&newTopId)ctx()?.replaceSelectionKeys?.(["group:"+encodeURIComponent(newTopId)]);
-    return ok?newTopId:false;
+    let created=null;
+    const ok=command("Copy Group",()=>{created=copyGroupGraph(groupId,offset,name);return true;});
+    if(ok&&created)ctx()?.replaceSelectionKeys?.(["group:"+encodeURIComponent(created.id)]);
+    return ok?created?.id:false;
   }
   function arrayGroup(groupId,{count=2,step_mm={x:100,y:0,z:0}}={}){
     const n=Math.trunc(Number(count));if(!(n>=2)){toast("Count должен быть ≥ 2");return false;}
-    const created=[];
-    for(let index=1;index<n;index++){
-      const id=copyGroup(groupId,{offset_mm:{x:(Number(step_mm.x)||0)*index,y:(Number(step_mm.y)||0)*index,z:(Number(step_mm.z)||0)*index},name:(groupById(groupId)?.name??"Group")+" ["+(index+1)+"]"});
-      if(id)created.push(id);
-    }
-    return created;
+    if(permissionForEntry({kind:"group",groupId},"array").allowed===false){toast("Объект заблокирован");return false;}
+    const step={x:Number(step_mm.x)||0,y:Number(step_mm.y)||0,z:Number(step_mm.z)||0},created=[];
+    const ok=command("Array Group",()=>{
+      for(let index=1;index<n;index++){
+        const group=copyGroupGraph(groupId,{x:step.x*index,y:step.y*index,z:step.z*index},(groupById(groupId)?.name??"Group")+" ["+(index+1)+"]");
+        created.push(String(group.id));
+      }
+      return true;
+    });
+    if(ok&&created.length)ctx()?.replaceSelectionKeys?.(created.map(id=>"group:"+encodeURIComponent(id)));
+    return ok?created:false;
   }
+
   function hiddenLeafKeys(){
     const hidden=new Set();
     for(const group of groups.ensureGroupState(project())){
