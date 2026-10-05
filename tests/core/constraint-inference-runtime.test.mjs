@@ -37,7 +37,7 @@ test("question 80: Auto materializes only best confident inference inside model 
 });
 
 test("question 80: constraint management commands do not trigger surprise Auto inference",()=>{
-  assert.match(runtime,/\/Constraint\|Auto-constraints\|Inference\/i\.test\(text\)/);
+  assert.match(runtime,/\/Constraint\|Auto-constraints\|Auto-Constrain\|Inference\/i\.test\(text\)/);
   assert.match(runtime,/skipped:true/);
 });
 
