@@ -213,8 +213,10 @@
     inferenceSuggestions=inferenceSuggestions.filter(item=>String(item.id)!==String(id));
     pendingAccepted.delete(String(id));renderInferenceHint();return true;
   }
-  function materializeInferenceForCommand(){
+  function materializeInferenceForCommand({label=""}={}){
     if(!domain||!inference)return {created:[],mode:"Off"};
+    const text=String(label??"");
+    if(/Constraint|Auto-constraints|Inference/i.test(text))return {created:[],mode:inferenceMode(),skipped:true};
     const mode=inferenceMode(),toCreate=[];
     if(mode==="Suggest"){
       toCreate.push(...pendingAccepted.values());
