@@ -71,7 +71,7 @@
     return normalizedTargets().map(target=>({
       id:String(target.id),
       label:String(target.object?.name??target.object?.label??target.id),
-      geometry:clone(target.object),
+      geometry:{...clone(target.object),geometry_status:"Fitted"},
       selected:true
     }));
   }
