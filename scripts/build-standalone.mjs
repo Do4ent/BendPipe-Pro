@@ -50,6 +50,7 @@ const autoConstrainDomainPath = path.join(root, "src", "domain", "constraints", 
 const toleranceProfileDomainPath = path.join(root, "src", "domain", "geometry", "tolerance-profile.mjs");
 const fittedGeometryPolicyDomainPath = path.join(root, "src", "domain", "geometry", "fitted-geometry-policy.mjs");
 const normalizeFittedGeometryDomainPath = path.join(root, "src", "domain", "geometry", "normalize-fitted-geometry.mjs");
+const batchNormalizeFittedDomainPath = path.join(root, "src", "domain", "geometry", "batch-normalize-fitted.mjs");
 const geometryMeasurementsDomainPath = path.join(root, "src", "domain", "measurements", "geometry-measurements.mjs");
 const dimensionsDomainPath = path.join(root, "src", "domain", "measurements", "dimensions.mjs");
 const equipmentRuntimeBridgePath = path.join(root, "src", "ui", "equipment-runtime-bridge.js");
@@ -2546,8 +2547,10 @@ const bundledFittedGeometryRuntime =
   `<script data-tubebender-bundled="fitted-geometry-runtime">\n${fittedGeometryRuntime}\n</script>`;
 
 const normalizeFittedGeometryDomainUrl = moduleDataUrl(normalizeFittedGeometryDomainPath);
+const batchNormalizeFittedDomainUrl = moduleDataUrl(batchNormalizeFittedDomainPath);
 const normalizeGeometryRuntime = fs.readFileSync(normalizeGeometryRuntimePath, "utf8")
   .replace("__TB_NORMALIZE_FITTED_GEOMETRY_MODULE_URL__", normalizeFittedGeometryDomainUrl)
+  .replace("__TB_BATCH_NORMALIZE_MODULE_URL__", batchNormalizeFittedDomainUrl)
   .replace(/<\/script/gi, "<\\/script");
 const bundledNormalizeGeometryRuntime =
   `<script data-tubebender-bundled="normalize-geometry-runtime">\n${normalizeGeometryRuntime}\n</script>`;
