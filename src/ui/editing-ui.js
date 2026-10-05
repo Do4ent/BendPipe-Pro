@@ -52,34 +52,61 @@
     while(used.has(name))name=String(base||"Tube")+" Copy "+i++;
     return name;
   }
-  function detachExternalGeometryLinks(tube){
-    const copy=clone(tube);
-    const keys=[
-      "sourceGeometryId","editableGeometryId","externalRefId","external_ref_id",
-      "source_geometry_id","editable_geometry_id","source_link","external_link"
-    ];
-    for(const key of keys)delete copy[key];
-    if(copy.engineering?.ports){
-      for(const port of Object.values(copy.engineering.ports)){
-        if(port&&typeof port==="object"){
-          port.externalRefId="";
-          port.ownerObjectId="";
-        }
+  function copyExternalPolicy(body=null){
+    const select=body?.querySelector?.("[data-copy-external-policy]");
+    const value=String(select?.value??copySession.externalPolicy??"");
+    return value==="Keep"||value==="Detach"?value:null;
+  }
+  function copyDependencyPlan(sources){
+    return copyDependencies?.buildCopyDependencyPlan?.(sources??[])??{dependencies:[],internal:[],external:[],requires_external_choice:false};
+  }
+  function requireCopyExternalChoice(sources,body=null){
+    const plan=copyDependencyPlan(sources),policy=copyExternalPolicy(body);
+    if(plan.requires_external_choice&&!policy){
+      toast("Внешние зависимости найдены: явно выберите Keep external или Detach external");
+      return {ok:false,plan,policy:null};
+    }
+    return {ok:true,plan,policy};
+  }
+  function finalizeCopiedTube(copy,{externalPolicy=null}={}){
+    copy.uiHiddenIn3D=false;copy.uiTransparentIn3D=false;
+    if(externalPolicy==="Detach"){
+      if(copy.importEvidence&&typeof copy.importEvidence==="object"){
+        copy.importEvidence={...copy.importEvidence,copied_geometry_snapshot:true,source_link_detached:true};
       }
-      if(copy.engineering.ports.P1)copy.engineering.ports.P1.locked=true;
-      if(copy.engineering.ports.P2)copy.engineering.ports.P2.locked=false;
+      copy.source_link_detached=true;
+      const p2=copy.engineering?.ports?.P2;
+      if(p2&&!p2.externalRefId&&!p2.ownerObjectId)p2.locked=false;
     }
-    if(copy.importEvidence&&typeof copy.importEvidence==="object"){
-      copy.importEvidence={
-        ...copy.importEvidence,
-        copied_geometry_snapshot:true,
-        source_link_detached:true
-      };
-    }
-    copy.source_link_detached=true;
-    copy.uiHiddenIn3D=false;
-    copy.uiTransparentIn3D=false;
+    if(copy.engineering?.ports?.P1)copy.engineering.ports.P1.locked=true;
     return copy;
+  }
+  function createTubeCopyBatch(sources,delta,{usedNames=null,externalPolicy=null}={}){
+    const list=(sources??[]).filter(Boolean);
+    const plan=copyDependencyPlan(list);
+    if(plan.requires_external_choice&&!["Keep","Detach"].includes(String(externalPolicy??""))){
+      const error=new Error("Внешние зависимости требуют явного выбора Keep или Detach");
+      error.code="EXTERNAL_DEPENDENCY_CHOICE_REQUIRED";throw error;
+    }
+    const names=usedNames??new Set((project()?.tubes??[]).map(tube=>String(tube?.name??"")));
+    const idMap=new Map(list.map(source=>[String(source.id),makeId("tube")]));
+    const copies=[];
+    for(const source of list){
+      let copy=clone(source);copy.__copy_source_id=String(source.id);
+      if(delta&&(Number(delta.x)||Number(delta.y)||Number(delta.z))){
+        const moved=rigidTransform.translateLegacyTubeRigid(copy,{x:Number(delta.x)||0,y:Number(delta.y)||0,z:Number(delta.z)||0});
+        if(moved.status!=="exact")throw new Error(moved.reason||"Copy translation failed");
+        copy=clone(moved.tube);copy.__copy_source_id=String(source.id);
+      }
+      copy.id=idMap.get(String(source.id));
+      copy.name=nextCopyName(source.name,names);copy.partNumber="";
+      copy.material_warning_ack_signature=null;copy.equipment_calculation_state="Stale";
+      copy.material_calculation_state=copy.material_profile_id?"Stale":"Missing Material";
+      if(Array.isArray(copy.rows))copy.rows=copy.rows.map(row=>({...row,elementId:row?.elementId?makeId("element"):row?.elementId}));
+      copies.push(copy);
+    }
+    copyDependencies.applyCopyDependencyBatch(copies,idMap,plan,{external_policy:externalPolicy});
+    return copies.map(copy=>finalizeCopiedTube(copy,{externalPolicy}));
   }
   function selectedWholeTubes(){
     return entries().filter((e)=>e.kind==="tube").map((e)=>tubeById(e.tubeId)).filter((tube)=>
@@ -313,16 +340,8 @@
     while(used.has(name))name=String(base||"Tube")+" Copy "+i++;
     used.add(name);return name;
   }
-  function translatedIndependentCopy(source,delta,usedNames){
-    let copy=detachExternalGeometryLinks(source);
-    const moved=rigidTransform.translateLegacyTubeRigid(copy,delta);
-    if(moved.status!=="exact")throw new Error(moved.reason||"Copy translation failed");
-    copy=clone(moved.tube);
-    copy.id=makeId("tube");copy.name=nextCopyName(source.name,usedNames);copy.partNumber="";
-    copy.material_warning_ack_signature=null;copy.equipment_calculation_state="Stale";
-    copy.material_calculation_state=copy.material_profile_id?"Stale":"Missing Material";
-    if(Array.isArray(copy.rows))copy.rows=copy.rows.map((row)=>({...row,elementId:row?.elementId?makeId("element"):row?.elementId}));
-    return copy;
+  function translatedIndependentCopy(source,delta,usedNames,externalPolicy=null){
+    return createTubeCopyBatch([source],delta,{usedNames,externalPolicy})[0];
   }
   function commitCopySeries(body=null){
     if(!copySession.base||!copySession.targets.length){toast("Нет целевых точек Copy");return false;}
@@ -331,6 +350,8 @@
     if(!p||(!sources.length&&!meshEntries.length)){toast("Исходные объекты Copy недоступны");return false;}
     if(sources.length&&meshEntries.length){toast("Copy: смешанный tube/mesh источник запрещён");return false;}
     const base=clone(copySession.base),targets=copySession.targets.map(clone);
+    const choice=sources.length?requireCopyExternalChoice(sources,body):{ok:true,plan:null,policy:null};
+    if(!choice.ok)return false;
     const usedNames=new Set((p.tubes??[]).map((tube)=>String(tube?.name??"")));
     const createdMeshIds=[];
     const mutate=()=>{
@@ -355,7 +376,7 @@
       const created=[];
       for(const target of targets){
         const delta={x:target.x-base.x,y:target.y-base.y,z:target.z-base.z};
-        for(const source of sources)created.push(translatedIndependentCopy(source,delta,usedNames));
+        created.push(...createTubeCopyBatch(sources,delta,{usedNames,externalPolicy:choice.policy}));
       }
       p.tubes=[...(p.tubes??[]),...created];
       return true;
@@ -435,28 +456,13 @@
     return true;
   }
 
-  function copySelection(){
+  function copySelection(body=null){
     const tubes=selectedWholeTubes();
     if(!tubes.length){toast("Для Copy выберите одну или несколько целых труб");return false;}
     const p=project();if(!p)return false;
+    const choice=requireCopyExternalChoice(tubes,body);if(!choice.ok)return false;
     return commit("Копировать выбранные трубы",()=>{
-      const created=[];
-      for(const source of tubes){
-        const copy=detachExternalGeometryLinks(source);
-        copy.id=makeId("tube");
-        copy.name=uniqueTubeName(source.name);
-        copy.partNumber="";
-        copy.material_warning_ack_signature=null;
-        copy.equipment_calculation_state="Stale";
-        copy.material_calculation_state=copy.material_profile_id?"Stale":"Missing Material";
-        if(Array.isArray(copy.rows)){
-          copy.rows=copy.rows.map((row)=>({
-            ...row,
-            elementId:row?.elementId?makeId("element"):row?.elementId
-          }));
-        }
-        created.push(copy);
-      }
+      const created=createTubeCopyBatch(tubes,{x:0,y:0,z:0},{externalPolicy:choice.policy});
       p.tubes=[...(p.tubes??[]),...created];
       return true;
     });
@@ -515,26 +521,12 @@
       z:Number($("[data-copy-step-z]",body)?.value.replace(",",".")||0)
     };
     if(![step.x,step.y,step.z].every(Number.isFinite)){toast("Шаг Copy XYZ должен быть числом");return false;}
-    if(count===1&&step.x===0&&step.y===0&&step.z===0)return copySelection();
+    if(count===1&&step.x===0&&step.y===0&&step.z===0)return copySelection(body);
+    const choice=requireCopyExternalChoice(tubes,body);if(!choice.ok)return false;
     return commit("Множественное копирование труб",()=>{
-      const created=[];
-      for(const source of tubes){
-        for(let i=1;i<=count;i++){
-          let copy=detachExternalGeometryLinks(source);
-          if(step.x||step.y||step.z){
-            const moved=rigidTransform.translateLegacyTubeRigid(copy,{x:step.x*i,y:step.y*i,z:step.z*i});
-            if(moved.status!=="exact")throw new Error(moved.reason||"Copy offset failed");
-            copy=clone(moved.tube);
-          }
-          copy.id=makeId("tube");
-          copy.name=uniqueTubeName(source.name);
-          copy.partNumber="";
-          copy.material_warning_ack_signature=null;
-          copy.equipment_calculation_state="Stale";
-          copy.material_calculation_state=copy.material_profile_id?"Stale":"Missing Material";
-          if(Array.isArray(copy.rows))copy.rows=copy.rows.map((row)=>({...row,elementId:row?.elementId?makeId("element"):row?.elementId}));
-          created.push(copy);
-        }
+      const created=[],usedNames=new Set((p.tubes??[]).map(tube=>String(tube?.name??"")));
+      for(let i=1;i<=count;i++){
+        created.push(...createTubeCopyBatch(tubes,{x:step.x*i,y:step.y*i,z:step.z*i},{usedNames,externalPolicy:choice.policy}));
       }
       p.tubes=[...(p.tubes??[]),...created];
       return true;
@@ -964,13 +956,16 @@
       const count=selectedWholeTubes().length+selectedMeshSources().length;
       body.innerHTML='<div class="tb-edit-card"><b>Copy</b><div class="tb-edit-note" style="margin-top:7px">Выбрано объектов: '+count+'. Copy работает как Base Point → Target Point; Source mesh создаёт lightweight Editable Instance без копирования тяжёлой геометрии.</div>'+
         '<div class="tb-edit-grid" style="margin-top:8px"><label>Режим</label><select data-copy-mode><option value="single">Одна копия</option><option value="multiple">Несколько копий</option></select>'+
-        '<label>Base XYZ</label><input data-copy-base-input placeholder="100;200;0"><label>Target / @delta</label><input data-copy-target-input placeholder="300;200;0 / @100;0;0 / @100<45"></div>'+
+        '<label>Base XYZ</label><input data-copy-base-input placeholder="100;200;0"><label>Target / @delta</label><input data-copy-target-input placeholder="300;200;0 / @100;0;0 / @100<45">'+
+        '<label>External dependencies</label><select data-copy-external-policy><option value="">— выберите при наличии внешних связей —</option><option value="Detach">Detach external</option><option value="Keep">Keep external</option></select></div>'+
         '<div class="tb-edit-note" data-copy-session-status style="margin-top:8px"></div>'+
         '<div class="tb-edit-note" style="margin-top:6px">В 3D: первый клик по Snap задаёт Base Point, следующие клики — Target Point. Live-preview не изменяет модель. Поддерживаются 12.5 и 12,5; при десятичной запятой разделяйте X/Y/Z точкой с запятой (;). В режиме «Несколько»: Enter завершает всю серию одним Undo, Backspace убирает последнюю ещё не записанную в модель точку.</div>'+
         '<div class="tb-edit-actions"><button data-copy-base-snap>Snap → Base</button><button data-copy-base-input-run>XYZ → Base</button><button data-copy-target-snap>Snap → Target</button><button data-copy-target-input-run>Input → Target</button><button data-copy-finish>Завершить</button></div>'+
         (selectedMeshSources().length?'<div class="tb-edit-note" style="margin-top:10px"><b>Mesh Array</b> · Source остаётся readonly, создаются lightweight instances.</div><div class="tb-edit-grid" style="margin-top:6px"><label>Count</label><input data-mesh-array-count value="3"><label>Step X</label><input data-mesh-array-x value="100"><label>Step Y</label><input data-mesh-array-y value="0"><label>Step Z</label><input data-mesh-array-z value="0"></div><div class="tb-edit-actions"><button data-mesh-array-create>Создать Mesh Array</button></div>':'')+
         '</div>';
       $("[data-copy-mode]",body).value=copySession.mode;
+      const externalPolicy=$("[data-copy-external-policy]",body);
+      if(externalPolicy){externalPolicy.value=copySession.externalPolicy??"";externalPolicy.onchange=()=>{copySession.externalPolicy=externalPolicy.value||null;};}
       $("[data-copy-mode]",body).onchange=(event)=>{copySession.mode=event.target.value==="multiple"?"multiple":"single";resetCopySession();copySession.active=true;copySessionStatus(body);};
       $("[data-copy-base-snap]",body).onclick=()=>setCopyBaseFromSnap(body);
       $("[data-copy-base-input-run]",body).onclick=()=>setCopyBaseFromInput(body);
