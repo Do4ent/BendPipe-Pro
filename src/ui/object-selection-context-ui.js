@@ -5,6 +5,8 @@
   let issuesPanel=null;
   let installed=false;
   let ownRaycaster=null;
+  let selectionCycle={active:false,candidates:[],index:0,clientX:0,clientY:0};
+  let objectChooser=null;
   const PREFIX={
     ref:"ref:",
     mesh:"mesh:",
@@ -283,13 +285,13 @@
     return null;
   }
 
-  function pick3D(event){
-    if(typeof THREE==="undefined"||typeof camera==="undefined"||typeof pipeGroup==="undefined")return null;
-    if(!camera||!pipeGroup)return null;
+  function pick3DCandidates(event){
+    if(typeof THREE==="undefined"||typeof camera==="undefined"||typeof pipeGroup==="undefined")return Object.freeze([]);
+    if(!camera||!pipeGroup)return Object.freeze([]);
     const canvas=document.getElementById("threeCanvas");
-    if(!canvas)return null;
+    if(!canvas)return Object.freeze([]);
     const rect=canvas.getBoundingClientRect();
-    if(!rect.width||!rect.height)return null;
+    if(!rect.width||!rect.height)return Object.freeze([]);
     ownRaycaster=ownRaycaster||new THREE.Raycaster();
     ownRaycaster.params.Line={threshold:.18};
     const mouse=new THREE.Vector2(
@@ -298,13 +300,17 @@
     );
     ownRaycaster.setFromCamera(mouse,camera);
     const hits=ownRaycaster.intersectObjects(pipeGroup.children,true);
+    const out=[],seen=new Set();
     for(const hit of hits){
       if(skip3DHit(hit.object))continue;
       const result=entryFrom3DObject(hit.object);
-      if(result)return result;
+      if(!result||seen.has(result.key))continue;
+      seen.add(result.key);
+      out.push({...result,distance:Number(hit.distance)||0});
     }
-    return null;
+    return Object.freeze(out);
   }
+  function pick3D(event){return pick3DCandidates(event)[0]??null;}
 
   function snapScreenDistance(worldPoint,event,canvas){
     if(!worldPoint||!event||!canvas||typeof THREE==="undefined"||typeof camera==="undefined")return 0;
@@ -859,6 +865,8 @@
       '<button type="button" data-object-action="normalize-geometry">◎ <span>Fitted → Exact / Normalize</span></button>'+
       '<button type="button" data-object-action="compare-normalized">⇄ <span>Compare with Fitted</span></button>'+
       '<div class="tb-object-context-separator"></div>'+
+      '<button type="button" data-object-action="selection-cycle">⧉ <span>Выбрать объект под курсором</span></button>'+
+      '<div class="tb-object-context-separator"></div>'+
       '<button type="button" data-object-action="lock-object">🔒 <span>Lock Object</span></button>'+
       '<button type="button" data-object-action="lock-position">📍 <span>Lock Position</span></button>'+
       '<button type="button" data-object-action="unlock-object">🔓 <span>Разблокировать</span></button>'+
@@ -875,6 +883,10 @@
       else if(action==="diagnose")openInvalidElementDiagnosis();
       else if(action==="compare-source")toggleMeshSourceCompare();
       else if(action==="break-mesh-link")breakSelectedMeshLinks();
+      else if(action==="selection-cycle"){
+        const candidates=selectionCycle.candidates.length?selectionCycle.candidates:[];
+        if(candidates.length)showObjectChooser({clientX:selectionCycle.clientX,clientY:selectionCycle.clientY},candidates);
+      }
       else if(action==="normalize-geometry")normalizeApi()?.normalizeSelected?.();
       else if(action==="compare-normalized"){
         const target=(normalizeApi()?.selectedTargets?.()??[]).find(item=>item.object?.normalization_provenance?.operation==="FittedToExact");
@@ -973,6 +985,14 @@
     if(unlockButton){
       unlockButton.hidden=!hasLockTarget;
       unlockButton.disabled=!hasLockTarget||(modes.size===1&&modes.has("Unlocked"));
+    }
+    const selectionCycleButton=menu.querySelector('[data-object-action="selection-cycle"]');
+    if(selectionCycleButton){
+      const count=selectionCycle.candidates.length;
+      selectionCycleButton.hidden=source!=="3d"||count<2;
+      selectionCycleButton.disabled=count<2;
+      const label=selectionCycleButton.querySelector("span");
+      if(label)label.textContent="Выбрать объект под курсором"+(count>1?" ("+count+")":"");
     }
     const move=menu.querySelector('[data-object-action="move"]');
     if(move){
@@ -1643,21 +1663,110 @@
     return true;
   }
 
+  function resolveSelectionCandidate(candidate,{direct=false}={}){
+    if(!candidate)return null;
+    const assemblyResolved=assembliesApi()?.resolveInteraction?.(candidate.entry,candidate.key);
+    if(assemblyResolved?.blocked)return null;
+    let key=assemblyResolved?.handled?assemblyResolved.key:candidate.key;
+    let entry=assemblyResolved?.handled?parseKey(key):candidate.entry;
+    if(!assemblyResolved?.handled&&!direct){
+      const group=groupsApi()?.primaryGroupForEntry?.(candidate.entry);
+      if(group){key=groupKey(group.id);entry=parseKey(key);}
+    }
+    return key?{key,entry:entry??parseKey(key),distance:candidate.distance??0}:null;
+  }
+  function selectionCandidatesAtEvent(event,{direct=false}={}){
+    const map=new Map();
+    for(const raw of pick3DCandidates(event)){
+      const candidate=resolveSelectionCandidate(raw,{direct});
+      if(candidate&&!map.has(candidate.key))map.set(candidate.key,candidate);
+    }
+    return Object.freeze([...map.values()]);
+  }
+  function setSelectionCycle(candidates,event,index=0){
+    selectionCycle={
+      active:Array.isArray(candidates)&&candidates.length>1,
+      candidates:Array.isArray(candidates)?candidates.map(item=>({...item})):[],
+      index:Math.max(0,Math.min(Number(index)||0,Math.max(0,(candidates?.length??1)-1))),
+      clientX:Number(event?.clientX)||0,
+      clientY:Number(event?.clientY)||0
+    };
+    return selectionCycle;
+  }
+  function resetSelectionCycle(){
+    selectionCycle={active:false,candidates:[],index:0,clientX:0,clientY:0};
+    hideObjectChooser();
+  }
+  function applySelectionCycleIndex(index,{reveal=true}={}){
+    if(!selectionCycle.candidates.length)return null;
+    const n=selectionCycle.candidates.length;
+    selectionCycle.index=((Math.trunc(index)%n)+n)%n;
+    const candidate=selectionCycle.candidates[selectionCycle.index];
+    setSelectedKey(candidate.key,{additive:false,toggle:false});
+    if(reveal)revealTreeKey(candidate.key);
+    renderObjectChooserActive();
+    return candidate;
+  }
+  function cycleSelection(direction=1){
+    if(!selectionCycle.active||selectionCycle.candidates.length<2)return null;
+    return applySelectionCycleIndex(selectionCycle.index+(direction<0?-1:1));
+  }
+  function selectionCandidateLabel(candidate){
+    const entry=candidate?.entry??parseKey(candidate?.key);
+    if(!entry)return String(candidate?.key??"Object");
+    if(entry.kind==="tube"){
+      const tube=tubeById(entry.tubeId);return "Tube · "+String(tube?.name??entry.tubeId);
+    }
+    if(entry.kind==="mesh-instance"){
+      const item=refApi()?.meshInstanceById?.(project(),entry.instanceId);return "Mesh · "+String(item?.name??entry.instanceId);
+    }
+    if(entry.kind==="ref")return "Source / Reference · "+String(entry.nodeId);
+    if(entry.kind==="group")return "Group · "+String(groupsApi()?.groupById?.(entry.groupId)?.name??entry.groupId);
+    if(entry.kind==="project-assembly")return "Assembly · "+String(assembliesApi()?.assemblyById?.(entry.assemblyId)?.name??entry.assemblyId);
+    if(entry.kind==="row")return "Tube element · #"+(Number(entry.rowIndex)+1);
+    return String(entry.kind)+" · "+String(candidate.key);
+  }
+  function ensureObjectChooser(){
+    if(objectChooser)return objectChooser;
+    const panel=document.createElement("div");panel.id="tbSelectionCycleChooser";
+    panel.style.cssText="position:fixed;z-index:120030;display:none;min-width:260px;max-width:min(420px,calc(100vw - 20px));max-height:360px;overflow:auto;padding:5px;background:#101927;border:1px solid #40536d;border-radius:7px;box-shadow:0 12px 34px rgba(0,0,0,.55);font:12px Segoe UI,Arial,sans-serif;color:#e6eef8";
+    document.body.appendChild(panel);objectChooser=panel;return panel;
+  }
+  function renderObjectChooserActive(){
+    if(!objectChooser||objectChooser.style.display==="none")return;
+    objectChooser.querySelectorAll("[data-cycle-index]").forEach(button=>{
+      const active=Number(button.dataset.cycleIndex)===selectionCycle.index;
+      button.style.background=active?"#35557a":"transparent";
+      button.setAttribute("aria-current",active?"true":"false");
+    });
+  }
+  function showObjectChooser(event,candidates){
+    const panel=ensureObjectChooser();
+    setSelectionCycle(candidates,event,0);
+    panel.innerHTML='<div style="padding:5px 7px 7px;color:#91a6c0;border-bottom:1px solid #2d3b4f">Выбрать объект под курсором · '+candidates.length+'</div>'+
+      candidates.map((candidate,index)=>'<button type="button" data-cycle-index="'+index+'" style="display:block;width:100%;text-align:left;border:0;border-radius:4px;background:transparent;color:#e6eef8;padding:7px 9px;cursor:pointer">'+(index+1)+'. '+selectionCandidateLabel(candidate)+'</button>').join("");
+    panel.querySelectorAll("[data-cycle-index]").forEach(button=>{
+      const index=Number(button.dataset.cycleIndex);
+      button.onmouseenter=()=>applySelectionCycleIndex(index);
+      button.onclick=()=>{applySelectionCycleIndex(index);hideObjectChooser();};
+    });
+    panel.style.display="block";
+    const rect=panel.getBoundingClientRect(),margin=8;
+    panel.style.left=Math.max(margin,Math.min(Number(event.clientX)||margin,window.innerWidth-rect.width-margin))+"px";
+    panel.style.top=Math.max(margin,Math.min(Number(event.clientY)||margin,window.innerHeight-rect.height-margin))+"px";
+    renderObjectChooserActive();
+  }
+  function hideObjectChooser(){if(objectChooser)objectChooser.style.display="none";}
   function onCanvasClick(event){
     if(event.button!==0)return;
     try{if(controls?.shouldSuppressSelection?.())return;}catch{}
-    const picked=pick3D(event);
-    if(!picked)return;
     const direct=!!(event.ctrlKey||event.metaKey);
-    const assemblyResolved=assembliesApi()?.resolveInteraction?.(picked.entry,picked.key);
-    if(assemblyResolved?.blocked)return;
-    let key=assemblyResolved?.handled?assemblyResolved.key:picked.key;
-    if(!assemblyResolved?.handled){
-      const group=!direct?groupsApi()?.primaryGroupForEntry?.(picked.entry):null;
-      if(group)key=groupKey(group.id);
-    }
-    setSelectedKey(key,{additive:direct,toggle:direct});
-    revealTreeKey(key);
+    const candidates=selectionCandidatesAtEvent(event,{direct});
+    if(!candidates.length){resetSelectionCycle();return;}
+    setSelectionCycle(candidates,event,0);
+    const candidate=candidates[0];
+    setSelectedKey(candidate.key,{additive:direct,toggle:direct});
+    revealTreeKey(candidate.key);
   }
   function onCanvasDoubleClick(event){
     if(event.button!==0)return;
@@ -1676,7 +1785,10 @@
         return;
       }
     }catch{}
-    const picked=pick3D(event);
+    const direct=!!(event.ctrlKey||event.metaKey);
+    const candidates=selectionCandidatesAtEvent(event,{direct});
+    const picked=candidates[0]??null;
+    setSelectionCycle(candidates,event,0);
     event.preventDefault();
     event.stopPropagation();
     if(!picked){
@@ -1684,9 +1796,7 @@
       return;
     }
     syncReferenceIntoSelection();
-    const resolved=assembliesApi()?.resolveInteraction?.(picked.entry,picked.key);
-    if(resolved?.blocked)return;
-    const key=resolved?.handled?resolved.key:picked.key;
+    const key=picked.key;
     if(!selected.has(key))setSelectedKey(key,{additive:false});
     revealTreeKey(key);
     showContextMenu(event,{source:"3d"});
@@ -1876,12 +1986,21 @@
       }
     });
     window.addEventListener("keydown",(event)=>{
+      if(event.key==="Tab"&&selectionCycle.active){
+        const snapActive=window.TubeBenderSnapTracking?.state?.()?.active===true;
+        const textTarget=event.target&&(event.target.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/i.test(String(event.target.tagName||"")));
+        if(!snapActive&&!textTarget){
+          event.preventDefault();event.stopPropagation();
+          cycleSelection(event.shiftKey?-1:1);
+          return;
+        }
+      }
       if(event.key==="Escape"){
-        hideContextMenu();
+        hideContextMenu();hideObjectChooser();
         closeMovePanel();
         if(issuesPanel)issuesPanel.style.display="none";
       }
-    });
+    },true);
 
     // Re-apply hidden/transparency/selection state after every legacy 3D rebuild.
     if(typeof update3D==="function"&&!update3D._tbObjectContext){
@@ -1934,6 +2053,8 @@
     applyMove,
     beginAreaSelection,updateAreaSelection,finishAreaSelection,
     snapCandidatesAtEvent,
+    selectionCandidatesAtEvent,cycleSelection,
+    selectionCycleState:()=>structuredClone(selectionCycle),
     applyReferenceFrame,
     invalidElementDiagnosis,
     openInvalidElementDiagnosis,
