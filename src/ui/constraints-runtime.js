@@ -218,7 +218,7 @@
   function materializeInferenceForCommand({label=""}={}){
     if(!domain||!inference)return {created:[],mode:"Off"};
     const text=String(label??"");
-    if(/Constraint|Auto-constraints|Inference/i.test(text))return {created:[],mode:inferenceMode(),skipped:true};
+    if(/Constraint|Auto-constraints|Auto-Constrain|Inference/i.test(text))return {created:[],mode:inferenceMode(),skipped:true};
     const mode=inferenceMode(),toCreate=[];
     if(mode==="Suggest"){
       toCreate.push(...pendingAccepted.values());
