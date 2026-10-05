@@ -77,6 +77,10 @@
   function layerApi(){return window.TubeBenderLayers??null;}
   function lockApi(){return window.TubeBenderObjectLocks??null;}
   function deleteDependencyApi(){return window.TubeBenderDeleteDependencies??null;}
+  function propertiesApi(){return window.TubeBenderProperties??null;}
+  function editingApi(){return window.TubeBenderEditing??null;}
+  function gizmoApi(){return window.TubeBenderTransformGizmo??null;}
+  function geometryGripsApi(){return window.TubeBenderGeometryGrips??null;}
   function lockAllowed(action,{notify=true}={}){
     const api=lockApi();
     return typeof api?.canSelection==="function"?api.canSelection(action,{notify}):true;
@@ -846,6 +850,91 @@
     return true;
   }
 
+  function contextSelectionType(entries=selectionEntries()){
+    if(!entries.length)return "empty";
+    if(entries.length>1)return "multi";
+    const entry=entries[0];
+    if(entry.kind==="row"){
+      const row=rowFor(entry);
+      return row?.type==="BEND"?"bend":row?.type==="LINE"?"line":"row";
+    }
+    return String(entry.kind??"object");
+  }
+  function contextProfile(entries=selectionEntries(),source="3d"){
+    const type=contextSelectionType(entries),single=entries.length===1;
+    const profiles={
+      empty:{title:source==="3d"?"3D-окно":"Дерево проекта",edit:false,transform:false,visibility:false,properties:false,delete:false,isolate:false,transparent:false},
+      tube:{title:"Tube",edit:true,transform:true,visibility:true,properties:true,delete:true,isolate:true,transparent:true},
+      line:{title:"LINE",edit:true,transform:false,visibility:true,properties:true,delete:true,isolate:true,transparent:true},
+      bend:{title:"BEND",edit:true,transform:false,visibility:true,properties:true,delete:true,isolate:true,transparent:true},
+      row:{title:"Элемент трубы",edit:true,transform:false,visibility:true,properties:true,delete:true,isolate:true,transparent:true},
+      "mesh-instance":{title:"Editable Mesh Instance",edit:true,transform:true,visibility:true,properties:true,delete:true,isolate:true,transparent:true},
+      ref:{title:"Source / Reference",edit:false,transform:true,visibility:true,properties:true,delete:true,isolate:true,transparent:true},
+      group:{title:"Group",edit:true,transform:true,visibility:true,properties:true,delete:true,isolate:false,transparent:false},
+      "project-assembly":{title:"Assembly",edit:true,transform:true,visibility:true,properties:true,delete:true,isolate:false,transparent:false},
+      assembly:{title:"Tube Assembly",edit:false,transform:false,visibility:true,properties:true,delete:false,isolate:false,transparent:false},
+      end:{title:"Конец трубы",edit:false,transform:false,visibility:false,properties:true,delete:false,isolate:false,transparent:false},
+      multi:{title:"Несколько объектов",edit:false,transform:canMoveSelection(),visibility:true,properties:true,delete:true,isolate:true,transparent:true}
+    };
+    return {...(profiles[type]??{title:type,edit:false,transform:false,visibility:true,properties:true,delete:true,isolate:false,transparent:false}),type,single};
+  }
+  function openContextEdit(entries=selectionEntries()){
+    if(entries.length!==1)return false;
+    const entry=entries[0];
+    if(entry.kind==="tube"){
+      geometryGripsApi()?.setShowAll?.(true);geometryGripsApi()?.rebuild?.();return true;
+    }
+    if(entry.kind==="row"){
+      geometryGripsApi()?.enterInternal?.(entry.tubeId,entry.rowIndex);return true;
+    }
+    if(entry.kind==="mesh-instance"){propertiesApi()?.open?.();return true;}
+    if(entry.kind==="group"){groupsApi()?.openPanel?.();return true;}
+    if(entry.kind==="project-assembly"){
+      assembliesApi()?.enterEdit?.(entry.assemblyId);assembliesApi()?.openPanel?.();return true;
+    }
+    return false;
+  }
+  function openContextTransform(entries=selectionEntries()){
+    if(!entries.length)return false;
+    if(entries.every(entry=>entry.kind==="group")){groupsApi()?.openPanel?.();return true;}
+    if(entries.every(entry=>entry.kind==="project-assembly")){assembliesApi()?.openPanel?.();return true;}
+    if(entries.every(entry=>["tube","ref","mesh-instance"].includes(entry.kind))){
+      gizmoApi()?.show?.();gizmoApi()?.rebuild?.();return true;
+    }
+    editingApi()?.open?.("move");return true;
+  }
+  function openContextProperties(){propertiesApi()?.open?.();return true;}
+  function deleteLogicalContainers(entries=selectionEntries()){
+    const p=project();if(!p||!entries.length)return false;
+    const allGroups=entries.every(entry=>entry.kind==="group");
+    const allAssemblies=entries.every(entry=>entry.kind==="project-assembly");
+    if(!allGroups&&!allAssemblies)return false;
+    const mutate=()=>{
+      if(allGroups){
+        const domain=groupsApi()?.domain;if(!domain?.ungroup)throw new Error("Group domain unavailable");
+        for(const entry of entries)domain.ungroup(p,entry.groupId);
+      }else{
+        const domain=assembliesApi()?.domain;if(!domain?.dissolveAssembly)throw new Error("Assembly domain unavailable");
+        for(const entry of entries)domain.dissolveAssembly(p,entry.assemblyId);
+      }
+      return true;
+    };
+    const label=allGroups?"Удалить Group без удаления геометрии":"Dissolve Assembly без удаления компонентов";
+    const ok=typeof tbModelCommand==="function"?tbModelCommand(label,mutate):mutate();
+    if(ok===false)return false;
+    selected.clear();refApi()?.clearSelection?.();
+    try{save?.();renderAll?.();refreshProjectTree?.();groupsApi()?.renderTree?.();assembliesApi()?.renderTree?.();groupsApi()?.applyVisibility?.();assembliesApi()?.applyVisibility?.();}catch{}
+    refreshVisualSelection();return true;
+  }
+  function deleteContextSelection(){
+    const entries=selectionEntries();
+    if(entries.every(entry=>entry.kind==="group"||entry.kind==="project-assembly")){
+      const sameKind=entries.every(entry=>entry.kind===entries[0]?.kind);
+      if(sameKind)return deleteLogicalContainers(entries);
+    }
+    return applyAction("delete");
+  }
+
   function ensureContextMenu(){
     if(contextMenu)return contextMenu;
     const menu=document.createElement("div");
@@ -853,6 +942,10 @@
     menu.className="tb-object-context-menu";
     menu.innerHTML=
       '<div class="tb-object-context-title" data-context-title>Выбрано: 1</div>'+
+      '<button type="button" data-object-action="edit-object">✎ <span>Редактировать</span></button>'+
+      '<button type="button" data-object-action="transform-object">⌖ <span>Transform / Gizmo</span></button>'+
+      '<button type="button" data-object-action="properties">▤ <span>Свойства</span></button>'+
+      '<div class="tb-object-context-separator"></div>'+
       '<button type="button" data-object-action="move">↔ <span>Переместить…</span></button>'+
       '<button type="button" data-object-action="hide">◌ <span>Скрыть</span></button>'+
       '<button type="button" data-object-action="isolate">◎ <span>Скрыть другие</span></button>'+
@@ -879,7 +972,10 @@
       if(!button||button.disabled)return;
       const action=button.dataset.objectAction;
       hideContextMenu();
-      if(action==="move")openMovePanel();
+      if(action==="edit-object")openContextEdit();
+      else if(action==="transform-object")openContextTransform();
+      else if(action==="properties")openContextProperties();
+      else if(action==="move")openMovePanel();
       else if(action==="anchor-end")toggleEndConstraint();
       else if(action==="diagnose")openInvalidElementDiagnosis();
       else if(action==="compare-source")toggleMeshSourceCompare();
@@ -896,6 +992,7 @@
       else if(action==="lock-object")lockApi()?.lockObject?.();
       else if(action==="lock-position")lockApi()?.lockPosition?.();
       else if(action==="unlock-object")lockApi()?.unlockSelection?.();
+      else if(action==="delete")deleteContextSelection();
       else applyAction(action);
     });
     contextMenu=menu;
@@ -907,13 +1004,28 @@
     if(!entries.length&&!allowEmpty)return;
     const menu=ensureContextMenu();
     const hasSelection=entries.length>0;
+    const profile=contextProfile(entries,source);
     const title=menu.querySelector("[data-context-title]");
     if(title)title.textContent=hasSelection
-      ?"Выбрано: "+entries.length
-      :(source==="3d"?"3D-окно":"Дерево проекта");
+      ?profile.title+(entries.length>1?" · "+entries.length:"")
+      :profile.title;
     for(const button of menu.querySelectorAll("[data-object-action]")){
       const action=button.dataset.objectAction;
       if(action!=="show-all")button.hidden=!hasSelection;
+    }
+    const contextualVisibility={
+      "edit-object":profile.edit,
+      "transform-object":profile.transform,
+      properties:profile.properties,
+      hide:profile.visibility,
+      show:profile.visibility,
+      isolate:profile.isolate,
+      transparent:profile.transparent,
+      delete:profile.delete
+    };
+    for(const [action,visible] of Object.entries(contextualVisibility)){
+      const button=menu.querySelector('[data-object-action="'+action+'"]');
+      if(button)button.hidden=!hasSelection||visible!==true;
     }
     const endSelection=hasSelection?endConstraintSelection(entries):null;
     const anchorEnd=menu.querySelector('[data-object-action="anchor-end"]');
@@ -993,7 +1105,7 @@
       selectionCycleButton.hidden=source!=="3d"||count<2;
       selectionCycleButton.disabled=count<2;
       const label=selectionCycleButton.querySelector("span");
-      if(label)label.textContent="Выбрать объект под курсором"+(count>1?" ("+count+")":"");
+      if(label)label.textContent="Выбрать объект под курсором…"+(count>1?" ("+count+")":"");
     }
     const move=menu.querySelector('[data-object-action="move"]');
     if(move){
