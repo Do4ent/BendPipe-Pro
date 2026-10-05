@@ -54,6 +54,7 @@ export function collectGeometryEvidence(input,{max_depth=6}={}){
     if(seen.has(value))return;seen.add(value);
     const direct=directEvidence(value,path);
     if(direct)out.push(direct);
+    if(direct?.geometry_status==="Exact"&&value?.normalization_provenance?.operation==="FittedToExact")return;
     if(Array.isArray(value)){
       value.forEach((item,index)=>visit(item,path+"["+index+"]",depth+1));
       return;
