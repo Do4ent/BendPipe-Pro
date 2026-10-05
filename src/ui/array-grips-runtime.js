@@ -297,7 +297,7 @@
   function install(){
     if(installed)return;installed=true;ensurePanel();
     canvas()?.addEventListener("pointerdown",onDown,true);window.addEventListener("pointermove",onMove,true);window.addEventListener("pointerup",onUp,true);canvas()?.addEventListener("click",onClick,true);window.addEventListener("keydown",onKey,true);
-    window.addEventListener("tubebender-selection-change",selectionChanged);window.addEventListener("tubebender-layer-change",rebuild);window.addEventListener("tubebender-lock-change",rebuild);
+    window.addEventListener("tubebender-selection-change",selectionChanged);window.addEventListener("tubebender-layer-change",rebuild);window.addEventListener("tubebender-lock-change",rebuild);window.addEventListener("tubebender-array-change",()=>{if(!drag)rebuild();});
     if(typeof renderAll==="function"&&!renderAll._tbArrayGrips){const original=renderAll;renderAll=function(...args){const result=original.apply(this,args);try{rebuild();}catch{}return result;};renderAll._tbArrayGrips=true;}
     rebuild();window.TubeBenderArrayGrips=Object.freeze({rebuild,activeDefinition,applyExact});
   }
