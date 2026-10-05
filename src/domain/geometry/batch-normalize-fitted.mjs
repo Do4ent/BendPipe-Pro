@@ -57,7 +57,8 @@ export function batchNormalizationCandidate(input,index=0){
 export function buildBatchNormalizePreview(items=[],{
   tolerance_profile={},
   nominal_overrides={},
-  include_unmeasured=true
+  include_unmeasured=true,
+  similarity_multiplier=5
 }={}){
   const candidates=(items??[]).map(batchNormalizationCandidate);
   const buckets=new Map();
@@ -68,38 +69,53 @@ export function buildBatchNormalizePreview(items=[],{
   }
   const groups=[];
   for(const [key,members] of buckets){
-    const measured=members.filter(item=>item.source_value!=null);
-    if(!measured.length&&!include_unmeasured)continue;
-    const autoNominal=median(measured.map(item=>item.source_value));
-    const override=finite(nominal_overrides?.[key]);
-    const nominal=override??autoNominal;
     const quantity=members[0]?.quantity??"none";
     const tolerance=toleranceFor(quantity,tolerance_profile);
-    const rows=members.map(item=>{
-      const deviation=item.source_value==null||nominal==null?null:item.source_value-nominal;
-      const inTolerance=deviation==null?true:Math.abs(deviation)<=tolerance+1e-12;
-      return freeze({
-        ...clone(item),
-        nominal_value:nominal,
-        deviation,
-        abs_deviation:deviation==null?null:Math.abs(deviation),
-        tolerance,
-        in_tolerance:inTolerance,
-        out_of_tolerance:!inTolerance
+    const measured=members.filter(item=>item.source_value!=null).sort((a,b)=>a.source_value-b.source_value);
+    const unmeasured=members.filter(item=>item.source_value==null);
+    if(!measured.length&&!include_unmeasured)continue;
+    const similarity=Math.max(tolerance,1e-12)*Math.max(1,Number(similarity_multiplier)||1);
+    const clusters=[];
+    for(const member of measured){
+      const current=clusters.at(-1);
+      if(!current){clusters.push([member]);continue;}
+      const center=median(current.map(item=>item.source_value));
+      if(Math.abs(member.source_value-center)<=similarity+1e-12)current.push(member);
+      else clusters.push([member]);
+    }
+    if(unmeasured.length&&include_unmeasured)clusters.push(unmeasured);
+    clusters.forEach((cluster,clusterIndex)=>{
+      const autoNominal=median(cluster.map(item=>item.source_value));
+      const override=finite(nominal_overrides?.[key+"#"+clusterIndex]??nominal_overrides?.[key]);
+      const nominal=override??autoNominal;
+      const rows=cluster.map(item=>{
+        const deviation=item.source_value==null||nominal==null?null:item.source_value-nominal;
+        const inTolerance=deviation==null?true:Math.abs(deviation)<=tolerance+1e-12;
+        return freeze({
+          ...clone(item),
+          nominal_value:nominal,
+          deviation,
+          abs_deviation:deviation==null?null:Math.abs(deviation),
+          tolerance,
+          in_tolerance:inTolerance,
+          out_of_tolerance:!inTolerance
+        });
       });
+      groups.push(freeze({
+        id:"batch-group:"+key+"#"+clusterIndex,
+        key,
+        cluster_index:clusterIndex,
+        feature_type:cluster[0]?.feature_type??"Geometry",
+        field:cluster[0]?.field??null,
+        quantity,
+        nominal_value:nominal,
+        tolerance,
+        similarity_window:similarity,
+        member_count:rows.length,
+        out_of_tolerance_count:rows.filter(row=>row.out_of_tolerance).length,
+        members:rows
+      }));
     });
-    groups.push(freeze({
-      id:"batch-group:"+key,
-      key,
-      feature_type:members[0]?.feature_type??"Geometry",
-      field:members[0]?.field??null,
-      quantity,
-      nominal_value:nominal,
-      tolerance,
-      member_count:rows.length,
-      out_of_tolerance_count:rows.filter(row=>row.out_of_tolerance).length,
-      members:rows
-    }));
   }
   return freeze({
     status:"Preview",
