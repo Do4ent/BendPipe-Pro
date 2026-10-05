@@ -1,7 +1,8 @@
 (()=>{
   const CONSTRAINTS_URL="__TB_GEOMETRIC_CONSTRAINTS_MODULE_URL__";
   const INFERENCE_URL="__TB_CONSTRAINT_INFERENCE_MODULE_URL__";
-  let domain=null,inference=null,installed=false,panel=null,toggle=null;
+  const DOF_URL="__TB_CONSTRAINT_DOF_MODULE_URL__";
+  let domain=null,inference=null,dof=null,installed=false,panel=null,toggle=null,dofHelperGroup=null;
   let inferenceSuggestions=[],pendingAccepted=new Map(),lastSnap=null;
   const eng=()=>window.TubeBenderEngineering??null;
   const ctx=()=>window.TubeBenderObjectContext??null;
@@ -173,7 +174,7 @@
     if(snapRef&&!refs.some(ref=>sameRef(ref,snapRef)))refs.push(snapRef);
     const resolved=refs.map(ref=>resolvedForInference(ref,lastSnap));
     inferenceSuggestions=Array.from(inference.inferConstraintSuggestions({references:refs,resolved}));
-    renderInferenceHint();
+    renderInferenceHint();refreshDoF();
     return inferenceSuggestions;
   }
   function equivalentConstraint(type,references){
@@ -307,9 +308,88 @@
     host.querySelectorAll("[data-infer-confirm]").forEach(button=>button.onclick=()=>queueSuggestion(button.dataset.inferConfirm));
     host.querySelectorAll("[data-infer-reject]").forEach(button=>button.onclick=()=>rejectSuggestion(button.dataset.inferReject));
   }
+  function selectedObjectIds(){
+    const ids=[];
+    for(const ref of selectedReferences())if(ref?.object_id)ids.push(String(ref.object_id));
+    return [...new Set(ids)];
+  }
+  function dofAnalysis(){
+    if(!dof)return null;
+    return dof.analyzeConstraintDoF(project(),{object_ids:selectedObjectIds()});
+  }
+  function clearDofHelpers(){
+    if(dofHelperGroup?.parent)dofHelperGroup.parent.remove(dofHelperGroup);
+    dofHelperGroup=null;
+  }
+  function objectOrigin(objectId){
+    const resolved=resolveReference({object_id:String(objectId),subentity_id:null});
+    return point(resolved?.point??resolved?.position);
+  }
+  function renderDofHelpers(){
+    clearDofHelpers();
+    const analysis=dofAnalysis();
+    if(!analysis||typeof THREE==="undefined"||typeof pipeGroup==="undefined"||!pipeGroup)return;
+    const selected=new Set(selectedObjectIds());
+    const objects=(analysis.objects??[]).filter(item=>!selected.size||selected.has(String(item.object_id)));
+    if(!objects.length)return;
+    const scale=typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
+    const group=new THREE.Group();group.userData={helper:true,objectSelectionHelper:true,constraintDofHelper:true};
+    const axisMap={
+      Tx:{v:[1,0,0],color:0xff6b6b},Ty:{v:[0,1,0],color:0x63e6be},Tz:{v:[0,0,1],color:0x74c0fc},
+      Rx:{axis:"x",color:0xff6b6b},Ry:{axis:"y",color:0x63e6be},Rz:{axis:"z",color:0x74c0fc}
+    };
+    for(const item of objects){
+      const origin=objectOrigin(item.object_id);if(!origin)continue;
+      const base=new THREE.Vector3(origin.x*scale,origin.y*scale,origin.z*scale);
+      for(const axis of item.free_translation??[]){
+        const cfg=axisMap[axis],dir=new THREE.Vector3(...cfg.v);
+        const arrow=new THREE.ArrowHelper(dir,base.clone(),Math.max(24*scale,.35),cfg.color,Math.max(7*scale,.08),Math.max(5*scale,.055));
+        arrow.userData={helper:true,objectSelectionHelper:true,constraintDofHelper:true,dof:axis,object_id:item.object_id};
+        group.add(arrow);
+      }
+      for(const axis of item.free_rotation??[]){
+        const cfg=axisMap[axis];
+        const geometry=new THREE.TorusGeometry(Math.max(16*scale,.22),Math.max(1.2*scale,.015),8,32);
+        const material=new THREE.MeshBasicMaterial({color:cfg.color,transparent:true,opacity:.72,depthTest:false,depthWrite:false});
+        const ring=new THREE.Mesh(geometry,material);ring.position.copy(base);
+        if(cfg.axis==="x")ring.rotation.y=Math.PI/2;
+        else if(cfg.axis==="y")ring.rotation.x=Math.PI/2;
+        ring.renderOrder=11920;ring.userData={helper:true,objectSelectionHelper:true,constraintDofHelper:true,dof:axis,object_id:item.object_id};
+        group.add(ring);
+      }
+    }
+    if(group.children.length){pipeGroup.add(group);dofHelperGroup=group;try{if(typeof markViewerDirty==="function")markViewerDirty();}catch{}}
+  }
+  function dofHtml(){
+    const analysis=dofAnalysis();
+    if(!analysis)return "";
+    const statusClass=analysis.status==="Fully constrained"?"tb-dof-full":analysis.status==="Under-constrained"?"tb-dof-under":"tb-dof-problem";
+    const free=(analysis.objects??[]).map(item=>{
+      const names=[...(item.free_translation??[]),...(item.free_rotation??[])].map(axis=>dof.dofLabel(axis));
+      const scalar=(item.free_scalar??[]).length?["Parameters "+item.free_scalar.length]:[];
+      return names.length||scalar.length?'<div><b>'+esc(item.object_id)+'</b>: '+esc([...names,...scalar].join(", "))+'</div>':"";
+    }).join("");
+    const issues=[
+      ...(analysis.conflict_constraint_ids??[]).map(id=>"Conflict: "+id),
+      ...(analysis.redundant_constraint_ids??[]).map(id=>"Redundant: "+id),
+      ...(analysis.invalid_constraint_ids??[]).map(id=>"Invalid: "+id)
+    ];
+    return '<div class="tb-dof-card '+statusClass+'"><div><b>'+esc(analysis.status)+'</b> · DoF '+esc(analysis.remaining_dof)+' / '+esc(analysis.total_dof)+' · rank '+esc(analysis.structural_rank)+'</div>'+
+      '<div class="tb-con-status">'+esc((analysis.reasons??[]).join(" "))+'</div>'+
+      (free?'<div class="tb-dof-free">'+free+'</div>':'')+
+      (issues.length?'<div class="tb-dof-issues">'+issues.map(esc).join("<br>")+'</div>':'')+
+      '</div>';
+  }
+  function refreshDoF(){
+    renderDofHelpers();
+    const host=panel?.querySelector?.("[data-con-dof]");
+    if(host)host.innerHTML=dofHtml();
+    return dofAnalysis();
+  }
+
   function ensurePanel(){
     if(panel)return panel;
-    const style=document.createElement("style");style.id="tbConstraintsStyle";style.textContent='#tbConstraintsToggle{position:fixed;right:320px;top:54px;z-index:120366;background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:6px;padding:6px 10px;cursor:pointer}#tbConstraintsPanel{position:fixed;right:14px;top:88px;width:min(450px,calc(100vw - 28px));max-height:calc(100vh - 110px);z-index:120359;display:none;flex-direction:column;background:rgba(13,22,32,.985);color:#edf4fb;border:1px solid #41566f;border-radius:9px;font:12px system-ui}#tbConstraintsPanel.open{display:flex}.tb-con-infer{margin:7px 0;padding:7px;border:1px solid #40536a;border-radius:5px;background:#101b27}.tb-con-infer button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:4px;padding:3px 6px;cursor:pointer}.tb-con-head{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid #304154}.tb-con-head .grow{flex:1}.tb-con-body{overflow:auto;padding:8px}.tb-con-create{display:flex;gap:5px;flex-wrap:wrap}.tb-con-create select,.tb-con-create input{background:#09131c;color:#fff;border:1px solid #40536a;border-radius:4px;padding:5px}.tb-con-create button,.tb-con-row button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:4px;padding:5px 7px;cursor:pointer}.tb-con-row{display:grid;grid-template-columns:22px 1fr auto auto;gap:6px;align-items:center;border-top:1px solid #27384a;padding:7px 0}.tb-con-status{font-size:10px;color:#8da0b3}.tb-con-conflict{color:#ff8d8d}.tb-con-valid{color:#7de2a3}';document.head.appendChild(style);
+    const style=document.createElement("style");style.id="tbConstraintsStyle";style.textContent='#tbConstraintsToggle{position:fixed;right:320px;top:54px;z-index:120366;background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:6px;padding:6px 10px;cursor:pointer}#tbConstraintsPanel{position:fixed;right:14px;top:88px;width:min(450px,calc(100vw - 28px));max-height:calc(100vh - 110px);z-index:120359;display:none;flex-direction:column;background:rgba(13,22,32,.985);color:#edf4fb;border:1px solid #41566f;border-radius:9px;font:12px system-ui}#tbConstraintsPanel.open{display:flex}.tb-con-infer{margin:7px 0;padding:7px;border:1px solid #40536a;border-radius:5px;background:#101b27}.tb-con-infer button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:4px;padding:3px 6px;cursor:pointer}.tb-con-head{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid #304154}.tb-con-head .grow{flex:1}.tb-con-body{overflow:auto;padding:8px}.tb-con-create{display:flex;gap:5px;flex-wrap:wrap}.tb-con-create select,.tb-con-create input{background:#09131c;color:#fff;border:1px solid #40536a;border-radius:4px;padding:5px}.tb-con-create button,.tb-con-row button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:4px;padding:5px 7px;cursor:pointer}.tb-con-row{display:grid;grid-template-columns:22px 1fr auto auto;gap:6px;align-items:center;border-top:1px solid #27384a;padding:7px 0}.tb-con-status{font-size:10px;color:#8da0b3}.tb-con-conflict{color:#ff8d8d}.tb-con-valid{color:#7de2a3}.tb-dof-card{margin:7px 0;padding:8px;border:1px solid #40536a;border-radius:5px;background:#101b27}.tb-dof-full{border-color:#3b8f64}.tb-dof-under{border-color:#a58b3e}.tb-dof-problem{border-color:#a44f5d}.tb-dof-free{margin-top:5px;color:#c7d7e8}.tb-dof-issues{margin-top:5px;color:#ff9f9f}';document.head.appendChild(style);
     toggle=document.createElement("button");toggle.id="tbConstraintsToggle";toggle.textContent="Constraints";document.body.appendChild(toggle);
     panel=document.createElement("section");panel.id="tbConstraintsPanel";panel.innerHTML='<div class="tb-con-head"><b>Geometric Constraints</b><span class="grow"></span><button data-con-close>×</button></div><div class="tb-con-body" data-con-body></div>';document.body.appendChild(panel);
     toggle.onclick=()=>{panel.classList.toggle("open");render();};
@@ -319,7 +399,7 @@
   function render(){
     if(!domain)return;const root=ensurePanel(),body=root.querySelector("[data-con-body]"),list=domain.ensureConstraintState(project());
     const options=domain.GEOMETRIC_CONSTRAINT_TYPES.map(t=>'<option>'+esc(t)+'</option>').join("");
-    body.innerHTML='<div class="tb-con-create"><label>Inference <select data-con-inference-mode><option>Off</option><option>Suggest</option><option>Auto</option></select></label><select data-con-type>'+options+'</select><input data-con-name placeholder="Name"><label><input data-con-driving type="checkbox" checked> Driving</label><button data-con-create>Создать из выбора</button><button data-con-refresh>Проверить</button></div><div data-con-inference>'+inferenceHintHtml()+'</div>'+
+    body.innerHTML='<div class="tb-con-create"><label>Inference <select data-con-inference-mode><option>Off</option><option>Suggest</option><option>Auto</option></select></label><select data-con-type>'+options+'</select><input data-con-name placeholder="Name"><label><input data-con-driving type="checkbox" checked> Driving</label><button data-con-create>Создать из выбора</button><button data-con-refresh>Проверить</button></div><div data-con-inference>'+inferenceHintHtml()+'</div><div data-con-dof>'+dofHtml()+'</div>'+
       '<div style="margin-top:8px">'+list.map(item=>'<div class="tb-con-row"><input type="checkbox" data-con-enabled="'+esc(item.id)+'" '+(item.enabled!==false?'checked':'')+'><div><b>'+esc(item.name??item.type)+'</b><div class="tb-con-status '+(item.status==="Valid"?'tb-con-valid':item.status==="Disabled"?'':'tb-con-conflict')+'">'+esc(item.type)+' · '+esc(item.status)+' · refs '+(item.references?.length??0)+(item.cross_assembly?.cross_assembly?' · ↔ Cross-Assembly':'')+'</div></div><span>'+esc(item.driving===false?'Reference':'Driving')+'</span><button data-con-delete="'+esc(item.id)+'">×</button></div>').join("")+'</div>';
     const modeSelect=body.querySelector("[data-con-inference-mode]");modeSelect.value=inferenceMode();modeSelect.onchange=()=>setInferenceMode(modeSelect.value);
     body.querySelector("[data-con-create]").onclick=()=>createFromSelection(body.querySelector("[data-con-type]").value,{name:body.querySelector("[data-con-name]").value.trim()||null,driving:body.querySelector("[data-con-driving]").checked});
@@ -330,14 +410,15 @@
   }
   async function install(){
     if(installed)return;installed=true;
-    try{[domain,inference]=await Promise.all([import(CONSTRAINTS_URL),import(INFERENCE_URL)]);}catch(error){console.error("Constraints runtime failed",error);return;}
+    try{[domain,inference,dof]=await Promise.all([import(CONSTRAINTS_URL),import(INFERENCE_URL),import(DOF_URL)]);}catch(error){console.error("Constraints runtime failed",error);return;}
     domain.ensureConstraintState(project());ensurePanel();render();inferCurrent();
-    window.addEventListener("tubebender-selection-change",()=>{inferCurrent();if(panel?.classList.contains("open"))render();});
+    window.addEventListener("tubebender-selection-change",()=>{inferCurrent();refreshDoF();if(panel?.classList.contains("open"))render();});
     window.addEventListener("tubebender-snap-change",(event)=>{lastSnap=event?.detail?.current??null;inferCurrent();});
+    window.addEventListener("tubebender-constraints-change",()=>refreshDoF());
     window.TubeBenderConstraints=Object.freeze({
       createFromSelection,remove,setEnabled,recalculateAll,validateProject,resolveReference,selectedReferences,render,
       inferCurrent,queueSuggestion,rejectSuggestion,materializeInferenceForCommand,inferenceMode,setInferenceMode,
-      inferenceDomain:inference,domain
+      dofAnalysis,refreshDoF,dofDomain:dof,inferenceDomain:inference,domain
     });
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
