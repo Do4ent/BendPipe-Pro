@@ -177,7 +177,8 @@ export function setDimensionMode(dimension,mode){
   return freeze({
     ...clone(dimension),
     mode,
-    target_value:mode==="Driving"?(dimension.target_value??dimension.value):null
+    target_value:mode==="Driving"?(dimension.target_value??dimension.value):null,
+    target_formula:mode==="Driving"?(dimension.target_formula??null):null
   });
 }
 export function setDrivingTarget(dimension,value,{formula=null}={}){
