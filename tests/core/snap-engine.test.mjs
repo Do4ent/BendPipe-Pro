@@ -13,6 +13,9 @@ import {
   nearestPointCandidate,
   normalizeSnapSettings,
   perpendicularSnapCandidate,
+  perpendicularCircleSnapCandidates,
+  tangentPointsFromPointToCircle,
+  tangentSnapCandidates,
   rankSnapCandidates,
   segmentSnapCandidates,
   selectBestSnapCandidate
@@ -198,4 +201,71 @@ test("Object Snap Tracking creates virtual rays and real tracking intersections"
   const projected=mod.objectSnapTrackingCandidate({cursor:{x:5,y:3,z:0},ray:a});
   assert.equal(projected.metadata.tracking,true);
   assert.ok(Math.abs(projected.point.y)<1e-9);
+});
+
+
+test("question 83: Tangent snap returns both mathematical solutions and degenerates to one or zero",()=>{
+  const two=tangentPointsFromPointToCircle({
+    point:{x:10,y:0,z:0},center:{x:0,y:0,z:0},radius_mm:5
+  });
+  assert.equal(two.length,2);
+  for(const p of two){
+    const radius={x:p.x,y:p.y,z:p.z};
+    const chord={x:10-p.x,y:-p.y,z:-p.z};
+    assert.ok(Math.abs(radius.x*chord.x+radius.y*chord.y+radius.z*chord.z)<1e-9);
+  }
+  const one=tangentPointsFromPointToCircle({
+    point:{x:5,y:0,z:0},center:{x:0,y:0,z:0},radius_mm:5
+  });
+  assert.equal(one.length,1);
+  const none=tangentPointsFromPointToCircle({
+    point:{x:2,y:0,z:0},center:{x:0,y:0,z:0},radius_mm:5
+  });
+  assert.equal(none.length,0);
+});
+
+test("question 83: finite-segment Perpendicular is real on segment and Virtual on extension",()=>{
+  const real=perpendicularSnapCandidate({
+    point:{x:5,y:3,z:0},line_point:{x:0,y:0,z:0},line_direction:{x:1,y:0,z:0},
+    parameter_min:0,parameter_max:10,object_id:"seg"
+  });
+  assert.equal(real.virtual,false);
+  assert.equal(real.metadata.on_entity,true);
+  const virtual=perpendicularSnapCandidate({
+    point:{x:15,y:3,z:0},line_point:{x:0,y:0,z:0},line_direction:{x:1,y:0,z:0},
+    parameter_min:0,parameter_max:10,object_id:"seg"
+  });
+  assert.equal(virtual.virtual,true);
+  assert.equal(virtual.metadata.extension,true);
+});
+
+test("question 83: circle Perpendicular exposes both radial solutions",()=>{
+  const hits=perpendicularCircleSnapCandidates({
+    point:{x:10,y:0,z:0},center:{x:0,y:0,z:0},radius_mm:5,object_id:"circle"
+  });
+  assert.equal(hits.length,2);
+  assert.deepEqual(hits.map(x=>x.type),["Perpendicular","Perpendicular"]);
+  assert.ok(hits.every(x=>x.metadata.constraint_type==="Perpendicular"));
+});
+
+test("question 83: tangent points outside finite arc remain available as Virtual Snap",()=>{
+  const hits=tangentSnapCandidates({
+    point:{x:10,y:0,z:0},center:{x:0,y:0,z:0},radius_mm:5,object_id:"arc",
+    arc_start_deg:0,arc_end_deg:30,arc_basis_x:{x:1,y:0,z:0}
+  });
+  assert.equal(hits.length,2);
+  assert.ok(hits.some(x=>x.virtual===true));
+  assert.ok(hits.every(x=>x.type==="Tangent"));
+  assert.ok(hits.every(x=>x.metadata.constraint_type==="Tangent"));
+});
+
+test("question 83: Tab cycling includes multiple contextual Tangent candidates",()=>{
+  const hits=tangentSnapCandidates({
+    point:{x:10,y:0,z:0},center:{x:0,y:0,z:0},radius_mm:5,object_id:"circle"
+  }).map((x,i)=>({...x,screen_distance_px:i+1}));
+  const options={contextual_types:["Tangent"]};
+  const first=selectBestSnapCandidate(hits,{},options);
+  const second=cycleSnapCandidate(hits,first.id,1,{},options);
+  assert.notEqual(second.id,first.id);
+  assert.equal(cycleSnapCandidate(hits,second.id,1,{},options).id,first.id);
 });
