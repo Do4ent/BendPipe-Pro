@@ -337,7 +337,7 @@
     return best;
   }
 
-  function snapCandidateRecord({id,type,source,objectId,subentityId,world,event,canvas,label}){
+  function snapCandidateRecord({id,type,source,objectId,subentityId,world,event,canvas,label,metadata={}}){
     if(!world)return null;
     const scale=typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
     const point={x:world.x/scale,y:world.y/scale,z:world.z/scale};
@@ -360,6 +360,7 @@
       confidence:1,
       label:String(label||type)+(crossAssembly?" · ↔ Assembly":""),
       metadata:{
+        ...structuredClone(metadata??{}),
         assembly_context,
         cross_assembly:crossAssembly,
         source_assembly_id:assembly_context?.assembly_id??null,
@@ -419,18 +420,39 @@
       const geometry=hit.object?.geometry;
       if(geometry?.type==="CylinderGeometry"&&Number.isFinite(Number(geometry.parameters?.height))){
         const half=Number(geometry.parameters.height)/2;
-        const locals=[
-          ["Endpoint","start",new THREE.Vector3(0,-half,0)],
-          ["Midpoint","mid",new THREE.Vector3(0,0,0)],
-          ["Endpoint","end",new THREE.Vector3(0,half,0)]
-        ];
-        for(const [type,suffix,world] of locals){
-          hit.object.localToWorld(world);
+        const startWorld=new THREE.Vector3(0,-half,0),midWorld=new THREE.Vector3(0,0,0),endWorld=new THREE.Vector3(0,half,0);
+        hit.object.localToWorld(startWorld);hit.object.localToWorld(midWorld);hit.object.localToWorld(endWorld);
+        const scale=typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
+        const start={x:startWorld.x/scale,y:startWorld.y/scale,z:startWorld.z/scale};
+        const end={x:endWorld.x/scale,y:endWorld.y/scale,z:endWorld.z/scale};
+        const dx=end.x-start.x,dy=end.y-start.y,dz=end.z-start.z,length=Math.hypot(dx,dy,dz);
+        const direction=length>1e-12?{x:dx/length,y:dy/length,z:dz/length}:null;
+        for(const [type,suffix,world] of [["Endpoint","start",startWorld],["Midpoint","mid",midWorld],["Endpoint","end",endWorld]]){
           add(snapCandidateRecord({
             id:"snap:"+String(objectId)+":"+hit.object.uuid+":"+suffix,
             type,source,objectId,subentityId:suffix,world,event,canvas,label:type
           }));
         }
+        if(direction)add(snapCandidateRecord({
+          id:"snap:"+String(objectId)+":"+hit.object.uuid+":axis",
+          type:"LineAxis",source,objectId,subentityId:"axis:"+hit.object.uuid,world:midWorld,event,canvas,label:"Line Axis",
+          metadata:{direction,primitive:{kind:"segment",start,end,direction,parameter_min:0,parameter_max:length}}
+        }));
+      }else if(geometry?.type==="TorusGeometry"&&Number.isFinite(Number(geometry.parameters?.radius))){
+        const scale=typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
+        const radiusLocal=Number(geometry.parameters.radius),centerWorld=new THREE.Vector3(0,0,0),radialWorld=new THREE.Vector3(radiusLocal,0,0);
+        hit.object.localToWorld(centerWorld);hit.object.localToWorld(radialWorld);
+        const normalWorld=new THREE.Vector3(0,0,1).transformDirection(hit.object.matrixWorld).normalize();
+        const center={x:centerWorld.x/scale,y:centerWorld.y/scale,z:centerWorld.z/scale};
+        const radial={x:(radialWorld.x-centerWorld.x)/scale,y:(radialWorld.y-centerWorld.y)/scale,z:(radialWorld.z-centerWorld.z)/scale};
+        const radius=Math.hypot(radial.x,radial.y,radial.z);
+        const basis=radius>1e-12?{x:radial.x/radius,y:radial.y/radius,z:radial.z/radius}:{x:1,y:0,z:0};
+        const arcDeg=Number.isFinite(Number(geometry.parameters.arc))?Number(geometry.parameters.arc)*180/Math.PI:360;
+        add(snapCandidateRecord({
+          id:"snap:"+String(objectId)+":"+hit.object.uuid+":center",
+          type:"Center",source,objectId,subentityId:"circle:"+hit.object.uuid,world:centerWorld,event,canvas,label:"Center",
+          metadata:{radius_mm:radius,normal:{x:normalWorld.x,y:normalWorld.y,z:normalWorld.z},primitive:{kind:"circle",center,radius_mm:radius,normal:{x:normalWorld.x,y:normalWorld.y,z:normalWorld.z},arc_start_deg:0,arc_end_deg:arcDeg,arc_basis_x:basis}}
+        }));
       }else if(geometry?.type==="SphereGeometry"){
         const world=new THREE.Vector3();hit.object.getWorldPosition(world);
         add(snapCandidateRecord({
