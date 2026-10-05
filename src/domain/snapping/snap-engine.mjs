@@ -391,6 +391,85 @@ export function lineIntersectionSnapCandidate({lineA,lineB,object_id=null,source
   });
 }
 
+export function projectPointToPlane(pointValue,plane){
+  const p=point(pointValue,"point"),o=point(plane?.point??{x:0,y:0,z:0},"plane.point"),n=unit(point(plane?.normal??{x:0,y:0,z:1},"plane.normal"),"plane.normal");
+  const signed=dot(sub(p,o),n);
+  return freeze({point:sub(p,mul(n,signed)),signed_distance_mm:signed});
+}
+export function projectDirectionToPlane(directionValue,plane){
+  const d=unit(point(directionValue,"direction"),"direction"),n=unit(point(plane?.normal??{x:0,y:0,z:1},"plane.normal"),"plane.normal");
+  const projected=sub(d,mul(n,dot(d,n)));
+  if(len(projected)<=EPS)return null;
+  return freeze(unit(projected,"projected direction"));
+}
+export function projectedLineIntersection({lineA,lineB,plane,tolerance_mm=0.01}={}){
+  const aPoint=projectPointToPlane(lineA?.point,plane),bPoint=projectPointToPlane(lineB?.point,plane);
+  const aDir=projectDirectionToPlane(lineA?.direction,plane),bDir=projectDirectionToPlane(lineB?.direction,plane);
+  if(!aDir||!bDir)return freeze({status:"DegenerateProjection",point:null});
+  const relation=lineLineRelation(
+    {point:aPoint.point,direction:aDir},
+    {point:bPoint.point,direction:bDir},
+    {tolerance_mm}
+  );
+  if(relation.parallel)return freeze({status:"ParallelProjection",point:null,relation});
+  return freeze({
+    status:"ProjectedIntersection",
+    point:relation.point,
+    relation,
+    source_plane_distances_mm:[aPoint.signed_distance_mm,bPoint.signed_distance_mm]
+  });
+}
+export function lineLineIntersectionCandidates({
+  lineA,
+  lineB,
+  working_plane=null,
+  object_id=null,
+  source="Editable",
+  tolerance_mm=0.01,
+  include_projected=true,
+  include_closest=true
+}={}){
+  const relation=lineLineRelation(lineA,lineB,{tolerance_mm}),out=[];
+  if(relation.intersects){
+    out.push(createSnapCandidate({
+      id:`${object_id??"intersection"}:real`,
+      type:"Intersection",source,object_id,subentity_id:"real-intersection",point:relation.point,
+      virtual:false,label:"Real Intersection",
+      metadata:{...relation,kind:"RealIntersection",constraint_type:"Coincident"}
+    }));
+  }else{
+    if(include_projected&&working_plane){
+      const projected=projectedLineIntersection({lineA,lineB,plane:working_plane,tolerance_mm});
+      if(projected.status==="ProjectedIntersection"){
+        out.push(createSnapCandidate({
+          id:`${object_id??"intersection"}:projected`,
+          type:"Intersection",source,object_id,subentity_id:"projected-intersection",point:projected.point,
+          virtual:true,label:"Projected Intersection",
+          metadata:{...projected,kind:"ProjectedIntersection",working_plane:clonePlane(working_plane)}
+        }));
+      }
+    }
+    if(include_closest){
+      for(const [index,p] of [relation.point_a,relation.point_b].entries()){
+        out.push(createSnapCandidate({
+          id:`${object_id??"intersection"}:closest:${index}`,
+          type:"Intersection",source,object_id,subentity_id:`closest-point-${index}`,point:p,
+          virtual:true,label:`Closest Point ${index===0?"A":"B"}`,
+          metadata:{...relation,kind:"ClosestPoints",closest_point_index:index,pair_point:index===0?relation.point_b:relation.point_a}
+        }));
+      }
+    }
+  }
+  return freeze(out);
+}
+function clonePlane(plane){
+  return {
+    point:point(plane?.point??{x:0,y:0,z:0},"plane.point"),
+    normal:unit(point(plane?.normal??{x:0,y:0,z:1},"plane.normal"),"plane.normal")
+  };
+}
+
+
 export function linePlaneIntersection({line,plane,tolerance=EPS}={}){
   const a=point(line.point,"line.point"),d=unit(point(line.direction,"line.direction"),"line.direction");
   const p=point(plane.point,"plane.point"),n=unit(point(plane.normal,"plane.normal"),"plane.normal");
