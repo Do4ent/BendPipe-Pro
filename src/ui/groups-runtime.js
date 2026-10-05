@@ -446,7 +446,7 @@
     if(!groups)return;const p=project();if(!p)return;const root=ensurePanel(),body=root.querySelector("[data-group-body]");
     const list=groups.ensureGroupState(p),selected=entries().find(entry=>entry.kind==="group"),selectedId=selected?.groupId??list[0]?.id??"",g=selectedId?groupById(selectedId):null;
     const opts='<option value="">—</option>'+list.map(item=>'<option value="'+esc(item.id)+'" '+(String(item.id)===String(selectedId)?'selected':'')+'>'+esc(item.name)+'</option>').join("");
-    body.innerHTML='<div class="tb-group-grid"><label>Group</label><select data-group-select>'+opts+'</select><label>Name</label><input data-group-name value="'+esc(g?.name??"Group")+'"><label>Visible</label><input data-group-visible type="checkbox" '+(g?.visible!==false?'checked':'')+'><label>Lock</label><select data-group-lock><option>Unlocked</option><option '+(g?.lock_state?.mode==="Position"?'selected':'')+'>Position</option><option '+(g?.lock_state?.mode==="Object"?'selected':'')+'>Object</option></select><label>Move XYZ</label><input data-group-move value="0;0;0"><label>Rotate Z°</label><input data-group-angle value="0"><label>Array count</label><input data-group-count value="3"><label>Array step XYZ</label><input data-group-step value="100;0;0"></div>'+
+    body.innerHTML='<div class="tb-group-grid"><label>Group</label><select data-group-select>'+opts+'</select><label>Name</label><input data-group-name value="'+esc(g?.name??"Group")+'"><label>Visible</label><input data-group-visible type="checkbox" '+(g?.visible!==false?'checked':'')+'><label>Lock</label><select data-group-lock><option>Unlocked</option><option '+(g?.lock_state?.mode==="Position"?'selected':'')+'>Position</option><option '+(g?.lock_state?.mode==="Object"?'selected':'')+'>Object</option></select><label>Move XYZ</label><input data-group-move value="0;0;0"><label>Rotate axis</label><select data-group-axis><option>X</option><option>Y</option><option selected>Z</option></select><label>Rotate °</label><input data-group-angle value="0"><label>Array count</label><input data-group-count value="3"><label>Array step XYZ</label><input data-group-step value="100;0;0"></div>'+
       '<div class="tb-group-actions"><button data-group-create>Создать из выбора</button><button data-group-rename '+(!g?'disabled':'')+'>Rename</button><button data-group-add '+(!g?'disabled':'')+'>Add selection</button><button data-group-remove '+(!g?'disabled':'')+'>Remove selection</button><button data-group-ungroup '+(!g?'disabled':'')+'>Ungroup</button></div>'+
       '<div class="tb-group-actions"><button data-group-move-run '+(!g?'disabled':'')+'>Move</button><button data-group-rotate-run '+(!g?'disabled':'')+'>Rotate</button><button data-group-copy-run '+(!g?'disabled':'')+'>Copy</button><button data-group-array-run '+(!g?'disabled':'')+'>Array</button></div><div class="tb-group-note">Group — логическая структура: геометрия и внутренние зависимости объектов не объединяются и не теряются.</div>';
     body.querySelector("[data-group-select]").onchange=e=>{ctx()?.replaceSelectionKeys?.(e.target.value?["group:"+encodeURIComponent(e.target.value)]:[]);renderPanel();};
@@ -460,7 +460,11 @@
     body.querySelector("[data-group-lock]").onchange=e=>setLock(g.id,e.target.value);
     const vec=(selector)=>{const parts=body.querySelector(selector).value.replace(/,/g,".").split(";").map(Number);return {x:parts[0]||0,y:parts[1]||0,z:parts[2]||0};};
     body.querySelector("[data-group-move-run]").onclick=()=>moveGroup(g.id,vec("[data-group-move]"));
-    body.querySelector("[data-group-rotate-run]").onclick=()=>rotateGroup(g.id,{axis:{x:0,y:0,z:1},angle_deg:Number(body.querySelector("[data-group-angle]").value.replace(",","."))||0});
+    body.querySelector("[data-group-rotate-run]").onclick=()=>{
+      const axisName=body.querySelector("[data-group-axis]").value;
+      const axis=axisName==="X"?{x:1,y:0,z:0}:axisName==="Y"?{x:0,y:1,z:0}:{x:0,y:0,z:1};
+      rotateGroup(g.id,{axis,angle_deg:Number(body.querySelector("[data-group-angle]").value.replace(",","."))||0});
+    };
     body.querySelector("[data-group-copy-run]").onclick=()=>copyGroup(g.id,{offset_mm:vec("[data-group-step]")});
     body.querySelector("[data-group-array-run]").onclick=()=>arrayGroup(g.id,{count:Number(body.querySelector("[data-group-count]").value),step_mm:vec("[data-group-step]")});
   }
