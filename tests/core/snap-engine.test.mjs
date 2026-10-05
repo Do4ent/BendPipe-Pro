@@ -7,6 +7,8 @@ import {
   cycleSnapCandidate,
   gridSnapCandidate,
   lineIntersectionSnapCandidate,
+  lineLineIntersectionCandidates,
+  projectedLineIntersection,
   lineLineRelation,
   linePlaneIntersection,
   linePlaneSnapCandidate,
@@ -268,4 +270,51 @@ test("question 83: Tab cycling includes multiple contextual Tangent candidates",
   const second=cycleSnapCandidate(hits,first.id,1,{},options);
   assert.notEqual(second.id,first.id);
   assert.equal(cycleSnapCandidate(hits,second.id,1,{},options).id,first.id);
+});
+
+
+test("question 84: real 3D intersection is labeled Real Intersection",()=>{
+  const hits=lineLineIntersectionCandidates({
+    lineA:{point:{x:0,y:0,z:0},direction:{x:1,y:0,z:0}},
+    lineB:{point:{x:2,y:-1,z:0},direction:{x:0,y:1,z:0}},
+    working_plane:{point:{x:0,y:0,z:0},normal:{x:0,y:0,z:1}}
+  });
+  assert.equal(hits.length,1);
+  assert.equal(hits[0].label,"Real Intersection");
+  assert.equal(hits[0].metadata.kind,"RealIntersection");
+  assert.equal(hits[0].virtual,false);
+});
+
+test("question 84: skew lines expose Projected Intersection and both Closest Points",()=>{
+  const args={
+    lineA:{point:{x:0,y:0,z:0},direction:{x:1,y:0,z:0}},
+    lineB:{point:{x:2,y:-1,z:2},direction:{x:0,y:1,z:0}},
+    working_plane:{point:{x:0,y:0,z:0},normal:{x:0,y:0,z:1}}
+  };
+  const hits=lineLineIntersectionCandidates(args);
+  assert.deepEqual(hits.map(x=>x.label),["Projected Intersection","Closest Point A","Closest Point B"]);
+  assert.equal(hits[0].metadata.kind,"ProjectedIntersection");
+  assert.deepEqual(hits[0].point,{x:2,y:0,z:0});
+  assert.ok(hits.slice(1).every(x=>x.metadata.kind==="ClosestPoints"));
+  assert.ok(hits.every(x=>x.virtual===true));
+  assert.equal(hits[1].metadata.gap_mm,2);
+});
+
+test("question 84: projected intersection explicitly uses working plane projection",()=>{
+  const hit=projectedLineIntersection({
+    lineA:{point:{x:0,y:0,z:4},direction:{x:1,y:0,z:0}},
+    lineB:{point:{x:3,y:-2,z:-5},direction:{x:0,y:1,z:0}},
+    plane:{point:{x:0,y:0,z:0},normal:{x:0,y:0,z:1}}
+  });
+  assert.equal(hit.status,"ProjectedIntersection");
+  assert.deepEqual(hit.point,{x:3,y:0,z:0});
+  assert.deepEqual(Array.from(hit.source_plane_distances_mm),[4,-5]);
+});
+
+test("question 84: without working plane skew lines return Closest Points only",()=>{
+  const hits=lineLineIntersectionCandidates({
+    lineA:{point:{x:0,y:0,z:0},direction:{x:1,y:0,z:0}},
+    lineB:{point:{x:0,y:5,z:2},direction:{x:0,y:0,z:1}}
+  });
+  assert.deepEqual(hits.map(x=>x.metadata.kind),["ClosestPoints","ClosestPoints"]);
 });
