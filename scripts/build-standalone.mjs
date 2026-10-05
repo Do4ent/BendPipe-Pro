@@ -2464,7 +2464,7 @@ const bundledMeasurementsUi =
 
 const dimensionGripsRuntime = fs.readFileSync(dimensionGripsRuntimePath, "utf8")
   .replace("__TB_DIMENSION_GRIPS_DIMENSIONS_URL__", dimensionsDomainUrl)
-  .replace("__TB_DIMENSION_GRIPS_DYNAMIC_INPUT_URL__", dynamicInputDomainUrl)
+  .replace("__TB_DIMENSION_GRIPS_DYNAMIC_INPUT_URL__", moduleDataUrl(dynamicInputDomainPath))
   .replace(/<\/script/gi, "<\\/script");
 const bundledDimensionGripsRuntime =
   `<script data-tubebender-bundled="dimension-grips-runtime">\n${dimensionGripsRuntime}\n</script>`;
