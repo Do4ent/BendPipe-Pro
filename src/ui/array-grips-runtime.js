@@ -3,6 +3,8 @@
   const eng=()=>window.TubeBenderEngineering??null;
   const ctx=()=>window.TubeBenderObjectContext??null;
   const arrays=()=>window.TubeBenderAssociativeArrays??null;
+  const screenSpace=()=>window.TubeBenderScreenSpace??null;
+  const interaction=()=>window.TubeBenderInteractionPriority??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const canvas=()=>document.getElementById("threeCanvas");
   const scale=()=>typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
@@ -238,12 +240,18 @@
     }
     const planeNormal=(d.basis?.axis??cameraNormal()),anchor=d.basis?.center??sourceTube(def)?.origin??{x:0,y:0,z:0};
     const start=planeHit(event,vec(planeNormal),anchor);if(!start)return false;
-    drag={defId:String(def.id),handle:d,start,startClientY:event.clientY,startValue:handleCurrentValue(def,d),patch:null};
+    drag={defId:String(def.id),handle:d,start,startClientY:event.clientY,startValue:handleCurrentValue(def,d),patch:null,started:false,pointerStart:{x:event.clientX,y:event.clientY,pointerType:event.pointerType}};
     try{if(controls)controls.enabled=false;}catch{}
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();return true;
   }
   function update(event){
-    if(!drag)return false;const def=arrays()?.definitionById?.(drag.defId);if(!def)return false;
+    if(!drag)return false;
+    if(!drag.started){
+      const ready=interaction()?.movementExceeded?.(drag.pointerStart,event)??Math.hypot(Number(event.clientX)-Number(drag.pointerStart.x),Number(event.clientY)-Number(drag.pointerStart.y))>4;
+      if(!ready){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();return true;}
+      drag.started=true;
+    }
+    const def=arrays()?.definitionById?.(drag.defId);if(!def)return false;
     const d=drag.handle,planeNormal=(d.basis?.axis??cameraNormal()),anchor=d.basis?.center??sourceTube(def)?.origin??{x:0,y:0,z:0};
     const current=planeHit(event,vec(planeNormal),anchor);if(!current)return false;
     const patch=patchForDrag(d,current,event);if(!patch)return false;drag.patch=patch;preview(def,patch);setExactFromPatch(def,d,patch);
@@ -252,7 +260,7 @@
   function finish(event,{cancel=false}={}){
     if(!drag)return false;const state=drag;drag=null;try{if(controls)controls.enabled=true;}catch{}clearPreview();
     let ok=true;const def=arrays()?.definitionById?.(state.defId);
-    if(!cancel&&def&&state.patch)ok=commitPatch(def,state.patch,"3D Array grip");
+    if(!cancel&&state.started&&def&&state.patch)ok=commitPatch(def,state.patch,"3D Array grip");
     suppressUntil=Date.now()+120;rebuild();event?.preventDefault?.();event?.stopPropagation?.();event?.stopImmediatePropagation?.();return ok;
   }
   function setExactFromPatch(def,d,patch){
