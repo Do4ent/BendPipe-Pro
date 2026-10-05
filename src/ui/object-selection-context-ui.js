@@ -874,7 +874,7 @@
       "project-assembly":{title:"Assembly",edit:true,transform:true,visibility:true,properties:true,delete:true,isolate:false,transparent:false},
       assembly:{title:"Tube Assembly",edit:false,transform:false,visibility:true,properties:true,delete:false,isolate:false,transparent:false},
       end:{title:"Конец трубы",edit:false,transform:false,visibility:false,properties:true,delete:false,isolate:false,transparent:false},
-      multi:{title:"Несколько объектов",edit:false,transform:canMoveSelection(),visibility:true,properties:true,delete:true,isolate:true,transparent:true}
+      multi:{title:"Несколько объектов",edit:false,transform:canMoveSelection(),visibility:entries.every(entry=>entry.kind!=="end"),properties:true,delete:entries.every(entry=>entry.kind!=="end"),isolate:entries.every(entry=>["tube","row","ref","mesh-instance"].includes(entry.kind)),transparent:entries.every(entry=>["tube","row","ref","mesh-instance"].includes(entry.kind))}
     };
     return {...(profiles[type]??{title:type,edit:false,transform:false,visibility:true,properties:true,delete:true,isolate:false,transparent:false}),type,single};
   }
@@ -1309,6 +1309,21 @@
   }
 
   function setDisplayState(entry,action){
+    if(entry.kind==="mesh-instance"){
+      const instance=refApi()?.meshInstanceById?.(project(),entry.instanceId);
+      if(instance)instance.visible=action==="show";
+      return;
+    }
+    if(entry.kind==="group"){
+      const group=groupsApi()?.groupById?.(entry.groupId);
+      if(group)group.visible=action==="show";
+      return;
+    }
+    if(entry.kind==="project-assembly"){
+      const assembly=assembliesApi()?.assemblyById?.(entry.assemblyId);
+      if(assembly)assembly.visible=action==="show";
+      return;
+    }
     if(entry.kind==="tube"){
       const tube=tubeById(entry.tubeId);
       if(!tube)return;
@@ -1716,6 +1731,7 @@
     if(ok===false)return;
     try{if(typeof save==="function")save();}catch{}
     try{if(typeof renderAll==="function")renderAll();}catch{}
+    try{groupsApi()?.applyVisibility?.();assembliesApi()?.applyVisibility?.();}catch{}
     refreshVisualSelection();
   }
 
