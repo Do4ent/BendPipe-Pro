@@ -22,6 +22,7 @@ const dimensionGripsRuntimePath = path.join(root, "src", "ui", "dimension-grips-
 const editingUiPath = path.join(root, "src", "ui", "editing-ui.js");
 const snapTrackingRuntimePath = path.join(root, "src", "ui", "snap-tracking-runtime.js");
 const transformGizmoRuntimePath = path.join(root, "src", "ui", "transform-gizmo-runtime.js");
+const geometryGripsRuntimePath = path.join(root, "src", "ui", "geometry-grips-runtime.js");
 const propertiesPanelRuntimePath = path.join(root, "src", "ui", "properties-panel-runtime.js");
 const objectLockRuntimePath = path.join(root, "src", "ui", "object-lock-runtime.js");
 const layersRuntimePath = path.join(root, "src", "ui", "layers-runtime.js");
@@ -2496,6 +2497,12 @@ const transformGizmoRuntime = fs.readFileSync(transformGizmoRuntimePath, "utf8")
 const bundledTransformGizmoRuntime =
   `<script data-tubebender-bundled="transform-gizmo-runtime">\n${transformGizmoRuntime}\n</script>`;
 
+const geometryGripsRuntime = fs.readFileSync(geometryGripsRuntimePath, "utf8")
+  .replace("__TB_GEOMETRY_GRIPS_DYNAMIC_INPUT_URL__", dynamicInputDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledGeometryGripsRuntime =
+  `<script data-tubebender-bundled="geometry-grips-runtime">\n${geometryGripsRuntime}\n</script>`;
+
 const propertiesPanelRuntime = fs.readFileSync(propertiesPanelRuntimePath, "utf8")
   .replace(/<\/script/gi, "<\\/script");
 const bundledPropertiesPanelRuntime =
@@ -2677,6 +2684,8 @@ output =
   bundledEditingUi +
   "\n" +
   bundledTransformGizmoRuntime +
+  "\n" +
+  bundledGeometryGripsRuntime +
   "\n" +
   bundledPropertiesPanelRuntime +
   "\n" +
@@ -2984,6 +2993,7 @@ process.stdout.write(
       bundledEditingUi: true,
       bundledSnapTrackingRuntime: true,
       bundledTransformGizmo: true,
+      bundledGeometryGrips: true,
       bundledPropertiesPanel: true,
       bundledObjectLocks: true,
       bundledLayersRuntime: true,
