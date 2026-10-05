@@ -1556,9 +1556,20 @@
     if(!gesture.moved)return false;
     const candidates=projectedSelectionCandidates(),start=gesture.start,end={x:event.clientX,y:event.clientY};
     const minX=Math.min(start.x,end.x),maxX=Math.max(start.x,end.x),minY=Math.min(start.y,end.y),maxY=Math.max(start.y,end.y);
-    const keys=candidates.filter((p)=>gesture.mode==="lasso"
+    const rawKeys=candidates.filter((p)=>gesture.mode==="lasso"
       ?pointInPolygon(p,gesture.points)
       :(p.x>=minX&&p.x<=maxX&&p.y>=minY&&p.y<=maxY)).map((p)=>p.key);
+    const keys=[];
+    for(const rawKey of rawKeys){
+      const entry=parseKey(rawKey),resolved=entry?assembliesApi()?.resolveInteraction?.(entry,rawKey):null;
+      if(resolved?.blocked)continue;
+      let key=resolved?.handled?resolved.key:rawKey;
+      if(!resolved?.handled){
+        const group=entry?groupsApi()?.primaryGroupForEntry?.(entry):null;
+        if(group)key=groupKey(group.id);
+      }
+      if(key&&!keys.includes(key))keys.push(key);
+    }
     if(!gesture.additive){selected.clear();refApi()?.clearSelection?.();}
     for(const key of keys)selected.add(key);
     syncSelectionIntoReference();refreshVisualSelection();
@@ -1608,8 +1619,11 @@
       return;
     }
     syncReferenceIntoSelection();
-    if(!selected.has(picked.key))setSelectedKey(picked.key,{additive:false});
-    revealTreeKey(picked.key);
+    const resolved=assembliesApi()?.resolveInteraction?.(picked.entry,picked.key);
+    if(resolved?.blocked)return;
+    const key=resolved?.handled?resolved.key:picked.key;
+    if(!selected.has(key))setSelectedKey(key,{additive:false});
+    revealTreeKey(key);
     showContextMenu(event,{source:"3d"});
   }
 
@@ -1664,10 +1678,13 @@
       showContextMenu(event,{source:"tree",allowEmpty:true,selectionAvailable:false});
       return;
     }
-    const key=keyForTreeRow(row);
+    let key=keyForTreeRow(row);
     if(!key)return;
     event.preventDefault();
     event.stopPropagation();
+    const parsed=parseKey(key),resolved=parsed?assembliesApi()?.resolveInteraction?.(parsed,key):null;
+    if(resolved?.blocked)return;
+    if(resolved?.handled)key=resolved.key;
     syncReferenceIntoSelection();
     if(!selected.has(key))setSelectedKey(key,{additive:false});
     showContextMenu(event,{source:"tree"});
