@@ -67,7 +67,12 @@ export function ensureLayerState(project){
       project.layers.push(created);byId.set(created.id,created);
     }
   }
-  project.layers=project.layers.map((layer)=>({...normalizeLayer(layer)}));
+  for(let index=0;index<project.layers.length;index++){
+    const current=project.layers[index];
+    const normalized=normalizeLayer(current);
+    if(current&&typeof current==="object")Object.assign(current,normalized);
+    else project.layers[index]={...normalized};
+  }
   if(!project.active_layer_id||!project.layers.some((layer)=>String(layer.id)===String(project.active_layer_id))){
     project.active_layer_id=SYSTEM_LAYER_IDS.tubes;
   }
