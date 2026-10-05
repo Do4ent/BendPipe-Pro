@@ -65,9 +65,11 @@
   }
 
   function permissionForEntry(entry,action){
+    const layerPermission=window.TubeBenderLayers?.permissionForEntry?.(entry,action);
+    if(layerPermission&&layerPermission.allowed===false)return layerPermission;
     const targets=effectiveLockTargets(entry);
-    if(!targets.length)return {allowed:true,mode:"Unlocked",code:"LOCK_ALLOWED",reason:null};
-    let result={allowed:true,mode:"Unlocked",code:"LOCK_ALLOWED",reason:null};
+    if(!targets.length)return layerPermission??{allowed:true,mode:"Unlocked",code:"LOCK_ALLOWED",reason:null};
+    let result=layerPermission??{allowed:true,mode:"Unlocked",code:"LOCK_ALLOWED",reason:null};
     for(const target of targets){
       const permission=policy.lockPermission(target.object,action);
       if(!permission.allowed)return permission;
