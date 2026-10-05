@@ -244,6 +244,10 @@
       style:style?String(style.color)+" · "+String(style.linetype)+" · "+String(style.lineweight_mm)+" mm":"—"
     };
   }
+  function assemblyEditContextLabel(){
+    const api=assembliesApi();
+    return api?.editing?.()?api.breadcrumb?.()??"Edit Assembly":null;
+  }
   function lockLabelForEntry(entry){
     const status=lockApi()?.statusForEntry?.(entry);
     return status?.mode==="Object"?"🔒 Lock Object":status?.mode==="Position"?"📍 Lock Position":"Unlocked";
@@ -266,8 +270,9 @@
       ["Readonly",tube.readonly===true],
       ["Lock",lockLabelForEntry({kind:"tube",tubeId:tube.id})],
       ["Layer",layerInfoForEntry({kind:"tube",tubeId:tube.id}).layer],
-      ["Style",layerInfoForEntry({kind:"tube",tubeId:tube.id}).style]
-    ];
+      ["Style",layerInfoForEntry({kind:"tube",tubeId:tube.id}).style],
+      ["Assembly context",assemblyEditContextLabel()]
+    ].filter((row)=>row[1]!=null);
   }
   function describe(entry){
     const p=project();
@@ -342,6 +347,7 @@
           ["ID",instance?.id],["Link",instance?.link_status],["Visible",instance?.visible!==false],
           ["Lock",lockLabelForEntry(entry)],
           ["Layer",layerInfoForEntry(entry).layer],["Style",layerInfoForEntry(entry).style],
+          ["Assembly context",assemblyEditContextLabel()],
           ["Position",instance?.transform?.position_mm],["Rotation",instance?.transform?.rotation_deg]
         ]},
         {name:"Source",rows:[
@@ -402,6 +408,7 @@
     window.addEventListener("tubebender-layer-change",()=>render(true));
     window.addEventListener("tubebender-group-change",()=>render(true));
     window.addEventListener("tubebender-assembly-change",()=>render(true));
+    window.addEventListener("tubebender-assembly-edit-change",()=>render(true));
     window.addEventListener("tubebender-snap-change",()=>{if(panel?.classList.contains("open"))render(false);});
     window.TubeBenderProperties=Object.freeze({open,close,refresh:()=>render(true),snapshot,describe,editableTargets,commonEditableFields,applyCommonProperty});
   }
