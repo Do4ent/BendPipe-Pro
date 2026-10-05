@@ -33,6 +33,10 @@
       const group=window.TubeBenderGroups?.groupById?.(entry.groupId);
       return group?{kind:"group",id:String(group.id),object:group,label:group.name??group.id,entry}:null;
     }
+    if(entry.kind==="project-assembly"){
+      const assembly=window.TubeBenderAssemblies?.assemblyById?.(entry.assemblyId);
+      return assembly?{kind:"project-assembly",id:String(assembly.id),object:assembly,label:assembly.name??assembly.id,entry}:null;
+    }
     return null;
   }
 
@@ -69,6 +73,8 @@
   }
 
   function permissionForEntry(entry,action){
+    const assemblyPermission=window.TubeBenderAssemblies?.permissionForEntry?.(entry,action);
+    if(assemblyPermission&&assemblyPermission.allowed===false)return assemblyPermission;
     const groupPermission=window.TubeBenderGroups?.permissionForEntry?.(entry,action);
     if(groupPermission&&groupPermission.allowed===false)return groupPermission;
     const layerPermission=window.TubeBenderLayers?.permissionForEntry?.(entry,action);
@@ -153,6 +159,7 @@
   }
 
   function treeEntry(row){
+    if(row.matches("[data-project-assembly]"))return {kind:"project-assembly",assemblyId:String(row.dataset.projectAssembly)};
     if(row.matches("[data-project-group]"))return {kind:"group",groupId:String(row.dataset.projectGroup)};
     if(row.matches("[data-import-mesh-instance]"))return {kind:"mesh-instance",instanceId:String(row.dataset.importMeshInstance)};
     if(row.matches("[data-tree-tube]"))return {kind:"tube",tubeId:String(row.dataset.treeTube)};
@@ -167,7 +174,7 @@
   function decorateTree(){
     if(typeof document==="undefined"||!policy)return;
     const root=document.getElementById("tbProjectTree")??document;
-    for(const row of root.querySelectorAll("[data-project-group],[data-tree-tube],[data-tree-row],[data-tree-origin],[data-tree-end],[data-import-mesh-instance]")){
+    for(const row of root.querySelectorAll("[data-project-assembly],[data-project-group],[data-tree-tube],[data-tree-row],[data-tree-origin],[data-tree-end],[data-import-mesh-instance]")){
       const entry=treeEntry(row),badge=ensureBadge(row);
       const mode=entry?entryLockMode(entry):"Unlocked";
       badge.textContent=lockIcon(mode);
