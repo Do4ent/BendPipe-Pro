@@ -83,6 +83,7 @@ export function createExactNormalizedGeometry({
     fitted_object_id:fitted_object_id==null?null:String(fitted_object_id),
     source_object_id:source_object_id==null?null:String(source_object_id),
     source_chain:clone(Array.isArray(source_chain)?source_chain:[source_chain]),
+    fitted_snapshot:clone(fitted_geometry),
     correction,
     note:note==null?null:String(note),
     source_preserved:true,
