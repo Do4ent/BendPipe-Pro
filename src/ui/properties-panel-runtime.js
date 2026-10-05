@@ -252,6 +252,13 @@
     const status=lockApi()?.statusForEntry?.(entry);
     return status?.mode==="Object"?"🔒 Lock Object":status?.mode==="Position"?"📍 Lock Position":"Unlocked";
   }
+  function assemblyPortAnchorLabel(port){
+    const anchor=port?.assembly_constraint;
+    if(!anchor?.assembly_id||!anchor?.local_position_mm)return null;
+    const p=anchor.local_position_mm;
+    return String(anchor.assembly_id)+" · local ("+
+      [p.x,p.y,p.z].map(value=>Number(value).toFixed(3)).join(", ")+")";
+  }
   function commonTubeProps(tube){
     if(!tube)return [];
     return [
@@ -269,6 +276,10 @@
       ["Source file",tube.currentProjectImport?.source_file??tube.importEvidence?.source?.file],
       ["Readonly",tube.readonly===true],
       ["Lock",lockLabelForEntry({kind:"tube",tubeId:tube.id})],
+      ["P1",tube?.engineering?.ports?.P1?.locked===true?"⚓ fixed":"⚓ fixed"],
+      ["P1 Assembly anchor",assemblyPortAnchorLabel(tube?.engineering?.ports?.P1)],
+      ["P2",tube?.engineering?.ports?.P2?.locked===true?"⚓ fixed":"free"],
+      ["P2 Assembly anchor",assemblyPortAnchorLabel(tube?.engineering?.ports?.P2)],
       ["Layer",layerInfoForEntry({kind:"tube",tubeId:tube.id}).layer],
       ["Style",layerInfoForEntry({kind:"tube",tubeId:tube.id}).style],
       ["Assembly context",assemblyEditContextLabel()]
