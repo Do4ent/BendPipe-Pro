@@ -825,6 +825,25 @@
   }
 
   function arrayRuntime(){return window.TubeBenderAssociativeArrays??null;}
+  const ARRAY_PARAMETER_FIELDS=Object.freeze([
+    ["count","Count"],["step","Step"],
+    ["count_x","Matrix Nx"],["count_y","Matrix Ny"],["count_z","Matrix Nz"],
+    ["step_x","Matrix Sx"],["step_y","Matrix Sy"],["step_z","Matrix Sz"],
+    ["total_angle_deg","Total angle"],["initial_angle_deg","Initial angle"],["radius_mm","Radius"]
+  ]);
+  function arrayRawParameter(def,name){
+    const params=def?.parameters??{};
+    if(name==="count_x")return params.counts?.[0];
+    if(name==="count_y")return params.counts?.[1];
+    if(name==="count_z")return params.counts?.[2];
+    if(name==="step_x")return params.steps?.[0];
+    if(name==="step_y")return params.steps?.[1];
+    if(name==="step_z")return params.steps?.[2];
+    return params[name];
+  }
+  function arrayFormulaFieldOptions(selected=""){
+    return ARRAY_PARAMETER_FIELDS.map(([value,label])=>'<option value="'+esc(value)+'" '+(value===selected?'selected':'')+'>'+esc(label)+'</option>').join("");
+  }
   function createArrayFromSelection(body){
     if(!lockAllowed("array"))return false;
     const tubes=selectedWholeTubes();
@@ -847,6 +866,9 @@
       }else{
         const count=Math.trunc(Number($("[data-array-count]",body).value));
         const total_angle_deg=Number($("[data-array-total]",body).value.replace(",","."));
+        const initial_angle_deg=Number($("[data-array-initial]",body).value.replace(",","."));
+        const radiusRaw=String($("[data-array-radius]",body).value??"").trim().replace(",",".");
+        const radius_mm=radiusRaw===""?null:Number(radiusRaw);
         const axisName=$("[data-array-axis]",body).value;
         const axis=axisName==="X"?{x:1,y:0,z:0}:axisName==="Y"?{x:0,y:1,z:0}:{x:0,y:0,z:1};
         const center={
@@ -855,8 +877,14 @@
           z:Number($("[data-array-cz]",body).value.replace(",","."))
         };
         const rotate_elements=$("[data-array-rotate]",body).checked;
-        parameters={count,total_angle_deg,axis,center,rotate_elements};
+        const clockwise=$("[data-array-clockwise]",body).checked;
+        if(radius_mm!=null&&(!Number.isFinite(radius_mm)||radius_mm<0))throw new Error("Radius должен быть ≥ 0 или пустым");
+        parameters={count,total_angle_deg,initial_angle_deg,radius_mm,axis,center,clockwise,rotate_elements};
       }
+      const parameter_formulas={};
+      const formulaField=$("[data-array-create-formula-field]",body)?.value;
+      const formulaValue=String($("[data-array-create-formula-value]",body)?.value??"").trim();
+      if(formulaValue&&formulaField)parameter_formulas[formulaField]=formulaValue;
       const name=$("[data-array-name]",body).value.trim()||type+" Array";
       const axisEvidence={
         type,
@@ -870,7 +898,8 @@
           type,
           name,
           source_tube_ids:tubes.map((t)=>String(t.id)),
-          parameters
+          parameters,
+          parameter_formulas
         },project());
         return true;
       });
@@ -894,6 +923,60 @@
       return true;
     });
   }
+  function arrayFormulaEditorSync(body){
+    const runtime=arrayRuntime(),id=$("[data-array-existing]",body)?.value;
+    const field=$("[data-array-formula-field]",body)?.value;
+    const input=$("[data-array-formula-value]",body),out=$("[data-array-preview]",body);
+    const def=id?runtime?.definitionById?.(id):null;
+    if(!input)return;
+    if(!def||!field){input.value="";input.placeholder="";if(out)out.textContent="Выберите Array и параметр";return;}
+    input.value=String(def.parameter_formulas?.[field]??"");
+    const raw=arrayRawParameter(def,field);
+    input.placeholder=raw==null?"formula":"By value: "+String(raw);
+    let evaluated=null;
+    try{evaluated=runtime?.evaluatedParameters?.(def,project());}catch{}
+    const current=field in (evaluated??{})?evaluated[field]:arrayRawParameter({parameters:evaluated??{}},field);
+    if(out)out.textContent="Текущее значение: "+String(current??raw??"—");
+  }
+  function previewArrayFormula(body){
+    const runtime=arrayRuntime(),id=$("[data-array-existing]",body)?.value;
+    if(!runtime||!id){toast("Выберите существующий Array");return false;}
+    const field=$("[data-array-formula-field]",body)?.value;
+    const formula=String($("[data-array-formula-value]",body)?.value??"").trim();
+    if(!field){toast("Выберите параметр Array");return false;}
+    const out=$("[data-array-preview]",body);
+    try{
+      const preview=runtime.previewParameters(id,{}, {formulas:{[field]:formula}},project());
+      const params=preview.parameters??{},members=preview.members??[];
+      const value=field in params?params[field]:arrayRawParameter({parameters:params},field);
+      const origins=members.slice(0,6).map(member=>{
+        const p=member.origin??{};
+        return "#"+member.member_index+" ("+formatDynamicNumber(p.x??0,2)+"; "+formatDynamicNumber(p.y??0,2)+"; "+formatDynamicNumber(p.z??0,2)+")";
+      }).join(" · ");
+      if(out)out.textContent="Preview: "+field+" = "+String(value??"—")+" · members "+members.length+(origins?" · "+origins:"");
+      return preview;
+    }catch(error){
+      if(out)out.textContent="Invalid: "+String(error?.message??error);
+      return false;
+    }
+  }
+  function applyArrayFormula(body,{clear=false}={}){
+    if(!lockAllowed("array"))return false;
+    const runtime=arrayRuntime(),id=$("[data-array-existing]",body)?.value;
+    if(!runtime||!id){toast("Выберите существующий Array");return false;}
+    const field=$("[data-array-formula-field]",body)?.value;
+    if(!field){toast("Выберите параметр Array");return false;}
+    const formula=clear?"":String($("[data-array-formula-value]",body)?.value??"").trim();
+    try{
+      runtime.previewParameters(id,{}, {formulas:{[field]:formula}},project());
+      const ok=commit(clear?"Снять формулу Array":"Изменить формулу Array",()=>{
+        runtime.setParameterFormula(id,field,formula,project());
+        return true;
+      });
+      if(ok!==false){render();return true;}
+      return false;
+    }catch(error){toast(error?.message??error);return false;}
+  }
   function arrayPanelHtml(){
     const defs=arrayRuntime()?.definitions?.()??[];
     const existing='<option value="">—</option>'+defs.map((d)=>'<option value="'+esc(d.id)+'">'+esc(d.name)+" · "+esc(d.type)+" · "+esc(d.status??"")+'</option>').join("");
@@ -906,11 +989,22 @@
       '<label>Matrix Nx</label><input data-array-nx value="2"><label>Matrix Ny</label><input data-array-ny value="2"><label>Matrix Nz</label><input data-array-nz value="1">'+
       '<label>Matrix Sx, mm</label><input data-array-sx value="100"><label>Matrix Sy, mm</label><input data-array-sy value="100"><label>Matrix Sz, mm</label><input data-array-sz value="100">'+
       '<label>Total angle, °</label><input data-array-total value="360">'+
+      '<label>Initial angle, °</label><input data-array-initial value="0">'+
+      '<label>Radius, mm</label><input data-array-radius placeholder="By source radius">'+
       '<label>Center X</label><input data-array-cx value="0"><label>Center Y</label><input data-array-cy value="0"><label>Center Z</label><input data-array-cz value="0">'+
+      '<label>Clockwise</label><input data-array-clockwise type="checkbox">'+
       '<label>Rotate elements</label><input data-array-rotate type="checkbox" checked>'+
-      '</div><div class="tb-edit-note" style="margin-top:8px">Source member остаётся исходной трубой. Производные members пересобираются из source перед renderAll и защищены от прямого редактирования.</div>'+
+      '<label>Initial formula field</label><select data-array-create-formula-field>'+arrayFormulaFieldOptions("count")+'</select>'+
+      '<label>Initial formula</label><input data-array-create-formula-value placeholder="e.g. spacing*2 / 25mm / 6">'+
+      '</div><div class="tb-edit-note" style="margin-top:8px">Circular Array поддерживает Radius, Initial angle и Clockwise. Формулы используют project formula_variables / array_formula_variables и проверяются fail-closed.</div>'+
       '<div class="tb-edit-actions"><button data-array-create>Создать Array</button></div></div>'+
-      '<div class="tb-edit-card" style="margin-top:8px"><b>Управление массивом</b><div class="tb-edit-grid" style="margin-top:8px"><label>Array</label><select data-array-existing>'+existing+'</select><label>Member index</label><input data-array-member-index value="1"></div>'+
+      '<div class="tb-edit-card" style="margin-top:8px"><b>Параметры существующего Array</b><div class="tb-edit-grid" style="margin-top:8px">'+
+      '<label>Array</label><select data-array-existing>'+existing+'</select>'+
+      '<label>Parameter</label><select data-array-formula-field>'+arrayFormulaFieldOptions("count")+'</select>'+
+      '<label>Formula / value</label><input data-array-formula-value placeholder="пусто = By value">'+
+      '</div><div class="tb-edit-note" data-array-preview style="margin-top:8px">Выберите Array и параметр</div>'+
+      '<div class="tb-edit-actions"><button data-array-preview-run>Preview</button><button data-array-formula-apply>Apply</button><button data-array-formula-clear>Clear formula</button></div></div>'+
+      '<div class="tb-edit-card" style="margin-top:8px"><b>Управление members</b><div class="tb-edit-grid" style="margin-top:8px"><label>Member index</label><input data-array-member-index value="1"></div>'+
       '<div class="tb-edit-actions"><button data-array-suppress>Suppress</button><button data-array-restore>Restore</button><button data-array-detach>Detach for editing</button><button data-array-break>Break Array</button></div></div>';
   }
 
@@ -1023,10 +1117,16 @@
     }else if(activeTool==="array"){
       body.innerHTML=arrayPanelHtml();
       $("[data-array-create]",body).onclick=()=>createArrayFromSelection(body);
+      $("[data-array-existing]",body).onchange=()=>arrayFormulaEditorSync(body);
+      $("[data-array-formula-field]",body).onchange=()=>arrayFormulaEditorSync(body);
+      $("[data-array-preview-run]",body).onclick=()=>previewArrayFormula(body);
+      $("[data-array-formula-apply]",body).onclick=()=>applyArrayFormula(body);
+      $("[data-array-formula-clear]",body).onclick=()=>applyArrayFormula(body,{clear:true});
       $("[data-array-suppress]",body).onclick=()=>arrayAction(body,"suppress");
       $("[data-array-restore]",body).onclick=()=>arrayAction(body,"restore");
       $("[data-array-detach]",body).onclick=()=>arrayAction(body,"detach");
       $("[data-array-break]",body).onclick=()=>arrayAction(body,"break");
+      arrayFormulaEditorSync(body);
     }
   }
   async function install(){
@@ -1037,7 +1137,7 @@
     window.addEventListener("keydown",onCopyKeyDown,true);
     window.addEventListener("tubebender-snap-change",onSnapChangeForCopy);
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
-    window.TubeBenderEditing=Object.freeze({open,close,copySelection,multipleCopySelection,commitCopySeries,undoLastCopyTarget,rotateSelectedDirect,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,createTransformStackFromSelection,stackAddOperation,stackOperationAction,scalePermissionForSelection,canScaleSelection,requestScaleSelection,refresh:render});
+    window.TubeBenderEditing=Object.freeze({open,close,copySelection,multipleCopySelection,commitCopySeries,undoLastCopyTarget,rotateSelectedDirect,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,previewArrayFormula,applyArrayFormula,createTransformStackFromSelection,stackAddOperation,stackOperationAction,scalePermissionForSelection,canScaleSelection,requestScaleSelection,refresh:render});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
 })();
