@@ -210,12 +210,12 @@
   }
   function finishDrag(event,{cancel=false}={}){
     if(!drag)return false;const state=drag;drag=null;clearPreview();try{if(controls)controls.enabled=true;}catch{}
+    const referenceCandidate=state.kind==="reference"?(snap()?.currentCandidate?.()??null):null;
     if(state.kind==="reference")snap()?.endCommand?.();
     let ok=true;if(!cancel){
       if(state.kind==="reference"){
-        const candidate=snap()?.currentCandidate?.()??null;
-        if(candidate){
-          ok=commit(state.dimensionId,"Переназначить Snap размера",dimension=>dimensions.replaceDimensionReference(dimension,state.referenceIndex,snapReference(candidate,dimension.references[state.referenceIndex])));
+        if(referenceCandidate){
+          ok=commit(state.dimensionId,"Переназначить Snap размера",dimension=>dimensions.replaceDimensionReference(dimension,state.referenceIndex,snapReference(referenceCandidate,dimension.references[state.referenceIndex])));
         }else{toast("Snap не выбран; reference не изменён");ok=false;}
       }else if(state.preview){
         ok=commit(state.dimensionId,state.kind==="text"?"Переместить текст размера":"Переместить размерную линию",dimension=>{
