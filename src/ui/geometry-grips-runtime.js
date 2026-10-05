@@ -77,22 +77,104 @@
     const sweep=THREE.MathUtils.degToRad(Math.abs(Number(el.angleDeg)||0))*.5;
     return mm(center.clone().add(radial.applyAxisAngle(axis,sweep)));
   }
+  function geometryPointMm(g,index){
+    const point=g?.points?.[index];
+    return point?.worldMm?{x:Number(point.worldMm.x),y:Number(point.worldMm.y),z:Number(point.worldMm.z)}:mm(point?.position);
+  }
+  function previousEndEdit(g,rowIndex){
+    const index=Number(rowIndex);
+    if(index<=0)return {edit:"origin",targetRowIndex:null};
+    const previous=(g?.elements??[]).find(el=>Number(el.rowIndex)===index-1);
+    if(!previous)return {edit:null,targetRowIndex:null};
+    if(previous.type==="LINE")return {edit:"line-length",targetRowIndex:index-1};
+    if(previous.type==="BEND")return {edit:"bend-angle",targetRowIndex:index-1};
+    return {edit:null,targetRowIndex:null};
+  }
+  function rowAt(selection,index){
+    return Number.isInteger(Number(index))?rowFor(selection.tube,Number(index)):null;
+  }
+  function descriptorForSharedNode(g,rowIndex,point,label,kind){
+    const previous=previousEndEdit(g,rowIndex);
+    return {kind,label,point,rowIndex:Number(rowIndex),edit:previous.edit,targetRowIndex:previous.targetRowIndex,readOnly:!previous.edit};
+  }
+  function tubeEndDescriptor(selection,g){
+    const elements=g?.elements??[],last=elements.at(-1),point=geometryPointMm(g,(g?.points?.length??1)-1);
+    if(!point)return null;
+    if(!last)return {kind:"tube-p2",label:"P2",point,edit:null,readOnly:true};
+    if(last.type==="LINE")return {kind:"tube-p2",label:"P2",point,edit:"line-length",targetRowIndex:Number(last.rowIndex),start:mm(last.start),direction:last.direction?{x:last.direction.x,y:last.direction.y,z:last.direction.z}:null};
+    if(last.type==="BEND")return {kind:"tube-p2",label:"P2",point,edit:"bend-angle",targetRowIndex:Number(last.rowIndex),start:mm(last.start),center:mm(last.center),axis:last.axis?{x:last.axis.x,y:last.axis.y,z:last.axis.z}:null};
+    return {kind:"tube-p2",label:"P2",point,edit:null,readOnly:true};
+  }
+  function bendPlanePoint(el){
+    if(!el?.start||!el?.axis)return null;
+    const distance=Math.max(12,Number(el.radiusMm)||0)*scale()*.7;
+    return mm(el.start.clone().add(el.axis.clone().normalize().multiplyScalar(distance)));
+  }
+  function bendPlaneValue(selection,handle,p){
+    const row=rowAt(selection,handle.targetRowIndex),start=vec(handle.start),target=vec(p).sub(start),incoming=vec(handle.directionIn??{x:1,y:0,z:0}).normalize(),current=vec(handle.planeAxis??{x:0,y:0,z:1});
+    target.sub(incoming.clone().multiplyScalar(target.dot(incoming)));
+    current.sub(incoming.clone().multiplyScalar(current.dot(incoming)));
+    if(target.lengthSq()<1e-12||current.lengthSq()<1e-12)return null;
+    const delta=signedAngleAround(current,target,incoming);
+    const base=Number(row?.rot??row?.rotation??0)||0;
+    let value=base+delta;
+    while(value>180)value-=360;
+    while(value<=-180)value+=360;
+    return value;
+  }
+  function drivingDimensionsFor(selection,handle){
+    const dims=Array.isArray(project()?.engineering_dimensions)?project().engineering_dimensions:[];
+    const row=rowAt(selection,handle.targetRowIndex),ids=new Set([String(selection.tube.id)]);
+    const subIds=new Set([String(row?.elementId??""),handle.kind==="tube-p1"?"P1":"",handle.kind==="tube-p2"?"P2":""]);
+    return dims.filter(dim=>dim?.mode==="Driving"&&(dim.references??[]).some(ref=>ids.has(String(ref?.object_id??""))&&(ref?.subentity_id==null||subIds.has(String(ref.subentity_id)))));
+  }
+  function synchronizeDrivingDimensions(selection,handle,patch,formula=null){
+    if(!Number.isFinite(Number(patch?.value)))return;
+    for(const dim of drivingDimensionsFor(selection,handle)){
+      dim.target_value=Number(patch.value);
+      dim.target_formula=formula==null||String(formula).trim()===""?null:String(formula).trim();
+      dim.status="NeedsSolve";
+    }
+  }
+  function notifyAssociativeDependents(selection,handle){
+    try{eng()?.diagnoseTube?.(selection?.tube);}catch{}
+    try{window.dispatchEvent(new CustomEvent("tubebender-dimension-change",{detail:{reason:"geometry-grip",tube_id:String(selection?.tube?.id??""),row_index:handle?.targetRowIndex??selection?.rowIndex??null}}));}catch{}
+    try{window.dispatchEvent(new CustomEvent("tubebender-constraint-change",{detail:{reason:"geometry-grip",tube_id:String(selection?.tube?.id??"")}}));}catch{}
+  }
   function handleDescriptors(selection){
     if(!selection)return [];const g=geometry(selection);
     if(selection.kind==="tube"){
-      const origin=clone(selection.tube.origin??{x:0,y:0,z:0});
-      return [{kind:"origin",label:"Origin",point:origin,field:"origin"}];
+      const p1=geometryPointMm(g,0)??clone(selection.tube.origin??{x:0,y:0,z:0}),p2=tubeEndDescriptor(selection,g);
+      const nodes=(g?.points??[]).slice(1,-1).map((point,index)=>({
+        kind:"tube-node",label:"Tube node",point:geometryPointMm(g,index+1),edit:null,readOnly:true,nodeIndex:index+1
+      })).filter(item=>item.point);
+      return [
+        {kind:"tube-p1",label:"P1 / Origin",point:p1,field:"origin",edit:"origin",targetRowIndex:null},
+        p2,
+        ...nodes
+      ].filter(Boolean);
     }
     const el=(g?.elements??[]).find(x=>Number(x.rowIndex)===selection.rowIndex);if(!el)return [];
     if(selection.row.type==="LINE"){
-      const end=mm(el.end),start=mm(el.start),direction=el.direction?mm(el.direction.clone().multiplyScalar(scale())):null;
-      return end?[{kind:"line-length",label:"LINE length",field:"L",point:end,start,direction:direction??null,rowIndex:selection.rowIndex}]:[];
+      const end=mm(el.end),start=mm(el.start),mid=start&&end?{x:(start.x+end.x)/2,y:(start.y+end.y)/2,z:(start.z+end.z)/2}:null;
+      const direction=el.direction?{x:el.direction.x,y:el.direction.y,z:el.direction.z}:null;
+      const startDescriptor=start?descriptorForSharedNode(g,selection.rowIndex,start,"LINE start","line-start"):null;
+      return [
+        startDescriptor,
+        mid?{kind:"line-mid",label:"LINE midpoint / length",field:"L",point:mid,start,direction,rowIndex:selection.rowIndex,edit:"line-mid-length",targetRowIndex:selection.rowIndex}:null,
+        end?{kind:"line-end",label:"LINE end / length",field:"L",point:end,start,direction,rowIndex:selection.rowIndex,edit:"line-length",targetRowIndex:selection.rowIndex}:null
+      ].filter(Boolean);
     }
     if(selection.row.type==="BEND"){
-      const end=mm(el.end),mid=bendMidpoint(el),center=mm(el.center),start=mm(el.start);
+      const end=mm(el.end),mid=bendMidpoint(el),center=mm(el.center),start=mm(el.start),planePoint=bendPlanePoint(el);
+      const axis=el.axis?{x:el.axis.x,y:el.axis.y,z:el.axis.z}:null,directionIn=el.directionIn?{x:el.directionIn.x,y:el.directionIn.y,z:el.directionIn.z}:null;
+      const tangentIn=start?descriptorForSharedNode(g,selection.rowIndex,start,"BEND tangency in","bend-tangent-in"):null;
       return [
-        end?{kind:"bend-angle",label:"BEND angle",field:"angle",point:end,start,center,rowIndex:selection.rowIndex,axis:el.axis?{x:el.axis.x,y:el.axis.y,z:el.axis.z}:null}:null,
-        mid?{kind:"bend-radius",label:"BEND CLR",field:"clr",point:mid,start,center,rowIndex:selection.rowIndex,axis:el.axis?{x:el.axis.x,y:el.axis.y,z:el.axis.z}:null}:null
+        tangentIn,
+        end?{kind:"bend-tangent-out",label:"BEND tangency out / angle",field:"angle",point:end,start,center,rowIndex:selection.rowIndex,axis,edit:"bend-angle",targetRowIndex:selection.rowIndex}:null,
+        center?{kind:"bend-center",label:"BEND center",point:center,center,rowIndex:selection.rowIndex,edit:null,readOnly:true}:null,
+        mid?{kind:"bend-radius",label:"BEND CLR",field:"clr",point:mid,start,center,rowIndex:selection.rowIndex,axis,edit:"bend-radius",targetRowIndex:selection.rowIndex}:null,
+        planePoint?{kind:"bend-plane",label:"BEND plane",field:"rot",point:planePoint,start,center,rowIndex:selection.rowIndex,axis,directionIn,planeAxis:axis,edit:"bend-plane",targetRowIndex:selection.rowIndex}:null
       ].filter(Boolean);
     }
     return [];
@@ -104,8 +186,8 @@
     if(!selection||typeof THREE==="undefined"||typeof pipeGroup==="undefined"||!pipeGroup){updatePanel(null);return false;}
     const handles=handleDescriptors(selection),g=new THREE.Group();g.name="Geometry Grips";g.userData={helper:true,objectSelectionHelper:true,geometryGripRuntime:true};
     for(const h of handles){
-      const color=h.kind==="line-length"?0x65d6ff:h.kind==="bend-angle"?0xffa45c:h.kind==="bend-radius"?0x73e19c:0xffffff;
-      const node=grip(h.point,color,h,h.kind==="origin"?"cube":"sphere");if(node)g.add(node);
+      const color=h.readOnly?0x9aa7b4:h.edit==="line-length"||h.edit==="line-mid-length"?0x65d6ff:h.edit==="bend-angle"?0xffa45c:h.edit==="bend-radius"?0x73e19c:h.edit==="bend-plane"?0xd88cff:0xffffff;
+      const node=grip(h.point,color,h,(h.edit==="origin"||h.kind==="tube-p1"||h.kind==="tube-p2")?"cube":"sphere");if(node)g.add(node);
       if(h.start){const l=helperLine(h.start,h.point,color);if(l)g.add(l);}
       if(h.center&&h.kind==="bend-radius"){const l=helperLine(h.center,h.point,color);if(l)g.add(l);}
     }
@@ -130,7 +212,8 @@
   function currentPointerPoint(event,handle){
     const candidate=snap()?.currentCandidate?.(),sp=candidate?.point;
     if(sp&&[sp.x,sp.y,sp.z].every(Number.isFinite))return {x:Number(sp.x),y:Number(sp.y),z:Number(sp.z),fromSnap:true};
-    return planePoint(event,handle.center??handle.start??handle.point,handle.kind.startsWith("bend-")?handle.axis:null);
+    const normal=handle.edit==="bend-plane"?handle.directionIn:(String(handle.edit??"").startsWith("bend-")?handle.axis:null);
+    return planePoint(event,handle.center??handle.start??handle.point,normal);
   }
   function lineValue(handle,p){
     const start=vec(handle.start),end=vec(p),dir=vec(handle.direction??{x:1,y:0,z:0});
@@ -153,28 +236,37 @@
     return sign*Math.max(.01,Math.min(179.99,unsigned));
   }
   function patchFromPoint(selection,handle,p){
-    if(!p)return null;
-    if(handle.kind==="origin")return {origin:{x:p.x,y:p.y,z:p.z}};
-    if(handle.kind==="line-length"){
+    if(!p||handle.readOnly||!handle.edit)return null;
+    if(handle.edit==="origin")return {origin:{x:p.x,y:p.y,z:p.z}};
+    if(handle.edit==="line-length"){
       const value=lineValue(handle,p);return Number.isFinite(value)?{value:Math.max(.001,value)}:null;
     }
-    if(handle.kind==="bend-radius"){
+    if(handle.edit==="line-mid-length"){
+      const value=lineValue(handle,p);return Number.isFinite(value)?{value:Math.max(.001,value*2)}:null;
+    }
+    if(handle.edit==="bend-radius"){
       const value=bendRadiusValue(handle,p);return Number.isFinite(value)?{value:Math.max(.001,value)}:null;
     }
-    if(handle.kind==="bend-angle"){
-      const value=bendAngleValue(selection,handle,p);return Number.isFinite(value)?{value}:null;
+    if(handle.edit==="bend-angle"){
+      const targetSelection={...selection,row:rowAt(selection,handle.targetRowIndex),rowIndex:handle.targetRowIndex};
+      const value=bendAngleValue(targetSelection,handle,p);return Number.isFinite(value)?{value}:null;
+    }
+    if(handle.edit==="bend-plane"){
+      const value=bendPlaneValue(selection,handle,p);return Number.isFinite(value)?{value}:null;
     }
     return null;
   }
   function previewTube(selection,handle,patch){
     if(!patch)return null;const tube=clone(selection.tube);tube.id="__geometry_grip_preview__"+String(selection.tube.id);
-    if(handle.kind==="origin")tube.origin=clone(patch.origin);
+    if(handle.edit==="origin")tube.origin=clone(patch.origin);
     else{
-      if(!Array.isArray(tube.rows)||!tube.rows[selection.rowIndex])return null;
-      const row=tube.rows[selection.rowIndex];
-      if(handle.kind==="line-length"){row.L=patch.value;row.LFormula=String(patch.value);}
-      if(handle.kind==="bend-angle"){row.angle=patch.value;row.angleFormula=String(patch.value);}
-      if(handle.kind==="bend-radius"){row.clr=patch.value;row.clrSource="geometry_grip_preview";}
+      const index=Number(handle.targetRowIndex??selection.rowIndex);
+      if(!Array.isArray(tube.rows)||!tube.rows[index])return null;
+      const row=tube.rows[index];
+      if(handle.edit==="line-length"||handle.edit==="line-mid-length"){row.L=patch.value;row.LFormula=String(patch.value);}
+      if(handle.edit==="bend-angle"){row.angle=patch.value;row.angleFormula=String(patch.value);}
+      if(handle.edit==="bend-radius"){row.clr=patch.value;row.clrFormula=String(patch.value);row.clrSource="geometry_grip_preview";}
+      if(handle.edit==="bend-plane"){row.rot=patch.value;row.rotFormula=String(patch.value);}
     }
     return tube;
   }
@@ -194,10 +286,12 @@
     pipeGroup.add(g);previewGroup=g;try{markViewerDirty?.();}catch{}
   }
   function handleValue(selection,handle){
-    if(handle.kind==="origin")return selection.tube.origin;
-    if(handle.kind==="line-length")return Number(selection.row.L);
-    if(handle.kind==="bend-angle")return Number(selection.row.angle);
-    if(handle.kind==="bend-radius")return Number(selection.row.clr);
+    if(handle.edit==="origin")return selection.tube.origin;
+    const row=rowAt(selection,handle.targetRowIndex??selection.rowIndex);
+    if(handle.edit==="line-length"||handle.edit==="line-mid-length")return Number(row?.L);
+    if(handle.edit==="bend-angle")return Number(row?.angle);
+    if(handle.edit==="bend-radius")return Number(row?.clr);
+    if(handle.edit==="bend-plane")return Number(row?.rot??0);
     return null;
   }
   function updatePanel(selection){
@@ -206,20 +300,22 @@
     if(title)title.textContent=activeHandle?.label??(selection?.kind==="tube"?"Origin":"Geometry grips");
     if(!selection||!activeHandle){if(input){input.value="";input.disabled=true;}return;}
     const value=handleValue(selection,activeHandle);if(input){
-      input.disabled=activeHandle.kind==="origin";
+      input.disabled=activeHandle.readOnly===true||activeHandle.edit==="origin"||!activeHandle.edit;
       input.value=typeof value==="number"&&Number.isFinite(value)?String(value):"";
-      input.placeholder=activeHandle.kind==="line-length"?"L / formula":activeHandle.kind==="bend-angle"?"angle / formula":"CLR / formula";
+      input.placeholder=activeHandle.edit==="line-length"||activeHandle.edit==="line-mid-length"?"L / formula":activeHandle.edit==="bend-angle"?"angle / formula":activeHandle.edit==="bend-plane"?"plane rotation / formula":activeHandle.edit==="bend-radius"?"CLR / formula":"";
     }
   }
   function setPanelPreview(handle,patch){
     const out=panel?.querySelector("[data-geometry-grip-preview]");if(!out)return;
-    if(handle.kind==="origin")out.textContent=patch?.origin?"Preview origin: "+[patch.origin.x,patch.origin.y,patch.origin.z].map(v=>Number(v).toFixed(2)).join("; "):"";
+    if(handle.edit==="origin")out.textContent=patch?.origin?"Preview origin: "+[patch.origin.x,patch.origin.y,patch.origin.z].map(v=>Number(v).toFixed(2)).join("; "):"";
     else out.textContent=Number.isFinite(Number(patch?.value))?"Preview: "+Number(patch.value).toFixed(3):"";
   }
   function begin(event,picked){
-    const selection=selectedGeometry(),handle=picked?.handle;if(!selection||!handle||!canEdit(selection))return false;
+    const selection=selectedGeometry(),handle=picked?.handle;if(!selection||!handle)return false;
     activeHandle=handle;updatePanel(selection);
-    snap()?.startCommand?.("geometry-grip",{ortho:handle.kind==="line-length",polar:handle.kind.startsWith("bend-")});
+    if(handle.readOnly||!handle.edit){toast(handle.label+": опорный grip; редактирование этой точки неоднозначно");return false;}
+    if(!canEdit(selection))return false;
+    snap()?.startCommand?.("geometry-grip",{ortho:handle.edit==="line-length"||handle.edit==="line-mid-length",polar:String(handle.edit).startsWith("bend-")});
     drag={handle,selectionKey:{tubeId:String(selection.tube.id),rowIndex:selection.rowIndex},patch:null};
     try{if(controls)controls.enabled=false;}catch{}
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();return true;
@@ -246,10 +342,10 @@
     return true;
   }
   function commitPatch(selection,handle,patch,{formula=null,label="Geometry grip"}={}){
-    if(!patch||!canEdit(selection))return false;
+    if(!patch||!handle?.edit||!canEdit(selection))return false;
     const command=eng()?.modelCommand;
     const mutate=()=>{
-      if(handle.kind==="origin"){
+      if(handle.edit==="origin"){
         const state=eng()?.getState?.(),active=String(state?.activeTubeId??"")===String(selection.tube.id);
         const old=clone(active?(state?.origin??selection.tube.origin??{x:0,y:0,z:0}):(selection.tube.origin??{x:0,y:0,z:0}));
         return boundAllowed(selection,()=>{
@@ -260,18 +356,23 @@
           selection.tube.origin=clone(old);
         });
       }
-      const row=rowFor(selection.tube,selection.rowIndex);if(!row)return false;
-      const old={L:row.L,LFormula:row.LFormula,angle:row.angle,angleFormula:row.angleFormula,clr:row.clr,clrFormula:row.clrFormula,clrSource:row.clrSource};
+      const index=Number(handle.targetRowIndex??selection.rowIndex),row=rowFor(selection.tube,index);if(!row)return false;
+      const old={L:row.L,LFormula:row.LFormula,angle:row.angle,angleFormula:row.angleFormula,clr:row.clr,clrFormula:row.clrFormula,clrSource:row.clrSource,rot:row.rot,rotFormula:row.rotFormula};
       const apply=()=>{
-        if(handle.kind==="line-length"){row.L=Number(patch.value.toFixed(6));row.LFormula=formula??String(row.L);}
-        else if(handle.kind==="bend-angle"){row.angle=Number(patch.value.toFixed(6));row.angleFormula=formula??String(row.angle);}
-        else if(handle.kind==="bend-radius"){row.clr=Number(patch.value.toFixed(6));row.clrFormula=formula??String(row.clr);row.clrSource=formula?"formula_geometry_grip":"geometry_grip";}
+        if(handle.edit==="line-length"||handle.edit==="line-mid-length"){row.L=Number(patch.value.toFixed(6));row.LFormula=formula??String(row.L);}
+        else if(handle.edit==="bend-angle"){row.angle=Number(patch.value.toFixed(6));row.angleFormula=formula??String(row.angle);}
+        else if(handle.edit==="bend-radius"){row.clr=Number(patch.value.toFixed(6));row.clrFormula=formula??String(row.clr);row.clrSource=formula?"formula_geometry_grip":"geometry_grip";}
+        else if(handle.edit==="bend-plane"){row.rot=Number(patch.value.toFixed(6));row.rotFormula=formula??String(row.rot);}
+        synchronizeDrivingDimensions(selection,handle,patch,formula);
       };
       const rollback=()=>Object.assign(row,old);
       return boundAllowed(selection,apply,rollback);
     };
     let ok;try{ok=typeof command==="function"?command(label,mutate):mutate();}catch(error){toast(error?.message??error);return false;}
-    if(ok===false)return false;try{eng()?.save?.();eng()?.renderAll?.();}catch{}dispatch(handle.kind);rebuild();return true;
+    if(ok===false)return false;
+    try{eng()?.save?.();eng()?.renderAll?.();}catch{}
+    notifyAssociativeDependents(selection,handle);
+    dispatch(handle.kind);rebuild();return true;
   }
   function finish(event,{cancel=false}={}){
     if(!drag)return false;const state=drag;drag=null;clearPreview();snap()?.endCommand?.();try{if(controls)controls.enabled=true;}catch{}
@@ -279,16 +380,21 @@
     suppressUntil=Date.now()+120;rebuild();event?.preventDefault?.();event?.stopPropagation?.();event?.stopImmediatePropagation?.();return ok;
   }
   function exactPatch(selection,handle,raw){
-    if(handle.kind==="origin")throw new Error("Origin редактируется drag/Snap или командой Move");
+    if(handle.readOnly||!handle.edit)throw new Error("Этот grip является опорным и не имеет однозначного локального изменения");
+    if(handle.edit==="origin")throw new Error("Origin редактируется drag/Snap или командой Move");
     const vars={...(project()?.formula_variables??{}),...(project()?.geometry_formula_variables??{})};
-    const kind=handle.kind==="bend-angle"?"angle":"length",value=dynamicInput.evaluateNumericInput(raw,{kind,variables:vars});
-    if(handle.kind==="line-length"||handle.kind==="bend-radius"){
+    const kind=handle.edit==="bend-angle"||handle.edit==="bend-plane"?"angle":"length",value=dynamicInput.evaluateNumericInput(raw,{kind,variables:vars});
+    if(handle.edit==="line-length"||handle.edit==="line-mid-length"||handle.edit==="bend-radius"){
       if(!(value>.0001))throw new Error("Значение должно быть > 0");
       return {value};
     }
-    if(handle.kind==="bend-angle"){
+    if(handle.edit==="bend-angle"){
       if(Math.abs(value)>.001&&Math.abs(value)<180)return {value};
       throw new Error("Угол должен быть в диапазоне (-180; 180) без 0");
+    }
+    if(handle.edit==="bend-plane"){
+      if(Number.isFinite(value))return {value};
+      throw new Error("Поворот плоскости должен быть числом");
     }
     return null;
   }
@@ -314,7 +420,7 @@
     ensurePanel();canvas()?.addEventListener("pointerdown",onDown,true);window.addEventListener("pointermove",onMove,true);window.addEventListener("pointerup",onUp,true);canvas()?.addEventListener("click",onClick,true);window.addEventListener("keydown",onKey,true);
     window.addEventListener("tubebender-selection-change",selectionChanged);window.addEventListener("tubebender-lock-change",rebuild);window.addEventListener("tubebender-layer-change",rebuild);window.addEventListener("tubebender-tolerance-change",rebuild);
     if(typeof renderAll==="function"&&!renderAll._tbGeometryGrips){const original=renderAll;renderAll=function(...args){const result=original.apply(this,args);try{rebuild();}catch{}return result;};renderAll._tbGeometryGrips=true;}
-    rebuild();window.TubeBenderGeometryGrips=Object.freeze({rebuild,selectedGeometry,applyExact});
+    rebuild();window.TubeBenderGeometryGrips=Object.freeze({rebuild,selectedGeometry,handleDescriptors,applyExact});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
 })();
