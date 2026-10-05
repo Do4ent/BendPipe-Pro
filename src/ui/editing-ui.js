@@ -1140,6 +1140,7 @@
     window.addEventListener("keydown",onCopyKeyDown,true);
     window.addEventListener("tubebender-snap-change",onSnapChangeForCopy);
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
+    window.addEventListener("tubebender-array-change",()=>{if(panel?.classList.contains("open")&&activeTool==="array")render();});
     window.TubeBenderEditing=Object.freeze({open,close,copySelection,multipleCopySelection,commitCopySeries,undoLastCopyTarget,rotateSelectedDirect,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,previewArrayFormula,applyArrayFormula,createTransformStackFromSelection,stackAddOperation,stackOperationAction,scalePermissionForSelection,canScaleSelection,requestScaleSelection,refresh:render});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
