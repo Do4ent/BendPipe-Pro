@@ -39,6 +39,7 @@ const legacyRigidTransformDomainPath = path.join(root, "src", "domain", "editing
 const dynamicInputDomainPath = path.join(root, "src", "domain", "editing", "dynamic-input.mjs");
 const snapEngineDomainPath = path.join(root, "src", "domain", "snapping", "snap-engine.mjs");
 const transformCommandsDomainPath = path.join(root, "src", "domain", "editing", "transform-commands.mjs");
+const copyDependenciesDomainPath = path.join(root, "src", "domain", "editing", "copy-dependencies.mjs");
 const objectLocksDomainPath = path.join(root, "src", "domain", "editing", "object-locks.mjs");
 const layersDomainPath = path.join(root, "src", "domain", "project", "layers.mjs");
 const groupsDomainPath = path.join(root, "src", "domain", "project", "groups.mjs");
@@ -2461,11 +2462,13 @@ const straightRunDomainUrl = moduleDataUrl(straightRunDomainPath);
 const legacyRigidTransformDomainUrl = moduleDataUrl(legacyRigidTransformDomainPath);
 const dynamicInputDomainUrl = moduleDataUrl(dynamicInputDomainPath);
 const transformCommandsDomainUrl = moduleDataUrl(transformCommandsDomainPath);
+const copyDependenciesDomainUrl = moduleDataUrl(copyDependenciesDomainPath);
 const editingUi = fs.readFileSync(editingUiPath, "utf8")
   .replace("__TB_STRAIGHT_RUN_MODULE_URL__", straightRunDomainUrl)
   .replace("__TB_RIGID_TRANSFORM_MODULE_URL__", legacyRigidTransformDomainUrl)
   .replace("__TB_DYNAMIC_INPUT_MODULE_URL__", dynamicInputDomainUrl)
   .replace("__TB_TRANSFORM_COMMANDS_MODULE_URL__", transformCommandsDomainUrl)
+  .replace("__TB_COPY_DEPENDENCIES_MODULE_URL__", copyDependenciesDomainUrl)
   .replace(/<\/script/gi, "<\\/script");
 const bundledEditingUi =
   `<script data-tubebender-bundled="editing-ui">\n${editingUi}\n</script>`;
@@ -2506,6 +2509,7 @@ const groupsRigidDomainUrl = moduleDataUrl(legacyRigidTransformDomainPath);
 const groupsRuntime = fs.readFileSync(groupsRuntimePath, "utf8")
   .replace("__TB_GROUPS_MODULE_URL__", groupsDomainUrl)
   .replace("__TB_GROUP_RIGID_MODULE_URL__", groupsRigidDomainUrl)
+  .replace("__TB_COPY_DEPENDENCIES_MODULE_URL__", copyDependenciesDomainUrl)
   .replace(/<\/script/gi, "<\\/script");
 const bundledGroupsRuntime =
   `<script data-tubebender-bundled="groups-runtime">\n${groupsRuntime}\n</script>`;
