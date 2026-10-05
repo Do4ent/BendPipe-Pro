@@ -1,6 +1,6 @@
 (()=>{
   const DYNAMIC_INPUT_URL="__TB_GEOMETRY_GRIPS_DYNAMIC_INPUT_URL__";
-  let dynamicInput=null,installed=false,group=null,previewGroup=null,panel=null,drag=null,activeHandle=null,suppressUntil=0;
+  let dynamicInput=null,installed=false,group=null,previewGroup=null,panel=null,drag=null,activeHandle=null,suppressUntil=0,showAllGrips=false,internalEdit=null;
   const eng=()=>window.TubeBenderEngineering??null;
   const ctx=()=>window.TubeBenderObjectContext??null;
   const snap=()=>window.TubeBenderSnapTracking??null;
@@ -179,12 +179,58 @@
     }
     return [];
   }
+  function handleKey(handle){
+    const p=handle?.point??{};
+    return [handle?.kind,handle?.rowIndex??"",handle?.targetRowIndex??"",Number(p.x).toFixed(5),Number(p.y).toFixed(5),Number(p.z).toFixed(5)].join("|");
+  }
+  function uniqueHandles(list=[]){
+    const map=new Map();
+    for(const handle of list)if(handle?.point)map.set(handleKey(handle),handle);
+    return [...map.values()];
+  }
+  function rowSelection(selection,rowIndex){
+    const row=rowFor(selection.tube,rowIndex);
+    return row?{entry:{kind:"row",tubeId:String(selection.tube.id),rowIndex},tube:selection.tube,row,rowIndex,kind:row.type}:null;
+  }
+  function allTubeHandles(selection){
+    const base={entry:{kind:"tube",tubeId:String(selection.tube.id)},tube:selection.tube,row:null,rowIndex:null,kind:"tube"};
+    const out=[...handleDescriptors(base)];
+    for(let index=0;index<(selection.tube.rows??[]).length;index++){
+      const child=rowSelection(selection,index);if(child)out.push(...handleDescriptors(child));
+    }
+    return uniqueHandles(out);
+  }
+  function internalNeighborHandles(selection){
+    const index=Number(selection.rowIndex),out=[...handleDescriptors(selection)];
+    for(const near of [index-1,index+1]){
+      if(near<0||near>=(selection.tube.rows??[]).length)continue;
+      const child=rowSelection(selection,near);if(!child)continue;
+      const nearest=handleDescriptors(child).filter(handle=>
+        ["line-start","line-end","bend-tangent-in","bend-tangent-out","tube-p1","tube-p2"].includes(String(handle.kind))
+      );
+      out.push(...nearest);
+    }
+    return uniqueHandles(out);
+  }
+  function gripDisplayMode(selection){
+    if(!selection)return "none";
+    if(showAllGrips)return "all";
+    if(selection.kind==="tube")return "whole";
+    if(internalEdit&&String(internalEdit.tubeId)===String(selection.tube.id)&&Number(internalEdit.rowIndex)===Number(selection.rowIndex))return "internal";
+    return "subelement";
+  }
+  function contextHandleDescriptors(selection){
+    const mode=gripDisplayMode(selection);
+    if(mode==="all")return allTubeHandles(selection);
+    if(mode==="internal")return internalNeighborHandles(selection);
+    return handleDescriptors(selection);
+  }
   function clearGroup(){if(group?.parent)group.parent.remove(group);group=null;}
   function clearPreview(){if(previewGroup?.parent)previewGroup.parent.remove(previewGroup);previewGroup=null;}
   function rebuild(){
     clearGroup();clearPreview();const selection=selectedGeometry();ensurePanel();
     if(!selection||typeof THREE==="undefined"||typeof pipeGroup==="undefined"||!pipeGroup){updatePanel(null);return false;}
-    const handles=handleDescriptors(selection),g=new THREE.Group();g.name="Geometry Grips";g.userData={helper:true,objectSelectionHelper:true,geometryGripRuntime:true};
+    const handles=contextHandleDescriptors(selection),g=new THREE.Group();g.name="Geometry Grips";g.userData={helper:true,objectSelectionHelper:true,geometryGripRuntime:true};
     for(const h of handles){
       const color=h.readOnly?0x9aa7b4:h.edit==="line-length"||h.edit==="line-mid-length"?0x65d6ff:h.edit==="bend-angle"?0xffa45c:h.edit==="bend-radius"?0x73e19c:h.edit==="bend-plane"?0xd88cff:0xffffff;
       const node=grip(h.point,color,h,(h.edit==="origin"||h.kind==="tube-p1"||h.kind==="tube-p2")?"cube":"sphere");if(node)g.add(node);
@@ -295,9 +341,10 @@
     return null;
   }
   function updatePanel(selection){
-    ensurePanel();const handles=selection?handleDescriptors(selection):[];panel.classList.toggle("open",!!selection&&handles.length>0);
-    const title=panel.querySelector("[data-geometry-grip-title]"),input=panel.querySelector("[data-geometry-grip-value]");
-    if(title)title.textContent=activeHandle?.label??(selection?.kind==="tube"?"Origin":"Geometry grips");
+    ensurePanel();const handles=selection?contextHandleDescriptors(selection):[];panel.classList.toggle("open",!!selection&&handles.length>0);
+    const title=panel.querySelector("[data-geometry-grip-title]"),input=panel.querySelector("[data-geometry-grip-value]"),modeNode=panel.querySelector("[data-geometry-grip-mode]");
+    if(title)title.textContent=activeHandle?.label??(selection?.kind==="tube"?"Tube grips":"Geometry grips");
+    if(modeNode)modeNode.textContent=gripDisplayMode(selection);
     if(!selection||!activeHandle){if(input){input.value="";input.disabled=true;}return;}
     const value=handleValue(selection,activeHandle);if(input){
       input.disabled=activeHandle.readOnly===true||activeHandle.edit==="origin"||!activeHandle.edit;
@@ -406,21 +453,37 @@
   }
   function ensurePanel(){
     if(panel)return panel;const style=document.createElement("style");style.id="tbGeometryGripStyles";style.textContent='#tbGeometryGripPanel{position:fixed;left:14px;bottom:116px;z-index:120314;width:310px;padding:8px;border:1px solid #41566f;border-radius:8px;background:rgba(13,22,32,.96);color:#eaf3fd;font:11px system-ui;box-shadow:0 10px 30px rgba(0,0,0,.45);display:none}#tbGeometryGripPanel.open{display:block}#tbGeometryGripPanel .gg-row{display:flex;gap:6px;align-items:center;margin:5px 0}#tbGeometryGripPanel input{width:125px;background:#0a121b;color:#fff;border:1px solid #40536a;border-radius:4px;padding:4px}#tbGeometryGripPanel button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:4px;padding:4px 7px;cursor:pointer}.gg-grow{flex:1}.gg-muted{color:#8295aa}';document.head.appendChild(style);
-    panel=document.createElement("section");panel.id="tbGeometryGripPanel";panel.innerHTML='<div class="gg-row"><b data-geometry-grip-title>Geometry grips</b><span class="gg-grow"></span><span class="gg-muted">Snap + formula</span></div><div class="gg-row"><label>Exact</label><input data-geometry-grip-value><button data-geometry-grip-apply>Apply</button></div><div class="gg-row"><span class="gg-muted" data-geometry-grip-preview>Выберите grip и перетащите его</span></div>';document.body.appendChild(panel);panel.querySelector("[data-geometry-grip-apply]").onclick=applyExact;return panel;
+    panel=document.createElement("section");panel.id="tbGeometryGripPanel";panel.innerHTML='<div class="gg-row"><b data-geometry-grip-title>Geometry grips</b><span class="gg-grow"></span><span class="gg-muted">mode: <b data-geometry-grip-mode>whole</b></span></div><div class="gg-row"><label><input type="checkbox" data-geometry-show-all> Show all grips</label><span class="gg-grow"></span><span class="gg-muted">Snap + formula</span></div><div class="gg-row"><label>Exact</label><input data-geometry-grip-value><button data-geometry-grip-apply>Apply</button></div><div class="gg-row"><span class="gg-muted" data-geometry-grip-preview>Выберите grip и перетащите его</span></div>';document.body.appendChild(panel);panel.querySelector("[data-geometry-grip-apply]").onclick=applyExact;panel.querySelector("[data-geometry-show-all]").onchange=event=>{showAllGrips=event.target.checked===true;activeHandle=null;rebuild();};return panel;
   }
   function dispatch(reason){try{window.dispatchEvent(new CustomEvent("tubebender-geometry-grip-change",{detail:{reason:String(reason??"change")}}));}catch{}}
   function onDown(event){if(event.button!==0||drag)return;const picked=pick(event);if(picked)begin(event,picked);}
   function onMove(event){if(drag)update(event);}
   function onUp(event){if(drag)finish(event);}
   function onClick(event){if(Date.now()<suppressUntil){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();}}
-  function onKey(event){if(event.key==="Escape"&&drag)finish(event,{cancel:true});}
-  function selectionChanged(){if(drag)return;activeHandle=null;rebuild();}
+  function onDoubleClick(event){
+    if(event.button!==0)return;
+    const selection=selectedGeometry();
+    if(!selection||selection.kind==="tube")return;
+    internalEdit={tubeId:String(selection.tube.id),rowIndex:Number(selection.rowIndex)};
+    activeHandle=null;rebuild();
+  }
+  function onKey(event){
+    if(event.key!=="Escape")return;
+    if(drag){finish(event,{cancel:true});return;}
+    if(internalEdit){internalEdit=null;activeHandle=null;rebuild();}
+  }
+  function selectionChanged(){
+    if(drag)return;
+    const selection=selectedGeometry();
+    if(!selection||selection.kind==="tube"||String(internalEdit?.tubeId??"")!==String(selection.tube.id)||Number(internalEdit?.rowIndex)!==Number(selection.rowIndex))internalEdit=null;
+    activeHandle=null;rebuild();
+  }
   async function install(){
     if(installed)return;installed=true;try{dynamicInput=await import(DYNAMIC_INPUT_URL);}catch(error){console.error("Geometry grips runtime failed",error);return;}
-    ensurePanel();canvas()?.addEventListener("pointerdown",onDown,true);window.addEventListener("pointermove",onMove,true);window.addEventListener("pointerup",onUp,true);canvas()?.addEventListener("click",onClick,true);window.addEventListener("keydown",onKey,true);
+    ensurePanel();canvas()?.addEventListener("pointerdown",onDown,true);window.addEventListener("pointermove",onMove,true);window.addEventListener("pointerup",onUp,true);canvas()?.addEventListener("click",onClick,true);canvas()?.addEventListener("dblclick",onDoubleClick,false);window.addEventListener("keydown",onKey,true);
     window.addEventListener("tubebender-selection-change",selectionChanged);window.addEventListener("tubebender-lock-change",rebuild);window.addEventListener("tubebender-layer-change",rebuild);window.addEventListener("tubebender-tolerance-change",rebuild);
     if(typeof renderAll==="function"&&!renderAll._tbGeometryGrips){const original=renderAll;renderAll=function(...args){const result=original.apply(this,args);try{rebuild();}catch{}return result;};renderAll._tbGeometryGrips=true;}
-    rebuild();window.TubeBenderGeometryGrips=Object.freeze({rebuild,selectedGeometry,handleDescriptors,applyExact});
+    rebuild();window.TubeBenderGeometryGrips=Object.freeze({rebuild,selectedGeometry,handleDescriptors,contextHandleDescriptors,gripDisplayMode,applyExact,setShowAll:(value)=>{showAllGrips=value===true;rebuild();},enterInternal:(tubeId,rowIndex)=>{internalEdit={tubeId:String(tubeId),rowIndex:Number(rowIndex)};rebuild();},exitInternal:()=>{internalEdit=null;rebuild();}});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
 })();
