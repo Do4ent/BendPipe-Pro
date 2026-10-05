@@ -1,7 +1,8 @@
 (()=>{
   const ASSEMBLIES_URL="__TB_ASSEMBLIES_MODULE_URL__";
   const RIGID_URL="__TB_ASSEMBLY_RIGID_MODULE_URL__";
-  let installed=false,assemblies=null,rigid=null,panel=null,toggle=null,observer=null,treeScheduled=false;
+  let installed=false,assemblies=null,rigid=null,panel=null,toggle=null,observer=null,treeScheduled=false,breadcrumbBar=null;
+  const editPath=[];
   const ctx=()=>window.TubeBenderObjectContext??null;
   const eng=()=>window.TubeBenderEngineering??null;
   const refApi=()=>window.TubeBenderReferenceSceneUi??null;
@@ -65,6 +66,94 @@
     });
     return direct[0]??null;
   }
+  function activeEditAssembly(){return editPath.length?assemblyById(editPath[editPath.length-1]):null;}
+  function editing(){return !!activeEditAssembly();}
+  function breadcrumb(){
+    return ["Project",...editPath.map(id=>assemblyById(id)?.name??id)].join(" > ");
+  }
+  function topAssemblyForEntry(entry){
+    const list=containingAssembliesForEntry(entry);
+    return list.length?list[list.length-1]:null;
+  }
+  function directMemberEntry(active,entry){
+    if(!active||!entry)return null;
+    if(entry.kind==="project-assembly"&&String(entry.assemblyId)===String(active.id))return entry;
+    const ref=refFromEntry(entry);
+    if(!ref||ref.kind==="source-ref")return null;
+    const key=assemblies.assemblyMemberKey(ref);
+    for(const member of active.members??[]){
+      if(assemblies.assemblyMemberKey(member.ref)===key)return entry;
+      if(member.ref.kind!=="assembly")continue;
+      if(ref.kind==="assembly"&&String(ref.id)===String(member.ref.id))return {kind:"project-assembly",assemblyId:String(member.ref.id)};
+      const nested=assemblies.assembliesContainingMember(project(),ref,{includeAncestors:true});
+      if(nested.some(item=>String(item.id)===String(member.ref.id))){
+        return {kind:"project-assembly",assemblyId:String(member.ref.id)};
+      }
+    }
+    return null;
+  }
+  function entryKey(entry,fallback=""){
+    if(entry?.kind==="project-assembly")return "project-assembly:"+encodeURIComponent(entry.assemblyId);
+    if(entry?.kind==="tube")return "tube:"+encodeURIComponent(entry.tubeId);
+    if(entry?.kind==="mesh-instance")return "mesh:"+encodeURIComponent(entry.instanceId);
+    return fallback;
+  }
+  function resolveInteraction(entry,originalKey=""){
+    if(!entry)return {handled:false,key:originalKey,entry};
+    const active=activeEditAssembly();
+    if(!active){
+      const top=entry.kind==="project-assembly"?assemblyById(entry.assemblyId):topAssemblyForEntry(entry);
+      if(top)return {handled:true,key:"project-assembly:"+encodeURIComponent(top.id),entry:{kind:"project-assembly",assemblyId:String(top.id)}};
+      return {handled:false,key:originalKey,entry};
+    }
+    const direct=directMemberEntry(active,entry);
+    if(!direct)return {handled:true,blocked:true,key:null,entry:null};
+    return {handled:true,key:entryKey(direct,originalKey),entry:direct};
+  }
+  function assemblyForEditEntry(entry){
+    if(!entry)return null;
+    if(entry.kind==="project-assembly")return assemblyById(entry.assemblyId);
+    const active=activeEditAssembly();
+    if(active){
+      const direct=directMemberEntry(active,entry);
+      return direct?.kind==="project-assembly"?assemblyById(direct.assemblyId):null;
+    }
+    return topAssemblyForEntry(entry);
+  }
+  function enterEdit(assemblyId){
+    const target=assemblyById(assemblyId);if(!target)return false;
+    const active=activeEditAssembly();
+    if(active){
+      const allowed=(active.members??[]).some(member=>member.ref.kind==="assembly"&&String(member.ref.id)===String(target.id));
+      if(!allowed){toast("Вложенная Assembly не принадлежит текущему уровню");return false;}
+    }else{
+      const parents=assemblies.assembliesContainingMember(project(),{kind:"assembly",id:target.id},{includeAncestors:true});
+      if(parents.length){
+        const top=parents[parents.length-1];
+        if(String(top.id)!==String(target.id))return enterEdit(top.id)&&enterEdit(target.id);
+      }
+    }
+    editPath.push(String(target.id));
+    ctx()?.clearSelection?.();
+    applyEditContext();renderTree();renderPanel();renderBreadcrumb();
+    try{window.dispatchEvent(new CustomEvent("tubebender-assembly-edit-change",{detail:{path:[...editPath],breadcrumb:breadcrumb()}}));}catch{}
+    return true;
+  }
+  function exitEdit(){
+    if(!editPath.length)return false;
+    editPath.pop();ctx()?.clearSelection?.();
+    applyEditContext();renderTree();renderPanel();renderBreadcrumb();
+    try{window.dispatchEvent(new CustomEvent("tubebender-assembly-edit-change",{detail:{path:[...editPath],breadcrumb:breadcrumb()}}));}catch{}
+    return true;
+  }
+  function exitAllEdit(){
+    if(!editPath.length)return false;
+    editPath.length=0;ctx()?.clearSelection?.();
+    applyEditContext();renderTree();renderPanel();renderBreadcrumb();
+    try{window.dispatchEvent(new CustomEvent("tubebender-assembly-edit-change",{detail:{path:[],breadcrumb:breadcrumb()}}));}catch{}
+    return true;
+  }
+
   function objectForRef(ref){
     if(ref.kind==="tube")return tubeById(ref.id);
     if(ref.kind==="mesh-instance")return meshById(ref.id);
@@ -304,6 +393,91 @@
     else if(ref.kind==="construction")transformConstruction(ref,oldFrame,newFrame,axisAngle);
     else if(ref.kind==="dimension")transformDimension(ref,oldFrame,newFrame,axisAngle);
   }
+  function translateLeafDirect(ref,delta){
+    if(ref.kind==="tube"){
+      const tube=tubeById(ref.id);if(!tube)return;
+      applyTubeResult(tube,rigid.translateLegacyTubeRigid(tube,delta));
+    }else if(ref.kind==="mesh-instance"){
+      refApi()?.moveEditableMeshInstance?.(project(),ref.id,delta);
+    }else if(ref.kind==="construction"){
+      const item=objectForRef(ref);if(!item)return;
+      const key=item.position_mm?"position_mm":item.origin?"origin":null;
+      if(key){
+        const p=item[key];item[key]={x:Number(p.x||0)+delta.x,y:Number(p.y||0)+delta.y,z:Number(p.z||0)+delta.z};
+      }
+    }else if(ref.kind==="dimension"){
+      const dim=objectForRef(ref);if(!dim)return;
+      if(dim.text_position)dim.text_position={x:Number(dim.text_position.x||0)+delta.x,y:Number(dim.text_position.y||0)+delta.y,z:Number(dim.text_position.z||0)+delta.z};
+    }
+  }
+  function rotatePointAround(point,pivot,q){
+    const rel={x:point.x-pivot.x,y:point.y-pivot.y,z:point.z-pivot.z};
+    const rotated=assemblies.rotateVectorByQuaternion(rel,q);
+    return {x:pivot.x+rotated.x,y:pivot.y+rotated.y,z:pivot.z+rotated.z};
+  }
+  function rotateLeafDirect(ref,axis,pivot,angle){
+    const q=assemblies.axisAngleQuaternion(axis,angle);
+    if(ref.kind==="tube"){
+      const tube=tubeById(ref.id);if(!tube)return;
+      applyTubeResult(tube,rigid.rotateLegacyTubeRigid(tube,{axis,center:pivot,angle_deg:angle}));
+    }else if(ref.kind==="mesh-instance"){
+      const mesh=meshById(ref.id);if(!mesh)return;
+      const p=mesh.transform?.position_mm??{x:0,y:0,z:0},target=rotatePointAround(p,pivot,q);
+      refApi()?.moveEditableMeshInstance?.(project(),ref.id,{x:target.x-p.x,y:target.y-p.y,z:target.z-p.z});
+      refApi()?.rotateEditableMeshInstanceAxis?.(project(),ref.id,{axis,angle_deg:angle});
+    }else if(ref.kind==="construction"){
+      const item=objectForRef(ref);if(!item)return;
+      const key=item.position_mm?"position_mm":item.origin?"origin":null;
+      if(key)item[key]=rotatePointAround(item[key],pivot,q);
+      if(item.direction)item.direction={...assemblies.rotateVectorByQuaternion(item.direction,q)};
+    }else if(ref.kind==="dimension"){
+      const dim=objectForRef(ref);if(!dim)return;
+      if(dim.text_position)dim.text_position=rotatePointAround(dim.text_position,pivot,q);
+    }
+  }
+  function editRefsForEntries(list){
+    const active=activeEditAssembly();if(!active)return null;
+    const refs=new Map();
+    for(const entry of list??[]){
+      const direct=directMemberEntry(active,entry);
+      if(!direct)return null;
+      const ref=refFromEntry(direct);if(!ref||ref.kind==="source-ref")return null;
+      refs.set(assemblies.assemblyMemberKey(ref),ref);
+    }
+    return [...refs.values()];
+  }
+  function canHandleEditEntries(list=entries()){return editing()&&Array.isArray(editRefsForEntries(list));}
+  function moveEditEntries(list,delta){
+    const active=activeEditAssembly(),refs=editRefsForEntries(list);
+    if(!active||!refs?.length)return false;
+    const d={x:Number(delta?.x)||0,y:Number(delta?.y)||0,z:Number(delta?.z)||0};
+    return command("Edit Assembly Move",()=>{
+      for(const ref of refs){
+        if(ref.kind==="assembly"){
+          const child=assemblyById(ref.id),f=child.frame;
+          applyAssemblyFrame(child.id,{origin_mm:{x:f.origin_mm.x+d.x,y:f.origin_mm.y+d.y,z:f.origin_mm.z+d.z},rotation_quaternion:f.rotation_quaternion});
+        }else translateLeafDirect(ref,d);
+      }
+      syncAssemblyLocals(active.id);return true;
+    });
+  }
+  function rotateEditEntries(list,{axis,pivot,angle_deg}={}){
+    const active=activeEditAssembly(),refs=editRefsForEntries(list);
+    if(!active||!refs?.length)return false;
+    const angle=Number(angle_deg),center={x:Number(pivot?.x)||0,y:Number(pivot?.y)||0,z:Number(pivot?.z)||0};
+    if(!Number.isFinite(angle))return false;
+    return command("Edit Assembly Rotate",()=>{
+      const q=assemblies.axisAngleQuaternion(axis,angle);
+      for(const ref of refs){
+        if(ref.kind==="assembly"){
+          const child=assemblyById(ref.id),newOrigin=rotatePointAround(child.frame.origin_mm,center,q);
+          applyAssemblyFrame(child.id,{origin_mm:newOrigin,rotation_quaternion:assemblies.multiplyQuaternions(q,child.frame.rotation_quaternion)});
+        }else rotateLeafDirect(ref,axis,center,angle);
+      }
+      syncAssemblyLocals(active.id);return true;
+    });
+  }
+
   function transformDescendantFrames(rootId,oldFrame,newFrame){
     for(const id of assemblies.assemblyDescendantIds(project(),rootId)){
       const child=assemblyById(id);if(!child)continue;
@@ -391,6 +565,48 @@
     }
     return null;
   }
+
+  function memberKeyForObject(object){
+    let item=object,activeTube=String(eng()?.activeTube?.()?.id??"");
+    while(item){
+      const data=item.userData??{};
+      if(data.referenceEditableInstanceId)return "mesh-instance:"+String(data.referenceEditableInstanceId);
+      if(data.tubeId)return "tube:"+String(data.tubeId);
+      if(activeTube&&(data.pipe===true||data.originPoint===true||data.tubeEnd===true||Number.isInteger(Number(data.rowIndex))))return "tube:"+activeTube;
+      item=item.parent;
+    }
+    return null;
+  }
+  function restoreEditMaterial(object){
+    const saved=object?.userData?.tbAssemblyEditMaterial;
+    if(!saved||!object?.material)return;
+    const mats=Array.isArray(object.material)?object.material:[object.material];
+    mats.forEach((m,index)=>{
+      const state=saved[index]??saved[0];if(!m||!state)return;
+      m.opacity=state.opacity;m.transparent=state.transparent;m.depthWrite=state.depthWrite;m.needsUpdate=true;
+    });
+    delete object.userData.tbAssemblyEditMaterial;
+  }
+  function muteEditMaterial(object){
+    if(!object?.material)return;
+    const mats=Array.isArray(object.material)?object.material:[object.material];
+    if(!object.userData.tbAssemblyEditMaterial){
+      object.userData.tbAssemblyEditMaterial=mats.map(m=>({opacity:Number(m?.opacity??1),transparent:m?.transparent===true,depthWrite:m?.depthWrite!==false}));
+    }
+    mats.forEach(m=>{if(!m)return;m.opacity=Math.min(Number(m.opacity??1),.22);m.transparent=true;m.depthWrite=false;m.needsUpdate=true;});
+  }
+  function applyEditContext(){
+    if(typeof pipeGroup==="undefined"||!pipeGroup)return;
+    const active=activeEditAssembly();
+    const inside=active?new Set(assemblies.leafAssemblyMembers(project(),active.id).map(member=>assemblies.assemblyMemberKey(member.ref))):new Set();
+    pipeGroup.traverse(object=>{
+      if(object===pipeGroup||object.userData?.helper)return;
+      const key=memberKeyForObject(object);
+      if(!active||!key||inside.has(key))restoreEditMaterial(object);
+      else muteEditMaterial(object);
+    });
+    try{if(typeof markViewerDirty==="function")markViewerDirty();}catch{}
+  }
   function applyVisibility(){
     if(typeof pipeGroup==="undefined"||!pipeGroup||!assemblies)return;
     const hidden=hiddenLeafKeys();
@@ -437,6 +653,22 @@
     try{window.TubeBenderLayers?.decorateTree?.();}catch{}
   }
   function scheduleTree(){if(treeScheduled)return;treeScheduled=true;queueMicrotask(()=>{treeScheduled=false;renderTree();});}
+
+  function ensureBreadcrumb(){
+    if(breadcrumbBar)return breadcrumbBar;
+    breadcrumbBar=document.createElement("div");breadcrumbBar.id="tbAssemblyEditBreadcrumb";
+    breadcrumbBar.style.cssText="position:fixed;left:14px;top:54px;z-index:120367;display:none;align-items:center;gap:7px;padding:6px 9px;background:rgba(13,22,32,.96);border:1px solid #49617a;border-radius:6px;color:#edf4fb;font:12px system-ui";
+    breadcrumbBar.innerHTML='<b data-assembly-edit-path></b><button data-assembly-edit-up>↑</button><button data-assembly-edit-exit>Exit</button>';
+    document.body.appendChild(breadcrumbBar);
+    breadcrumbBar.querySelector("[data-assembly-edit-up]").onclick=()=>exitEdit();
+    breadcrumbBar.querySelector("[data-assembly-edit-exit]").onclick=()=>exitAllEdit();
+    return breadcrumbBar;
+  }
+  function renderBreadcrumb(){
+    const bar=ensureBreadcrumb(),active=activeEditAssembly();
+    bar.style.display=active?"flex":"none";
+    const label=bar.querySelector("[data-assembly-edit-path]");if(label)label.textContent=breadcrumb();
+  }
   function ensurePanel(){
     if(panel)return panel;
     const style=document.createElement("style");style.id="tbAssembliesStyles";style.textContent='#tbAssembliesToggle{position:fixed;right:232px;top:54px;z-index:120366;background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:6px;padding:6px 10px;cursor:pointer}#tbAssembliesPanel{position:fixed;right:14px;top:88px;width:min(430px,calc(100vw - 28px));max-height:calc(100vh - 110px);z-index:120359;display:none;flex-direction:column;background:rgba(13,22,32,.985);color:#edf4fb;border:1px solid #41566f;border-radius:9px;box-shadow:0 14px 40px rgba(0,0,0,.45);font:12px system-ui}#tbAssembliesPanel.open{display:flex}.tb-assembly-head{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid #304154}.tb-assembly-head .grow{flex:1}.tb-assembly-body{overflow:auto;padding:8px}.tb-assembly-grid{display:grid;grid-template-columns:120px 1fr;gap:6px 8px;align-items:center}.tb-assembly-grid input,.tb-assembly-grid select{background:#09131c;color:#fff;border:1px solid #40536a;border-radius:4px;padding:5px}.tb-assembly-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.tb-assembly-actions button{background:#26384b;color:#eef5ff;border:1px solid #455b72;border-radius:4px;padding:5px 7px;cursor:pointer}.tb-assembly-note{color:#8396aa;line-height:1.35;margin-top:6px}';document.head.appendChild(style);
@@ -462,11 +694,15 @@
     body.innerHTML='<div class="tb-assembly-grid"><label>Assembly</label><select data-assembly-select>'+options+'</select><label>Name</label><input data-assembly-name value="'+esc(a?.name??"Assembly")+'"><label>Origin XYZ</label><input data-assembly-origin value="'+esc(origin.x+";"+origin.y+";"+origin.z)+'"><label>Visible</label><input data-assembly-visible type="checkbox" '+(a?.visible!==false?'checked':'')+'><label>Fixed</label><input data-assembly-fixed type="checkbox" '+(a?.fixed===true?'checked':'')+'><label>Lock</label><select data-assembly-lock><option>Unlocked</option><option '+(a?.lock_state?.mode==="Position"?'selected':'')+'>Position</option><option '+(a?.lock_state?.mode==="Object"?'selected':'')+'>Object</option></select><label>Move XYZ</label><input data-assembly-move value="0;0;0"><label>Rotate axis</label><select data-assembly-axis><option>X</option><option>Y</option><option selected>Z</option></select><label>Rotate °</label><input data-assembly-angle value="0"></div>'+
       '<div class="tb-assembly-actions"><button data-assembly-create>Создать из выбора</button><button data-assembly-rename '+(!a?'disabled':'')+'>Rename</button><button data-assembly-add '+(!a?'disabled':'')+'>Add selection</button><button data-assembly-remove '+(!a?'disabled':'')+'>Remove selection</button><button data-assembly-dissolve '+(!a?'disabled':'')+'>Dissolve</button></div>'+
       '<div class="tb-assembly-actions"><button data-assembly-origin-run '+(!a?'disabled':'')+'>Set Origin</button><button data-assembly-move-run '+(!a?'disabled':'')+'>Move</button><button data-assembly-rotate-run '+(!a?'disabled':'')+'>Rotate</button></div>'+
-      '<div class="tb-assembly-note">Assembly — конструктивная иерархия с собственной локальной системой координат. Set Origin меняет систему координат без перемещения компонентов.</div>';
+      '<div class="tb-assembly-actions"><button data-assembly-edit-enter '+(!a?'disabled':'')+'>Редактировать сборку</button><button data-assembly-edit-up '+(!editing()?'disabled':'')+'>На уровень выше</button><button data-assembly-edit-exit '+(!editing()?'disabled':'')+'>Выйти из Edit Assembly</button></div>'+
+      '<div class="tb-assembly-note">'+esc(breadcrumb())+'</div><div class="tb-assembly-note">Assembly — конструктивная иерархия с собственной локальной системой координат. Set Origin меняет систему координат без перемещения компонентов.</div>';
     body.querySelector("[data-assembly-select]").onchange=e=>{ctx()?.replaceSelectionKeys?.(e.target.value?["project-assembly:"+encodeURIComponent(e.target.value)]:[]);renderPanel();};
     body.querySelector("[data-assembly-create]").onclick=()=>createFromSelection({name:body.querySelector("[data-assembly-name]").value});
     if(!a)return;
-    body.querySelector("[data-assembly-rename]").onclick=()=>rename(a.id,body.querySelector("[data-assembly-name]").value);
+    body.querySelector("[data-assembly-edit-enter]").onclick=()=>enterEdit(a.id);
+    body.querySelector("[data-assembly-edit-up]").onclick=()=>exitEdit();
+    body.querySelector("[data-assembly-edit-exit]").onclick=()=>exitAllEdit();
+        body.querySelector("[data-assembly-rename]").onclick=()=>rename(a.id,body.querySelector("[data-assembly-name]").value);
     body.querySelector("[data-assembly-add]").onclick=()=>addSelection(a.id);
     body.querySelector("[data-assembly-remove]").onclick=()=>removeSelection(a.id);
     body.querySelector("[data-assembly-dissolve]").onclick=()=>dissolve(a.id);
@@ -486,13 +722,20 @@
   async function install(){
     if(installed)return;installed=true;
     try{[assemblies,rigid]=await Promise.all([import(ASSEMBLIES_URL),import(RIGID_URL)]);}catch(error){console.error("Assemblies runtime failed",error);return;}
-    assemblies.ensureAssemblyState(project());ensurePanel();renderTree();renderPanel();applyVisibility();observe();
+    assemblies.ensureAssemblyState(project());ensurePanel();ensureBreadcrumb();renderTree();renderPanel();applyVisibility();applyEditContext();renderBreadcrumb();observe();
+    window.addEventListener("keydown",(event)=>{
+      if(event.key==="Escape"&&editing()&&!event.target?.matches?.("input,textarea,select")){
+        event.preventDefault();exitEdit();
+      }
+    });
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))renderPanel();});
     window.addEventListener("tubebender-layer-change",()=>applyVisibility());
     window.TubeBenderAssemblies=Object.freeze({
       createFromSelection,addSelection,removeSelection,rename,setFixed,setVisible,setLock,dissolve,setOrigin,
       moveAssembly,moveAssemblies,rotateAssembly,applyAssemblyFrame,syncAssemblyLocals,
-      renderTree,renderPanel,applyVisibility,assemblyById,parentAssemblyForEntry,containingAssembliesForEntry,
+      moveEditEntries,rotateEditEntries,canHandleEditEntries,
+      enterEdit,exitEdit,exitAllEdit,editing,activeEditAssembly,breadcrumb,resolveInteraction,assemblyForEditEntry,
+      renderTree,renderPanel,applyVisibility,applyEditContext,assemblyById,parentAssemblyForEntry,containingAssembliesForEntry,
       permissionForEntry,canSelection,domain:assemblies
     });
   }
