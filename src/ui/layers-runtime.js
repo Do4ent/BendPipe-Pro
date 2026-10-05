@@ -28,6 +28,7 @@
     try{eng()?.save?.();eng()?.renderAll?.();}catch{}
     try{window.refreshProjectTree?.();}catch{}
     ensureAssignments();applyAll();render();
+    try{window.dispatchEvent(new CustomEvent("tubebender-layer-change",{detail:{project_id:String(project()?.id??"")}}));}catch{}
     return true;
   }
 
@@ -156,7 +157,9 @@
     const p=project();if(!p)return false;
     p.layer_tree_filter_id=layerId||null;
     try{eng()?.save?.();}catch{}
-    decorateTree();render();return true;
+    decorateTree();render();
+    try{window.dispatchEvent(new CustomEvent("tubebender-layer-change",{detail:{project_id:String(p.id??""),filter:true}}));}catch{}
+    return true;
   }
   function assignSelection(layerId){
     const p=project();if(!p)return false;
@@ -212,7 +215,23 @@
   }
   function applyMaterialStyle(object,style){
     if(!object?.material||!style)return;
-    const mats=cloneMaterialForLayer(object);
+    let mats=cloneMaterialForLayer(object);
+    if(object.isLine&&style.linetype!=="Continuous"&&typeof THREE!=="undefined"&&THREE.LineDashedMaterial){
+      const pattern=style.linetype==="Dotted"
+        ?{dashSize:.012,gapSize:.045}
+        :style.linetype==="Center"
+          ?{dashSize:.11,gapSize:.035}
+          :{dashSize:.075,gapSize:.045};
+      const dashed=new THREE.LineDashedMaterial({
+        color:style.color,
+        linewidth:Math.max(1,Number(style.lineweight_mm||.25)*2),
+        dashSize:pattern.dashSize,
+        gapSize:pattern.gapSize
+      });
+      object.material=dashed;
+      mats=[dashed];
+      object.computeLineDistances?.();
+    }
     for(const material of mats){
       if(material?.color?.set)material.color.set(style.color);
       if("linewidth" in (material??{}))material.linewidth=Math.max(1,Number(style.lineweight_mm||.25)*2);
@@ -364,6 +383,7 @@
     if(installed)return;installed=true;
     try{layers=await import(LAYERS_URL);}catch(error){console.error("Layers runtime failed to load",error);return;}
     ensurePanel();ensureAssignments();observe();applyAll();render();
+    try{window.dispatchEvent(new CustomEvent("tubebender-layer-change",{detail:{project_id:String(project()?.id??""),initial:true}}));}catch{}
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
     window.addEventListener("tubebender-lock-change",()=>applyAll());
     window.TubeBenderLayers=Object.freeze({
