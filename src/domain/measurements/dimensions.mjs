@@ -154,6 +154,7 @@ export function createDimension(input={}, {dimensionId=null}={}){
     style:normalizeDimensionStyle(input.style??{}),
     value:finiteOrNull(input.value,"dimension value"),
     target_value:finiteOrNull(input.target_value,"dimension target_value"),
+    target_formula:input.target_formula==null||String(input.target_formula).trim()===""?null:String(input.target_formula).trim(),
     status:input.status??"NeedsUpdate",
     visible:input.visible!==false,
     note:input.note==null?null:String(input.note),
@@ -179,11 +180,29 @@ export function setDimensionMode(dimension,mode){
     target_value:mode==="Driving"?(dimension.target_value??dimension.value):null
   });
 }
-export function setDrivingTarget(dimension,value){
+export function setDrivingTarget(dimension,value,{formula=null}={}){
   if(dimension.mode!=="Driving")throw new Error("only Driving dimensions can receive a target value");
   const target=finiteOrNull(value,"driving target");
   if(target===null)throw new TypeError("driving target is required");
-  return freeze({...clone(dimension),target_value:target,status:"NeedsSolve"});
+  const text=formula==null||String(formula).trim()===""?null:String(formula).trim();
+  return freeze({...clone(dimension),target_value:target,target_formula:text,status:"NeedsSolve"});
+}
+export function replaceDimensionReference(dimension,index,reference){
+  const i=Math.trunc(Number(index));
+  if(!Number.isInteger(i)||i<0||i>=dimension.references.length)throw new RangeError("dimension reference index out of range");
+  const refs=clone(dimension.references);
+  refs[i]=normalizeReference(reference,i);
+  return freeze({...clone(dimension),references:refs,status:"NeedsUpdate"});
+}
+export function updateDimensionRepresentation(dimension,patch={}){
+  return updateDimensionStyle(dimension,{
+    text_position:patch.text_position,
+    leader:patch.leader,
+    local_plane:patch.local_plane,
+    style:patch.style,
+    format:patch.format,
+    visible:patch.visible
+  });
 }
 export function recalculateDimension(dimension,{resolveReference,measure}={}){
   if(typeof resolveReference!=="function")throw new TypeError("resolveReference callback is required");
