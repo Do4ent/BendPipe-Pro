@@ -503,6 +503,7 @@
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))renderPanel();});
     window.addEventListener("tubebender-layer-change",()=>applyVisibility());
     window.TubeBenderGroups=Object.freeze({
+      openPanel:()=>{ensurePanel().classList.add("open");renderPanel();},
       createFromSelection,rename,addSelection,removeSelection,ungroup,setVisible,setLock,
       moveGroup,moveGroups,rotateGroup,copyGroup,arrayGroup,renderTree,renderPanel,applyVisibility,
       groupById,leafRefs,directGroupsForEntry,containingGroupsForEntry,primaryGroupForEntry,permissionForEntry,canSelection,
