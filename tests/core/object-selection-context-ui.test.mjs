@@ -128,7 +128,7 @@ test("A52: object context exposes bidirectional tree/3D synchronization",()=>{
   assert.match(code,/function revealTreeKey/);
   assert.match(code,/refApi\(\)\?\.revealNode/);
   assert.match(code,/scrollIntoView\?\.\(\{block:"nearest",inline:"nearest",behavior:"auto"\}\)/);
-  assert.match(code,/revealTreeKey\(picked\.key\)/);
+  assert.match(code,/revealTreeKey\(key\)/);
   assert.match(code,/row\.classList\.add\("tb-object-selected"\)/);
   assert.match(code,/row\.setAttribute\("aria-selected","true"\)/);
 });
