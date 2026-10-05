@@ -8,6 +8,7 @@
   const eng=()=>window.TubeBenderEngineering??null;
   const ctx=()=>window.TubeBenderObjectContext??null;
   const assemblies=()=>window.TubeBenderAssemblies??null;
+  const fittedGuard=()=>window.TubeBenderFittedGeometry??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const clone=(v)=>v==null?v:structuredClone(v);
   const esc=(v)=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -49,6 +50,30 @@
   function point(v){
     if(!v)return null;const x=Number(v.x??v[0]),y=Number(v.y??v[1]),z=Number(v.z??v[2]);
     return [x,y,z].every(Number.isFinite)?{x,y,z}:null;
+  }
+  function geometryProvenance(...values){
+    for(const value of values){
+      if(!value||typeof value!=="object")continue;
+      const status=String(value.geometry_status??value.geometryStatus??(value.fitted===true?"Fitted":"")).trim();
+      if(status==="Fitted"||status==="Exact"){
+        return {
+          geometry_status:status,
+          fitting_error:clone(value.fitting_error??value.fit_error??(Number.isFinite(Number(value.max_fit_error_mm))?{mm:Number(value.max_fit_error_mm),deg:0}:null)),
+          confidence:value.confidence==null?null:Number(value.confidence),
+          evidence:clone(value.evidence??value.geometry_evidence??null)
+        };
+      }
+      const nested=value.primitive??value.recognition??value.geometry_evidence??value.importEvidence?.geometry??null;
+      if(nested&&nested!==value){
+        const found=geometryProvenance(nested);
+        if(found)return found;
+      }
+    }
+    return null;
+  }
+  function withGeometryProvenance(ref,...sources){
+    const provenance=geometryProvenance(...sources);
+    return provenance?{...ref,...provenance}:ref;
   }
   function resolveReference(ref){
     const objectId=String(ref?.object_id??"");
@@ -99,30 +124,30 @@
     if(!entry)return null;
     if(entry.kind==="tube"){
       const context=assemblies()?.contextForObjectId?.(entry.tubeId,tubeById(entry.tubeId)?.origin??null)??null;
-      return {object_id:String(entry.tubeId),subentity_id:null,role:"constraint",assembly_context:clone(context)};
+      return withGeometryProvenance({object_id:String(entry.tubeId),subentity_id:null,role:"constraint",assembly_context:clone(context)},tubeById(entry.tubeId));
     }
     if(entry.kind==="row"){
       const tube=tubeById(entry.tubeId),row=tube?.rows?.[Number(entry.rowIndex)];
       const el=geomElement(tube,{subentity_id:row?.elementId});
       const world=point(el?.start??el?.p0??tube?.origin);
       const context=assemblies()?.contextForObjectId?.(entry.tubeId,world)??null;
-      return {object_id:String(entry.tubeId),subentity_id:String(row?.elementId??("row:"+entry.rowIndex)),role:"constraint",assembly_context:clone(context),snap_type:row?.type==="LINE"?"Line/Axis":"Tangent"};
+      return withGeometryProvenance({object_id:String(entry.tubeId),subentity_id:String(row?.elementId??("row:"+entry.rowIndex)),role:"constraint",assembly_context:clone(context),snap_type:row?.type==="LINE"?"Line/Axis":"Tangent"},row,el,tube);
     }
     if(entry.kind==="origin"){
       const tube=tubeById(entry.tubeId),world=tube?.origin??null;
       const context=assemblies()?.contextForObjectId?.(entry.tubeId,world)??null;
-      return {object_id:String(entry.tubeId),subentity_id:"P1",role:"constraint",assembly_context:clone(context),snap_type:"Endpoint"};
+      return withGeometryProvenance({object_id:String(entry.tubeId),subentity_id:"P1",role:"constraint",assembly_context:clone(context),snap_type:"Endpoint"},tube);
     }
     if(entry.kind==="end"){
       const tube=tubeById(entry.tubeId),world=tube?.engineering?.ports?.P2?.position??null;
       const context=assemblies()?.contextForObjectId?.(entry.tubeId,world)??null;
-      return {object_id:String(entry.tubeId),subentity_id:"P2",role:"constraint",assembly_context:clone(context),snap_type:"Endpoint"};
+      return withGeometryProvenance({object_id:String(entry.tubeId),subentity_id:"P2",role:"constraint",assembly_context:clone(context),snap_type:"Endpoint"},tube);
     }
     if(entry.kind==="mesh-instance"){
       const mesh=window.TubeBenderReferenceSceneUi?.meshInstanceById?.(project(),entry.instanceId);
       const world=mesh?.transform?.position_mm??null;
       const context=assemblies()?.contextForObjectId?.(entry.instanceId,world)??null;
-      return {object_id:String(entry.instanceId),subentity_id:null,role:"constraint",assembly_context:clone(context)};
+      return withGeometryProvenance({object_id:String(entry.instanceId),subentity_id:null,role:"constraint",assembly_context:clone(context)},mesh);
     }
     if(entry.kind==="project-assembly"){
       const a=assemblies()?.assemblyById?.(entry.assemblyId),world=a?.frame?.origin_mm??null;
@@ -150,7 +175,11 @@
       subentity_id:subentity_id==null?null:String(subentity_id),
       role:"constraint-inference",
       assembly_context:context,
-      snap_type:candidate?.type==null?null:String(candidate.type)
+      snap_type:candidate?.type==null?null:String(candidate.type),
+      geometry_status:String(candidate?.geometry_status??(candidate?.fitted===true?"Fitted":"Exact")),
+      fitting_error:clone(candidate?.fitting_error??null),
+      confidence:candidate?.confidence==null?null:Number(candidate.confidence),
+      evidence:clone(candidate?.evidence??candidate?.metadata?.evidence??null)
     };
   }
   function sameRef(a,b){return String(a?.object_id??"")===String(b?.object_id??"")&&String(a?.subentity_id??"")===String(b?.subentity_id??"");}
@@ -217,6 +246,7 @@
   function queueSuggestion(id){
     const suggestion=inferenceSuggestions.find(item=>String(item.id)===String(id));
     if(!suggestion)return false;
+    if(fittedGuard()?.confirmUsage?.("GeometricConstraint",suggestion.references)!==true)return false;
     const snapActive=window.TubeBenderSnapTracking?.state?.()?.active===true;
     if(snapActive){
       pendingAccepted.set(String(suggestion.id),clone(suggestion));
@@ -244,6 +274,7 @@
     }
     const created=[];
     for(const suggestion of toCreate){
+      if(fittedGuard()?.confirmUsage?.("GeometricConstraint",suggestion.references)!==true)continue;
       const item=materializeSuggestion(suggestion);
       if(item)created.push(String(item.id));
     }
@@ -307,6 +338,8 @@
     if(!autoPlan){toast("Сначала создайте Auto-Constrain Preview");return false;}
     const chosen=(autoPlan.suggestions??[]).filter(item=>autoPlanSelected.has(String(item.id)));
     if(!chosen.length){toast("В Preview не выбраны Constraints");return false;}
+    const fittedRefs=chosen.flatMap(item=>item.references??[]);
+    if(fittedGuard()?.confirmUsage?.("GeometricConstraint",fittedRefs,{preview_confirmed:true})!==true)return false;
     const before=autoPlan.dof_before;
     const ok=command("Apply Auto-Constrain preview",()=>{
       for(const suggestion of chosen){
@@ -347,8 +380,9 @@
     const before=autoPlan.dof_before,after=autoPlan.dof_after;
     const rows=(autoPlan.suggestions??[]).map(item=>'<label class="tb-auto-row"><input type="checkbox" data-auto-con-id="'+esc(item.id)+'" '+(autoPlanSelected.has(String(item.id))?'checked':'')+'> <b>'+esc(item.type)+'</b> · confidence '+esc(Math.round(Number(item.score)*100))+'% · rank +'+esc(item.rank_gain)+'</label>').join("");
     const skipped=(autoPlan.skipped??[]).length?'<div class="tb-con-status">Skipped '+esc(autoPlan.skipped.length)+' redundant / existing / system relations.</div>':'';
+    const fittedWarning=fittedGuard()?.warningHtml?.("GeometricConstraint",(autoPlan.suggestions??[]).flatMap(item=>item.references??[]))??"";
     return '<div class="tb-auto-card"><b>Auto-Constrain Preview</b><div>DoF '+esc(before?.remaining_dof??"?")+' → '+esc(after?.remaining_dof??"?")+' · reduction '+esc(autoPlan.dof_reduction??0)+'</div>'+
-      '<div class="tb-con-status">Только геометрические Constraints. Numeric Driving Dimensions: не создаются.</div>'+rows+skipped+
+      '<div class="tb-con-status">Только геометрические Constraints. Numeric Driving Dimensions: не создаются.</div>'+fittedWarning+rows+skipped+
       '<div class="tb-con-create"><button data-auto-con-apply>Apply confirmed set</button><button data-auto-con-cancel>Cancel</button></div></div>';
   }
   function renderAutoConstrainPreview(){
@@ -364,6 +398,7 @@
     const one=["Horizontal","Vertical","FixedDirection","FixedPoint","FixedGeometry"].includes(type);
     const min=one?1:type==="Tangent"||type==="Coincident"||type==="Collinear"||type==="Parallel"||type==="Perpendicular"||type==="Concentric"||type==="Equal"?2:1;
     if(refs.length<min){toast("Недостаточно выбранных геометрических ссылок для "+type);return false;}
+    if(fittedGuard()?.confirmUsage?.("GeometricConstraint",refs)!==true)return false;
     const relation=assemblies()?.crossAssemblyForContexts?.(refs.map(r=>r.assembly_context))??null;
     let created=null;
     return command("Создать Constraint "+type,()=>{
