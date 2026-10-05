@@ -398,12 +398,13 @@
   }
   function render(){
     if(!domain)return;const root=ensurePanel(),body=root.querySelector("[data-con-body]"),list=domain.ensureConstraintState(project());
+    const analysis=dofAnalysis(),redundant=new Set(analysis?.redundant_constraint_ids??[]);
     const options=domain.GEOMETRIC_CONSTRAINT_TYPES.map(t=>'<option>'+esc(t)+'</option>').join("");
     body.innerHTML='<div class="tb-con-create"><label>Inference <select data-con-inference-mode><option>Off</option><option>Suggest</option><option>Auto</option></select></label><select data-con-type>'+options+'</select><input data-con-name placeholder="Name"><label><input data-con-driving type="checkbox" checked> Driving</label><button data-con-create>Создать из выбора</button><button data-con-refresh>Проверить</button></div><div data-con-inference>'+inferenceHintHtml()+'</div><div data-con-dof>'+dofHtml()+'</div>'+
-      '<div style="margin-top:8px">'+list.map(item=>'<div class="tb-con-row"><input type="checkbox" data-con-enabled="'+esc(item.id)+'" '+(item.enabled!==false?'checked':'')+'><div><b>'+esc(item.name??item.type)+'</b><div class="tb-con-status '+(item.status==="Valid"?'tb-con-valid':item.status==="Disabled"?'':'tb-con-conflict')+'">'+esc(item.type)+' · '+esc(item.status)+' · refs '+(item.references?.length??0)+(item.cross_assembly?.cross_assembly?' · ↔ Cross-Assembly':'')+'</div></div><span>'+esc(item.driving===false?'Reference':'Driving')+'</span><button data-con-delete="'+esc(item.id)+'">×</button></div>').join("")+'</div>';
+      '<div style="margin-top:8px">'+list.map(item=>{const over=redundant.has(String(item.id)),problem=item.status!=="Valid"&&item.status!=="Disabled";return '<div class="tb-con-row"><input type="checkbox" data-con-enabled="'+esc(item.id)+'" '+(item.enabled!==false?'checked':'')+'><div><b>'+esc(item.name??item.type)+'</b><div class="tb-con-status '+((problem||over)?'tb-con-conflict':item.status==="Valid"?'tb-con-valid':'')+'">'+esc(item.type)+' · '+esc(over?'Redundant / Over-constrained':item.status)+' · refs '+(item.references?.length??0)+(item.cross_assembly?.cross_assembly?' · ↔ Cross-Assembly':'')+'</div></div><span>'+esc(item.driving===false?'Reference':'Driving')+'</span><button data-con-delete="'+esc(item.id)+'">×</button></div>';}).join("")+'</div>';
     const modeSelect=body.querySelector("[data-con-inference-mode]");modeSelect.value=inferenceMode();modeSelect.onchange=()=>setInferenceMode(modeSelect.value);
     body.querySelector("[data-con-create]").onclick=()=>createFromSelection(body.querySelector("[data-con-type]").value,{name:body.querySelector("[data-con-name]").value.trim()||null,driving:body.querySelector("[data-con-driving]").checked});
-    renderInferenceHint();
+    renderInferenceHint();refreshDoF();
     body.querySelector("[data-con-refresh]").onclick=()=>{recalculateAll();render();};
     body.querySelectorAll("[data-con-enabled]").forEach(el=>el.onchange=()=>setEnabled(el.dataset.conEnabled,el.checked));
     body.querySelectorAll("[data-con-delete]").forEach(el=>el.onclick=()=>remove(el.dataset.conDelete));
