@@ -1051,6 +1051,7 @@
       renderTree,renderPanel,applyVisibility,applyEditContext,assemblyById,parentAssemblyForEntry,containingAssembliesForEntry,
       directTubeAssembly,syncTubePortConstraints,captureTubeEndConstraint,resolveTubeEndConstraintTarget,clearTubePortConstraint,
       refForObjectId,contextForRef,contextForObjectId,crossAssemblyForContexts,decorateAssociativeReferences,registerCrossAssemblyLink,decorateConstructionGeometry,
+      validateCrossAssemblyAfterTransform:q78ValidateAfterAssemblyTransform,
       permissionForEntry,canSelection,domain:assemblies
     });
   }
