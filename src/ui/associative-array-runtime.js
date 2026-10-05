@@ -1,7 +1,8 @@
 (()=>{
   const TRANSFORM_URL="__TB_TRANSFORM_COMMANDS_MODULE_URL__";
   const RIGID_URL="__TB_RIGID_TRANSFORM_MODULE_URL__";
-  let transforms=null,rigid=null,installed=false,syncing=false;
+  const DYNAMIC_INPUT_URL="__TB_DYNAMIC_INPUT_MODULE_URL__";
+  let transforms=null,rigid=null,dynamicInput=null,installed=false,syncing=false;
   const api=()=>window.TubeBenderEngineering??null;
   const project=()=>{try{return api()?.activeProject?.()??null;}catch{return null;}};
   const clone=(v)=>v==null?v:structuredClone(v);
@@ -15,6 +16,83 @@
     return {x,y,z};
   }
   function sub(a,b){return {x:a.x-b.x,y:a.y-b.y,z:a.z-b.z};}
+  function add(a,b){return {x:a.x+b.x,y:a.y+b.y,z:a.z+b.z};}
+  function scale(a,s){return {x:a.x*s,y:a.y*s,z:a.z*s};}
+  function dot(a,b){return a.x*b.x+a.y*b.y+a.z*b.z;}
+  function length(a){return Math.hypot(a.x,a.y,a.z);}
+  function unit(a,name="vector"){const n=length(a);if(!(n>1e-12))throw new Error(name+" must be non-zero");return scale(a,1/n);}
+  const FORMULA_FIELDS=Object.freeze({
+    count:"scalar",step:"length",
+    count_x:"scalar",count_y:"scalar",count_z:"scalar",
+    step_x:"length",step_y:"length",step_z:"length",
+    total_angle_deg:"angle",initial_angle_deg:"angle",radius_mm:"length"
+  });
+  function formulaVariables(p=project()){
+    return {...(p?.formula_variables??{}),...(p?.array_formula_variables??{})};
+  }
+  function rawParameterValue(def,name){
+    const params=def?.parameters??{};
+    if(name==="count_x")return params.counts?.[0];
+    if(name==="count_y")return params.counts?.[1];
+    if(name==="count_z")return params.counts?.[2];
+    if(name==="step_x")return params.steps?.[0];
+    if(name==="step_y")return params.steps?.[1];
+    if(name==="step_z")return params.steps?.[2];
+    return params[name];
+  }
+  function evaluateFormulaFields(def,p=project()){
+    const formulas=def?.parameter_formulas??{},base=formulaVariables(p),resolved={},visiting=new Set();
+    const resolve=(name)=>{
+      if(name in resolved)return resolved[name];
+      if(visiting.has(name))throw new Error("Array formula cycle: "+[...visiting,name].join(" -> "));
+      if(!(name in formulas)){
+        const raw=rawParameterValue(def,name);
+        if(raw!=null&&raw!==""){const n=Number(raw);if(Number.isFinite(n)){resolved[name]=n;return n;}}
+        if(name in base){const n=Number(base[name]);if(Number.isFinite(n)){resolved[name]=n;return n;}}
+        throw new Error("Unknown array formula variable: "+name);
+      }
+      visiting.add(name);
+      const expression=String(formulas[name]??"").trim();
+      const deps=[...new Set(expression.match(/\b[A-Za-z_]\w*\b/g)??[])];
+      const vars={...base,...resolved};
+      for(const dep of deps){
+        if(dep===name)throw new Error("Array formula cycle: "+name+" -> "+name);
+        if(dep in formulas||rawParameterValue(def,dep)!=null)vars[dep]=resolve(dep);
+      }
+      const kind=FORMULA_FIELDS[name]==="angle"?"angle":"length";
+      const value=dynamicInput.evaluateNumericInput(expression,{kind,variables:vars});
+      visiting.delete(name);resolved[name]=value;return value;
+    };
+    for(const name of Object.keys(formulas))if(name in FORMULA_FIELDS)resolve(name);
+    return resolved;
+  }
+  function evaluatedParameters(def,p=project()){
+    const params=clone(def?.parameters??{}),values=evaluateFormulaFields(def,p);
+    const value=(name,fallback)=>name in values?values[name]:(Number(rawParameterValue(def,name))||fallback);
+    if(def?.type==="Linear"){
+      params.count=Math.max(1,Math.trunc(value("count",1)));
+      params.step=value("step",0);
+      params.direction=point(params.direction??{x:1,y:0,z:0});
+    }else if(def?.type==="Matrix"){
+      params.counts=[
+        Math.max(1,Math.trunc(value("count_x",1))),
+        Math.max(1,Math.trunc(value("count_y",1))),
+        Math.max(1,Math.trunc(value("count_z",1)))
+      ];
+      params.steps=[value("step_x",0),value("step_y",0),value("step_z",0)];
+      params.directions=(params.directions??[{x:1,y:0,z:0},{x:0,y:1,z:0},{x:0,y:0,z:1}]).map(point);
+    }else if(def?.type==="Circular"){
+      params.count=Math.max(1,Math.trunc(value("count",1)));
+      params.total_angle_deg=value("total_angle_deg",360);
+      params.initial_angle_deg=value("initial_angle_deg",0);
+      const radius=value("radius_mm",NaN);params.radius_mm=Number.isFinite(radius)&&radius>=0?radius:null;
+      params.center=point(params.center??{x:0,y:0,z:0});
+      params.axis=point(params.axis??{x:0,y:0,z:1});
+      params.clockwise=params.clockwise===true;
+      params.rotate_elements=params.rotate_elements!==false;
+    }
+    return params;
+  }
   function byId(p,id){return (p?.tubes??[]).find((t)=>String(t?.id)===String(id))??null;}
   function lockMode(object){return String(object?.lock_state?.mode??object?.lock_mode??"Unlocked");}
   function assertUnlockedObject(object){
@@ -71,44 +149,61 @@
     const next=transforms.transformPoint(matrix,origin);
     return rigid.translateLegacyTubeRigid(source,sub(next,origin));
   }
-  function circularAngle(def,index){
-    const count=Math.trunc(Number(def.parameters?.count)||0);
-    const total=Number(def.parameters?.total_angle_deg??360);
+  function circularAngle(def,index,p=project()){
+    const params=evaluatedParameters(def,p),count=params.count,total=params.total_angle_deg,initial=params.initial_angle_deg??0;
     if(!(count>=1)||!Number.isFinite(total))throw new Error("Invalid circular array parameters");
     if(index===0)return 0;
     const full=Math.abs(Math.abs(total)-360)<1e-9;
     const step=count<=1?0:total/(full?count:count-1);
-    return step*index;
+    const sign=params.clockwise?-1:1;
+    return sign*(initial+step*index);
   }
-  function transformedSource(def,source,index){
+  function circularRadiusAdjustedSource(def,source,p=project()){
+    const params=evaluatedParameters(def,p),radius=params.radius_mm;
+    if(radius==null)return source;
+    const center=point(params.center),axis=unit(point(params.axis),"array axis"),origin=point(source.origin);
+    const relative=sub(origin,center),axial=scale(axis,dot(relative,axis)),radial=sub(relative,axial);
+    let radialUnit;
+    if(length(radial)>1e-9)radialUnit=unit(radial,"array radius direction");
+    else{
+      const helper=Math.abs(axis.x)<.9?{x:1,y:0,z:0}:{x:0,y:1,z:0};
+      radialUnit=unit({x:axis.y*helper.z-axis.z*helper.y,y:axis.z*helper.x-axis.x*helper.z,z:axis.x*helper.y-axis.y*helper.x},"array radius direction");
+    }
+    const target=add(center,add(axial,scale(radialUnit,radius)));
+    const moved=rigid.translateLegacyTubeRigid(source,sub(target,origin));
+    if(moved?.status!=="exact"||!moved.tube)throw new Error(moved?.reason??"Array radius adjustment failed");
+    return moved.tube;
+  }
+  function transformedSource(def,source,index,p=project()){
     if(index===0)return {status:"exact",tube:clone(source)};
+    const params=evaluatedParameters(def,p);
     if(def.type==="Linear"){
-      const matrices=transforms.linearArrayTransforms(def.parameters);
+      const matrices=transforms.linearArrayTransforms(params);
       return transformForLinearOrMatrix(source,matrices[index]);
     }
     if(def.type==="Matrix"){
-      const matrices=transforms.matrixArrayTransforms(def.parameters);
+      const matrices=transforms.matrixArrayTransforms(params);
       return transformForLinearOrMatrix(source,matrices[index]);
     }
     if(def.type==="Circular"){
-      const center=point(def.parameters?.center??{x:0,y:0,z:0});
-      const axis=point(def.parameters?.axis??{x:0,y:0,z:1});
-      const angle=circularAngle(def,index);
-      if(def.parameters?.rotate_elements===false){
+      const center=point(params.center??{x:0,y:0,z:0});
+      const axis=point(params.axis??{x:0,y:0,z:1});
+      const angle=circularAngle(def,index,p),base=circularRadiusAdjustedSource(def,source,p);
+      if(params.rotate_elements===false){
         const rotation=transforms.rotationMatrix({axis,center,angle_deg:angle});
-        const origin=point(source.origin);
+        const origin=point(base.origin);
         const next=transforms.transformPoint(rotation,origin);
-        return rigid.translateLegacyTubeRigid(source,sub(next,origin));
+        return rigid.translateLegacyTubeRigid(base,sub(next,origin));
       }
-      return rigid.rotateLegacyTubeRigid(source,{axis,center,angle_deg:angle});
+      return rigid.rotateLegacyTubeRigid(base,{axis,center,angle_deg:angle});
     }
     throw new Error("Unsupported associative array type");
   }
-  function memberCount(def){
-    if(def.type==="Linear")return Math.trunc(Number(def.parameters?.count)||0);
-    if(def.type==="Circular")return Math.trunc(Number(def.parameters?.count)||0);
+  function memberCount(def,p=project()){
+    const params=evaluatedParameters(def,p);
+    if(def.type==="Linear"||def.type==="Circular")return Math.trunc(Number(params.count)||0);
     if(def.type==="Matrix"){
-      const counts=def.parameters?.counts??[];
+      const counts=params.counts??[];
       if(!Array.isArray(counts)||counts.length!==3)return 0;
       return counts.map(Number).reduce((a,b)=>a*Math.trunc(b),1);
     }
@@ -125,6 +220,7 @@
       name:String(input.name??(type+" Array")),
       source_tube_ids:ids,
       parameters:clone(input.parameters??{}),
+      parameter_formulas:clone(input.parameter_formulas??{}),
       suppressed_members:[...new Set((input.suppressed_members??[]).map((x)=>Math.trunc(Number(x))).filter((x)=>Number.isInteger(x)&&x>0))].sort((a,b)=>a-b),
       member_ids:clone(input.member_ids??{}),
       associative:true,
@@ -222,6 +318,47 @@
     synchronize(p);
     return def;
   }
+  function definitionById(arrayId,p=project()){
+    return definitions(p).find(def=>String(def?.id)===String(arrayId))??null;
+  }
+  function updateParameters(arrayId,patch={},options={},p=project()){
+    const def=definitionById(arrayId,p);if(!def)throw new Error("Associative Array not found");
+    assertArrayEditable(def);
+    def.parameters={...(def.parameters??{}),...clone(patch)};
+    if(patch.counts)def.parameters.counts=[...patch.counts];
+    if(patch.steps)def.parameters.steps=[...patch.steps];
+    if(patch.directions)def.parameters.directions=clone(patch.directions);
+    if(options.formulas){
+      def.parameter_formulas={...(def.parameter_formulas??{})};
+      for(const [name,formula] of Object.entries(options.formulas)){
+        const text=String(formula??"").trim();
+        if(text)def.parameter_formulas[name]=text;else delete def.parameter_formulas[name];
+      }
+    }
+    evaluatedParameters(def,p);
+    def.status="NeedsSync";synchronize(p);
+    return def;
+  }
+  function previewParameters(arrayId,patch={},options={},p=project()){
+    const sourceDef=definitionById(arrayId,p);if(!sourceDef)throw new Error("Associative Array not found");
+    const def=clone(sourceDef);def.parameters={...(def.parameters??{}),...clone(patch)};
+    if(options.formulas)def.parameter_formulas={...(def.parameter_formulas??{}),...clone(options.formulas)};
+    const count=memberCount(def,p),members=[];
+    for(const sourceId of sourceIds(def)){
+      const source=byId(p,sourceId);if(!source)continue;
+      for(let index=0;index<count;index++){
+        if((def.suppressed_members??[]).includes(index))continue;
+        const result=transformedSource(def,source,index,p);
+        if(result?.status==="exact"&&result.tube)members.push({source_tube_id:sourceId,member_index:index,origin:clone(result.tube.origin)});
+      }
+    }
+    return Object.freeze({array_id:String(arrayId),parameters:Object.freeze(evaluatedParameters(def,p)),members:Object.freeze(members.map(Object.freeze))});
+  }
+  function setParameterFormula(arrayId,name,formula,p=project()){
+    if(!(name in FORMULA_FIELDS))throw new Error("Unsupported Array formula parameter: "+name);
+    return updateParameters(arrayId,{}, {formulas:{[name]:formula}},p);
+  }
+
   function suppressMember(arrayId,index,suppressed=true,p=project()){
     const def=definitions(p).find((x)=>String(x.id)===String(arrayId));
     if(!def)throw new Error("Associative Array not found");
@@ -285,7 +422,7 @@
   function isDerivedTube(tube){return tube?.array_member?.derived_readonly===true;}
   async function install(){
     if(installed)return;installed=true;
-    [transforms,rigid]=await Promise.all([import(TRANSFORM_URL),import(RIGID_URL)]);
+    [transforms,rigid,dynamicInput]=await Promise.all([import(TRANSFORM_URL),import(RIGID_URL),import(DYNAMIC_INPUT_URL)]);
     try{synchronize();}catch(error){console.warn("Associative Array sync:",error);}
     if(typeof renderAll==="function"&&!renderAll._tbAssociativeArrays){
       const original=renderAll;
@@ -296,7 +433,9 @@
       renderAll._tbAssociativeArrays=true;
     }
     window.TubeBenderAssociativeArrays=Object.freeze({
-      createDefinition,addArray,synchronize,suppressMember,detachMember,breakArray,deleteArray,definitions:()=>definitions(),isDerivedTube
+      createDefinition,addArray,synchronize,suppressMember,detachMember,breakArray,deleteArray,
+      definitionById,updateParameters,previewParameters,setParameterFormula,evaluatedParameters,
+      definitions:()=>definitions(),isDerivedTube
     });
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});
