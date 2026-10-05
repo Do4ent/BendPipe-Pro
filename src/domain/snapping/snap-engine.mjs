@@ -69,16 +69,18 @@ function distance(a,b){return len(sub(a,b));}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
 
 export function normalizeSnapSettings(input={}){
+  const profile=input.geometry_tolerance_profile??input.tolerance_profile??{};
   const enabled={...DEFAULT_SNAP_SETTINGS.enabled,...(input.enabled??{})};
   const snap_priority={...DEFAULT_SNAP_PRIORITY,...(input.snap_priority??{})};
   const source_priority={...DEFAULT_SOURCE_PRIORITY,...(input.source_priority??{})};
   return freeze({
-    cursor_radius_px:Math.max(1,finite(input.cursor_radius_px??DEFAULT_SNAP_SETTINGS.cursor_radius_px,"cursor_radius_px")),
-    point_tolerance_mm:Math.max(0,finite(input.point_tolerance_mm??DEFAULT_SNAP_SETTINGS.point_tolerance_mm,"point_tolerance_mm")),
-    linear_tolerance_mm:Math.max(0,finite(input.linear_tolerance_mm??DEFAULT_SNAP_SETTINGS.linear_tolerance_mm,"linear_tolerance_mm")),
-    angular_tolerance_deg:Math.max(0,finite(input.angular_tolerance_deg??DEFAULT_SNAP_SETTINGS.angular_tolerance_deg,"angular_tolerance_deg")),
-    coplanar_tolerance_mm:Math.max(0,finite(input.coplanar_tolerance_mm??DEFAULT_SNAP_SETTINGS.coplanar_tolerance_mm,"coplanar_tolerance_mm")),
-    tangent_tolerance_deg:Math.max(0,finite(input.tangent_tolerance_deg??DEFAULT_SNAP_SETTINGS.tangent_tolerance_deg,"tangent_tolerance_deg")),
+    cursor_radius_px:Math.max(1,finite(input.cursor_capture_radius_px??input.cursor_radius_px??profile.cursor_capture_radius_px??DEFAULT_SNAP_SETTINGS.cursor_radius_px,"cursor_radius_px")),
+    cursor_capture_radius_px:Math.max(1,finite(input.cursor_capture_radius_px??input.cursor_radius_px??profile.cursor_capture_radius_px??DEFAULT_SNAP_SETTINGS.cursor_radius_px,"cursor_capture_radius_px")),
+    point_tolerance_mm:Math.max(0,finite(input.point_tolerance_mm??profile.point_tolerance_mm??DEFAULT_SNAP_SETTINGS.point_tolerance_mm,"point_tolerance_mm")),
+    linear_tolerance_mm:Math.max(0,finite(input.linear_tolerance_mm??profile.linear_tolerance_mm??DEFAULT_SNAP_SETTINGS.linear_tolerance_mm,"linear_tolerance_mm")),
+    angular_tolerance_deg:Math.max(0,finite(input.angular_tolerance_deg??profile.angular_tolerance_deg??DEFAULT_SNAP_SETTINGS.angular_tolerance_deg,"angular_tolerance_deg")),
+    coplanar_tolerance_mm:Math.max(0,finite(input.coplanar_tolerance_mm??profile.coplanar_tolerance_mm??DEFAULT_SNAP_SETTINGS.coplanar_tolerance_mm,"coplanar_tolerance_mm")),
+    tangent_tolerance_deg:Math.max(0,finite(input.tangent_tolerance_deg??profile.tangent_tolerance_deg??DEFAULT_SNAP_SETTINGS.tangent_tolerance_deg,"tangent_tolerance_deg")),
     enabled,
     allow_virtual_contextual:input.allow_virtual_contextual!==false,
     through_snap:input.through_snap===true,
@@ -103,8 +105,11 @@ export function createSnapCandidate(input={}){
     visible:input.visible!==false,
     virtual:input.virtual===true,
     through:input.through===true,
-    fitted:input.fitted===true,
+    fitted:input.fitted===true||String(input.geometry_status??"")==="Fitted",
+    geometry_status:String(input.geometry_status??(input.fitted===true?"Fitted":"Exact")),
+    fitting_error:freeze(structuredClone(input.fitting_error??{mm:0,deg:0})),
     confidence:input.confidence==null?1:clamp(finite(input.confidence,"confidence"),0,1),
+    evidence:freeze(structuredClone(Array.isArray(input.evidence)?input.evidence:(input.evidence==null?[]:[input.evidence]))),
     label:input.label==null?type:String(input.label),
     metadata:freeze(structuredClone(input.metadata??{}))
   };
