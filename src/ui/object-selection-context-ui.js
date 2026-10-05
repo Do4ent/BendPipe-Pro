@@ -1390,6 +1390,13 @@
     }
   }
 
+  function deleteMeshInstances(entries){
+    const p=project();if(!p)return;
+    const ids=new Set(entries.filter(entry=>entry.kind==="mesh-instance").map(entry=>String(entry.instanceId)));
+    if(!ids.size)return;
+    p.editable_mesh_instances=(p.editable_mesh_instances??[]).filter(item=>!ids.has(String(item?.id)));
+  }
+
   function finitePoint3(value,fallback={x:0,y:0,z:0}){
     const source=value&&typeof value==="object"?value:{};
     const out={};
@@ -1511,12 +1518,24 @@
     refApi()?.showAll?.(projectValue);
   }
 
-  function applyAction(action){
+  function applyAction(action,{dependencyResolved=false,dependencyResolution=null}={}){
     const entries=selectionEntries();
     const p=project();
     if(!p)return;
     if(action!=="show-all"&&!entries.length)return;
     if(action==="delete"&&!lockAllowed("delete"))return;
+    if(action==="delete"&&!dependencyResolved){
+      const api=deleteDependencyApi();
+      if(typeof api?.request!=="function"){
+        if(typeof ptToast==="function")ptToast("Удаление заблокировано: анализ зависимостей недоступен");
+        return false;
+      }
+      api.request(entries,(resolution)=>{
+        if(resolution?.cancelled||resolution?.strategy==="Cancel")return;
+        applyAction("delete",{dependencyResolved:true,dependencyResolution:resolution});
+      });
+      return true;
+    }
 
     const mutate=()=>{
       if(typeof syncActiveTubeFromState==="function")syncActiveTubeFromState();
@@ -1539,6 +1558,10 @@
         if(refs.length)refApi()?.applyBulkAction?.(p,"transparent");
         toggleTransparency(entries);
       }else if(action==="delete"){
+        if(dependencyResolution?.analysis){
+          const resolved=deleteDependencyApi()?.applyStrategy?.(p,dependencyResolution);
+          if(resolved?.ok===false)return false;
+        }
         const refs=selectedReferenceEntries(entries);
         let framePreview=null;
         let applyFrame=false;
@@ -1551,6 +1574,7 @@
         }
         deleteRows(entries);
         deleteTubes(entries);
+        deleteMeshInstances(entries);
         if(refs.length&&applyFrame&&framePreview?.frame){
           applyReferenceFrame(p,framePreview.frame);
         }else if(refs.length&&framePreview&&framePreview.status!=="exact"){
@@ -2055,6 +2079,7 @@
     parseSelectionKey:parseKey,
     selectionEntries,
     applyAction,
+    deleteMeshInstances,
     applyMove,
     beginAreaSelection,updateAreaSelection,finishAreaSelection,
     snapCandidatesAtEvent,
