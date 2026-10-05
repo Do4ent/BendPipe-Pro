@@ -31,7 +31,11 @@ export function normalizeConstraintReference(input={},index=0){
     subentity_id:input.subentity_id==null?null:String(input.subentity_id),
     role:input.role==null?null:String(input.role),
     assembly_context:clone(input.assembly_context??null),
-    snap_type:input.snap_type==null?null:String(input.snap_type)
+    snap_type:input.snap_type==null?null:String(input.snap_type),
+    geometry_status:input.geometry_status==null?null:String(input.geometry_status),
+    fitting_error:clone(input.fitting_error??null),
+    confidence:input.confidence==null?null:Number(input.confidence),
+    evidence:clone(input.evidence??null)
   });
 }
 export function createGeometricConstraint(input={},options={}){
