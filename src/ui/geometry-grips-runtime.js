@@ -4,6 +4,7 @@
   const eng=()=>window.TubeBenderEngineering??null;
   const ctx=()=>window.TubeBenderObjectContext??null;
   const snap=()=>window.TubeBenderSnapTracking??null;
+  const screenSpace=()=>window.TubeBenderScreenSpace??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const entries=()=>ctx()?.selectionEntries?.()??[];
   const canvas=()=>document.getElementById("threeCanvas");
@@ -62,9 +63,12 @@
     object.renderOrder=13600;return object;
   }
   function grip(point,color,data,shape="sphere"){
-    const p=scene(point);if(!p)return null;const s=visualScale(p),mat=new THREE.MeshBasicMaterial({color,depthTest:false,depthWrite:false});
-    const geo=shape==="cube"?new THREE.BoxGeometry(.13*s,.13*s,.13*s):new THREE.SphereGeometry(.075*s,14,10);
-    const mesh=new THREE.Mesh(geo,mat);mesh.position.copy(p);return tag(mesh,data);
+    const p=scene(point);if(!p)return null;const mat=new THREE.MeshBasicMaterial({color,depthTest:false,depthWrite:false}),base=shape==="cube"?.065:.075;
+    const geo=shape==="cube"?new THREE.BoxGeometry(base*2,base*2,base*2):new THREE.SphereGeometry(base,14,10);
+    const mesh=new THREE.Mesh(geo,mat);mesh.position.copy(p);tag(mesh,data);
+    if(screenSpace()?.register)screenSpace().register(mesh,"grip",base);
+    else mesh.scale.setScalar(visualScale(p));
+    return mesh;
   }
   function helperLine(a,b,color=0x74d9ff){
     const aa=scene(a),bb=scene(b);if(!aa||!bb)return null;
