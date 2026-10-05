@@ -200,13 +200,162 @@ export function projectPointToLine(pointValue,linePoint,lineDirection){
   return freeze({point:add(a,mul(d,t)),parameter:t,distance_mm:distance(p,add(a,mul(d,t)))});
 }
 
-export function perpendicularSnapCandidate({point:sourcePoint,line_point,line_direction,object_id=null,source="Editable"}={}){
+export function perpendicularSnapCandidate({
+  point:sourcePoint,
+  line_point,
+  line_direction,
+  object_id=null,
+  source="Editable",
+  parameter_min=null,
+  parameter_max=null,
+  subentity_id="perpendicular"
+}={}){
   const projection=projectPointToLine(sourcePoint,line_point,line_direction);
+  const finiteRange=Number.isFinite(Number(parameter_min))&&Number.isFinite(Number(parameter_max));
+  const min=finiteRange?Math.min(Number(parameter_min),Number(parameter_max)):null;
+  const max=finiteRange?Math.max(Number(parameter_min),Number(parameter_max)):null;
+  const onEntity=finiteRange?projection.parameter>=min-EPS&&projection.parameter<=max+EPS:false;
   return createSnapCandidate({
-    id:`${object_id??"line"}:perpendicular`,
-    type:"Perpendicular",source,object_id,subentity_id:"perpendicular",point:projection.point,
-    virtual:true,metadata:{line_parameter:projection.parameter,distance_mm:projection.distance_mm}
+    id:`${object_id??"line"}:perpendicular:${subentity_id}`,
+    type:"Perpendicular",source,object_id,subentity_id,point:projection.point,
+    virtual:!onEntity,
+    metadata:{
+      line_parameter:projection.parameter,
+      distance_mm:projection.distance_mm,
+      parameter_min:min,
+      parameter_max:max,
+      on_entity:onEntity,
+      extension:!onEntity,
+      constraint_type:"Perpendicular",
+      direction:unit(point(line_direction,"line_direction"),"line_direction")
+    }
   });
+}
+
+function planeBasis(normal,preferred){
+  const n=unit(point(normal??{x:0,y:0,z:1},"normal"),"normal");
+  let e1=preferred?sub(point(preferred),mul(n,dot(point(preferred),n))):null;
+  if(!e1||len(e1)<=EPS){
+    const fallback=Math.abs(n.x)<0.8?{x:1,y:0,z:0}:{x:0,y:1,z:0};
+    e1=cross(n,fallback);
+  }
+  e1=unit(e1,"plane basis");
+  const e2=unit(cross(n,e1),"plane basis perpendicular");
+  return {n,e1,e2};
+}
+function orientedAngleDeg(vector,basis){
+  const v=unit(vector,"arc vector");
+  let a=Math.atan2(dot(v,basis.e2),dot(v,basis.e1))*180/Math.PI;
+  if(a<0)a+=360;
+  return a;
+}
+function angleWithinArc(angle,start,end,tolerance=1e-7){
+  let a=((angle%360)+360)%360,s=((start%360)+360)%360,e=((end%360)+360)%360;
+  if(Math.abs(s-e)<=tolerance)return true;
+  if(e>=s)return a>=s-tolerance&&a<=e+tolerance;
+  return a>=s-tolerance||a<=e+tolerance;
+}
+function arcMembership(pointValue,centerValue,normal,{
+  arc_start_deg=null,
+  arc_end_deg=null,
+  arc_basis_x=null
+}={}){
+  if(!Number.isFinite(Number(arc_start_deg))||!Number.isFinite(Number(arc_end_deg)))return {finite:false,on_entity:true,angle_deg:null};
+  const c=point(centerValue,"center"),p=point(pointValue),basis=planeBasis(normal,arc_basis_x);
+  const angle=orientedAngleDeg(sub(p,c),basis);
+  return {finite:true,on_entity:angleWithinArc(angle,Number(arc_start_deg),Number(arc_end_deg)),angle_deg:angle};
+}
+
+export function tangentPointsFromPointToCircle({
+  point:sourcePoint,
+  center,
+  radius_mm,
+  normal={x:0,y:0,z:1}
+}={}){
+  const p=point(sourcePoint,"point"),c=point(center,"center"),r=finite(radius_mm,"radius_mm");
+  if(!(r>0))throw new RangeError("radius_mm must be > 0");
+  const basis0=planeBasis(normal,sub(p,c)),n=basis0.n;
+  const pc=sub(p,c),planeOffset=dot(pc,n),projected=sub(pc,mul(n,planeOffset)),d=len(projected);
+  if(d<r-EPS)return freeze([]);
+  if(d<=EPS)return freeze([]);
+  const e1=unit(projected,"projected source"),e2=unit(cross(n,e1),"tangent perpendicular");
+  const x=r*r/d;
+  const ySquared=Math.max(0,r*r-x*x);
+  const y=Math.sqrt(ySquared);
+  const first=add(c,add(mul(e1,x),mul(e2,y)));
+  if(y<=EPS)return freeze([first]);
+  const second=add(c,add(mul(e1,x),mul(e2,-y)));
+  return freeze([first,second]);
+}
+
+export function tangentSnapCandidates({
+  point:sourcePoint,
+  center,
+  radius_mm,
+  normal={x:0,y:0,z:1},
+  object_id=null,
+  source="Editable",
+  subentity_id="circle",
+  arc_start_deg=null,
+  arc_end_deg=null,
+  arc_basis_x=null
+}={}){
+  const solutions=tangentPointsFromPointToCircle({point:sourcePoint,center,radius_mm,normal});
+  return freeze(solutions.map((solution,index)=>{
+    const membership=arcMembership(solution,center,normal,{arc_start_deg,arc_end_deg,arc_basis_x});
+    return createSnapCandidate({
+      id:`${object_id??"circle"}:tangent:${subentity_id}:${index}`,
+      type:"Tangent",source,object_id,subentity_id:String(subentity_id)+":tangent:"+index,point:solution,
+      virtual:membership.finite&&!membership.on_entity,
+      label:membership.finite&&!membership.on_entity?"Tangent · Virtual":"Tangent",
+      metadata:{
+        radius_mm:Number(radius_mm),
+        center:point(center),
+        normal:unit(point(normal),"normal"),
+        solution_index:index,
+        on_entity:membership.on_entity,
+        extension:membership.finite&&!membership.on_entity,
+        arc_angle_deg:membership.angle_deg,
+        constraint_type:"Tangent"
+      }
+    });
+  }));
+}
+
+export function perpendicularCircleSnapCandidates({
+  point:sourcePoint,
+  center,
+  radius_mm,
+  normal={x:0,y:0,z:1},
+  object_id=null,
+  source="Editable",
+  subentity_id="circle",
+  arc_start_deg=null,
+  arc_end_deg=null,
+  arc_basis_x=null
+}={}){
+  const p=point(sourcePoint,"point"),c=point(center,"center"),r=finite(radius_mm,"radius_mm");
+  if(!(r>0))throw new RangeError("radius_mm must be > 0");
+  const n=unit(point(normal),"normal"),pc=sub(p,c),projected=sub(pc,mul(n,dot(pc,n)));
+  if(len(projected)<=EPS)return freeze([]);
+  const d=unit(projected,"projected source");
+  const points=[add(c,mul(d,r)),add(c,mul(d,-r))];
+  return freeze(points.map((solution,index)=>{
+    const membership=arcMembership(solution,c,n,{arc_start_deg,arc_end_deg,arc_basis_x});
+    return createSnapCandidate({
+      id:`${object_id??"circle"}:perpendicular:${subentity_id}:${index}`,
+      type:"Perpendicular",source,object_id,subentity_id:String(subentity_id)+":perpendicular:"+index,point:solution,
+      virtual:membership.finite&&!membership.on_entity,
+      label:membership.finite&&!membership.on_entity?"Perpendicular · Virtual":"Perpendicular",
+      metadata:{
+        radius_mm:r,center:c,normal:n,solution_index:index,
+        on_entity:membership.on_entity,
+        extension:membership.finite&&!membership.on_entity,
+        arc_angle_deg:membership.angle_deg,
+        constraint_type:"Perpendicular"
+      }
+    });
+  }));
 }
 
 export function lineLineRelation(lineA,lineB,{tolerance_mm=0.01}={}){
