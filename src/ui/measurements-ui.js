@@ -589,12 +589,14 @@
     let changed=0;
     p.engineering_dimensions=savedDimensions().map(dimension=>{
       if(!isSectionDerivedDimension(dimension))return dimension;
+      const alreadyStale=String(dimension?.status??"")==="Stale";
+      if(alreadyStale&&dimension?.stale_reason&&dimension?.stale_at_section_view)return dimension;
       changed++;
       return {
         ...clone(dimension),
         status:"Stale",
-        stale_reason:String(reason),
-        stale_at_section_view:clone(window.TubeBenderSectionView?.capture?.()??null)
+        stale_reason:dimension?.stale_reason??String(reason),
+        stale_at_section_view:clone(dimension?.stale_at_section_view??window.TubeBenderSectionView?.capture?.()??null)
       };
     });
     if(changed){
