@@ -1,6 +1,7 @@
 (()=>{
   const SECTION_URL="__TB_SECTION_VIEW_MODULE_URL__";
-  let domain=null,installed=false,panel=null,toggle=null,helperGroup=null;
+  const SECTION_DERIVED_URL="__TB_SECTION_DERIVED_MODULE_URL__";
+  let domain=null,derived=null,installed=false,panel=null,toggle=null,helperGroup=null;
   const eng=()=>window.TubeBenderEngineering??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const toast=m=>{try{eng()?.toast?.(String(m??""));}catch{}};
@@ -109,6 +110,83 @@
       z:Number.isFinite(parts[2])?parts[2]:fallback.z
     };
   }
+
+  function screenDistance(point,event,canvas){
+    if(!point||!event||!canvas||typeof camera==="undefined"||!camera||typeof THREE==="undefined")return 0;
+    const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return 0;
+    const scale=sceneScale(),v=new THREE.Vector3(point.x*scale,point.y*scale,point.z*scale).project(camera);
+    const sx=rect.left+(v.x+1)*.5*rect.width,sy=rect.top+(1-v.y)*.5*rect.height;
+    return Math.hypot(Number(event.clientX)-sx,Number(event.clientY)-sy);
+  }
+  function sourceForObject(object){
+    let item=object,source="Editable",objectId=object?.uuid??"section-object";
+    while(item){
+      const data=item.userData??{};
+      if(data.referenceEditableInstanceId){source="MeshFitted";objectId=String(data.referenceEditableInstanceId);break;}
+      if(data.referenceNodeId&&data.referenceSceneId){source="SourceReference";objectId=String(data.referenceSceneId)+":"+String(data.referenceNodeId);break;}
+      if(data.constructionId||data.constructionGeometryId){source="Construction";objectId=String(data.constructionId??data.constructionGeometryId);}
+      if(data.tubeId){source="Tube";objectId=String(data.tubeId);}
+      item=item.parent;
+    }
+    return {source,objectId};
+  }
+  function triangleFromHit(hit){
+    const geometry=hit?.object?.geometry,position=geometry?.attributes?.position,face=hit?.face;
+    if(!position||!face)return null;
+    const scale=sceneScale(),out=[];
+    for(const index of [face.a,face.b,face.c]){
+      if(!Number.isInteger(index)||index<0||index>=position.count)return null;
+      const world=new THREE.Vector3().fromBufferAttribute(position,index);
+      hit.object.localToWorld(world);
+      out.push({x:world.x/scale,y:world.y/scale,z:world.z/scale});
+    }
+    return out;
+  }
+  function candidate(id,type,point,event,canvas,{source,objectId,segment,face,index}={}){
+    return Object.freeze({
+      id:String(id),type:String(type),source:"SectionDerived",
+      object_id:String(objectId??"section"),subentity_id:"section:"+String(face??"plane")+":"+String(index??0),
+      point:{x:Number(point.x),y:Number(point.y),z:Number(point.z)},
+      screen_distance_px:screenDistance(point,event,canvas),
+      visible:true,virtual:true,through:false,fitted:false,
+      geometry_status:"SectionDerived",fitting_error:{mm:0,deg:0},confidence:1,
+      evidence:[{kind:"SectionDerived",source_geometry:String(source??"Editable"),section_face:String(face??"plane")}],
+      label:"Section-derived "+type,
+      metadata:{
+        section_derived:true,section_mode:String(current().mode),section_face:String(face??"plane"),
+        source_geometry:String(source??"Editable"),
+        primitive:segment?{kind:"segment",start:{...segment[0]},end:{...segment[1]}}:null
+      }
+    });
+  }
+  function snapCandidatesAtEvent(event){
+    const state=current();
+    if(!state.enabled||state.mode==="off"||!derived||typeof THREE==="undefined"||typeof pipeGroup==="undefined"||!pipeGroup||typeof camera==="undefined"||!camera)return Object.freeze([]);
+    const canvas=document.getElementById("threeCanvas"),rect=canvas?.getBoundingClientRect?.();
+    if(!canvas||!rect?.width||!rect?.height)return Object.freeze([]);
+    const raycaster=new THREE.Raycaster();
+    const mouse=new THREE.Vector2(((event.clientX-rect.left)/rect.width)*2-1,-((event.clientY-rect.top)/rect.height)*2+1);
+    raycaster.setFromCamera(mouse,camera);
+    const hits=raycaster.intersectObjects(pipeGroup.children,true),records=[],seen=new Set();
+    const add=record=>{if(record&&!seen.has(record.id)){seen.add(record.id);records.push(record);}};
+    for(const hit of hits){
+      if(records.length>=18)break;
+      if(hit.object?.userData?.helper||hit.object?.userData?.hitProxy||hit.object?.visible===false)continue;
+      const triangle=triangleFromHit(hit);if(!triangle)continue;
+      const segments=derived.sectionSegmentsFromTriangles([triangle],state);
+      const src=sourceForObject(hit.object);
+      segments.forEach((item,segmentIndex)=>{
+        const segment=item.segment,a=segment[0],b=segment[1],mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2,z:(a.z+b.z)/2};
+        const base="section:"+src.objectId+":"+String(item.face)+":"+String(hit.faceIndex??segmentIndex);
+        add(candidate(base+":a","Endpoint",a,event,canvas,{...src,segment,face:item.face,index:segmentIndex}));
+        add(candidate(base+":m","Midpoint",mid,event,canvas,{...src,segment,face:item.face,index:segmentIndex}));
+        add(candidate(base+":b","Endpoint",b,event,canvas,{...src,segment,face:item.face,index:segmentIndex}));
+        add(candidate(base+":axis","LineAxis",mid,event,canvas,{...src,segment,face:item.face,index:segmentIndex}));
+      });
+    }
+    return Object.freeze(records);
+  }
+
   function ensurePanel(){
     if(panel)return panel;
     const style=document.createElement("style");style.id="tbSectionStyles";style.textContent=
@@ -135,9 +213,9 @@
   function dispatch(){try{window.dispatchEvent(new CustomEvent("tubebender-section-view-change",{detail:{state:capture()}}));}catch{}}
   async function install(){
     if(installed)return;installed=true;
-    try{domain=await import(SECTION_URL);}catch(error){console.error("Section View failed",error);return;}
+    try{[domain,derived]=await Promise.all([import(SECTION_URL),import(SECTION_DERIVED_URL)]);}catch(error){console.error("Section View failed",error);return;}
     domain.ensureSectionViewState(project());ensurePanel();renderPanel();apply();
-    window.TubeBenderSectionView=Object.freeze({setPlane,setBox,disable,flipPlane,setHelper,capture,restore,apply,openPanel:()=>{ensurePanel().classList.add("open");renderPanel();},domain});
+    window.TubeBenderSectionView=Object.freeze({setPlane,setBox,disable,flipPlane,setHelper,capture,restore,apply,snapCandidatesAtEvent,openPanel:()=>{ensurePanel().classList.add("open");renderPanel();},domain,derived});
     dispatch();
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
