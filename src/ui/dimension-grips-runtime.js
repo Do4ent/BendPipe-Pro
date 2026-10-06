@@ -1,7 +1,7 @@
 (()=>{
   const DIMENSIONS_URL="__TB_DIMENSION_GRIPS_DIMENSIONS_URL__";
   const DYNAMIC_INPUT_URL="__TB_DIMENSION_GRIPS_DYNAMIC_INPUT_URL__";
-  let dimensions=null,dynamicInput=null,installed=false,root=null,activeId=null,drag=null,editor=null,suppressUntil=0;
+  let dimensions=null,dynamicInput=null,installed=false,root=null,activeId=null,drag=null,editor=null,hoverLabel=null,suppressUntil=0;
   const eng=()=>window.TubeBenderEngineering??null;
   const snap=()=>window.TubeBenderSnapTracking??null;
   const screenSpace=()=>window.TubeBenderScreenSpace??null;
@@ -153,6 +153,30 @@
     const group=new THREE.Group();group.name="Engineering Dimensions";group.userData={helper:true,objectSelectionHelper:true,dimensionGripRuntime:true};
     for(const dimension of saved())renderDimension(group,dimension);
     pipeGroup.add(group);root=group;try{markViewerDirty?.();}catch{}return true;
+  }
+  function dimensionHoverText(dimension){
+    if(!dimension)return "";
+    const value=dimensionLabelText(dimension);
+    const status=String(dimension?.status??"NeedsUpdate");
+    const reason=staleDimension(dimension)&&dimension?.stale_reason?(" · "+String(dimension.stale_reason)):"";
+    return value+" · "+status+reason;
+  }
+  function ensureHoverLabel(){
+    if(hoverLabel)return hoverLabel;
+    const node=document.createElement("div");node.id="tbDimensionHover";
+    node.style.cssText="position:fixed;z-index:120490;display:none;pointer-events:none;max-width:360px;padding:5px 8px;border:1px solid #52677f;border-radius:5px;background:rgba(12,20,29,.94);color:#edf4fb;font:12px Segoe UI,Arial,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.35)";
+    document.body.appendChild(node);hoverLabel=node;return node;
+  }
+  function updateHover(event){
+    if(drag||editor){if(hoverLabel)hoverLabel.style.display="none";return null;}
+    const picked=pick(event),dimension=dimensionById(picked?.data?.dimensionId);
+    const node=ensureHoverLabel();
+    if(!dimension){node.style.display="none";return null;}
+    node.textContent=dimensionHoverText(dimension);
+    node.style.display="block";
+    node.style.left=Math.min((Number(event.clientX)||0)+12,Math.max(8,window.innerWidth-node.offsetWidth-8))+"px";
+    node.style.top=Math.min((Number(event.clientY)||0)+14,Math.max(8,window.innerHeight-node.offsetHeight-8))+"px";
+    return dimension;
   }
   function pick(event){
     if(!root||typeof camera==="undefined")return null;const c=canvas(),rect=c?.getBoundingClientRect?.();if(!c||!rect?.width||!rect?.height)return null;
@@ -370,7 +394,7 @@
     if(picked.data.dimensionGrip){beginDrag(event,picked);return;}
     selectDimension(picked.data.dimensionId);event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();
   }
-  function onPointerMove(event){if(drag)updateDrag(event);}
+  function onPointerMove(event){if(drag)updateDrag(event);else updateHover(event);}
   function onPointerUp(event){if(drag)finishDrag(event);}
   function onDoubleClick(event){
     const picked=pick(event);if(!picked||!picked.data.dimensionText)return;
@@ -385,7 +409,7 @@
     }
   }
   function installListeners(){
-    canvas()?.addEventListener("pointerdown",onPointerDown,true);window.addEventListener("pointermove",onPointerMove,true);window.addEventListener("pointerup",onPointerUp,true);canvas()?.addEventListener("dblclick",onDoubleClick,true);canvas()?.addEventListener("click",onClick,true);window.addEventListener("keydown",onKey,true);
+    canvas()?.addEventListener("pointerdown",onPointerDown,true);canvas()?.addEventListener("pointermove",onPointerMove,true);canvas()?.addEventListener("pointerleave",()=>{if(hoverLabel)hoverLabel.style.display="none";},true);window.addEventListener("pointermove",event=>{if(drag)onPointerMove(event);},true);window.addEventListener("pointerup",onPointerUp,true);canvas()?.addEventListener("dblclick",onDoubleClick,true);canvas()?.addEventListener("click",onClick,true);window.addEventListener("keydown",onKey,true);
   }
   async function install(){
     if(installed)return;installed=true;
@@ -393,7 +417,7 @@
     installListeners();rebuild();
     window.addEventListener("tubebender-dimension-change",()=>{syncActiveDimensionFromSelection();rebuild();});window.addEventListener("tubebender-assembly-change",()=>rebuild());window.addEventListener("tubebender-layer-change",()=>rebuild());window.addEventListener("tubebender-selection-change",syncActiveDimensionFromSelection);window.addEventListener("tubebender-history-change",()=>{syncActiveDimensionFromSelection();rebuild();});
     if(typeof renderAll==="function"&&!renderAll._tbDimensionGrips){const original=renderAll;renderAll=function(...args){const result=original.apply(this,args);try{rebuild();}catch{}return result;};renderAll._tbDimensionGrips=true;}
-    window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,deleteDimension,setDimensionVisible,syncActiveDimensionFromSelection,activeDimension:()=>dimensionById(activeId),dimensionLabelText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
+    window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,deleteDimension,setDimensionVisible,syncActiveDimensionFromSelection,activeDimension:()=>dimensionById(activeId),dimensionLabelText,dimensionHoverText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
 })();
