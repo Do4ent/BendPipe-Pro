@@ -86,6 +86,14 @@
       const tube=(p?.tubes??[]).find(x=>String(x?.id)===String(ref.tube_id));
       entry.parent_name=String(tube?.name??tube?.id??"");
     }
+    if(ref.kind==="dimension"){
+      entry.dimension_kind=String(object?.kind??"");
+      entry.dimension_mode=String(object?.mode??"Reference");
+      entry.dimension_status=String(object?.status??"NeedsUpdate");
+      entry.reference_count=Array.isArray(object?.references)?object.references.length:0;
+      entry.section_derived=(object?.references??[]).some(reference=>reference?.geometry_status==="SectionDerived"||reference?.section_snapshot);
+      entry.stale=String(object?.status??"")==="Stale";
+    }
     return entry;
   }
   function allProjectRefs(){
