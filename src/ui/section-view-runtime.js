@@ -1,7 +1,7 @@
 (()=>{
   const SECTION_URL="__TB_SECTION_VIEW_MODULE_URL__";
   const SECTION_DERIVED_URL="__TB_SECTION_DERIVED_MODULE_URL__";
-  let domain=null,derived=null,installed=false,panel=null,toggle=null,helperGroup=null;
+  let domain=null,derived=null,installed=false,panel=null,toggle=null,helperGroup=null,selectionOverlay=null;
   const derivedSelectionRegistry=new Map();
   const eng=()=>window.TubeBenderEngineering??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
@@ -34,6 +34,40 @@
       new THREE.Plane(new THREE.Vector3(0,0, 1),-min.z*scale),
       new THREE.Plane(new THREE.Vector3(0,0,-1), max.z*scale)
     ];
+  }
+  function clearSelectionOverlay(){
+    if(!selectionOverlay)return;
+    try{selectionOverlay.parent?.remove(selectionOverlay);}catch{}
+    try{selectionOverlay.traverse(obj=>{obj.geometry?.dispose?.();if(Array.isArray(obj.material))obj.material.forEach(m=>m?.dispose?.());else obj.material?.dispose?.();});}catch{}
+    selectionOverlay=null;
+  }
+  function renderSelectionOverlay(entries=null){
+    clearSelectionOverlay();
+    if(typeof THREE==="undefined"||typeof pipeGroup==="undefined"||!pipeGroup)return false;
+    const selectedEntries=Array.isArray(entries)?entries:(window.TubeBenderObjectContext?.selectionEntries?.()??[]);
+    const records=selectedEntries
+      .filter(entry=>entry?.kind==="section-derived")
+      .map(entry=>derivedSelectionById(entry.derivedId))
+      .filter(record=>record?.segment?.start&&record?.segment?.end);
+    if(!records.length){try{if(typeof markViewerDirty==="function")markViewerDirty();}catch{}return false;}
+    const scale=sceneScale(),group=new THREE.Group();group.id="tbSectionDerivedSelectionOverlay";
+    group.userData={helper:true,objectSelectionHelper:true,sectionDerivedSelection:true};
+    for(const record of records){
+      const a=record.segment.start,b=record.segment.end;
+      const points=[new THREE.Vector3(a.x*scale,a.y*scale,a.z*scale),new THREE.Vector3(b.x*scale,b.y*scale,b.z*scale)];
+      const line=new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(points),
+        new THREE.LineBasicMaterial({depthTest:false,depthWrite:false})
+      );
+      line.renderOrder=11940;line.userData={helper:true,objectSelectionHelper:true,sectionDerivedSelection:true,derivedId:record.id};group.add(line);
+      for(const p of points){
+        const marker=new THREE.Mesh(new THREE.SphereGeometry(Math.max(.025,2.5*scale),10,7),new THREE.MeshBasicMaterial({depthTest:false,depthWrite:false}));
+        marker.position.copy(p);marker.renderOrder=11941;marker.userData={helper:true,objectSelectionHelper:true,sectionDerivedSelection:true,derivedId:record.id};group.add(marker);
+      }
+    }
+    pipeGroup.add(group);selectionOverlay=group;
+    try{if(typeof markViewerDirty==="function")markViewerDirty();}catch{}
+    return true;
   }
   function clearHelper(){
     if(!helperGroup)return;
@@ -101,7 +135,7 @@
   function restore(snapshot,{recordHistory=false}={}){
     const mutate=()=>{project().section_view={...domain.normalizeSectionView(snapshot??{})};return true;};
     if(recordHistory)return command("Восстановить Section View",mutate);
-    mutate();apply();renderPanel();dispatch();return true;
+    mutate();apply();renderPanel();renderSelectionOverlay();dispatch();return true;
   }
   function parseVec(text,fallback){
     const parts=String(text??"").replace(/,/g,".").split(";").map(Number);
@@ -278,7 +312,9 @@
     if(installed)return;installed=true;
     try{[domain,derived]=await Promise.all([import(SECTION_URL),import(SECTION_DERIVED_URL)]);}catch(error){console.error("Section View failed",error);return;}
     domain.ensureSectionViewState(project());ensurePanel();renderPanel();apply();
-    window.TubeBenderSectionView=Object.freeze({setPlane,setBox,disable,flipPlane,setHelper,capture,restore,apply,snapCandidatesAtEvent,selectionCandidatesAtEvent,derivedSelectionById,openPanel:()=>{ensurePanel().classList.add("open");renderPanel();},domain,derived});
+    window.addEventListener("tubebender-selection-change",(event)=>renderSelectionOverlay(event?.detail?.entries));
+    window.addEventListener("tubebender-section-view-change",()=>renderSelectionOverlay());
+    window.TubeBenderSectionView=Object.freeze({setPlane,setBox,disable,flipPlane,setHelper,capture,restore,apply,snapCandidatesAtEvent,selectionCandidatesAtEvent,derivedSelectionById,renderSelectionOverlay,openPanel:()=>{ensurePanel().classList.add("open");renderPanel();},domain,derived});
     dispatch();
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
