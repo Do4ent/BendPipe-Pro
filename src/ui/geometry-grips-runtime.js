@@ -456,6 +456,23 @@
     }
     return null;
   }
+  function focusScalarEdit(kind){
+    const selection=selectedGeometry();
+    if(!selection||selection.kind==="tube"){toast("Выберите LINE или BEND");return false;}
+    const wanted=String(kind)==="length"?"line-length":String(kind)==="angle"?"bend-angle":String(kind);
+    if(wanted==="line-length"&&selection.row?.type!=="LINE"){toast("Для Length выберите LINE");return false;}
+    if(wanted==="bend-angle"&&selection.row?.type!=="BEND"){toast("Для Angle выберите BEND");return false;}
+    const handles=handleDescriptors(selection);
+    let handle=handles.find(item=>item?.edit===wanted&&Number(item?.targetRowIndex??selection.rowIndex)===Number(selection.rowIndex));
+    if(!handle)handle=handles.find(item=>item?.edit===wanted);
+    if(!handle){toast(wanted==="line-length"?"Length grip недоступен":"Angle grip недоступен");return false;}
+    activeHandle=handle;
+    const p=ensurePanel();p.classList.add("open");updatePanel(selection);
+    const input=p.querySelector("[data-geometry-grip-value]");
+    setTimeout(()=>{input?.focus?.();input?.select?.();},0);
+    return true;
+  }
+
   function applyExact(){
     const selection=selectedGeometry();if(!selection||!activeHandle)return false;
     const raw=panel?.querySelector("[data-geometry-grip-value]")?.value??"";
@@ -494,7 +511,7 @@
     ensurePanel();canvas()?.addEventListener("pointerdown",onDown,true);window.addEventListener("pointermove",onMove,true);window.addEventListener("pointerup",onUp,true);canvas()?.addEventListener("click",onClick,true);canvas()?.addEventListener("dblclick",onDoubleClick,false);window.addEventListener("keydown",onKey,true);
     window.addEventListener("tubebender-selection-change",selectionChanged);window.addEventListener("tubebender-lock-change",rebuild);window.addEventListener("tubebender-layer-change",rebuild);window.addEventListener("tubebender-tolerance-change",rebuild);
     if(typeof renderAll==="function"&&!renderAll._tbGeometryGrips){const original=renderAll;renderAll=function(...args){const result=original.apply(this,args);try{rebuild();}catch{}return result;};renderAll._tbGeometryGrips=true;}
-    rebuild();window.TubeBenderGeometryGrips=Object.freeze({rebuild,selectedGeometry,handleDescriptors,contextHandleDescriptors,gripDisplayMode,applyExact,setShowAll:(value)=>{showAllGrips=value===true;rebuild();},enterInternal:(tubeId,rowIndex)=>{internalEdit={tubeId:String(tubeId),rowIndex:Number(rowIndex)};rebuild();},exitInternal:()=>{internalEdit=null;rebuild();}});
+    rebuild();window.TubeBenderGeometryGrips=Object.freeze({rebuild,selectedGeometry,handleDescriptors,contextHandleDescriptors,gripDisplayMode,applyExact,focusScalarEdit,setShowAll:(value)=>{showAllGrips=value===true;rebuild();},enterInternal:(tubeId,rowIndex)=>{internalEdit={tubeId:String(tubeId),rowIndex:Number(rowIndex)};rebuild();},exitInternal:()=>{internalEdit=null;rebuild();}});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
 })();
