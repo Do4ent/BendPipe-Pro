@@ -25,6 +25,7 @@ const transformGizmoRuntimePath = path.join(root, "src", "ui", "transform-gizmo-
 const geometryGripsRuntimePath = path.join(root, "src", "ui", "geometry-grips-runtime.js");
 const screenSpaceDisplayRuntimePath = path.join(root, "src", "ui", "screen-space-display-runtime.js");
 const interactionPriorityRuntimePath = path.join(root, "src", "ui", "interaction-priority-runtime.js");
+const repeatCommandRuntimePath = path.join(root, "src", "ui", "repeat-command-runtime.js");
 const propertiesPanelRuntimePath = path.join(root, "src", "ui", "properties-panel-runtime.js");
 const objectLockRuntimePath = path.join(root, "src", "ui", "object-lock-runtime.js");
 const layersRuntimePath = path.join(root, "src", "ui", "layers-runtime.js");
@@ -47,6 +48,7 @@ const snapEngineDomainPath = path.join(root, "src", "domain", "snapping", "snap-
 const transformCommandsDomainPath = path.join(root, "src", "domain", "editing", "transform-commands.mjs");
 const copyDependenciesDomainPath = path.join(root, "src", "domain", "editing", "copy-dependencies.mjs");
 const objectLocksDomainPath = path.join(root, "src", "domain", "editing", "object-locks.mjs");
+const repeatCommandDomainPath = path.join(root, "src", "domain", "editing", "repeat-command.mjs");
 const layersDomainPath = path.join(root, "src", "domain", "project", "layers.mjs");
 const groupsDomainPath = path.join(root, "src", "domain", "project", "groups.mjs");
 const assembliesDomainPath = path.join(root, "src", "domain", "project", "assemblies.mjs");
@@ -2441,6 +2443,13 @@ const objectSelectionContextUi = fs.readFileSync(objectSelectionContextUiPath, "
 const bundledObjectSelectionContextUi =
   `<script data-tubebender-bundled="object-selection-context-ui">\n${objectSelectionContextUi}\n</script>`;
 
+const repeatCommandDomainUrl = moduleDataUrl(repeatCommandDomainPath);
+const repeatCommandRuntime = fs.readFileSync(repeatCommandRuntimePath, "utf8")
+  .replace("__TB_REPEAT_COMMAND_MODULE_URL__", repeatCommandDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledRepeatCommandRuntime =
+  `<script data-tubebender-bundled="repeat-command-runtime">\n${repeatCommandRuntime}\n</script>`;
+
 const projectTubeBarLayoutFix = fs.readFileSync(projectTubeBarLayoutFixPath, "utf8").replace(/<\/script/gi, "<\\/script");
 const bundledProjectTubeBarLayoutFix =
   `<script data-tubebender-bundled="project-tube-bar-layout-fix">\n${projectTubeBarLayoutFix}\n</script>`;
@@ -2707,6 +2716,8 @@ output =
   bundledDwfxReferenceSceneUi +
   "\n" +
   bundledObjectSelectionContextUi +
+  "\n" +
+  bundledRepeatCommandRuntime +
   "\n" +
   bundledProjectTubeBarLayoutFix +
   "\n" +
