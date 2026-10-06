@@ -26,6 +26,7 @@ const geometryGripsRuntimePath = path.join(root, "src", "ui", "geometry-grips-ru
 const screenSpaceDisplayRuntimePath = path.join(root, "src", "ui", "screen-space-display-runtime.js");
 const interactionPriorityRuntimePath = path.join(root, "src", "ui", "interaction-priority-runtime.js");
 const repeatCommandRuntimePath = path.join(root, "src", "ui", "repeat-command-runtime.js");
+const hotkeysRuntimePath = path.join(root, "src", "ui", "hotkeys-runtime.js");
 const propertiesPanelRuntimePath = path.join(root, "src", "ui", "properties-panel-runtime.js");
 const objectLockRuntimePath = path.join(root, "src", "ui", "object-lock-runtime.js");
 const layersRuntimePath = path.join(root, "src", "ui", "layers-runtime.js");
@@ -49,6 +50,7 @@ const transformCommandsDomainPath = path.join(root, "src", "domain", "editing", 
 const copyDependenciesDomainPath = path.join(root, "src", "domain", "editing", "copy-dependencies.mjs");
 const objectLocksDomainPath = path.join(root, "src", "domain", "editing", "object-locks.mjs");
 const repeatCommandDomainPath = path.join(root, "src", "domain", "editing", "repeat-command.mjs");
+const hotkeysDomainPath = path.join(root, "src", "domain", "ui", "hotkeys.mjs");
 const layersDomainPath = path.join(root, "src", "domain", "project", "layers.mjs");
 const groupsDomainPath = path.join(root, "src", "domain", "project", "groups.mjs");
 const assembliesDomainPath = path.join(root, "src", "domain", "project", "assemblies.mjs");
@@ -2450,6 +2452,13 @@ const repeatCommandRuntime = fs.readFileSync(repeatCommandRuntimePath, "utf8")
 const bundledRepeatCommandRuntime =
   `<script data-tubebender-bundled="repeat-command-runtime">\n${repeatCommandRuntime}\n</script>`;
 
+const hotkeysDomainUrl = moduleDataUrl(hotkeysDomainPath);
+const hotkeysRuntime = fs.readFileSync(hotkeysRuntimePath, "utf8")
+  .replace("__TB_HOTKEYS_MODULE_URL__", hotkeysDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledHotkeysRuntime =
+  `<script data-tubebender-bundled="hotkeys-runtime">\n${hotkeysRuntime}\n</script>`;
+
 const projectTubeBarLayoutFix = fs.readFileSync(projectTubeBarLayoutFixPath, "utf8").replace(/<\/script/gi, "<\\/script");
 const bundledProjectTubeBarLayoutFix =
   `<script data-tubebender-bundled="project-tube-bar-layout-fix">\n${projectTubeBarLayoutFix}\n</script>`;
@@ -2718,6 +2727,8 @@ output =
   bundledObjectSelectionContextUi +
   "\n" +
   bundledRepeatCommandRuntime +
+  "\n" +
+  bundledHotkeysRuntime +
   "\n" +
   bundledProjectTubeBarLayoutFix +
   "\n" +
