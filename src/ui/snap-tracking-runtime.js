@@ -9,8 +9,8 @@
   let modes={ortho:true,polar:false,polar_increment_deg:15};
   let snapOptions={through_snap:false};
   const SOURCE_PREF_KEY="tubebender.snapSourcePreferences.v1";
-  const SOURCE_NAMES=["Editable","Tube","Construction","SourceReference","MeshFitted","Grid"];
-  const SOURCE_LABELS={Editable:"Editable",Tube:"Tube",Construction:"Construction",SourceReference:"Source / Reference",MeshFitted:"Mesh / Fitted",Grid:"Grid"};
+  const SOURCE_NAMES=["Editable","Tube","Construction","SourceReference","MeshFitted","SectionDerived","Grid"];
+  const SOURCE_LABELS={Editable:"Editable",Tube:"Tube",Construction:"Construction",SourceReference:"Source / Reference",MeshFitted:"Mesh / Fitted",SectionDerived:"Section-derived",Grid:"Grid"};
   let sourcePreferences={order:[...SOURCE_NAMES],enabled:Object.fromEntries(SOURCE_NAMES.map(name=>[name,true]))};
   let temporaryExternalExcluded=false;
 
