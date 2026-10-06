@@ -18,5 +18,5 @@ test("question 118: dimension label metadata exposes stale status and reason", (
 });
 
 test("question 118: label text helper is exposed for UI integration", () => {
-  assert.match(runtime, /dimensionLabelText,openEditor/);
+  assert.match(runtime, /dimensionLabelText,dimensionHoverText,openEditor/);
 });
