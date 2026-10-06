@@ -255,6 +255,25 @@
     }
     suppressUntil=Date.now()+120;rebuild();event?.preventDefault?.();event?.stopPropagation?.();event?.stopImmediatePropagation?.();return ok;
   }
+  function deleteDimension(id){
+    const dimension=dimensionById(id),p=project();if(!dimension||!p)return false;
+    const run=()=>{
+      const before=saved(),next=before.filter(item=>String(item?.id)!==String(id));
+      if(next.length===before.length)return false;
+      p.engineering_dimensions=next.map(clone);return true;
+    };
+    const command=eng()?.modelCommand;
+    let ok;try{ok=typeof command==="function"?command("Удалить Dimension",run):run();}catch(error){toast(error?.message??error);return false;}
+    if(ok===false)return false;
+    if(String(activeId)===String(id))activeId=null;
+    try{
+      const context=window.TubeBenderObjectContext;
+      const kept=(context?.selectionKeys?.()??[]).filter(key=>context?.parseSelectionKey?.(key)?.kind!=="dimension");
+      context?.replaceSelectionKeys?.(kept,{announce:true});
+    }catch{}
+    try{eng()?.save?.();eng()?.renderAll?.();}catch{}
+    rebuild();dispatch(id,"delete-dimension");toast("Dimension удалён");return true;
+  }
   function selectDimension(id){
     activeId=String(id);
     const key="dimension:"+encodeURIComponent(String(id));
@@ -311,7 +330,12 @@
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();
   }
   function onClick(event){if(Date.now()<suppressUntil){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();}}
-  function onKey(event){if(event.key==="Escape"){if(drag)finishDrag(event,{cancel:true});else if(editor)closeEditor();else if(activeId){activeId=null;rebuild();}}}
+  function onKey(event){
+    if(event.key==="Escape"){if(drag)finishDrag(event,{cancel:true});else if(editor)closeEditor();else if(activeId){activeId=null;rebuild();}return;}
+    if((event.key==="Delete"||event.key==="Backspace")&&activeId&&!drag&&!editor){
+      event.preventDefault();deleteDimension(activeId);
+    }
+  }
   function installListeners(){
     canvas()?.addEventListener("pointerdown",onPointerDown,true);window.addEventListener("pointermove",onPointerMove,true);window.addEventListener("pointerup",onPointerUp,true);canvas()?.addEventListener("dblclick",onDoubleClick,true);canvas()?.addEventListener("click",onClick,true);window.addEventListener("keydown",onKey,true);
   }
@@ -321,7 +345,7 @@
     installListeners();rebuild();
     window.addEventListener("tubebender-dimension-change",()=>rebuild());window.addEventListener("tubebender-assembly-change",()=>rebuild());window.addEventListener("tubebender-layer-change",()=>rebuild());
     if(typeof renderAll==="function"&&!renderAll._tbDimensionGrips){const original=renderAll;renderAll=function(...args){const result=original.apply(this,args);try{rebuild();}catch{}return result;};renderAll._tbDimensionGrips=true;}
-    window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,activeDimension:()=>dimensionById(activeId),dimensionLabelText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
+    window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,deleteDimension,activeDimension:()=>dimensionById(activeId),dimensionLabelText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
 })();
