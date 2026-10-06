@@ -1,7 +1,7 @@
 (()=>{
   const GEOMETRY_URL="__TB_GEOMETRY_MEASUREMENTS_MODULE_URL__";
   const DIMENSIONS_URL="__TB_DIMENSIONS_MODULE_URL__";
-  let geometry=null,dimensions=null,installed=false,panel=null,resultsPanel=null,button=null,lastResult=null,lastSelectionKey="",poll=null,formulaMeasurementValue=null,dimensionManagerFilter="all",dimensionManagerSort="project";
+  let geometry=null,dimensions=null,installed=false,panel=null,resultsPanel=null,button=null,lastResult=null,lastSelectionKey="",poll=null,formulaMeasurementValue=null,dimensionManagerFilter="all",dimensionManagerSort="project",dimensionManagerSearch="";
   const quick={active:false,points:[],candidates:[],current:null,result:null};
 
   const $=(s,r=document)=>r.querySelector(s);
@@ -770,12 +770,20 @@
       '<div class="tb-measure-actions"><button data-copy-rebind-audit="'+esc(dimension.id)+'">Copy audit JSON</button></div>'+rows+'</details>';
   }
 
+  function dimensionSearchText(dimension){
+    const sources=(dimension?.references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean);
+    return [
+      dimension?.id,dimension?.note,dimension?.kind,dimension?.mode,dimension?.status,dimension?.stale_reason,...sources
+    ].filter(value=>value!=null).join(" ").toLowerCase();
+  }
   function filteredDimensionManagerItems(items=savedDimensions()){
     let result=items;
     if(dimensionManagerFilter==="stale")result=items.filter(dimension=>String(dimension?.status??"")==="Stale");
     else if(dimensionManagerFilter==="rebound")result=items.filter(dimension=>dimension?.rebound_from_stale===true);
     else if(dimensionManagerFilter==="reference")result=items.filter(dimension=>String(dimension?.mode??"")==="Reference");
     else if(dimensionManagerFilter==="driving")result=items.filter(dimension=>String(dimension?.mode??"")==="Driving");
+    const search=String(dimensionManagerSearch??"").trim().toLowerCase();
+    if(search)result=result.filter(dimension=>dimensionSearchText(dimension).includes(search));
     if(dimensionManagerSort!=="audit")return result;
     const rank=dimension=>String(dimension?.status??"")==="Stale"?0:dimension?.rebound_from_stale===true?1:2;
     return result.map((dimension,index)=>({dimension,index}))
@@ -823,7 +831,10 @@
       '</div>'+
       '<div class="tb-measure-actions" data-dimension-audit-sort>'+
       '<button data-dimension-sort="project" '+(dimensionManagerSort==="project"?'disabled':'')+'>Project order</button>'+
-      '<button data-dimension-sort="audit" '+(dimensionManagerSort==="audit"?'disabled':'')+'>Audit priority</button></div>';
+      '<button data-dimension-sort="audit" '+(dimensionManagerSort==="audit"?'disabled':'')+'>Audit priority</button></div>'+
+      '<div class="tb-measure-actions" data-dimension-audit-search>'+
+      '<input data-dimension-search value="'+esc(dimensionManagerSearch)+'" placeholder="Search ID, kind, source, stale reason">'+
+      '<button data-dimension-search-apply>Search</button><button data-dimension-search-clear '+(!dimensionManagerSearch?'disabled':'')+'>Clear</button></div>';
     return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div>'+
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
       '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+'</div>'+
@@ -859,6 +870,14 @@
     body.querySelectorAll("[data-dimension-sort]").forEach(button=>{
       button.onclick=()=>{dimensionManagerSort=button.dataset.dimensionSort||"project";render();};
     });
+    const searchInput=body.querySelector("[data-dimension-search]");
+    body.querySelector("[data-dimension-search-apply]")?.addEventListener("click",()=>{
+      dimensionManagerSearch=String(searchInput?.value??"");render();
+    });
+    searchInput?.addEventListener("keydown",event=>{
+      if(event.key==="Enter"){event.preventDefault();dimensionManagerSearch=String(searchInput.value??"");render();}
+    });
+    body.querySelector("[data-dimension-search-clear]")?.addEventListener("click",()=>{dimensionManagerSearch="";render();});
   }
 
   function sectionDerivedDimensionsHtml(){
