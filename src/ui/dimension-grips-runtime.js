@@ -286,9 +286,21 @@
     rebuild();dispatch(id,"delete-dimension");toast("Dimension удалён");return true;
   }
   function syncActiveDimensionFromSelection(){
-    const entries=window.TubeBenderObjectContext?.selectionEntries?.()??[];
+    const context=window.TubeBenderObjectContext;
+    const entries=context?.selectionEntries?.()??[];
+    const staleDimensionEntries=entries.filter(entry=>entry?.kind==="dimension"&&!dimensionById(entry.dimensionId));
+    if(staleDimensionEntries.length){
+      const keys=context?.selectionKeys?.()??[];
+      const kept=keys.filter(key=>{
+        const entry=context?.parseSelectionKey?.(key);
+        return entry?.kind!=="dimension"||!!dimensionById(entry.dimensionId);
+      });
+      context?.replaceSelectionKeys?.(kept,{announce:true});
+      if(activeId&&!dimensionById(activeId))activeId=null;
+      rebuild();return true;
+    }
     const dimensionsOnly=entries.filter(entry=>entry?.kind==="dimension");
-    const next=entries.length===1&&dimensionsOnly.length===1?String(dimensionsOnly[0].dimensionId):null;
+    const next=entries.length===1&&dimensionsOnly.length===1&&dimensionById(dimensionsOnly[0].dimensionId)?String(dimensionsOnly[0].dimensionId):null;
     if(String(activeId??"")===String(next??""))return false;
     activeId=next;rebuild();return true;
   }
