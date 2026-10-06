@@ -668,6 +668,43 @@
     toast("Section-derived размер перепривязан");
     render();return true;
   }
+  function dimensionManagerHtml(){
+    const items=savedDimensions();
+    if(!items.length)return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div><div class="tb-measure-note">Сохранённых размеров пока нет.</div></div>';
+    const rows=items.map(dimension=>{
+      const stale=String(dimension.status)==="Stale",visible=dimension.visible!==false;
+      const unit=/angle/i.test(String(dimension.kind))?"deg":"mm";
+      const valueText=Number.isFinite(Number(dimension.value))?formatted(Number(dimension.value),unit):"—";
+      return '<div class="tb-measure-result" style="margin-top:7px">'+
+        '<div class="tb-measure-title">'+esc(dimension.note??dimension.kind)+' · '+esc(dimension.mode??"Reference")+
+        (stale?' · ⚠ Stale':' · '+esc(dimension.status??"NeedsUpdate"))+'</div>'+
+        '<div class="tb-measure-note">'+esc(valueText)+' · '+(visible?'Visible':'Hidden')+' · '+esc(dimension.id)+'</div>'+
+        '<div class="tb-measure-actions">'+
+          '<button data-dim-manager-select="'+esc(dimension.id)+'">Select</button>'+
+          '<button data-dim-manager-visible="'+esc(dimension.id)+'" data-visible="'+(visible?"1":"0")+'">'+(visible?'Hide':'Show')+'</button>'+
+          '<button data-dim-manager-delete="'+esc(dimension.id)+'">Delete</button>'+
+          (stale&&isSectionDerivedDimension(dimension)?'<button data-section-rebind="'+esc(dimension.id)+'">Rebind</button>':'')+
+        '</div></div>';
+    }).join("");
+    return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div>'+
+      '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div></div>'+rows;
+  }
+  function bindDimensionManagerActions(body){
+    body.querySelectorAll("[data-dim-manager-select]").forEach(button=>{
+      button.onclick=()=>window.TubeBenderDimensionGrips?.selectDimension?.(button.dataset.dimManagerSelect);
+    });
+    body.querySelectorAll("[data-dim-manager-visible]").forEach(button=>{
+      button.onclick=()=>{
+        const visible=button.dataset.visible==="1";
+        window.TubeBenderDimensionGrips?.setDimensionVisible?.(button.dataset.dimManagerVisible,!visible);
+        render();
+      };
+    });
+    body.querySelectorAll("[data-dim-manager-delete]").forEach(button=>{
+      button.onclick=()=>{window.TubeBenderDimensionGrips?.deleteDimension?.(button.dataset.dimManagerDelete);render();};
+    });
+  }
+
   function sectionDerivedDimensionsHtml(){
     const items=savedDimensions().filter(isSectionDerivedDimension);
     if(!items.length)return "";
@@ -783,6 +820,7 @@
     $("[data-quick-stop]",body)?.addEventListener("click",()=>stopQuickMeasure());
     $("[data-save-measure-settings]",body).onclick=()=>saveSettings(body);
     bindSectionDerivedDimensionActions(body);
+    bindDimensionManagerActions(body);
   }
   function settingsHtml(s,count){
     const d=s.dimension_style??{};
@@ -807,6 +845,7 @@
       '<label>Normal <input data-dim-color-normal type="color" value="'+esc(d.normal_color)+'"></label>'+
       '</div><div class="tb-measure-note" style="margin-top:8px">Hybrid масштабирует размер с моделью, но удерживает текст и стрелки в читаемом экранном диапазоне. Driving и Error имеют отдельные цвета.</div>'+
       '<div class="tb-measure-actions"><span class="tb-measure-note">Сохранено размеров: '+count+'</span><button data-save-measure-settings>Сохранить настройки</button></div></div>'+
+      dimensionManagerHtml()+
       sectionDerivedDimensionsHtml();
   }
   async function install(){
