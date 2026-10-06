@@ -283,6 +283,13 @@
     try{eng()?.save?.();eng()?.renderAll?.();}catch{}
     rebuild();dispatch(id,"delete-dimension");toast("Dimension удалён");return true;
   }
+  function syncActiveDimensionFromSelection(){
+    const entries=window.TubeBenderObjectContext?.selectionEntries?.()??[];
+    const dimensionsOnly=entries.filter(entry=>entry?.kind==="dimension");
+    const next=entries.length===1&&dimensionsOnly.length===1?String(dimensionsOnly[0].dimensionId):null;
+    if(String(activeId??"")===String(next??""))return false;
+    activeId=next;rebuild();return true;
+  }
   function selectDimension(id){
     activeId=String(id);
     const key="dimension:"+encodeURIComponent(String(id));
@@ -352,9 +359,9 @@
     if(installed)return;installed=true;
     try{[dimensions,dynamicInput]=await Promise.all([import(DIMENSIONS_URL),import(DYNAMIC_INPUT_URL)]);}catch(error){console.error("Dimension grips runtime failed",error);return;}
     installListeners();rebuild();
-    window.addEventListener("tubebender-dimension-change",()=>rebuild());window.addEventListener("tubebender-assembly-change",()=>rebuild());window.addEventListener("tubebender-layer-change",()=>rebuild());
+    window.addEventListener("tubebender-dimension-change",()=>rebuild());window.addEventListener("tubebender-assembly-change",()=>rebuild());window.addEventListener("tubebender-layer-change",()=>rebuild());window.addEventListener("tubebender-selection-change",syncActiveDimensionFromSelection);
     if(typeof renderAll==="function"&&!renderAll._tbDimensionGrips){const original=renderAll;renderAll=function(...args){const result=original.apply(this,args);try{rebuild();}catch{}return result;};renderAll._tbDimensionGrips=true;}
-    window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,deleteDimension,setDimensionVisible,activeDimension:()=>dimensionById(activeId),dimensionLabelText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
+    window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,deleteDimension,setDimensionVisible,syncActiveDimensionFromSelection,activeDimension:()=>dimensionById(activeId),dimensionLabelText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
 })();
