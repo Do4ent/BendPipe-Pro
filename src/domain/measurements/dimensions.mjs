@@ -128,7 +128,7 @@ export function resolveDimensionDisplayMetrics(styleInput={},{
 }
 export function dimensionVisualState(dimension,styleInput={}){
   const style=normalizeDimensionStyle(styleInput);
-  const error=["Error","LostReference","Conflict"].includes(String(dimension?.status));
+  const error=["Error","LostReference","Conflict","Stale"].includes(String(dimension?.status));
   const driving=dimension?.mode==="Driving";
   return freeze({
     color:error?style.error_color:driving?style.driving_color:style.reference_color,
