@@ -2,6 +2,7 @@
   const SECTION_URL="__TB_SECTION_VIEW_MODULE_URL__";
   const SECTION_DERIVED_URL="__TB_SECTION_DERIVED_MODULE_URL__";
   let domain=null,derived=null,installed=false,panel=null,toggle=null,helperGroup=null;
+  const derivedSelectionRegistry=new Map();
   const eng=()=>window.TubeBenderEngineering??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const toast=m=>{try{eng()?.toast?.(String(m??""));}catch{}};
@@ -159,6 +160,68 @@
       }
     });
   }
+  function segmentScreenDistance(segment,event,canvas){
+    if(!segment||!event||!canvas||typeof camera==="undefined"||!camera||typeof THREE==="undefined")return Infinity;
+    const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return Infinity;
+    const scale=sceneScale();
+    const projectPoint=(p)=>{
+      const v=new THREE.Vector3(p.x*scale,p.y*scale,p.z*scale).project(camera);
+      return {x:rect.left+(v.x+1)*.5*rect.width,y:rect.top+(1-v.y)*.5*rect.height};
+    };
+    const a=projectPoint(segment[0]),b=projectPoint(segment[1]),px=Number(event.clientX),py=Number(event.clientY);
+    const vx=b.x-a.x,vy=b.y-a.y,den=vx*vx+vy*vy;
+    const u=den>1e-12?Math.max(0,Math.min(1,((px-a.x)*vx+(py-a.y)*vy)/den)):0;
+    return Math.hypot(px-(a.x+u*vx),py-(a.y+u*vy));
+  }
+  function rememberDerivedSelection(record){
+    if(!record?.id)return null;
+    derivedSelectionRegistry.set(String(record.id),Object.freeze(structuredClone(record)));
+    if(derivedSelectionRegistry.size>256){
+      const first=derivedSelectionRegistry.keys().next().value;
+      if(first!=null)derivedSelectionRegistry.delete(first);
+    }
+    return record;
+  }
+  function selectionRecord(id,segment,event,canvas,{source,objectId,face,index}={}){
+    const mid={x:(segment[0].x+segment[1].x)/2,y:(segment[0].y+segment[1].y)/2,z:(segment[0].z+segment[1].z)/2};
+    const record={
+      id:String(id),kind:"section-derived",virtual:true,readonly:true,
+      source:"SectionDerived",source_geometry:String(source??"Editable"),
+      object_id:String(objectId??"section"),subentity_id:"section:"+String(face??"plane")+":"+String(index??0),
+      section_mode:String(current().mode),section_face:String(face??"plane"),
+      segment:{start:{...segment[0]},end:{...segment[1]},midpoint:mid},
+      screen_distance_px:segmentScreenDistance(segment,event,canvas),
+      geometry_status:"SectionDerived",
+      evidence:[{kind:"SectionDerived",source_geometry:String(source??"Editable"),section_face:String(face??"plane")}]
+    };
+    return rememberDerivedSelection(record);
+  }
+  function selectionCandidatesAtEvent(event,{thresholdPx=10}={}){
+    const state=current();
+    if(!state.enabled||state.mode==="off"||!derived||typeof THREE==="undefined"||typeof pipeGroup==="undefined"||!pipeGroup||typeof camera==="undefined"||!camera)return Object.freeze([]);
+    const canvas=document.getElementById("threeCanvas"),rect=canvas?.getBoundingClientRect?.();
+    if(!canvas||!rect?.width||!rect?.height)return Object.freeze([]);
+    const raycaster=new THREE.Raycaster();
+    const mouse=new THREE.Vector2(((event.clientX-rect.left)/rect.width)*2-1,-((event.clientY-rect.top)/rect.height)*2+1);
+    raycaster.setFromCamera(mouse,camera);
+    const hits=raycaster.intersectObjects(pipeGroup.children,true),records=[],seen=new Set();
+    for(const hit of hits){
+      if(records.length>=24)break;
+      if(hit.object?.userData?.helper||hit.object?.userData?.hitProxy||hit.object?.visible===false)continue;
+      const triangle=triangleFromHit(hit);if(!triangle)continue;
+      const segments=derived.sectionSegmentsFromTriangles([triangle],state),src=sourceForObject(hit.object);
+      segments.forEach((item,segmentIndex)=>{
+        const id="section:"+src.objectId+":"+String(item.face)+":"+String(hit.faceIndex??segmentIndex)+":segment";
+        if(seen.has(id))return;seen.add(id);
+        const record=selectionRecord(id,item.segment,event,canvas,{...src,face:item.face,index:segmentIndex});
+        if(record.screen_distance_px<=thresholdPx)records.push(record);
+      });
+    }
+    records.sort((a,b)=>a.screen_distance_px-b.screen_distance_px);
+    return Object.freeze(records);
+  }
+  function derivedSelectionById(id){return derivedSelectionRegistry.get(String(id??""))??null;}
+
   function snapCandidatesAtEvent(event){
     const state=current();
     if(!state.enabled||state.mode==="off"||!derived||typeof THREE==="undefined"||typeof pipeGroup==="undefined"||!pipeGroup||typeof camera==="undefined"||!camera)return Object.freeze([]);
@@ -215,7 +278,7 @@
     if(installed)return;installed=true;
     try{[domain,derived]=await Promise.all([import(SECTION_URL),import(SECTION_DERIVED_URL)]);}catch(error){console.error("Section View failed",error);return;}
     domain.ensureSectionViewState(project());ensurePanel();renderPanel();apply();
-    window.TubeBenderSectionView=Object.freeze({setPlane,setBox,disable,flipPlane,setHelper,capture,restore,apply,snapCandidatesAtEvent,openPanel:()=>{ensurePanel().classList.add("open");renderPanel();},domain,derived});
+    window.TubeBenderSectionView=Object.freeze({setPlane,setBox,disable,flipPlane,setHelper,capture,restore,apply,snapCandidatesAtEvent,selectionCandidatesAtEvent,derivedSelectionById,openPanel:()=>{ensurePanel().classList.add("open");renderPanel();},domain,derived});
     dispatch();
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
