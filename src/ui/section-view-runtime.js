@@ -307,7 +307,17 @@
     body.querySelector("[data-sec-off]").onclick=disable;
     body.querySelector("[data-sec-helper]").onchange=e=>setHelper(e.target.checked);
   }
-  function dispatch(){try{window.dispatchEvent(new CustomEvent("tubebender-section-view-change",{detail:{state:capture()}}));}catch{}}
+  function invalidateDerivedSelections(){
+    derivedSelectionRegistry.clear();clearSelectionOverlay();
+    const context=window.TubeBenderObjectContext;
+    const keys=context?.selectionKeys?.()??[];
+    const kept=keys.filter(key=>context?.parseSelectionKey?.(key)?.kind!=="section-derived");
+    if(kept.length!==keys.length)context?.replaceSelectionKeys?.(kept,{announce:true});
+  }
+  function dispatch(){
+    invalidateDerivedSelections();
+    try{window.dispatchEvent(new CustomEvent("tubebender-section-view-change",{detail:{state:capture()}}));}catch{}
+  }
   async function install(){
     if(installed)return;installed=true;
     try{[domain,derived]=await Promise.all([import(SECTION_URL),import(SECTION_DERIVED_URL)]);}catch(error){console.error("Section View failed",error);return;}
