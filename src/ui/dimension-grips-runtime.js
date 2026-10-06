@@ -361,7 +361,7 @@
     if(installed)return;installed=true;
     try{[dimensions,dynamicInput]=await Promise.all([import(DIMENSIONS_URL),import(DYNAMIC_INPUT_URL)]);}catch(error){console.error("Dimension grips runtime failed",error);return;}
     installListeners();rebuild();
-    window.addEventListener("tubebender-dimension-change",()=>rebuild());window.addEventListener("tubebender-assembly-change",()=>rebuild());window.addEventListener("tubebender-layer-change",()=>rebuild());window.addEventListener("tubebender-selection-change",syncActiveDimensionFromSelection);
+    window.addEventListener("tubebender-dimension-change",()=>rebuild());window.addEventListener("tubebender-assembly-change",()=>rebuild());window.addEventListener("tubebender-layer-change",()=>rebuild());window.addEventListener("tubebender-selection-change",syncActiveDimensionFromSelection);window.addEventListener("tubebender-history-change",()=>{syncActiveDimensionFromSelection();rebuild();});
     if(typeof renderAll==="function"&&!renderAll._tbDimensionGrips){const original=renderAll;renderAll=function(...args){const result=original.apply(this,args);try{rebuild();}catch{}return result;};renderAll._tbDimensionGrips=true;}
     window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,deleteDimension,setDimensionVisible,syncActiveDimensionFromSelection,activeDimension:()=>dimensionById(activeId),dimensionLabelText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
   }
