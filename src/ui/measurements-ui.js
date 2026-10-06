@@ -859,6 +859,7 @@
     };
     window.addEventListener("tubebender-selection-change",update);
     window.addEventListener("tubebender-section-view-change",()=>invalidateSectionDerivedDimensions("Section View changed"));
+    window.addEventListener("tubebender-dimension-change",()=>{if(panel?.classList.contains("open"))render();});
     window.addEventListener("tubebender-snap-change",onQuickSnapChange);
     document.getElementById("threeCanvas")?.addEventListener("click",onQuickCanvasClick,true);
     window.addEventListener("keydown",onQuickKeyDown,true);
