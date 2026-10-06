@@ -569,6 +569,29 @@
   function savedDimensions(){
     const p=project();return Array.isArray(p?.engineering_dimensions)?p.engineering_dimensions:[];
   }
+  function isSectionDerivedDimension(dimension){
+    return (dimension?.references??[]).some(ref=>ref?.geometry_status==="SectionDerived"||ref?.section_snapshot);
+  }
+  function invalidateSectionDerivedDimensions(reason="Section View changed"){
+    const p=project();if(!p)return 0;
+    let changed=0;
+    p.engineering_dimensions=savedDimensions().map(dimension=>{
+      if(!isSectionDerivedDimension(dimension))return dimension;
+      changed++;
+      return {
+        ...clone(dimension),
+        status:"Stale",
+        stale_reason:String(reason),
+        stale_at_section_view:clone(window.TubeBenderSectionView?.capture?.()??null)
+      };
+    });
+    if(changed){
+      try{api()?.save?.();}catch{}
+      dispatchDimensionChange("","section-derived-stale");
+      if(panel?.classList.contains("open"))render();
+    }
+    return changed;
+  }
   function saveCurrentDimension(){
     if(readonly()){toast("Проект открыт только для просмотра");return;}
     if(!lastResult?.ok)return;
@@ -695,12 +718,13 @@
       if(next!==lastSelectionKey){lastSelectionKey=next;if(panel?.classList.contains("open"))render();}
     };
     window.addEventListener("tubebender-selection-change",update);
+    window.addEventListener("tubebender-section-view-change",()=>invalidateSectionDerivedDimensions("Section View changed"));
     window.addEventListener("tubebender-snap-change",onQuickSnapChange);
     document.getElementById("threeCanvas")?.addEventListener("click",onQuickCanvasClick,true);
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,
+      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
