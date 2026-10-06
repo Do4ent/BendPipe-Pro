@@ -68,7 +68,11 @@
   function onKeyDown(event){
     if(event.defaultPrevented||event.repeat||event.ctrlKey||event.metaKey||event.altKey)return;
     if(isTextTarget(event.target)||editingBusy())return;
-    if(event.key!=="Enter"&&event.key!==" ")return;
+    const hotkeys=window.TubeBenderHotkeys;
+    const matchesRepeat=hotkeys?.matchesCommand
+      ?(hotkeys.matchesCommand(event,"repeatLast")||hotkeys.matchesCommand(event,"repeatLastAlt"))
+      :(event.key==="Enter"||event.key===" ");
+    if(!matchesRepeat)return;
     if(!canRepeat())return;
     event.preventDefault();event.stopPropagation();
     repeat();
