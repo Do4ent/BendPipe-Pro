@@ -261,6 +261,17 @@
     const command=eng()?.modelCommand;
     let ok;try{ok=typeof command==="function"?command(visible?"Показать Dimension":"Скрыть Dimension",run):run();}catch(error){toast(error?.message??error);return false;}
     if(ok===false)return false;
+    if(visible!==true){
+      if(String(activeId)===String(id))activeId=null;
+      try{
+        const context=window.TubeBenderObjectContext;
+        const kept=(context?.selectionKeys?.()??[]).filter(key=>{
+          const entry=context?.parseSelectionKey?.(key);
+          return entry?.kind!=="dimension"||String(entry.dimensionId)!==String(id);
+        });
+        context?.replaceSelectionKeys?.(kept,{announce:true});
+      }catch{}
+    }
     try{eng()?.save?.();eng()?.renderAll?.();}catch{}
     rebuild();dispatch(id,visible?"show-dimension":"hide-dimension");return true;
   }
