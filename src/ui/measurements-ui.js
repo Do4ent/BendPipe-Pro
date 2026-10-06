@@ -692,7 +692,7 @@
         (stale?' · ⚠ Stale':' · '+esc(dimension.status??"NeedsUpdate"))+'</div>'+
         '<div class="tb-measure-note">'+esc(valueText)+' · '+(visible?'Visible':'Hidden')+' · '+esc(dimension.id)+'</div>'+
         '<div class="tb-measure-actions">'+
-          '<button data-dim-manager-select="'+esc(dimension.id)+'">Select</button>'+
+          '<button data-dim-manager-select="'+esc(dimension.id)+'" data-select-visible="'+(visible?"1":"0")+'">'+(visible?'Select':'Show & Select')+'</button>'+
           '<button data-dim-manager-visible="'+esc(dimension.id)+'" data-visible="'+(visible?"1":"0")+'">'+(visible?'Hide':'Show')+'</button>'+
           '<button data-dim-manager-delete="'+esc(dimension.id)+'">Delete</button>'+
           (stale&&isSectionDerivedDimension(dimension)?'<button data-section-rebind="'+esc(dimension.id)+'">Rebind</button>':'')+
@@ -703,7 +703,12 @@
   }
   function bindDimensionManagerActions(body){
     body.querySelectorAll("[data-dim-manager-select]").forEach(button=>{
-      button.onclick=()=>window.TubeBenderDimensionGrips?.selectDimension?.(button.dataset.dimManagerSelect);
+      button.onclick=()=>{
+        const id=button.dataset.dimManagerSelect,visible=button.dataset.selectVisible==="1";
+        if(!visible)window.TubeBenderDimensionGrips?.setDimensionVisible?.(id,true);
+        window.TubeBenderDimensionGrips?.selectDimension?.(id);
+        render();
+      };
     });
     body.querySelectorAll("[data-dim-manager-visible]").forEach(button=>{
       button.onclick=()=>{
