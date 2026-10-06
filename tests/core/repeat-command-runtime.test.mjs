@@ -18,10 +18,12 @@ test("question 103: Repeat Commands runtime is valid classic JavaScript and bund
   assert.match(build,/__TB_REPEAT_COMMAND_MODULE_URL__/);
 });
 
-test("question 103: Enter and Space repeat only when idle and not typing",()=>{
-  assert.match(runtime,/event\.key!=="Enter"&&event\.key!==" "/);
+test("question 103: repeat stays idle-safe and supports question 104 remapped Enter Space",()=>{
   assert.match(runtime,/isTextTarget\(event\.target\)/);
   assert.match(runtime,/editingBusy\(\)/);
+  assert.match(runtime,/hotkeys\.matchesCommand\(event,"repeatLast"\)/);
+  assert.match(runtime,/hotkeys\.matchesCommand\(event,"repeatLastAlt"\)/);
+  assert.match(runtime,/event\.key==="Enter"\|\|event\.key===" "/);
   assert.match(runtime,/event\.preventDefault\(\);event\.stopPropagation\(\);/);
   assert.match(runtime,/repeat\(\);/);
 });
