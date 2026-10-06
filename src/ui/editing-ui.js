@@ -1081,15 +1081,28 @@
     $(".tb-edit-tools",panel).onclick=(e)=>{const b=e.target.closest("[data-tool]");if(!b||b.disabled)return;if(activeTool==="copy"&&b.dataset.tool!=="copy"){resetCopySession();copySession.active=false;}activeTool=b.dataset.tool;render();};
     return panel;
   }
+  function commandLineStep(tool=activeTool){
+    const map={
+      copy:{command_id:"copy",label:"Copy",prompt:"Base Point → Target Point"},
+      move:{command_id:"move",label:"Move",prompt:"Введите ΔX или задайте точку / вектор"},
+      split:{command_id:"divide",label:"Divide StraightRun",prompt:"Введите позицию разделения"},
+      rotate:{command_id:"rotate",label:"Rotate",prompt:"Введите угол поворота"},
+      mirror:{command_id:"mirror",label:"Mirror",prompt:"Задайте плоскость отражения"},
+      array:{command_id:"array",label:"Array",prompt:"Задайте параметры массива"},
+      stack:{command_id:"stack",label:"Transform Stack",prompt:"Добавьте операцию"}
+    };
+    return map[String(tool)]??null;
+  }
   function open(tool=null){
     if(tool&&["copy","move","split","rotate","mirror","array","stack"].includes(String(tool)))activeTool=String(tool);
     ensureShell().classList.add("open");render();
+    try{const step=commandLineStep(activeTool);if(step)window.TubeBenderCommandLine?.setStep?.(step);}catch{}
   }
   function openWithSettings(tool,settings={}){
     pendingRepeatSettings={tool:String(tool),settings:clone(settings??{})};
     open(tool);return true;
   }
-  function close(){panel?.classList.remove("open");resetCopySession();copySession.active=false;snapTracking()?.endCommand?.();snapCommandTool=null;}
+  function close(){panel?.classList.remove("open");resetCopySession();copySession.active=false;snapTracking()?.endCommand?.();snapCommandTool=null;try{window.TubeBenderCommandLine?.clearStep?.();}catch{}}
   function render(){
     if(!panel||!straightRun)return;
     syncSnapCommand();syncCopySessionTool();
@@ -1197,6 +1210,25 @@
     window.addEventListener("tubebender-snap-change",onSnapChangeForCopy);
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
     window.addEventListener("tubebender-array-change",()=>{if(panel?.classList.contains("open")&&activeTool==="array")render();});
+    window.addEventListener("tubebender-command-line-input",(event)=>{
+      if(!panel?.classList.contains("open"))return;
+      const detail=event?.detail??{},value=Number(detail.numeric_value);
+      if(!Number.isFinite(value))return;
+      const body=$(".tb-edit-body",panel);if(!body)return;
+      if(activeTool==="rotate"&&detail.command_id==="rotate"){
+        const input=$("[data-rotate-angle]",body);if(input)input.value=String(value);
+        runRepeatable("rotate","Rotate",body,()=>finishSnapCommand(rotateSelection(body)));
+      }else if(activeTool==="split"&&detail.command_id==="divide"){
+        const input=$("[data-split-value]",body);if(input)input.value=String(value);
+        runRepeatable("split","Split",body,()=>splitSelected(body));
+      }else if(activeTool==="move"&&detail.command_id==="move"){
+        const input=$("[data-edit-dx]",body);if(input)input.value=String(value);
+        try{updateMovePreview(body);}catch{}
+      }else if(activeTool==="array"&&detail.command_id==="array"){
+        const input=$("[data-array-count]",body);if(input)input.value=String(Math.max(1,Math.trunc(value)));
+      }
+    });
+
     window.TubeBenderEditing=Object.freeze({open,openWithSettings,close,copySelection,multipleCopySelection,commitCopySeries,undoLastCopyTarget,rotateSelectedDirect,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,previewArrayFormula,applyArrayFormula,createTransformStackFromSelection,stackAddOperation,stackOperationAction,scalePermissionForSelection,canScaleSelection,requestScaleSelection,refresh:render});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
