@@ -393,6 +393,24 @@
         ["Assembly ID",entry.assemblyId],["Part",entry.part??entry.partId],["Tube ID",entry.tubeId],["Row",entry.rowIndex]
       ]}]};
     }
+    if(entry.kind==="section-derived"){
+      const record=window.TubeBenderSectionView?.derivedSelectionById?.(entry.derivedId)??null;
+      return {title:"Section-derived Geometry",kind:"section-derived",groups:[
+        {name:"Derived geometry",rows:[
+          ["ID",entry.derivedId],["Readonly",true],["Virtual",true],
+          ["Section mode",record?.section_mode],["Section face",record?.section_face],
+          ["Geometry status",record?.geometry_status??"SectionDerived"],
+          ["Source geometry",record?.source_geometry],["Source object",record?.object_id]
+        ]},
+        {name:"Contour segment",rows:[
+          ["Start",record?.segment?.start],["Midpoint",record?.segment?.midpoint],["End",record?.segment?.end],
+          ["Screen distance",record?.screen_distance_px]
+        ]},
+        {name:"Evidence",rows:[
+          ["Evidence",record?.evidence],["Editable",false],["Persistent object",false]
+        ]}
+      ]};
+    }
     if(entry.kind==="ref"){
       const scene=findScene(entry.sceneId),node=findNode(scene?.tree,entry.nodeId);
       return {title:node?.label??"Source / Reference",kind:"ref",groups:[
