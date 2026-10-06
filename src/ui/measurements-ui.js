@@ -112,7 +112,32 @@
     };
   }
 
+  function sectionDerivedRecord(entry){
+    if(entry?.kind!=="section-derived")return null;
+    return window.TubeBenderSectionView?.derivedSelectionById?.(entry.derivedId)??null;
+  }
   function refFromEntry(entry){
+    if(entry.kind==="section-derived"){
+      const record=sectionDerivedRecord(entry);
+      const midpoint=record?.segment?.midpoint??null;
+      return enrichReference({
+        object_id:String(record?.object_id??"section"),
+        subentity_id:String(record?.subentity_id??entry.derivedId),
+        snap_type:"SectionSegment",
+        role:"measurement",
+        geometry_status:"SectionDerived",
+        fitting_error:{mm:0,deg:0},
+        confidence:1,
+        evidence:clone(record?.evidence??[]),
+        section_snapshot:clone({
+          id:record?.id??entry.derivedId,
+          mode:record?.section_mode,
+          face:record?.section_face,
+          source_geometry:record?.source_geometry,
+          segment:record?.segment
+        })
+      },midpoint);
+    }
     if(entry.kind==="row"){
       const row=rowFor(entry);
       const ref={
@@ -258,6 +283,57 @@
   }
 
   function buildMeasurement(entries=selectionEntries()){
+    if(entries.length===1&&entries[0].kind==="section-derived"){
+      const entry=entries[0],record=sectionDerivedRecord(entry),segment=record?.segment;
+      if(!segment?.start||!segment?.end)return {ok:false,message:"Section-derived сегмент больше не доступен"};
+      try{
+        const m=geometry.measurePointToPoint(segment.start,segment.end);
+        return decorateMeasurementResult({
+          ok:true,
+          kind:"section-segment-length",
+          primary_value:m.length_mm,
+          primary_unit:"mm",
+          title:"Section-derived · длина сегмента",
+          details:[
+            ["Length",m.length_mm,"mm"],
+            ["ΔX",m.delta_mm.x,"mm"],
+            ["ΔY",m.delta_mm.y,"mm"],
+            ["ΔZ",m.delta_mm.z,"mm"]
+          ],
+          references:[refFromEntry(entry)],
+          entries:clone(entries),
+          section_derived:true
+        });
+      }catch(error){return {ok:false,message:error.message};}
+    }
+    if(entries.length===2&&entries.every(entry=>entry.kind==="section-derived")){
+      const records=entries.map(sectionDerivedRecord);
+      const segments=records.map(record=>record?.segment).filter(Boolean);
+      if(segments.length!==2)return {ok:false,message:"Section-derived сегмент больше не доступен"};
+      const direction=(segment)=>({
+        x:Number(segment.end.x)-Number(segment.start.x),
+        y:Number(segment.end.y)-Number(segment.start.y),
+        z:Number(segment.end.z)-Number(segment.start.z)
+      });
+      try{
+        const m=geometry.measureAngleBetweenLines(
+          {point:segments[0].start,direction:direction(segments[0])},
+          {point:segments[1].start,direction:direction(segments[1])},
+          {mode:"acute"}
+        );
+        return decorateMeasurementResult({
+          ok:true,
+          kind:"section-segment-angle",
+          primary_value:m.angle_deg,
+          primary_unit:"deg",
+          title:"Section-derived · угол между сегментами",
+          details:[["Angle",m.angle_deg,"deg"]],
+          references:entries.map(refFromEntry),
+          entries:clone(entries),
+          section_derived:true
+        });
+      }catch(error){return {ok:false,message:error.message};}
+    }
     if(entries.length===1&&entries[0].kind==="row"){
       const entry=entries[0],row=rowFor(entry);
       if(!row)return {ok:false,message:"Выбранный элемент не найден"};
@@ -340,7 +416,7 @@
         return {ok:false,message:"Направления выбранных LINE не определены"};
       }
     }
-    return {ok:false,message:"Выберите одну трубу, один LINE/BEND или две прямые LINE"};
+    return {ok:false,message:"Выберите одну трубу, один LINE/BEND, Section-derived сегмент или две прямые"};
   }
 
   function settings(){
@@ -524,6 +600,10 @@
   function saveCurrentDrivingDimension(){
     if(readonly()){toast("Проект открыт только для просмотра");return false;}
     if(!lastResult?.ok)return false;
+    if(lastResult.section_derived===true||(lastResult.references??[]).some(ref=>ref?.geometry_status==="SectionDerived")){
+      toast("Section-derived geometry поддерживает только Reference Dimension");
+      return false;
+    }
     if(fittedGuard()?.confirmUsage?.("DrivingDimension",lastResult.references)!==true)return false;
     const p=project();if(!p)return false;
     const s=settings(),kind=lastResult.kind,target=Number(lastResult.primary_value);
