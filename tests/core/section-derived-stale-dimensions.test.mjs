@@ -24,7 +24,7 @@ test("question 113: saved Section-derived dimensions become Stale on Section Vie
   assert.match(measurements,/function isSectionDerivedDimension\(dimension\)/);
   assert.match(measurements,/function invalidateSectionDerivedDimensions\(reason="Section View changed"\)/);
   assert.match(measurements,/status:"Stale"/);
-  assert.match(measurements,/stale_reason:String\(reason\)/);
+  assert.match(measurements,/stale_reason:dimension\?\.stale_reason\?\?String\(reason\)/);
   assert.match(measurements,/tubebender-section-view-change/);
   assert.match(measurements,/section-derived-stale/);
 });
