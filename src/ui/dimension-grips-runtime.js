@@ -159,7 +159,13 @@
     const value=dimensionLabelText(dimension);
     const status=String(dimension?.status??"NeedsUpdate");
     const reason=staleDimension(dimension)&&dimension?.stale_reason?(" · "+String(dimension.stale_reason)):"";
-    return value+" · "+status+reason;
+    const sources=[...new Set((dimension?.references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean))];
+    const auditCount=Array.isArray(dimension?.rebound_history)?dimension.rebound_history.length:0;
+    const provenance=[
+      sources.length?("Source: "+sources.join(", ")):null,
+      dimension?.rebound_from_stale===true?("Rebind audit: "+auditCount):null
+    ].filter(Boolean);
+    return value+" · "+status+reason+(provenance.length?" · "+provenance.join(" · "):"");
   }
   function ensureHoverLabel(){
     if(hoverLabel)return hoverLabel;
