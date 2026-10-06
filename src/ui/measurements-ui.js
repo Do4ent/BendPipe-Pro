@@ -86,7 +86,19 @@
   }
   function selectionEntries(){return context()?.selectionEntries?.()??[];}
   function selectionSignature(entries=selectionEntries()){
-    return JSON.stringify(entries.map((e)=>({kind:e.kind,tubeId:e.tubeId,rowIndex:e.rowIndex,assemblyId:e.assemblyId})));
+    return JSON.stringify(entries.map(entry=>({
+      kind:entry.kind,
+      tubeId:entry.tubeId??null,
+      rowIndex:entry.rowIndex??null,
+      assemblyId:entry.assemblyId??null,
+      dimensionId:entry.dimensionId??null,
+      derivedId:entry.derivedId??null,
+      sceneId:entry.sceneId??null,
+      nodeId:entry.nodeId??null,
+      instanceId:entry.instanceId??null,
+      groupId:entry.groupId??null,
+      constructionId:entry.constructionId??null
+    })));
   }
   function referenceAssemblyContext(objectId,worldPoint=null){
     return assembliesApi()?.contextForObjectId?.(objectId,worldPoint)??{
