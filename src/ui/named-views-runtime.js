@@ -66,6 +66,7 @@
       projection_mode:typeof cameraProjectionMode!=="undefined"?String(cameraProjectionMode):(typeof camera!=="undefined"&&camera?.isOrthographicCamera?"orthographic":"perspective"),
       active_layer_id:p?.active_layer_id??null,
       layer_tree_filter_id:p?.layer_tree_filter_id??null,
+      section_view:clone(window.TubeBenderSectionView?.capture?.()??p?.section_view??null),
       layers:(p?.layers??[]).map(layer=>({
         id:String(layer.id??""),visible:layer.visible!==false,frozen:layer.frozen===true,locked:layer.locked===true
       })).filter(layer=>layer.id)
@@ -138,6 +139,7 @@
     }
     try{if(typeof currentViewMode!=="undefined")currentViewMode=String(snapshot.view_mode??"user");}catch{}
     try{window.TubeBenderLayers?.applyAll?.();}catch{}
+    try{if(snapshot.section_view)window.TubeBenderSectionView?.restore?.(clone(snapshot.section_view),{recordHistory:false});}catch{}
   }
   function createFromCurrent(name="Named View"){
     let created=null;
