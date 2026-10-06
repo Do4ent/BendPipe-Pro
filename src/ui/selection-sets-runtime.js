@@ -300,6 +300,7 @@
     try{domain=await import(SETS_URL);}catch(error){console.error("Selection Sets failed",error);return;}
     domain.ensureSelectionSetState(project());ensurePanel();renderTree();renderPanel();observe();registerProvider();
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))renderPanel();});
+    window.addEventListener("tubebender-history-change",()=>{renderTree();if(panel?.classList.contains("open"))renderPanel();});
     window.addEventListener("tubebender-command-line-ready",registerProvider);
     window.TubeBenderSelectionSets=Object.freeze({
       createFromSelection,createDynamic:(name,rules)=>commandCreateDynamic(name,rules),updateDynamicRules:(id,rules)=>command("Изменить правила Dynamic Selection Set",()=>{domain.updateDynamicSelectionSetRules(project(),id,rules);return true;}),resolvedMembers:(id)=>clone(resolvedMembers(setById(id))),rename,addSelection,removeSelection,deleteSet,selectSet,show:(id)=>showHide(id,true),hide:(id)=>showHide(id,false),lock:(id)=>lockSet(id,"Object"),unlock:(id)=>lockSet(id,"Unlocked"),useWith,pruneMissing,
