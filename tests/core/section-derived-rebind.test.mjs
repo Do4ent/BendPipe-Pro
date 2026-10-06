@@ -17,7 +17,7 @@ test("question 114: rebind requires compatible current Section-derived measureme
   assert.match(measurements,/function rebindSectionDerivedDimension\(dimensionId\)/);
   assert.match(measurements,/current\.section_derived!==true/);
   assert.match(measurements,/String\(current\.kind\)!==String\(existing\.kind\)/);
-  assert.match(measurements,/current\.references\?\?\[\]\)\.length!==\(existing\.references\?\?\[\]\)\.length/);
+  assert.match(measurements,/sectionRebindCompatibility\(existing,current\)/);
 });
 
 test("question 114: rebind is explicit, undoable and restores Valid state",()=>{
