@@ -773,6 +773,8 @@
   function filteredDimensionManagerItems(items=savedDimensions()){
     if(dimensionManagerFilter==="stale")return items.filter(dimension=>String(dimension?.status??"")==="Stale");
     if(dimensionManagerFilter==="rebound")return items.filter(dimension=>dimension?.rebound_from_stale===true);
+    if(dimensionManagerFilter==="reference")return items.filter(dimension=>String(dimension?.mode??"")==="Reference");
+    if(dimensionManagerFilter==="driving")return items.filter(dimension=>String(dimension?.mode??"")==="Driving");
     return items;
   }
   function dimensionManagerHtml(){
@@ -811,7 +813,7 @@
         '</div></div>';
     }).join("")||'<div class="tb-measure-result" style="margin-top:7px"><div class="tb-measure-note">Нет размеров для выбранного audit-фильтра.</div></div>';
     const filters='<div class="tb-measure-actions" data-dimension-audit-filters>'+
-      ['all','stale','rebound'].map(name=>'<button data-dimension-filter="'+name+'" '+(dimensionManagerFilter===name?'disabled':'')+'>'+({all:'All',stale:'Stale',rebound:'Rebound'}[name])+'</button>').join('')+
+      ['all','stale','rebound','reference','driving'].map(name=>'<button data-dimension-filter="'+name+'" '+(dimensionManagerFilter===name?'disabled':'')+'>'+({all:'All',stale:'Stale',rebound:'Rebound',reference:'Reference',driving:'Driving'}[name])+'</button>').join('')+
       '</div>';
     return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div>'+
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
