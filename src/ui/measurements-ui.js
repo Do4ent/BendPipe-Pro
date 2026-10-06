@@ -773,6 +773,8 @@
   function dimensionManagerHtml(){
     const items=savedDimensions();
     if(!items.length)return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div><div class="tb-measure-note">Сохранённых размеров пока нет.</div></div>';
+    const auditSummary=dimensionAuditSummary(items);
+    const statusSummary=Object.entries(auditSummary.by_status).map(([status,count])=>status+': '+count).join(' · ');
     const rows=items.map(dimension=>{
       const stale=String(dimension.status)==="Stale",visible=dimension.visible!==false;
       const unit=/angle/i.test(String(dimension.kind))?"deg":"mm";
@@ -804,6 +806,7 @@
     }).join("");
     return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div>'+
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
+      '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+'</div>'+
       '<div class="tb-measure-actions"><button data-copy-all-dimension-audits>Copy all audit JSON</button></div></div>'+rows;
   }
   function bindDimensionManagerActions(body){
