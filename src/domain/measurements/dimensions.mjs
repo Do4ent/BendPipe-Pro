@@ -33,7 +33,8 @@ function normalizeReference(ref,index){
     geometry_status:ref.geometry_status==null?null:String(ref.geometry_status),
     fitting_error:clone(ref.fitting_error??null),
     confidence:ref.confidence==null?null:Number(ref.confidence),
-    evidence:clone(ref.evidence??null)
+    evidence:clone(ref.evidence??null),
+    section_snapshot:clone(ref.section_snapshot??null)
   });
 }
 export const DEFAULT_DIMENSION_FORMAT=freeze({
