@@ -1791,6 +1791,7 @@
         deleteRows(entries);
         deleteTubes(entries);
         deleteMeshInstances(entries);
+        try{window.TubeBenderSelectionSets?.pruneMissing?.();}catch{}
         if(refs.length&&applyFrame&&framePreview?.frame){
           applyReferenceFrame(p,framePreview.frame);
         }else if(refs.length&&framePreview&&framePreview.status!=="exact"){
