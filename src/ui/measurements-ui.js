@@ -691,10 +691,18 @@
       const stale=String(dimension.status)==="Stale",visible=dimension.visible!==false;
       const unit=/angle/i.test(String(dimension.kind))?"deg":"mm";
       const valueText=Number.isFinite(Number(dimension.value))?formatted(Number(dimension.value),unit):"—";
+      const rebindCount=Array.isArray(dimension.rebound_history)?dimension.rebound_history.length:0;
+      const sourceObjects=[...new Set((dimension.references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean))];
+      const provenanceBits=[
+        stale&&dimension.stale_reason?("Reason: "+String(dimension.stale_reason)):null,
+        sourceObjects.length?("Source: "+sourceObjects.join(", ")):null,
+        dimension.rebound_from_stale===true?("Rebound · audit "+rebindCount):null
+      ].filter(Boolean);
       return '<div class="tb-measure-result" style="margin-top:7px">'+
         '<div class="tb-measure-title">'+esc(dimension.note??dimension.kind)+' · '+esc(dimension.mode??"Reference")+
         (stale?' · ⚠ Stale':' · '+esc(dimension.status??"NeedsUpdate"))+'</div>'+
         '<div class="tb-measure-note">'+esc(valueText)+' · '+(visible?'Visible':'Hidden')+' · '+esc(dimension.id)+'</div>'+
+        (provenanceBits.length?'<div class="tb-measure-note" data-dim-provenance="'+esc(dimension.id)+'">'+esc(provenanceBits.join(' · '))+'</div>':'')+
         '<div class="tb-measure-actions">'+
           '<button data-dim-manager-select="'+esc(dimension.id)+'" data-select-visible="'+(visible?"1":"0")+'">'+(visible?'Select':'Show & Select')+'</button>'+
           '<button data-dim-manager-visible="'+esc(dimension.id)+'" data-visible="'+(visible?"1":"0")+'">'+(visible?'Hide':'Show')+'</button>'+
