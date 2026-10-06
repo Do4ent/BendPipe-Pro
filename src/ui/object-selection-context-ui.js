@@ -17,7 +17,8 @@
     tube:"tube:",
     row:"row:",
     end:"end:",
-    assembly:"assembly:"
+    assembly:"assembly:",
+    sectionDerived:"section-derived:"
   };
 
   function enc(value){return encodeURIComponent(String(value??""));}
@@ -32,6 +33,7 @@
   function endKey(tubeId){return PREFIX.end+enc(tubeId);}
   function rowKey(tubeId,rowIndex){return PREFIX.row+enc(tubeId)+":"+String(Number(rowIndex));}
   function assemblyKey(tubeId,assemblyId){return PREFIX.assembly+enc(tubeId)+":"+enc(assemblyId);}
+  function sectionDerivedKey(id){return PREFIX.sectionDerived+enc(id);}
 
   function parseKey(key){
     const text=String(key??"");
@@ -74,6 +76,7 @@
       if(split<0)return null;
       return {kind:"assembly",tubeId:dec(body.slice(0,split)),assemblyId:dec(body.slice(split+1))};
     }
+    if(text.startsWith(PREFIX.sectionDerived))return {kind:"section-derived",derivedId:dec(text.slice(PREFIX.sectionDerived.length))};
     return null;
   }
 
@@ -893,6 +896,7 @@
       group:{title:"Group",edit:true,transform:true,visibility:true,properties:true,delete:true,isolate:false,transparent:false},
       "project-assembly":{title:"Assembly",edit:true,transform:true,visibility:true,properties:true,delete:true,isolate:false,transparent:false},
       assembly:{title:"Tube Assembly",edit:false,transform:false,visibility:true,properties:true,delete:false,isolate:false,transparent:false},
+      "section-derived":{title:"Section-derived Geometry",edit:false,transform:false,visibility:false,properties:true,delete:false,isolate:false,transparent:false},
       end:{title:"Конец трубы",edit:false,transform:false,visibility:false,properties:true,delete:false,isolate:false,transparent:false},
       multi:{title:"Несколько объектов",edit:false,transform:canMoveSelection(),visibility:entries.every(entry=>entry.kind!=="end"),properties:true,delete:entries.every(entry=>entry.kind!=="end"),isolate:entries.every(entry=>["tube","row","ref","mesh-instance"].includes(entry.kind)),transparent:entries.every(entry=>["tube","row","ref","mesh-instance"].includes(entry.kind))}
     };
@@ -903,15 +907,18 @@
       if(profile.type==="ref")return "Source / Reference доступен только для чтения";
       if(profile.type==="multi")return "Для Edit выберите один объект";
       if(profile.type==="end")return "Для конца трубы используйте фиксацию P2";
+      if(profile.type==="section-derived")return "Section-derived geometry является виртуальной производной геометрией и доступна только для просмотра";
       return "Редактирование недоступно для этого типа объекта";
     }
     if(action==="transform-object"||action==="move"){
       if(["line","bend","row"].includes(profile.type))return "Transform применяется к целому объекту, а не к подэлементу";
       if(profile.type==="end")return "Положение конца определяется геометрией трубы";
+      if(profile.type==="section-derived")return "Section-derived geometry нельзя трансформировать отдельно от исходной геометрии";
       return "Transform недоступен для текущего выбора";
     }
     if(action==="hide"||action==="show"||action==="isolate"||action==="transparent"){
       if(profile.type==="end")return "Видимость управляется родительским объектом";
+      if(profile.type==="section-derived")return "Section-derived geometry управляется Section View";
       if(profile.type==="group"||profile.type==="project-assembly")return "Для контейнера доступен Show / Hide, но не этот режим";
       return "Режим видимости недоступен для текущего выбора";
     }
@@ -919,6 +926,7 @@
     if(action==="delete"){
       if(profile.type==="end")return "Конец трубы нельзя удалить отдельно";
       if(profile.type==="assembly")return "Внутренний Tube Assembly удаляется через родительский объект";
+      if(profile.type==="section-derived")return "Section-derived geometry не хранится как самостоятельный объект и не удаляется";
       return "Удаление недоступно для текущего выбора";
     }
     return "Команда недоступна для текущего выбора";
@@ -1933,6 +1941,11 @@
   }
   function selectionCandidatesAtEvent(event,{direct=false}={}){
     const map=new Map();
+    const sectionCandidates=window.TubeBenderSectionView?.selectionCandidatesAtEvent?.(event)??[];
+    for(const record of sectionCandidates){
+      const key=sectionDerivedKey(record.id);
+      if(!map.has(key))map.set(key,{key,entry:{kind:"section-derived",derivedId:String(record.id)},distance:Number(record.screen_distance_px)||0,screenDistance:true});
+    }
     for(const raw of pick3DCandidates(event)){
       const candidate=resolveSelectionCandidate(raw,{direct});
       if(candidate&&!map.has(candidate.key))map.set(candidate.key,candidate);
@@ -1980,6 +1993,10 @@
     if(entry.kind==="group")return "Group · "+String(groupsApi()?.groupById?.(entry.groupId)?.name??entry.groupId);
     if(entry.kind==="project-assembly")return "Assembly · "+String(assembliesApi()?.assemblyById?.(entry.assemblyId)?.name??entry.assemblyId);
     if(entry.kind==="row")return "Tube element · #"+(Number(entry.rowIndex)+1);
+    if(entry.kind==="section-derived"){
+      const record=window.TubeBenderSectionView?.derivedSelectionById?.(entry.derivedId);
+      return "Section-derived · "+String(record?.section_face??entry.derivedId);
+    }
     return String(entry.kind)+" · "+String(candidate.key);
   }
   function ensureObjectChooser(){
