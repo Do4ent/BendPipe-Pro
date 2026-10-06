@@ -28,7 +28,9 @@ function titleCaseModifier(value){
   return null;
 }
 export function normalizeKeyName(value){
-  const raw=String(value??"").trim();
+  const source=String(value??"");
+  if(source===" ")return "Space";
+  const raw=source.trim();
   if(!raw)return "";
   const lower=raw.toLowerCase();
   if(lower==="esc"||lower==="escape")return "Escape";
