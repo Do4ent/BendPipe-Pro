@@ -181,7 +181,12 @@
   function showHide(setId,visible){
     pruneMissing();const set=setById(setId);if(!set)return false;
     const members=resolvedMembers(set);
-    return command(visible?"Показать Selection Set":"Скрыть Selection Set",()=>{for(const ref of members)setVisibleForRef(ref,visible);return true;});
+    const dimensionIds=members.filter(ref=>ref.kind==="dimension").map(ref=>String(ref.id));
+    const ok=command(visible?"Показать Selection Set":"Скрыть Selection Set",()=>{for(const ref of members)setVisibleForRef(ref,visible);return true;});
+    if(ok&&dimensionIds.length){
+      try{window.dispatchEvent(new CustomEvent("tubebender-dimension-change",{detail:{dimension_ids:dimensionIds,reason:visible?"selection-set-show":"selection-set-hide"}}));}catch{}
+    }
+    return ok;
   }
   function setLockForRef(ref,mode){
     const object=objectForRef(ref);if(!object)return;
