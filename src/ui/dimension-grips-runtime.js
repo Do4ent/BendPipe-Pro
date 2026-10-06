@@ -255,6 +255,15 @@
     }
     suppressUntil=Date.now()+120;rebuild();event?.preventDefault?.();event?.stopPropagation?.();event?.stopImmediatePropagation?.();return ok;
   }
+  function setDimensionVisible(id,visible){
+    const dimension=dimensionById(id),p=project();if(!dimension||!p)return false;
+    const run=()=>replaceDimensionObject(id,{...clone(dimension),visible:visible===true});
+    const command=eng()?.modelCommand;
+    let ok;try{ok=typeof command==="function"?command(visible?"Показать Dimension":"Скрыть Dimension",run):run();}catch(error){toast(error?.message??error);return false;}
+    if(ok===false)return false;
+    try{eng()?.save?.();eng()?.renderAll?.();}catch{}
+    rebuild();dispatch(id,visible?"show-dimension":"hide-dimension");return true;
+  }
   function deleteDimension(id){
     const dimension=dimensionById(id),p=project();if(!dimension||!p)return false;
     const run=()=>{
@@ -345,7 +354,7 @@
     installListeners();rebuild();
     window.addEventListener("tubebender-dimension-change",()=>rebuild());window.addEventListener("tubebender-assembly-change",()=>rebuild());window.addEventListener("tubebender-layer-change",()=>rebuild());
     if(typeof renderAll==="function"&&!renderAll._tbDimensionGrips){const original=renderAll;renderAll=function(...args){const result=original.apply(this,args);try{rebuild();}catch{}return result;};renderAll._tbDimensionGrips=true;}
-    window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,deleteDimension,activeDimension:()=>dimensionById(activeId),dimensionLabelText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
+    window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,deleteDimension,setDimensionVisible,activeDimension:()=>dimensionById(activeId),dimensionLabelText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
 })();
