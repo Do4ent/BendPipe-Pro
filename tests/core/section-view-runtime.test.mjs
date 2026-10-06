@@ -49,3 +49,22 @@ test("question 109: Named Views persist and restore Section View state",()=>{
   assert.match(namedViews,/TubeBenderSectionView\?\.restore/);
   assert.match(namedViewsDomain,/section_view:/);
 });
+
+
+test("question 110: Section-derived Snap candidates are explicitly marked virtual and SectionDerived",()=>{
+  assert.match(runtime,/snapCandidatesAtEvent/);
+  assert.match(runtime,/source:"SectionDerived"/);
+  assert.match(runtime,/virtual:true/);
+  assert.match(runtime,/geometry_status:"SectionDerived"/);
+  assert.match(runtime,/section_derived:true/);
+  assert.match(runtime,/Section-derived /);
+});
+
+test("question 110: Section-derived candidates are built from triangle intersections near cursor",()=>{
+  assert.match(runtime,/triangleFromHit/);
+  assert.match(runtime,/sectionSegmentsFromTriangles/);
+  assert.match(runtime,/raycaster\.intersectObjects/);
+  assert.match(runtime,/Endpoint/);
+  assert.match(runtime,/Midpoint/);
+  assert.match(runtime,/LineAxis/);
+});
