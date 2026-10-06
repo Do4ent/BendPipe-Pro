@@ -100,11 +100,21 @@
     c.width=width;c.height=height;ctx.font=(14*dpr)+"px Segoe UI, Arial";ctx.fillStyle="rgba(10,18,27,.88)";ctx.fillRect(0,0,width,height);ctx.strokeStyle=color;ctx.lineWidth=Math.max(1,dpr);ctx.strokeRect(.5*dpr,.5*dpr,width-dpr,height-dpr);ctx.fillStyle=color;ctx.textBaseline="middle";ctx.fillText(text,9*dpr,height/2);
     const texture=new THREE.CanvasTexture(c);texture.needsUpdate=true;return {texture,aspect:width/height};
   }
+  function dimensionLabelText(dimension){
+    const value=dimensions?.formatDimensionValue?.(dimension)??String(dimension?.value??"—");
+    return staleDimension(dimension)?"⚠ "+value:value;
+  }
   function labelSprite(dimension,point,color){
     const p=mmToScene(point);if(!p)return null;
-    const text=dimensions?.formatDimensionValue?.(dimension)??String(dimension?.value??"—"),made=canvasTexture(text,color);
+    const text=dimensionLabelText(dimension),made=canvasTexture(text,color);
     const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:made.texture,transparent:true,depthTest:false,depthWrite:false}));
-    sprite.position.copy(p);tag(sprite,{dimensionId:String(dimension.id),dimensionText:true,dimensionPart:"text"});
+    sprite.position.copy(p);tag(sprite,{
+      dimensionId:String(dimension.id),
+      dimensionText:true,
+      dimensionPart:"text",
+      dimensionStatus:String(dimension?.status??""),
+      staleReason:staleDimension(dimension)?String(dimension?.stale_reason??"Section-derived reference changed"):null
+    });
     if(screenSpace()?.register)screenSpace().register(sprite,"dimension-text",1,{mode:"sprite",aspect:made.aspect});
     else{const s=visualScale(p);sprite.scale.set(1.8*s*made.aspect,1.8*s,1);}
     return sprite;
@@ -306,7 +316,7 @@
     installListeners();rebuild();
     window.addEventListener("tubebender-dimension-change",()=>rebuild());window.addEventListener("tubebender-assembly-change",()=>rebuild());window.addEventListener("tubebender-layer-change",()=>rebuild());
     if(typeof renderAll==="function"&&!renderAll._tbDimensionGrips){const original=renderAll;renderAll=function(...args){const result=original.apply(this,args);try{rebuild();}catch{}return result;};renderAll._tbDimensionGrips=true;}
-    window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,activeDimension:()=>dimensionById(activeId),openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
+    window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,activeDimension:()=>dimensionById(activeId),dimensionLabelText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
 })();
