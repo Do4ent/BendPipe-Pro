@@ -497,6 +497,11 @@
         }));
       }
     }
+    const sectionCandidates=window.TubeBenderSectionView?.snapCandidatesAtEvent?.(event)??[];
+    for(const record of sectionCandidates){
+      if(records.length>=36)break;
+      add(record);
+    }
     return Object.freeze(records);
   }
 
