@@ -59,6 +59,7 @@ const commandPaletteDomainPath = path.join(root, "src", "domain", "ui", "command
 const selectionSetsDomainPath = path.join(root, "src", "domain", "project", "selection-sets.mjs");
 const namedViewsDomainPath = path.join(root, "src", "domain", "project", "named-views.mjs");
 const sectionViewDomainPath = path.join(root, "src", "domain", "project", "section-view.mjs");
+const sectionDerivedDomainPath = path.join(root, "src", "domain", "geometry", "section-derived.mjs");
 const layersDomainPath = path.join(root, "src", "domain", "project", "layers.mjs");
 const groupsDomainPath = path.join(root, "src", "domain", "project", "groups.mjs");
 const assembliesDomainPath = path.join(root, "src", "domain", "project", "assemblies.mjs");
@@ -2491,6 +2492,7 @@ const bundledNamedViewsRuntime =
 const sectionViewDomainUrl = moduleDataUrl(sectionViewDomainPath);
 const sectionViewRuntime = fs.readFileSync(sectionViewRuntimePath, "utf8")
   .replace("__TB_SECTION_VIEW_MODULE_URL__", sectionViewDomainUrl)
+  .replace("__TB_SECTION_DERIVED_MODULE_URL__", moduleDataUrl(sectionDerivedDomainPath))
   .replace(/<\/script/gi, "<\\/script");
 const bundledSectionViewRuntime =
   `<script data-tubebender-bundled="section-view-runtime">\n${sectionViewRuntime}\n</script>`;
