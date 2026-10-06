@@ -299,19 +299,26 @@
   function syncActiveDimensionFromSelection(){
     const context=window.TubeBenderObjectContext;
     const entries=context?.selectionEntries?.()??[];
-    const staleDimensionEntries=entries.filter(entry=>entry?.kind==="dimension"&&!dimensionById(entry.dimensionId));
-    if(staleDimensionEntries.length){
+    const invalidDimensionEntries=entries.filter(entry=>{
+      if(entry?.kind!=="dimension")return false;
+      const dimension=dimensionById(entry.dimensionId);
+      return !dimension||dimension.visible===false;
+    });
+    if(invalidDimensionEntries.length){
       const keys=context?.selectionKeys?.()??[];
       const kept=keys.filter(key=>{
         const entry=context?.parseSelectionKey?.(key);
-        return entry?.kind!=="dimension"||!!dimensionById(entry.dimensionId);
+        if(entry?.kind!=="dimension")return true;
+        const dimension=dimensionById(entry.dimensionId);
+        return !!dimension&&dimension.visible!==false;
       });
       context?.replaceSelectionKeys?.(kept,{announce:true});
       if(activeId&&!dimensionById(activeId))activeId=null;
       rebuild();return true;
     }
     const dimensionsOnly=entries.filter(entry=>entry?.kind==="dimension");
-    const next=entries.length===1&&dimensionsOnly.length===1&&dimensionById(dimensionsOnly[0].dimensionId)?String(dimensionsOnly[0].dimensionId):null;
+    const selectedDimension=dimensionsOnly.length===1?dimensionById(dimensionsOnly[0].dimensionId):null;
+    const next=entries.length===1&&selectedDimension&&selectedDimension.visible!==false?String(dimensionsOnly[0].dimensionId):null;
     if(String(activeId??"")===String(next??""))return false;
     activeId=next;rebuild();return true;
   }
@@ -384,7 +391,7 @@
     if(installed)return;installed=true;
     try{[dimensions,dynamicInput]=await Promise.all([import(DIMENSIONS_URL),import(DYNAMIC_INPUT_URL)]);}catch(error){console.error("Dimension grips runtime failed",error);return;}
     installListeners();rebuild();
-    window.addEventListener("tubebender-dimension-change",()=>rebuild());window.addEventListener("tubebender-assembly-change",()=>rebuild());window.addEventListener("tubebender-layer-change",()=>rebuild());window.addEventListener("tubebender-selection-change",syncActiveDimensionFromSelection);window.addEventListener("tubebender-history-change",()=>{syncActiveDimensionFromSelection();rebuild();});
+    window.addEventListener("tubebender-dimension-change",()=>{syncActiveDimensionFromSelection();rebuild();});window.addEventListener("tubebender-assembly-change",()=>rebuild());window.addEventListener("tubebender-layer-change",()=>rebuild());window.addEventListener("tubebender-selection-change",syncActiveDimensionFromSelection);window.addEventListener("tubebender-history-change",()=>{syncActiveDimensionFromSelection();rebuild();});
     if(typeof renderAll==="function"&&!renderAll._tbDimensionGrips){const original=renderAll;renderAll=function(...args){const result=original.apply(this,args);try{rebuild();}catch{}return result;};renderAll._tbDimensionGrips=true;}
     window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,deleteDimension,setDimensionVisible,syncActiveDimensionFromSelection,activeDimension:()=>dimensionById(activeId),dimensionLabelText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
   }
