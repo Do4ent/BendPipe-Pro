@@ -510,6 +510,15 @@
     if(installed)return;installed=true;try{dynamicInput=await import(DYNAMIC_INPUT_URL);}catch(error){console.error("Geometry grips runtime failed",error);return;}
     ensurePanel();canvas()?.addEventListener("pointerdown",onDown,true);window.addEventListener("pointermove",onMove,true);window.addEventListener("pointerup",onUp,true);canvas()?.addEventListener("click",onClick,true);canvas()?.addEventListener("dblclick",onDoubleClick,false);window.addEventListener("keydown",onKey,true);
     window.addEventListener("tubebender-selection-change",selectionChanged);window.addEventListener("tubebender-lock-change",rebuild);window.addEventListener("tubebender-layer-change",rebuild);window.addEventListener("tubebender-tolerance-change",rebuild);
+    window.addEventListener("tubebender-command-line-input",(event)=>{
+      const detail=event?.detail??{};
+      const wanted=detail.command_id==="length"?"line-length":detail.command_id==="angle"?"bend-angle":null;
+      if(!wanted||activeHandle?.edit!==wanted)return;
+      const value=Number(detail.numeric_value);if(!Number.isFinite(value))return;
+      const p=ensurePanel(),input=p.querySelector("[data-geometry-grip-value]");
+      if(input){input.value=String(value);applyExact();}
+    });
+
     if(typeof renderAll==="function"&&!renderAll._tbGeometryGrips){const original=renderAll;renderAll=function(...args){const result=original.apply(this,args);try{rebuild();}catch{}return result;};renderAll._tbGeometryGrips=true;}
     rebuild();window.TubeBenderGeometryGrips=Object.freeze({rebuild,selectedGeometry,handleDescriptors,contextHandleDescriptors,gripDisplayMode,applyExact,focusScalarEdit,setShowAll:(value)=>{showAllGrips=value===true;rebuild();},enterInternal:(tubeId,rowIndex)=>{internalEdit={tubeId:String(tubeId),rowIndex:Number(rowIndex)};rebuild();},exitInternal:()=>{internalEdit=null;rebuild();}});
   }
