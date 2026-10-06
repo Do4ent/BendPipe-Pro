@@ -592,6 +592,72 @@
     }
     return changed;
   }
+  function rebindSectionDerivedDimension(dimensionId){
+    if(readonly()){toast("Проект открыт только для просмотра");return false;}
+    const p=project();if(!p)return false;
+    const existing=savedDimensions().find(dimension=>String(dimension?.id)===String(dimensionId));
+    if(!existing||!isSectionDerivedDimension(existing)){toast("Section-derived размер не найден");return false;}
+    const current=decorateMeasurementResult(buildMeasurement(selectionEntries()));
+    if(!current?.ok||current.section_derived!==true){
+      toast("Сначала выберите совместимую текущую Section-derived геометрию");
+      return false;
+    }
+    if(String(current.kind)!==String(existing.kind)){
+      toast("Тип текущего измерения не совпадает с сохранённым размером");
+      return false;
+    }
+    if((current.references??[]).length!==(existing.references??[]).length){
+      toast("Количество ссылок не совпадает с сохранённым размером");
+      return false;
+    }
+    const mutate=()=>{
+      p.engineering_dimensions=savedDimensions().map(dimension=>{
+        if(String(dimension?.id)!==String(dimensionId))return dimension;
+        const next={
+          ...clone(dimension),
+          references:clone(current.references),
+          value:Number(current.primary_value),
+          status:"Valid",
+          note:String(dimension.note??current.title??"Section-derived Reference Dimension"),
+          rebound_from_stale:true,
+          rebound_at_section_view:clone(window.TubeBenderSectionView?.capture?.()??null)
+        };
+        delete next.stale_reason;
+        delete next.stale_at_section_view;
+        return next;
+      });
+      return true;
+    };
+    const ok=api()?.modelCommand?api().modelCommand("Rebind Section-derived Reference Dimension",mutate):mutate();
+    if(ok===false)return false;
+    try{api()?.save?.();}catch{}
+    dispatchDimensionChange(dimensionId,"section-derived-rebind");
+    toast("Section-derived размер перепривязан");
+    render();return true;
+  }
+  function sectionDerivedDimensionsHtml(){
+    const items=savedDimensions().filter(isSectionDerivedDimension);
+    if(!items.length)return "";
+    const rows=items.map(dimension=>{
+      const stale=String(dimension.status)==="Stale";
+      const status=stale?"⚠ Stale":String(dimension.status??"NeedsUpdate");
+      const valueText=Number.isFinite(Number(dimension.value))?formatted(Number(dimension.value),String(dimension.kind).includes("angle")?"deg":"mm"):"—";
+      return '<div class="tb-measure-result" style="margin-top:7px"><div class="tb-measure-title">'+
+        esc(dimension.note??dimension.kind)+' · '+esc(status)+'</div>'+
+        '<div class="tb-measure-note">ID: '+esc(dimension.id)+' · '+esc(valueText)+
+        (dimension.stale_reason?' · '+esc(dimension.stale_reason):'')+'</div>'+
+        (stale?'<div class="tb-measure-actions"><button data-section-rebind="'+esc(dimension.id)+'">Rebind to current Section selection</button></div>':'')+
+        '</div>';
+    }).join("");
+    return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Section-derived Reference Dimensions</div>'+
+      '<div class="tb-measure-note">Stale размеры не перепривязываются автоматически. Выберите новую совместимую Section-derived геометрию и подтвердите Rebind.</div></div>'+rows;
+  }
+  function bindSectionDerivedDimensionActions(body){
+    body.querySelectorAll("[data-section-rebind]").forEach(button=>{
+      button.onclick=()=>rebindSectionDerivedDimension(button.dataset.sectionRebind);
+    });
+  }
+
   function saveCurrentDimension(){
     if(readonly()){toast("Проект открыт только для просмотра");return;}
     if(!lastResult?.ok)return;
@@ -683,6 +749,7 @@
     $("[data-quick-clear]",body)?.addEventListener("click",clearQuickMeasure);
     $("[data-quick-stop]",body)?.addEventListener("click",()=>stopQuickMeasure());
     $("[data-save-measure-settings]",body).onclick=()=>saveSettings(body);
+    bindSectionDerivedDimensionActions(body);
   }
   function settingsHtml(s,count){
     const d=s.dimension_style??{};
@@ -706,7 +773,8 @@
       '<label>Error <input data-dim-color-error type="color" value="'+esc(d.error_color)+'"></label>'+
       '<label>Normal <input data-dim-color-normal type="color" value="'+esc(d.normal_color)+'"></label>'+
       '</div><div class="tb-measure-note" style="margin-top:8px">Hybrid масштабирует размер с моделью, но удерживает текст и стрелки в читаемом экранном диапазоне. Driving и Error имеют отдельные цвета.</div>'+
-      '<div class="tb-measure-actions"><span class="tb-measure-note">Сохранено размеров: '+count+'</span><button data-save-measure-settings>Сохранить настройки</button></div></div>';
+      '<div class="tb-measure-actions"><span class="tb-measure-note">Сохранено размеров: '+count+'</span><button data-save-measure-settings>Сохранить настройки</button></div></div>'+
+      sectionDerivedDimensionsHtml();
   }
   async function install(){
     if(installed)return;installed=true;
@@ -724,7 +792,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,
+      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
