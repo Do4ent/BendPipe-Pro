@@ -897,8 +897,9 @@
       "project-assembly":{title:"Assembly",edit:true,transform:true,visibility:true,properties:true,delete:true,isolate:false,transparent:false},
       assembly:{title:"Tube Assembly",edit:false,transform:false,visibility:true,properties:true,delete:false,isolate:false,transparent:false},
       "section-derived":{title:"Section-derived Geometry",edit:false,transform:false,visibility:false,properties:true,delete:false,isolate:false,transparent:false},
+      dimension:{title:"Dimension",edit:false,transform:false,visibility:false,properties:true,delete:false,isolate:false,transparent:false},
       end:{title:"Конец трубы",edit:false,transform:false,visibility:false,properties:true,delete:false,isolate:false,transparent:false},
-      multi:{title:"Несколько объектов",edit:false,transform:canMoveSelection(),visibility:entries.every(entry=>entry.kind!=="end"),properties:true,delete:entries.every(entry=>entry.kind!=="end"),isolate:entries.every(entry=>["tube","row","ref","mesh-instance"].includes(entry.kind)),transparent:entries.every(entry=>["tube","row","ref","mesh-instance"].includes(entry.kind))}
+      multi:{title:"Несколько объектов",edit:false,transform:canMoveSelection(),visibility:entries.every(entry=>!["end","dimension","section-derived"].includes(entry.kind)),properties:true,delete:entries.every(entry=>!["end","dimension","section-derived"].includes(entry.kind)),isolate:entries.every(entry=>["tube","row","ref","mesh-instance"].includes(entry.kind)),transparent:entries.every(entry=>["tube","row","ref","mesh-instance"].includes(entry.kind))}
     };
     return {...(profiles[type]??{title:type,edit:false,transform:false,visibility:true,properties:true,delete:true,isolate:false,transparent:false}),type,single};
   }
@@ -908,17 +909,20 @@
       if(profile.type==="multi")return "Для Edit выберите один объект";
       if(profile.type==="end")return "Для конца трубы используйте фиксацию P2";
       if(profile.type==="section-derived")return "Section-derived geometry является виртуальной производной геометрией и доступна только для просмотра";
+      if(profile.type==="dimension")return "Размер редактируется специализированным Dimension editor";
       return "Редактирование недоступно для этого типа объекта";
     }
     if(action==="transform-object"||action==="move"){
       if(["line","bend","row"].includes(profile.type))return "Transform применяется к целому объекту, а не к подэлементу";
       if(profile.type==="end")return "Положение конца определяется геометрией трубы";
       if(profile.type==="section-derived")return "Section-derived geometry нельзя трансформировать отдельно от исходной геометрии";
+      if(profile.type==="dimension")return "Положение размерного представления изменяется Dimension grips";
       return "Transform недоступен для текущего выбора";
     }
     if(action==="hide"||action==="show"||action==="isolate"||action==="transparent"){
       if(profile.type==="end")return "Видимость управляется родительским объектом";
       if(profile.type==="section-derived")return "Section-derived geometry управляется Section View";
+      if(profile.type==="dimension")return "Видимость размера управляется специализированными Dimension-командами";
       if(profile.type==="group"||profile.type==="project-assembly")return "Для контейнера доступен Show / Hide, но не этот режим";
       return "Режим видимости недоступен для текущего выбора";
     }
@@ -927,6 +931,7 @@
       if(profile.type==="end")return "Конец трубы нельзя удалить отдельно";
       if(profile.type==="assembly")return "Внутренний Tube Assembly удаляется через родительский объект";
       if(profile.type==="section-derived")return "Section-derived geometry не хранится как самостоятельный объект и не удаляется";
+      if(profile.type==="dimension")return "Удаление размера должно выполняться специализированной Dimension-командой";
       return "Удаление недоступно для текущего выбора";
     }
     return "Команда недоступна для текущего выбора";
