@@ -532,6 +532,7 @@
     window.addEventListener("tubebender-snap-change",()=>{if(panel?.classList.contains("open"))render(false);});
     window.addEventListener("tubebender-array-change",()=>render(true));
     window.addEventListener("tubebender-dimension-change",()=>render(true));
+    window.addEventListener("tubebender-history-change",()=>render(true));
     window.TubeBenderProperties=Object.freeze({open,close,refresh:()=>render(true),snapshot,describe,editableTargets,commonEditableFields,applyCommonProperty});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
