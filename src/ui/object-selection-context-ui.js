@@ -12,6 +12,8 @@
     mesh:"mesh:",
     group:"group:",
     projectAssembly:"project-assembly:",
+    dimension:"dimension:",
+    construction:"construction:",
     tube:"tube:",
     row:"row:",
     end:"end:",
@@ -24,6 +26,8 @@
   function meshKey(instanceId){return PREFIX.mesh+enc(instanceId);}
   function groupKey(groupId){return PREFIX.group+enc(groupId);}
   function projectAssemblyKey(assemblyId){return PREFIX.projectAssembly+enc(assemblyId);}
+  function dimensionKey(id){return PREFIX.dimension+enc(id);}
+  function constructionKey(id){return PREFIX.construction+enc(id);}
   function tubeKey(tubeId){return PREFIX.tube+enc(tubeId);}
   function endKey(tubeId){return PREFIX.end+enc(tubeId);}
   function rowKey(tubeId,rowIndex){return PREFIX.row+enc(tubeId)+":"+String(Number(rowIndex));}
@@ -45,6 +49,12 @@
     }
     if(text.startsWith(PREFIX.projectAssembly)){
       return {kind:"project-assembly",assemblyId:dec(text.slice(PREFIX.projectAssembly.length))};
+    }
+    if(text.startsWith(PREFIX.dimension)){
+      return {kind:"dimension",dimensionId:dec(text.slice(PREFIX.dimension.length))};
+    }
+    if(text.startsWith(PREFIX.construction)){
+      return {kind:"construction",constructionId:dec(text.slice(PREFIX.construction.length))};
     }
     if(text.startsWith(PREFIX.tube)){
       return {kind:"tube",tubeId:dec(text.slice(PREFIX.tube.length))};
