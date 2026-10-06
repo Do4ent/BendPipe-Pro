@@ -393,6 +393,32 @@
         ["Assembly ID",entry.assemblyId],["Part",entry.part??entry.partId],["Tube ID",entry.tubeId],["Row",entry.rowIndex]
       ]}]};
     }
+    if(entry.kind==="dimension"){
+      const dimension=(p?.engineering_dimensions??[]).find(item=>String(item?.id)===String(entry.dimensionId))??null;
+      const refs=(dimension?.references??[]).map((ref,index)=>({
+        index,
+        object_id:ref?.object_id,
+        subentity_id:ref?.subentity_id,
+        snap_type:ref?.snap_type,
+        geometry_status:ref?.geometry_status,
+        section_snapshot:ref?.section_snapshot??null
+      }));
+      return {title:dimension?.note??"Dimension",kind:"dimension",groups:[
+        {name:"Dimension",rows:[
+          ["ID",dimension?.id],["Kind",dimension?.kind],["Mode",dimension?.mode],["Value",dimension?.value],
+          ["Status",dimension?.status],["Visible",dimension?.visible!==false],["Cross assembly",dimension?.cross_assembly?.cross_assembly===true]
+        ]},
+        {name:"Associativity",rows:[
+          ["References",refs],["Reference count",refs.length],
+          ["Stale reason",dimension?.stale_reason],["Stale at Section View",dimension?.stale_at_section_view]
+        ]},
+        {name:"Rebind audit",rows:[
+          ["Rebound from stale",dimension?.rebound_from_stale===true],
+          ["Rebound at Section View",dimension?.rebound_at_section_view],
+          ["Rebind history",dimension?.rebound_history??[]]
+        ]}
+      ]};
+    }
     if(entry.kind==="section-derived"){
       const record=window.TubeBenderSectionView?.derivedSelectionById?.(entry.derivedId)??null;
       return {title:"Section-derived Geometry",kind:"section-derived",groups:[
