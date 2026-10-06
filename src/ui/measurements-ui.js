@@ -684,6 +684,28 @@
     toast("Section-derived размер перепривязан");
     render();return true;
   }
+  function dimensionRebindAuditHtml(dimension){
+    const history=Array.isArray(dimension?.rebound_history)?dimension.rebound_history:[];
+    if(!history.length)return "";
+    const rows=history.map((entry,index)=>{
+      const sources=[...new Set((entry?.previous_references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean))];
+      const signatures=(entry?.new_reference_signatures??[]).map(sig=>({
+        object_id:sig?.object_id,
+        snap_type:sig?.snap_type,
+        source_geometry:sig?.source_geometry,
+        section_mode:sig?.section_mode
+      }));
+      return '<div class="tb-measure-note" style="padding:4px 0;border-top:1px solid #2b3a4a">'+
+        '#'+(index+1)+' · '+esc(entry?.reason??"rebind")+
+        (entry?.previous_status?' · from '+esc(entry.previous_status):'')+
+        (sources.length?' · source '+esc(sources.join(", ")):'')+
+        (entry?.previous_value!=null?' · value '+esc(entry.previous_value):'')+
+        (entry?.previous_stale_reason?' · '+esc(entry.previous_stale_reason):'')+
+        '<div style="margin-top:3px">New refs: '+esc(signatures)+'</div></div>';
+    }).join("");
+    return '<details data-dim-rebind-audit="'+esc(dimension.id)+'" style="margin-top:6px"><summary>Rebind audit · '+history.length+'</summary>'+rows+'</details>';
+  }
+
   function dimensionManagerHtml(){
     const items=savedDimensions();
     if(!items.length)return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div><div class="tb-measure-note">Сохранённых размеров пока нет.</div></div>';
@@ -708,6 +730,7 @@
         (stale?' · ⚠ Stale':' · '+esc(dimension.status??"NeedsUpdate"))+'</div>'+
         '<div class="tb-measure-note">'+esc(valueText)+' · '+(visible?'Visible':'Hidden')+' · '+esc(dimension.id)+'</div>'+
         (provenanceBits.length?'<div class="tb-measure-note" data-dim-provenance="'+esc(dimension.id)+'">'+esc(provenanceBits.join(' · '))+'</div>':'')+
+        dimensionRebindAuditHtml(dimension)+
         '<div class="tb-measure-actions">'+
           '<button data-dim-manager-select="'+esc(dimension.id)+'" data-select-visible="'+(visible?"1":"0")+'">'+(visible?'Select':'Show & Select')+'</button>'+
           '<button data-dim-manager-visible="'+esc(dimension.id)+'" data-visible="'+(visible?"1":"0")+'">'+(visible?'Hide':'Show')+'</button>'+
