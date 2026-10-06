@@ -664,6 +664,8 @@
               previous_references:clone(dimension.references??[]),
               previous_value:dimension.value??null,
               previous_status:String(dimension.status??""),
+              previous_stale_reason:dimension?.stale_reason??null,
+              previous_stale_at_section_view:clone(dimension?.stale_at_section_view??null),
               new_reference_signatures:clone(compatibility.signatures),
               reason:"explicit-section-derived-rebind"
             }
