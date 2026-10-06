@@ -592,6 +592,31 @@
     }
     return changed;
   }
+  function sectionReferenceSignature(ref){
+    const snapshot=ref?.section_snapshot??{};
+    return {
+      object_id:String(ref?.object_id??""),
+      snap_type:String(ref?.snap_type??""),
+      source_geometry:String(snapshot?.source_geometry??""),
+      section_mode:String(snapshot?.mode??"")
+    };
+  }
+  function sectionRebindCompatibility(existing,current){
+    const oldRefs=existing?.references??[],newRefs=current?.references??[];
+    if(oldRefs.length!==newRefs.length)return {ok:false,reason:"Количество ссылок не совпадает с сохранённым размером"};
+    const normalize=refs=>refs.map(sectionReferenceSignature).sort((a,b)=>
+      (a.object_id+"|"+a.snap_type+"|"+a.source_geometry+"|"+a.section_mode)
+        .localeCompare(b.object_id+"|"+b.snap_type+"|"+b.source_geometry+"|"+b.section_mode)
+    );
+    const oldSig=normalize(oldRefs),newSig=normalize(newRefs);
+    for(let i=0;i<oldSig.length;i++){
+      if(oldSig[i].object_id!==newSig[i].object_id)return {ok:false,reason:"Текущая Section-derived геометрия относится к другому исходному объекту"};
+      if(oldSig[i].snap_type!==newSig[i].snap_type)return {ok:false,reason:"Тип Section-derived ссылки не совпадает"};
+      if(oldSig[i].source_geometry!==newSig[i].source_geometry)return {ok:false,reason:"Источник геометрии Section-derived ссылки изменился"};
+      if(oldSig[i].section_mode!==newSig[i].section_mode)return {ok:false,reason:"Section mode не совпадает с сохранённым размером"};
+    }
+    return {ok:true,signatures:newSig};
+  }
   function rebindSectionDerivedDimension(dimensionId){
     if(readonly()){toast("Проект открыт только для просмотра");return false;}
     const p=project();if(!p)return false;
@@ -606,10 +631,8 @@
       toast("Тип текущего измерения не совпадает с сохранённым размером");
       return false;
     }
-    if((current.references??[]).length!==(existing.references??[]).length){
-      toast("Количество ссылок не совпадает с сохранённым размером");
-      return false;
-    }
+    const compatibility=sectionRebindCompatibility(existing,current);
+    if(!compatibility.ok){toast(compatibility.reason);return false;}
     const mutate=()=>{
       p.engineering_dimensions=savedDimensions().map(dimension=>{
         if(String(dimension?.id)!==String(dimensionId))return dimension;
@@ -620,7 +643,17 @@
           status:"Valid",
           note:String(dimension.note??current.title??"Section-derived Reference Dimension"),
           rebound_from_stale:true,
-          rebound_at_section_view:clone(window.TubeBenderSectionView?.capture?.()??null)
+          rebound_at_section_view:clone(window.TubeBenderSectionView?.capture?.()??null),
+          rebound_history:[
+            ...(Array.isArray(dimension.rebound_history)?clone(dimension.rebound_history):[]),
+            {
+              previous_references:clone(dimension.references??[]),
+              previous_value:dimension.value??null,
+              previous_status:String(dimension.status??""),
+              new_reference_signatures:clone(compatibility.signatures),
+              reason:"explicit-section-derived-rebind"
+            }
+          ]
         };
         delete next.stale_reason;
         delete next.stale_at_section_view;
@@ -792,7 +825,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,
+      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
