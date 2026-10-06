@@ -1365,6 +1365,7 @@
         ? tbModelCommand("Переместить выбранные объекты",mutate)
         : mutate();
     if(ok===false)return false;
+    try{repeatApi()?.record?.("edit.move","Move",{editDx:Number(delta.x)||0,editDy:Number(delta.y)||0,editDz:Number(delta.z)||0},"context");}catch{}
     if(createdInstanceIds.length){
       selected.clear();
       refApi()?.clearSelection?.();
