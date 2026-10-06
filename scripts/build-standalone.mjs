@@ -30,6 +30,7 @@ const hotkeysRuntimePath = path.join(root, "src", "ui", "hotkeys-runtime.js");
 const commandPaletteRuntimePath = path.join(root, "src", "ui", "command-palette-runtime.js");
 const selectionSetsRuntimePath = path.join(root, "src", "ui", "selection-sets-runtime.js");
 const namedViewsRuntimePath = path.join(root, "src", "ui", "named-views-runtime.js");
+const sectionViewRuntimePath = path.join(root, "src", "ui", "section-view-runtime.js");
 const propertiesPanelRuntimePath = path.join(root, "src", "ui", "properties-panel-runtime.js");
 const objectLockRuntimePath = path.join(root, "src", "ui", "object-lock-runtime.js");
 const layersRuntimePath = path.join(root, "src", "ui", "layers-runtime.js");
@@ -57,6 +58,7 @@ const hotkeysDomainPath = path.join(root, "src", "domain", "ui", "hotkeys.mjs");
 const commandPaletteDomainPath = path.join(root, "src", "domain", "ui", "command-palette.mjs");
 const selectionSetsDomainPath = path.join(root, "src", "domain", "project", "selection-sets.mjs");
 const namedViewsDomainPath = path.join(root, "src", "domain", "project", "named-views.mjs");
+const sectionViewDomainPath = path.join(root, "src", "domain", "project", "section-view.mjs");
 const layersDomainPath = path.join(root, "src", "domain", "project", "layers.mjs");
 const groupsDomainPath = path.join(root, "src", "domain", "project", "groups.mjs");
 const assembliesDomainPath = path.join(root, "src", "domain", "project", "assemblies.mjs");
@@ -2486,6 +2488,13 @@ const namedViewsRuntime = fs.readFileSync(namedViewsRuntimePath, "utf8")
 const bundledNamedViewsRuntime =
   `<script data-tubebender-bundled="named-views-runtime">\n${namedViewsRuntime}\n</script>`;
 
+const sectionViewDomainUrl = moduleDataUrl(sectionViewDomainPath);
+const sectionViewRuntime = fs.readFileSync(sectionViewRuntimePath, "utf8")
+  .replace("__TB_SECTION_VIEW_MODULE_URL__", sectionViewDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledSectionViewRuntime =
+  `<script data-tubebender-bundled="section-view-runtime">\n${sectionViewRuntime}\n</script>`;
+
 const projectTubeBarLayoutFix = fs.readFileSync(projectTubeBarLayoutFixPath, "utf8").replace(/<\/script/gi, "<\\/script");
 const bundledProjectTubeBarLayoutFix =
   `<script data-tubebender-bundled="project-tube-bar-layout-fix">\n${projectTubeBarLayoutFix}\n</script>`;
@@ -2762,6 +2771,8 @@ output =
   bundledSelectionSetsRuntime +
   "\n" +
   bundledNamedViewsRuntime +
+  "\n" +
+  bundledSectionViewRuntime +
   "\n" +
   bundledProjectTubeBarLayoutFix +
   "\n" +
