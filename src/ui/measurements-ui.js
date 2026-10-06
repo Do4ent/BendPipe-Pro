@@ -684,6 +684,35 @@
     toast("Section-derived размер перепривязан");
     render();return true;
   }
+  function dimensionRebindAuditSnapshot(dimension){
+    return {
+      dimension_id:String(dimension?.id??""),
+      kind:String(dimension?.kind??""),
+      mode:String(dimension?.mode??""),
+      status:String(dimension?.status??""),
+      current_value:dimension?.value??null,
+      stale_reason:dimension?.stale_reason??null,
+      current_references:clone(dimension?.references??[]),
+      rebound_from_stale:dimension?.rebound_from_stale===true,
+      rebound_at_section_view:clone(dimension?.rebound_at_section_view??null),
+      rebound_history:clone(Array.isArray(dimension?.rebound_history)?dimension.rebound_history:[])
+    };
+  }
+  async function copyDimensionRebindAudit(dimensionId){
+    const dimension=savedDimensions().find(item=>String(item?.id)===String(dimensionId));
+    if(!dimension)return false;
+    const text=JSON.stringify(dimensionRebindAuditSnapshot(dimension),null,2);
+    try{
+      if(navigator?.clipboard?.writeText)await navigator.clipboard.writeText(text);
+      else{
+        const area=document.createElement("textarea");area.value=text;area.style.position="fixed";area.style.opacity="0";
+        document.body.appendChild(area);area.select();document.execCommand("copy");area.remove();
+      }
+      toast("Rebind audit скопирован");
+      return true;
+    }catch(error){toast("Не удалось скопировать Rebind audit");return false;}
+  }
+
   function dimensionRebindAuditHtml(dimension){
     const history=Array.isArray(dimension?.rebound_history)?dimension.rebound_history:[];
     if(!history.length)return "";
@@ -703,7 +732,8 @@
         (entry?.previous_stale_reason?' · '+esc(entry.previous_stale_reason):'')+
         '<div style="margin-top:3px">New refs: '+esc(signatures)+'</div></div>';
     }).join("");
-    return '<details data-dim-rebind-audit="'+esc(dimension.id)+'" style="margin-top:6px"><summary>Rebind audit · '+history.length+'</summary>'+rows+'</details>';
+    return '<details data-dim-rebind-audit="'+esc(dimension.id)+'" style="margin-top:6px"><summary>Rebind audit · '+history.length+'</summary>'+
+      '<div class="tb-measure-actions"><button data-copy-rebind-audit="'+esc(dimension.id)+'">Copy audit JSON</button></div>'+rows+'</details>';
   }
 
   function dimensionManagerHtml(){
@@ -759,6 +789,9 @@
     });
     body.querySelectorAll("[data-dim-manager-delete]").forEach(button=>{
       button.onclick=()=>{window.TubeBenderDimensionGrips?.deleteDimension?.(button.dataset.dimManagerDelete);render();};
+    });
+    body.querySelectorAll("[data-copy-rebind-audit]").forEach(button=>{
+      button.onclick=()=>copyDimensionRebindAudit(button.dataset.copyRebindAudit);
     });
   }
 
@@ -923,7 +956,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,
+      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
