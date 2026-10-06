@@ -152,6 +152,10 @@
   function setSelectedKey(key,{additive=false,toggle=false}={}){
     if(!key)return;
     const candidate=parseKey(key);
+    if(candidate&&window.TubeBenderSelectionFilter?.allows?.(candidate)===false){
+      try{if(typeof ptToast==="function")ptToast("Тип объекта отключён фильтром выбора");}catch{}
+      return;
+    }
     if(candidate&&layerApi()?.entryVisibility?.(candidate)?.selectable===false){
       try{if(typeof ptToast==="function")ptToast("Слой заморожен");}catch{}
       return;
