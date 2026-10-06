@@ -62,7 +62,8 @@ export function normalizeViewEnvironment(input={}){
     projection_mode:String(input.projection_mode??input.projectionMode??"perspective"),
     active_layer_id:input.active_layer_id==null?null:String(input.active_layer_id),
     layer_tree_filter_id:input.layer_tree_filter_id==null?null:String(input.layer_tree_filter_id),
-    layers:Object.freeze(layers)
+    layers:Object.freeze(layers),
+    section_view:input.section_view==null?null:clone(input.section_view)
   });
 }
 export function normalizeNamedView(input={}){
