@@ -269,7 +269,9 @@
     const run=()=>{
       const before=saved(),next=before.filter(item=>String(item?.id)!==String(id));
       if(next.length===before.length)return false;
-      p.engineering_dimensions=next.map(clone);return true;
+      p.engineering_dimensions=next.map(clone);
+      try{window.TubeBenderSelectionSets?.pruneMissing?.();}catch{}
+      return true;
     };
     const command=eng()?.modelCommand;
     let ok;try{ok=typeof command==="function"?command("Удалить Dimension",run):run();}catch(error){toast(error?.message??error);return false;}
