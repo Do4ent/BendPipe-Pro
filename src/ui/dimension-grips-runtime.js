@@ -13,6 +13,7 @@
   const toast=m=>{try{eng()?.toast?.(String(m??""));}catch{}};
   const saved=()=>Array.isArray(project()?.engineering_dimensions)?project().engineering_dimensions:[];
   const dimensionById=id=>saved().find(d=>String(d?.id)===String(id))??null;
+  const staleDimension=d=>String(d?.status??"")==="Stale";
   const tubeById=id=>(project()?.tubes??[]).find(t=>String(t?.id)===String(id))??null;
   function finitePoint(value){
     if(!value)return null;
@@ -132,7 +133,9 @@
     if(String(dimension.id)===String(activeId)){
       const textGrip=grip(textPos,0xffffff,dimension.id,"text");if(textGrip)group.add(textGrip);
       const lineGrip=grip(linePos,0x65d6ff,dimension.id,"line");if(lineGrip)group.add(lineGrip);
-      points.forEach((p,index)=>{if(p){const g=grip(p,0xffd65a,dimension.id,"reference",index);if(g)group.add(g);}});
+      if(!staleDimension(dimension)){
+        points.forEach((p,index)=>{if(p){const g=grip(p,0xffd65a,dimension.id,"reference",index);if(g)group.add(g);}});
+      }
     }
   }
   function rebuild(){
@@ -186,6 +189,10 @@
   }
   function beginDrag(event,picked){
     const data=picked?.data,dimension=dimensionById(data?.dimensionId);if(!dimension||!data?.dimensionGrip)return false;
+    if(staleDimension(dimension)&&data.dimensionGrip==="reference"){
+      toast("Stale Dimension: reference можно изменить только через явный Rebind");
+      return false;
+    }
     activeId=String(dimension.id);const points=resolvedPoints(dimension),anchor=data.dimensionGrip==="text"?textPoint(dimension,points):data.dimensionGrip==="line"?linePoint(dimension,points):points[data.referenceIndex];
     if(!anchor)return false;
     if(data.dimensionGrip==="reference")snap()?.startCommand?.("dimension-reference",{ortho:false,polar:false});
@@ -254,7 +261,13 @@
     document.body.appendChild(box);editor=box;box.style.left=Math.min(event.clientX+8,window.innerWidth-300)+"px";box.style.top=Math.min(event.clientY+8,window.innerHeight-145)+"px";
     const mode=box.querySelector("[data-dim-edit-mode]"),input=box.querySelector("[data-dim-edit-value]"),status=box.querySelector("[data-dim-edit-status]");
     mode.value=dimension.mode??"Reference";input.value=dimension.mode==="Driving"?String(dimension.target_formula??dimension.target_value??dimension.value??""):String(dimension.value??"");status.textContent=String(dimension.status??"");
-    const sync=()=>{input.disabled=mode.value!=="Driving";input.title=input.disabled?"Reference Dimension не изменяет геометрию. Сначала переключите Mode на Driving.":"Введите число или формулу";};sync();mode.onchange=sync;
+    const stale=staleDimension(dimension);
+    if(stale){
+      mode.disabled=true;input.disabled=true;
+      status.textContent="Stale · "+String(dimension.stale_reason??"Section-derived reference changed");
+      const apply=box.querySelector("[data-dim-edit-apply]");if(apply){apply.disabled=true;apply.title="Используйте явный Rebind в панели Измерения";}
+    }
+    const sync=()=>{if(stale)return;input.disabled=mode.value!=="Driving";input.title=input.disabled?"Reference Dimension не изменяет геометрию. Сначала переключите Mode на Driving.":"Введите число или формулу";};sync();mode.onchange=sync;
     box.querySelector("[data-dim-edit-close]").onclick=closeEditor;
     box.querySelector("[data-dim-edit-apply]").onclick=()=>{
       const id=String(dimension.id),nextMode=mode.value;
