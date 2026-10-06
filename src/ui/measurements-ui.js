@@ -720,6 +720,33 @@
       dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
     };
   }
+  function visibleDimensionAuditSnapshot(){
+    const items=filteredDimensionManagerItems(savedDimensions());
+    return {
+      schema:"TubeBender.DimensionAuditView.v1",
+      project_id:String(project()?.id??project()?.project_id??""),
+      view:{
+        filter:dimensionManagerFilter,
+        sort:dimensionManagerSort,
+        search:String(dimensionManagerSearch??"")
+      },
+      dimension_count:items.length,
+      summary:dimensionAuditSummary(items),
+      dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
+    };
+  }
+  async function copyVisibleDimensionAudits(){
+    const text=JSON.stringify(visibleDimensionAuditSnapshot(),null,2);
+    try{
+      if(navigator?.clipboard?.writeText)await navigator.clipboard.writeText(text);
+      else{
+        const area=document.createElement("textarea");area.value=text;area.style.position="fixed";area.style.opacity="0";
+        document.body.appendChild(area);area.select();document.execCommand("copy");area.remove();
+      }
+      toast("Текущий Dimension audit view скопирован");
+      return true;
+    }catch(error){toast("Не удалось скопировать текущий Dimension audit view");return false;}
+  }
   async function copyAllDimensionAudits(){
     const text=JSON.stringify(allDimensionAuditSnapshot(),null,2);
     try{
@@ -841,7 +868,7 @@
       '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+'</div>'+
       '<div class="tb-measure-note" data-dimension-visible-count>Showing '+visibleItems.length+' of '+items.length+'</div>'+
       filters+
-      '<div class="tb-measure-actions"><button data-copy-all-dimension-audits>Copy all audit JSON</button></div></div>'+rows;
+      '<div class="tb-measure-actions"><button data-copy-visible-dimension-audits>Copy visible audit JSON</button><button data-copy-all-dimension-audits>Copy all audit JSON</button></div></div>'+rows;
   }
   function bindDimensionManagerActions(body){
     body.querySelectorAll("[data-dim-manager-select]").forEach(button=>{
@@ -865,6 +892,7 @@
     body.querySelectorAll("[data-copy-rebind-audit]").forEach(button=>{
       button.onclick=()=>copyDimensionRebindAudit(button.dataset.copyRebindAudit);
     });
+    body.querySelector("[data-copy-visible-dimension-audits]")?.addEventListener("click",copyVisibleDimensionAudits);
     body.querySelector("[data-copy-all-dimension-audits]")?.addEventListener("click",copyAllDimensionAudits);
     body.querySelectorAll("[data-dimension-filter]").forEach(button=>{
       button.onclick=()=>{dimensionManagerFilter=button.dataset.dimensionFilter||"all";render();};
@@ -1046,7 +1074,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,filteredDimensionManagerItems,
+      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
