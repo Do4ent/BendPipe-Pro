@@ -7,6 +7,7 @@
   const DECIMAL_PREF_KEY="tubebender.dynamicInput.decimalSeparator";
   let straightRun=null,rigidTransform=null,dynamicInput=null,transformCommands=null,copyDependencies=null,installed=false,panel=null,button=null,activeTool="copy",snapCommandTool=null;
   let copyPreviewGroup=null;
+  let pendingRepeatSettings=null;
   const copySession={active:false,mode:"single",base:null,targets:[],pendingPoint:null,sourceIds:[],sourceMeshEntries:[],externalPolicy:null};
   const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
   const clone=(v)=>v==null?v:structuredClone(v);
@@ -17,6 +18,7 @@
   const referenceApi=()=>window.TubeBenderReferenceSceneUi??null;
   const lockApi=()=>window.TubeBenderObjectLocks??null;
   const fittedApi=()=>window.TubeBenderFittedGeometry??null;
+  const repeatApi=()=>window.TubeBenderRepeatCommands??null;
   const lockAllowed=(action)=>lockApi()?.canSelection?.(action,{notify:true})!==false;
   const project=()=>{try{return api()?.activeProject?.()??null;}catch{return null;}};
   const stateValue=()=>{try{return api()?.getState?.()??null;}catch{return null;}};
@@ -24,6 +26,46 @@
   const toast=(m)=>{try{api()?.toast?.(String(m??""));}catch{}};
   const entries=()=>context()?.selectionEntries?.()??[];
   const tubeById=(id)=>(project()?.tubes??[]).find((t)=>String(t?.id)===String(id))??null;
+  function dataKeyForControl(control){
+    for(const key of Object.keys(control?.dataset??{}))return key;
+    return "";
+  }
+  function safeToolSettings(tool,body){
+    const out={tool:String(tool??activeTool)};
+    for(const control of body?.querySelectorAll?.("input,select")??[]){
+      const key=dataKeyForControl(control);if(!key)continue;
+      if(/(base|target|point|pivot|origin|center|cx|cy|cz|px|py|pz|vector)/i.test(key))continue;
+      out[key]=control.type==="checkbox"?control.checked:control.value;
+    }
+    if(tool==="copy"){
+      out.copyMode=copySession.mode;
+      out.copyExternalPolicy=copySession.externalPolicy;
+    }
+    return repeatApi()?.sanitizeSettings?.(out)??out;
+  }
+  function applySafeToolSettings(tool,settings,body){
+    if(!settings||!body)return;
+    for(const control of body.querySelectorAll("input,select")){
+      const key=dataKeyForControl(control);if(!key||!Object.prototype.hasOwnProperty.call(settings,key))continue;
+      if(/(base|target|point|pivot|origin|center|cx|cy|cz|px|py|pz|vector)/i.test(key))continue;
+      if(control.type==="checkbox")control.checked=settings[key]===true||String(settings[key])==="true";
+      else control.value=String(settings[key]??"");
+      try{control.dispatchEvent(new Event("change",{bubbles:true}));}catch{}
+    }
+    if(tool==="copy"){
+      if(settings.copyMode==="multiple"||settings.copyMode==="single")copySession.mode=settings.copyMode;
+      if(settings.copyExternalPolicy==="Keep"||settings.copyExternalPolicy==="Detach"||settings.copyExternalPolicy==null)copySession.externalPolicy=settings.copyExternalPolicy??null;
+    }
+  }
+  function recordRepeat(tool,label,body){
+    try{repeatApi()?.record?.("edit."+tool,label,safeToolSettings(tool,body),"editing");}catch{}
+  }
+  function runRepeatable(tool,label,body,fn){
+    const result=fn();
+    if(result!==false)recordRepeat(tool,label,body);
+    return result;
+  }
+
   function decimalPreference(){
     let value="auto";
     try{value=localStorage.getItem(DECIMAL_PREF_KEY)||"auto";}catch{}
@@ -1043,6 +1085,10 @@
     if(tool&&["copy","move","split","rotate","mirror","array","stack"].includes(String(tool)))activeTool=String(tool);
     ensureShell().classList.add("open");render();
   }
+  function openWithSettings(tool,settings={}){
+    pendingRepeatSettings={tool:String(tool),settings:clone(settings??{})};
+    open(tool);return true;
+  }
   function close(){panel?.classList.remove("open");resetCopySession();copySession.active=false;snapTracking()?.endCommand?.();snapCommandTool=null;}
   function render(){
     if(!panel||!straightRun)return;
@@ -1068,13 +1114,13 @@
       $("[data-copy-base-input-run]",body).onclick=()=>setCopyBaseFromInput(body);
       $("[data-copy-target-snap]",body).onclick=()=>addCopyTargetFromSnap(body);
       $("[data-copy-target-input-run]",body).onclick=()=>addCopyTargetFromInput(body);
-      $("[data-copy-finish]",body).onclick=()=>commitCopySeries(body);
+      $("[data-copy-finish]",body).onclick=()=>runRepeatable("copy","Copy",body,()=>commitCopySeries(body));
       $("[data-mesh-array-create]",body)?.addEventListener("click",()=>createMeshArray(body));
       copySessionStatus(body);renderCopyPreview();
     }else if(activeTool==="move"){
       body.innerHTML='<div class="tb-edit-card"><b>Move</b><div class="tb-edit-grid" style="margin-top:8px"><label>ΔX, мм</label><input data-edit-dx value="0"><label>ΔY, мм</label><input data-edit-dy value="0"><label>ΔZ, мм</label><input data-edit-dz value="0"><label>Dynamic input</label><input data-edit-vector placeholder="@10;0;0 / 100;200;0 / @100<45"><label>Ortho</label><input data-edit-ortho type="checkbox"><label>Polar Tracking</label><input data-edit-polar type="checkbox"><label>Polar step, °</label><input data-edit-polar-step value="15"></div><div class="tb-edit-note" data-edit-preview style="margin-top:8px"></div><div class="tb-edit-note" style="margin-top:6px">Object Snap Tracking работает в 3D: hover-acquire, Tab / Shift+Tab, P pin. Tracking guides следуют Ortho / Polar. Числа принимают 12.5 и 12,5; для X/Y/Z с десятичной запятой используйте ;.</div><div class="tb-edit-actions"><button data-move-use-snap>Snap → Point</button><button data-move-run>Переместить</button></div></div>';
       $("[data-move-use-snap]",body).onclick=()=>useSnapForMove(body);
-      $("[data-move-run]",body).onclick=()=>finishSnapCommand(moveSelection(body));
+      $("[data-move-run]",body).onclick=()=>runRepeatable("move","Move",body,()=>finishSnapCommand(moveSelection(body)));
       $("[data-edit-vector]",body).oninput=()=>updateMovePreview(body);
       const syncTracking=()=>snapTracking()?.setTrackingModes?.({
         ortho:$("[data-edit-ortho]",body)?.checked===true,
@@ -1088,7 +1134,7 @@
     }else if(activeTool==="split"){
       const selected=selectedSingleLine(),nodes=selected?.row?.straightRun?.nodes_mm??[];
       body.innerHTML='<div class="tb-edit-card"><b>Split Straight</b><div class="tb-edit-grid" style="margin-top:8px"><label>Режим</label><select data-split-mode><option value="start">Расстояние от начала</option><option value="end">Расстояние от конца</option><option value="equal">N равных частей</option><option value="percent">Позиция, %</option></select><label>Значение</label><input data-split-value value="50"></div><div class="tb-edit-note" style="margin-top:8px">Внутренние узлы: '+esc(nodes.length?nodes.join(", ")+" мм":"нет")+'. LINE остаётся одним производственным StraightRun.</div><div class="tb-edit-actions"><button data-split-run>Разделить</button></div></div>';
-      $("[data-split-run]",body).onclick=()=>splitSelected(body);
+      $("[data-split-run]",body).onclick=()=>runRepeatable("split","Split",body,()=>splitSelected(body));
     }else if(activeTool==="rotate"){
       body.innerHTML='<div class="tb-edit-card"><b>Rotate</b><div class="tb-edit-grid" style="margin-top:8px">'+
         '<label>Ось</label><select data-rotate-axis><option>X</option><option>Y</option><option>Z</option></select>'+
@@ -1099,15 +1145,15 @@
         '<div class="tb-edit-note" style="margin-top:6px">Object Snap Tracking: Tab переключает кандидаты; P закрепляет временную reference point.</div>'+
         '<div class="tb-edit-actions"><button data-rotate-use-snap>Snap → Pivot</button><button data-rotate-run>Повернуть</button></div></div>';
       $("[data-rotate-use-snap]",body).onclick=()=>useSnapForRotatePivot(body);
-      $("[data-rotate-run]",body).onclick=()=>finishSnapCommand(rotateSelection(body));
+      $("[data-rotate-run]",body).onclick=()=>runRepeatable("rotate","Rotate",body,()=>finishSnapCommand(rotateSelection(body)));
     }else if(activeTool==="mirror"){
       body.innerHTML=mirrorPanelHtml();
-      $("[data-mirror-create]",body).onclick=()=>createMirrorFromSelection(body);
+      $("[data-mirror-create]",body).onclick=()=>runRepeatable("mirror","Mirror",body,()=>createMirrorFromSelection(body));
       $("[data-mirror-break]",body).onclick=()=>mirrorAction(body,"break");
       $("[data-mirror-delete]",body).onclick=()=>mirrorAction(body,"delete");
     }else if(activeTool==="stack"){
       body.innerHTML=stackPanelHtml();
-      $("[data-stack-create]",body).onclick=createTransformStackFromSelection;
+      $("[data-stack-create]",body).onclick=()=>runRepeatable("stack","Transform Stack",body,()=>createTransformStackFromSelection());
       $("[data-stack-add-move]",body).onclick=()=>stackAddOperation(body,"Move");
       $("[data-stack-add-rotate]",body).onclick=()=>stackAddOperation(body,"Rotate");
       $("[data-stack-add-mirror]",body).onclick=()=>stackAddOperation(body,"Mirror");
@@ -1119,7 +1165,7 @@
       $("[data-stack-delete]",body).onclick=()=>stackOperationAction(body,"delete");
     }else if(activeTool==="array"){
       body.innerHTML=arrayPanelHtml();
-      $("[data-array-create]",body).onclick=()=>createArrayFromSelection(body);
+      $("[data-array-create]",body).onclick=()=>runRepeatable("array","Array",body,()=>createArrayFromSelection(body));
       $("[data-array-existing]",body).onchange=()=>arrayFormulaEditorSync(body);
       $("[data-array-formula-field]",body).onchange=()=>arrayFormulaEditorSync(body);
       $("[data-array-preview-run]",body).onclick=()=>previewArrayFormula(body);
@@ -1131,6 +1177,16 @@
       $("[data-array-break]",body).onclick=()=>arrayAction(body,"break");
       arrayFormulaEditorSync(body);
     }
+    if(pendingRepeatSettings&&pendingRepeatSettings.tool===activeTool){
+      const restore=pendingRepeatSettings.settings;pendingRepeatSettings=null;
+      applySafeToolSettings(activeTool,restore,body);
+      if(activeTool==="copy"){
+        const mode=$("[data-copy-mode]",body);if(mode)mode.value=copySession.mode;
+        const policy=$("[data-copy-external-policy]",body);if(policy)policy.value=copySession.externalPolicy??"";
+        copySession.active=true;copySessionStatus(body);
+      }
+      if(activeTool==="move"){try{updateMovePreview(body);}catch{}}
+    }
   }
   async function install(){
     if(installed)return;installed=true;
@@ -1141,7 +1197,7 @@
     window.addEventListener("tubebender-snap-change",onSnapChangeForCopy);
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
     window.addEventListener("tubebender-array-change",()=>{if(panel?.classList.contains("open")&&activeTool==="array")render();});
-    window.TubeBenderEditing=Object.freeze({open,close,copySelection,multipleCopySelection,commitCopySeries,undoLastCopyTarget,rotateSelectedDirect,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,previewArrayFormula,applyArrayFormula,createTransformStackFromSelection,stackAddOperation,stackOperationAction,scalePermissionForSelection,canScaleSelection,requestScaleSelection,refresh:render});
+    window.TubeBenderEditing=Object.freeze({open,openWithSettings,close,copySelection,multipleCopySelection,commitCopySeries,undoLastCopyTarget,rotateSelectedDirect,moveSelection:()=>context()?.applyMove,splitSelected,rotateSelection,createMirrorFromSelection,mirrorAction,createArrayFromSelection,arrayAction,previewArrayFormula,applyArrayFormula,createTransformStackFromSelection,stackAddOperation,stackOperationAction,scalePermissionForSelection,canScaleSelection,requestScaleSelection,refresh:render});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",install,{once:true});else install();
 })();
