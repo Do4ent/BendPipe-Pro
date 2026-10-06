@@ -692,11 +692,16 @@
       const unit=/angle/i.test(String(dimension.kind))?"deg":"mm";
       const valueText=Number.isFinite(Number(dimension.value))?formatted(Number(dimension.value),unit):"—";
       const rebindCount=Array.isArray(dimension.rebound_history)?dimension.rebound_history.length:0;
+      const latestRebind=rebindCount?dimension.rebound_history[rebindCount-1]:null;
+      const previousSources=latestRebind?[...new Set((latestRebind.previous_references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean))]:[];
       const sourceObjects=[...new Set((dimension.references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean))];
       const provenanceBits=[
         stale&&dimension.stale_reason?("Reason: "+String(dimension.stale_reason)):null,
         sourceObjects.length?("Source: "+sourceObjects.join(", ")):null,
-        dimension.rebound_from_stale===true?("Rebound · audit "+rebindCount):null
+        dimension.rebound_from_stale===true?("Rebound · audit "+rebindCount):null,
+        latestRebind&&previousSources.length?("Previous source: "+previousSources.join(", ")):null,
+        latestRebind?.previous_stale_reason?("Previous reason: "+String(latestRebind.previous_stale_reason)):null,
+        latestRebind&&latestRebind.previous_value!=null?("Previous value: "+String(latestRebind.previous_value)):null
       ].filter(Boolean);
       return '<div class="tb-measure-result" style="margin-top:7px">'+
         '<div class="tb-measure-title">'+esc(dimension.note??dimension.kind)+' · '+esc(dimension.mode??"Reference")+
