@@ -27,6 +27,7 @@ const screenSpaceDisplayRuntimePath = path.join(root, "src", "ui", "screen-space
 const interactionPriorityRuntimePath = path.join(root, "src", "ui", "interaction-priority-runtime.js");
 const repeatCommandRuntimePath = path.join(root, "src", "ui", "repeat-command-runtime.js");
 const hotkeysRuntimePath = path.join(root, "src", "ui", "hotkeys-runtime.js");
+const commandPaletteRuntimePath = path.join(root, "src", "ui", "command-palette-runtime.js");
 const propertiesPanelRuntimePath = path.join(root, "src", "ui", "properties-panel-runtime.js");
 const objectLockRuntimePath = path.join(root, "src", "ui", "object-lock-runtime.js");
 const layersRuntimePath = path.join(root, "src", "ui", "layers-runtime.js");
@@ -51,6 +52,7 @@ const copyDependenciesDomainPath = path.join(root, "src", "domain", "editing", "
 const objectLocksDomainPath = path.join(root, "src", "domain", "editing", "object-locks.mjs");
 const repeatCommandDomainPath = path.join(root, "src", "domain", "editing", "repeat-command.mjs");
 const hotkeysDomainPath = path.join(root, "src", "domain", "ui", "hotkeys.mjs");
+const commandPaletteDomainPath = path.join(root, "src", "domain", "ui", "command-palette.mjs");
 const layersDomainPath = path.join(root, "src", "domain", "project", "layers.mjs");
 const groupsDomainPath = path.join(root, "src", "domain", "project", "groups.mjs");
 const assembliesDomainPath = path.join(root, "src", "domain", "project", "assemblies.mjs");
@@ -2459,6 +2461,13 @@ const hotkeysRuntime = fs.readFileSync(hotkeysRuntimePath, "utf8")
 const bundledHotkeysRuntime =
   `<script data-tubebender-bundled="hotkeys-runtime">\n${hotkeysRuntime}\n</script>`;
 
+const commandPaletteDomainUrl = moduleDataUrl(commandPaletteDomainPath);
+const commandPaletteRuntime = fs.readFileSync(commandPaletteRuntimePath, "utf8")
+  .replace("__TB_COMMAND_PALETTE_MODULE_URL__", commandPaletteDomainUrl)
+  .replace(/<\/script/gi, "<\\/script");
+const bundledCommandPaletteRuntime =
+  `<script data-tubebender-bundled="command-palette-runtime">\n${commandPaletteRuntime}\n</script>`;
+
 const projectTubeBarLayoutFix = fs.readFileSync(projectTubeBarLayoutFixPath, "utf8").replace(/<\/script/gi, "<\\/script");
 const bundledProjectTubeBarLayoutFix =
   `<script data-tubebender-bundled="project-tube-bar-layout-fix">\n${projectTubeBarLayoutFix}\n</script>`;
@@ -2729,6 +2738,8 @@ output =
   bundledRepeatCommandRuntime +
   "\n" +
   bundledHotkeysRuntime +
+  "\n" +
+  bundledCommandPaletteRuntime +
   "\n" +
   bundledProjectTubeBarLayoutFix +
   "\n" +
