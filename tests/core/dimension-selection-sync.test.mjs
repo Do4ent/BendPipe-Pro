@@ -11,7 +11,7 @@ test("question 125: active Dimension follows global Object Context selection",()
   assert.match(runtime,/function syncActiveDimensionFromSelection\(\)/);
   assert.match(runtime,/const context=window\.TubeBenderObjectContext/);
   assert.match(runtime,/context\?\.selectionEntries\?\.\(\)/);
-  assert.match(runtime,/entries\.length===1&&dimensionsOnly\.length===1/);
+  assert.match(runtime,/entries\.length===1&&selectedDimension&&selectedDimension\.visible!==false/);
 });
 
 test("question 125: selecting a non-Dimension clears stale active grips",()=>{
