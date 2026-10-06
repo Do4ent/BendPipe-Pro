@@ -4,6 +4,7 @@
   const eng=()=>window.TubeBenderEngineering??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
   const toast=m=>{try{eng()?.toast?.(String(m??""));}catch{}};
+  const sceneScale=()=>typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
   const esc=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
   function command(label,mutate){
     const fn=eng()?.modelCommand;let ok;
@@ -17,19 +18,19 @@
     if(typeof THREE==="undefined")return null;
     let n=new THREE.Vector3(input.normal.x,input.normal.y,input.normal.z).normalize();
     if(input.flipped)n.multiplyScalar(-1);
-    const p=new THREE.Vector3(input.point.x,input.point.y,input.point.z);
+    const scale=sceneScale(),p=new THREE.Vector3(input.point.x*scale,input.point.y*scale,input.point.z*scale);
     return new THREE.Plane().setFromNormalAndCoplanarPoint(n,p);
   }
   function boxToPlanes(box){
     if(typeof THREE==="undefined")return [];
-    const {min,max}=box;
+    const {min,max}=box,scale=sceneScale();
     return [
-      new THREE.Plane(new THREE.Vector3( 1,0,0),-min.x),
-      new THREE.Plane(new THREE.Vector3(-1,0,0), max.x),
-      new THREE.Plane(new THREE.Vector3(0, 1,0),-min.y),
-      new THREE.Plane(new THREE.Vector3(0,-1,0), max.y),
-      new THREE.Plane(new THREE.Vector3(0,0, 1),-min.z),
-      new THREE.Plane(new THREE.Vector3(0,0,-1), max.z)
+      new THREE.Plane(new THREE.Vector3( 1,0,0),-min.x*scale),
+      new THREE.Plane(new THREE.Vector3(-1,0,0), max.x*scale),
+      new THREE.Plane(new THREE.Vector3(0, 1,0),-min.y*scale),
+      new THREE.Plane(new THREE.Vector3(0,-1,0), max.y*scale),
+      new THREE.Plane(new THREE.Vector3(0,0, 1),-min.z*scale),
+      new THREE.Plane(new THREE.Vector3(0,0,-1), max.z*scale)
     ];
   }
   function clearHelper(){
@@ -51,18 +52,18 @@
     if(state.mode==="plane"){
       const {center,size}=modelCenterAndSize(),normal=new THREE.Vector3(state.plane.normal.x,state.plane.normal.y,state.plane.normal.z).normalize();
       if(state.plane.flipped)normal.multiplyScalar(-1);
-      const span=Math.max(size.x,size.y,size.z,1)*1.25;
+      const span=Math.max(size.x,size.y,size.z,1)*1.25,scale=sceneScale();
       const geo=new THREE.PlaneGeometry(span,span);
       const mat=new THREE.MeshBasicMaterial({transparent:true,opacity:.12,side:THREE.DoubleSide,depthWrite:false});
       const mesh=new THREE.Mesh(geo,mat);
-      mesh.position.set(state.plane.point.x,state.plane.point.y,state.plane.point.z);
+      mesh.position.set(state.plane.point.x*scale,state.plane.point.y*scale,state.plane.point.z*scale);
       mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),normal);
       mesh.userData={helper:true,sectionHelper:true};
       helperGroup.add(mesh);
-      const arrow=new THREE.ArrowHelper(normal,new THREE.Vector3(state.plane.point.x,state.plane.point.y,state.plane.point.z),Math.max(.5,span*.15));
+      const arrow=new THREE.ArrowHelper(normal,new THREE.Vector3(state.plane.point.x*scale,state.plane.point.y*scale,state.plane.point.z*scale),Math.max(.5,span*.15));
       arrow.userData={helper:true,sectionHelper:true};helperGroup.add(arrow);
     }else if(state.mode==="box"){
-      const min=new THREE.Vector3(state.box.min.x,state.box.min.y,state.box.min.z),max=new THREE.Vector3(state.box.max.x,state.box.max.y,state.box.max.z);
+      const scale=sceneScale(),min=new THREE.Vector3(state.box.min.x*scale,state.box.min.y*scale,state.box.min.z*scale),max=new THREE.Vector3(state.box.max.x*scale,state.box.max.y*scale,state.box.max.z*scale);
       const box=new THREE.Box3(min,max),helper=new THREE.Box3Helper(box);
       helper.userData={helper:true,sectionHelper:true};helperGroup.add(helper);
     }
