@@ -67,3 +67,41 @@ test("question 106: delete mutation prunes set membership inside same model comm
   assert.match(deleteBlock,/deleteMeshInstances\(entries\)/);
   assert.match(deleteBlock,/TubeBenderSelectionSets\?\.pruneMissing/);
 });
+
+
+test("question 107: runtime distinguishes Static and Dynamic Selection Sets",()=>{
+  assert.match(runtime,/DynamicSelectionSet/);
+  assert.match(runtime,/resolvedMembers/);
+  assert.match(runtime,/evaluateDynamicSelectionSet/);
+  assert.match(runtime,/data-set-type/);
+  assert.match(runtime,/value="dynamic"/);
+  assert.match(runtime,/dynamic":"static"/);
+});
+
+test("question 107: dynamic candidates cover current project object categories",()=>{
+  assert.match(runtime,/function allProjectRefs\(/);
+  for(const kind of ["tube","row","mesh-instance","group","project-assembly","dimension","construction","ref"]){
+    assert.match(runtime,new RegExp('kind:"'+kind.replace("-","\\-")+'"'));
+  }
+  assert.match(runtime,/function descriptorForRef\(/);
+  assert.match(runtime,/layer_id/);
+  assert.match(runtime,/material_profile_id/);
+  assert.match(runtime,/group_ids/);
+  assert.match(runtime,/assembly_ids/);
+});
+
+test("question 107: Select Show Hide Lock and tools resolve dynamic membership at execution time",()=>{
+  assert.match(runtime,/const members=resolvedMembers\(set\)/);
+  assert.match(runtime,/members\.map\(selectionKey\)/);
+  assert.match(runtime,/for\(const ref of members\)setVisibleForRef/);
+  assert.match(runtime,/for\(const ref of members\)setLockForRef/);
+  assert.match(runtime,/if\(!selectSet\(setId\)\)return false/);
+});
+
+test("question 107: Dynamic rules are editable while manual Add Remove stay static-only",()=>{
+  assert.match(runtime,/data-set-rules/);
+  assert.match(runtime,/data-set-save-rules/);
+  assert.match(runtime,/updateDynamicSelectionSetRules/);
+  assert.match(runtime,/!set\|\|dynamic\?"disabled":""/);
+  assert.match(runtime,/Dynamic Selection Set хранит правила и автоматически пересчитывает состав/);
+});
