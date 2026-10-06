@@ -1,7 +1,7 @@
 (()=>{
   const GEOMETRY_URL="__TB_GEOMETRY_MEASUREMENTS_MODULE_URL__";
   const DIMENSIONS_URL="__TB_DIMENSIONS_MODULE_URL__";
-  let geometry=null,dimensions=null,installed=false,panel=null,resultsPanel=null,button=null,lastResult=null,lastSelectionKey="",poll=null,formulaMeasurementValue=null,dimensionManagerFilter="all";
+  let geometry=null,dimensions=null,installed=false,panel=null,resultsPanel=null,button=null,lastResult=null,lastSelectionKey="",poll=null,formulaMeasurementValue=null,dimensionManagerFilter="all",dimensionManagerSort="project";
   const quick={active:false,points:[],candidates:[],current:null,result:null};
 
   const $=(s,r=document)=>r.querySelector(s);
@@ -771,11 +771,16 @@
   }
 
   function filteredDimensionManagerItems(items=savedDimensions()){
-    if(dimensionManagerFilter==="stale")return items.filter(dimension=>String(dimension?.status??"")==="Stale");
-    if(dimensionManagerFilter==="rebound")return items.filter(dimension=>dimension?.rebound_from_stale===true);
-    if(dimensionManagerFilter==="reference")return items.filter(dimension=>String(dimension?.mode??"")==="Reference");
-    if(dimensionManagerFilter==="driving")return items.filter(dimension=>String(dimension?.mode??"")==="Driving");
-    return items;
+    let result=items;
+    if(dimensionManagerFilter==="stale")result=items.filter(dimension=>String(dimension?.status??"")==="Stale");
+    else if(dimensionManagerFilter==="rebound")result=items.filter(dimension=>dimension?.rebound_from_stale===true);
+    else if(dimensionManagerFilter==="reference")result=items.filter(dimension=>String(dimension?.mode??"")==="Reference");
+    else if(dimensionManagerFilter==="driving")result=items.filter(dimension=>String(dimension?.mode??"")==="Driving");
+    if(dimensionManagerSort!=="audit")return result;
+    const rank=dimension=>String(dimension?.status??"")==="Stale"?0:dimension?.rebound_from_stale===true?1:2;
+    return result.map((dimension,index)=>({dimension,index}))
+      .sort((a,b)=>rank(a.dimension)-rank(b.dimension)||a.index-b.index)
+      .map(item=>item.dimension);
   }
   function dimensionManagerHtml(){
     const items=savedDimensions();
@@ -815,7 +820,10 @@
     }).join("")||'<div class="tb-measure-result" style="margin-top:7px"><div class="tb-measure-note">Нет размеров для выбранного audit-фильтра.</div></div>';
     const filters='<div class="tb-measure-actions" data-dimension-audit-filters>'+
       ['all','stale','rebound','reference','driving'].map(name=>'<button data-dimension-filter="'+name+'" '+(dimensionManagerFilter===name?'disabled':'')+'>'+({all:'All',stale:'Stale',rebound:'Rebound',reference:'Reference',driving:'Driving'}[name])+'</button>').join('')+
-      '</div>';
+      '</div>'+
+      '<div class="tb-measure-actions" data-dimension-audit-sort>'+
+      '<button data-dimension-sort="project" '+(dimensionManagerSort==="project"?'disabled':'')+'>Project order</button>'+
+      '<button data-dimension-sort="audit" '+(dimensionManagerSort==="audit"?'disabled':'')+'>Audit priority</button></div>';
     return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div>'+
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
       '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+'</div>'+
@@ -847,6 +855,9 @@
     body.querySelector("[data-copy-all-dimension-audits]")?.addEventListener("click",copyAllDimensionAudits);
     body.querySelectorAll("[data-dimension-filter]").forEach(button=>{
       button.onclick=()=>{dimensionManagerFilter=button.dataset.dimensionFilter||"all";render();};
+    });
+    body.querySelectorAll("[data-dimension-sort]").forEach(button=>{
+      button.onclick=()=>{dimensionManagerSort=button.dataset.dimensionSort||"project";render();};
     });
   }
 
