@@ -255,7 +255,12 @@
     }
     suppressUntil=Date.now()+120;rebuild();event?.preventDefault?.();event?.stopPropagation?.();event?.stopImmediatePropagation?.();return ok;
   }
-  function selectDimension(id){activeId=String(id);rebuild();dispatch(id,"select");return dimensionById(id);}
+  function selectDimension(id){
+    activeId=String(id);
+    const key="dimension:"+encodeURIComponent(String(id));
+    try{window.TubeBenderObjectContext?.replaceSelectionKeys?.([key],{announce:true});}catch{}
+    rebuild();dispatch(id,"select");return dimensionById(id);
+  }
   function closeEditor(){editor?.remove?.();editor=null;}
   function evaluateTarget(input,dimension){
     const kind=/angle/i.test(String(dimension.kind))?"angle":"length";
