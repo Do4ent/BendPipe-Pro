@@ -23,7 +23,8 @@ export const DEFAULT_SOURCE_PRIORITY=Object.freeze({
   Construction:2,
   SourceReference:3,
   MeshFitted:4,
-  Grid:5
+  SectionDerived:5,
+  Grid:6
 });
 
 export const DEFAULT_SOURCE_ENABLED=Object.freeze({
@@ -32,6 +33,7 @@ export const DEFAULT_SOURCE_ENABLED=Object.freeze({
   Construction:true,
   SourceReference:true,
   MeshFitted:true,
+  SectionDerived:true,
   Grid:true
 });
 
