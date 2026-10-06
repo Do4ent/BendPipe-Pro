@@ -698,12 +698,26 @@
       rebound_history:clone(Array.isArray(dimension?.rebound_history)?dimension.rebound_history:[])
     };
   }
+  function dimensionAuditSummary(items=savedDimensions()){
+    const summary={total:items.length,stale:0,rebound:0,by_status:{},by_mode:{}};
+    for(const dimension of items){
+      const status=String(dimension?.status??"Unknown");
+      const mode=String(dimension?.mode??"Unknown");
+      summary.by_status[status]=(summary.by_status[status]??0)+1;
+      summary.by_mode[mode]=(summary.by_mode[mode]??0)+1;
+      if(status==="Stale")summary.stale++;
+      if(dimension?.rebound_from_stale===true)summary.rebound++;
+    }
+    return summary;
+  }
   function allDimensionAuditSnapshot(){
+    const items=savedDimensions();
     return {
       schema:"TubeBender.DimensionAudit.v1",
       project_id:String(project()?.id??project()?.project_id??""),
-      dimension_count:savedDimensions().length,
-      dimensions:savedDimensions().map(dimension=>dimensionRebindAuditSnapshot(dimension))
+      dimension_count:items.length,
+      summary:dimensionAuditSummary(items),
+      dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
     };
   }
   async function copyAllDimensionAudits(){
@@ -978,7 +992,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,allDimensionAuditSnapshot,copyAllDimensionAudits,
+      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
