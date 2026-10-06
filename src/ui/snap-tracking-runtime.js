@@ -524,6 +524,7 @@
     window.TubeBenderSnapTracking=Object.freeze({
       startCommand,endCommand,setCandidates,setTrackingModes,setSnapOptions,cycle,pinCurrent,clearReferences,
       setSourceEnabled,setSourceOrder,setTemporaryExternalExcluded,
+      openSettings:()=>{ensureSourcePanel().classList.add("open");renderSourcePanel();return true;},
       sourcePreferences:()=>clone(sourcePreferences),temporaryExternalExcluded:()=>temporaryExternalExcluded,
       acquireCurrent:()=>current?acquireCandidate(current):false,
       currentCandidate:()=>current?clone(current):null,
