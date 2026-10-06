@@ -720,6 +720,7 @@ output=output.replace(
   "  }\n"+
   "  try{tbHistoryPanelRender();}catch{}\n"+
   "  try{tbHistoryPersist();}catch{}\n"+
+  "  try{window.dispatchEvent(new CustomEvent('tubebender-history-change',{detail:{undo:tbHistory.undo.length,redo:tbHistory.redo.length}}));}catch{}\n"+
   "}"
 );
 
