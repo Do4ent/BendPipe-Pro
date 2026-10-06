@@ -834,7 +834,8 @@
       '<button data-dimension-sort="audit" '+(dimensionManagerSort==="audit"?'disabled':'')+'>Audit priority</button></div>'+
       '<div class="tb-measure-actions" data-dimension-audit-search>'+
       '<input data-dimension-search value="'+esc(dimensionManagerSearch)+'" placeholder="Search ID, kind, source, stale reason">'+
-      '<button data-dimension-search-apply>Search</button><button data-dimension-search-clear '+(!dimensionManagerSearch?'disabled':'')+'>Clear</button></div>';
+      '<button data-dimension-search-apply>Search</button><button data-dimension-search-clear '+(!dimensionManagerSearch?'disabled':'')+'>Clear</button>'+
+      '<button data-dimension-view-reset '+(dimensionManagerFilter==="all"&&dimensionManagerSort==="project"&&!dimensionManagerSearch?'disabled':'')+'>Reset view</button></div>';
     return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div>'+
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
       '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+'</div>'+
@@ -879,6 +880,9 @@
       if(event.key==="Enter"){event.preventDefault();dimensionManagerSearch=String(searchInput.value??"");render();}
     });
     body.querySelector("[data-dimension-search-clear]")?.addEventListener("click",()=>{dimensionManagerSearch="";render();});
+    body.querySelector("[data-dimension-view-reset]")?.addEventListener("click",()=>{
+      dimensionManagerFilter="all";dimensionManagerSort="project";dimensionManagerSearch="";render();
+    });
   }
 
   function sectionDerivedDimensionsHtml(){
