@@ -85,10 +85,16 @@
     input.setSelectionRange?.(input.value.length,input.value.length);
   }
   function onInputKey(event){
-    if(event.key==="ArrowDown"){event.preventDefault();const found=results();selectedIndex=Math.min(found.length-1,selectedIndex+1);renderResults();return;}
+    if(event.key==="ArrowDown"){
+      event.preventDefault();
+      if(historyIndex>=0||!input.value.trim()){historyMove(-1);}
+      else{const found=results();selectedIndex=Math.min(found.length-1,selectedIndex+1);renderResults();}
+      return;
+    }
     if(event.key==="ArrowUp"){
-      if(input.value.trim()&&results().length){event.preventDefault();selectedIndex=Math.max(0,selectedIndex-1);renderResults();}
-      else{event.preventDefault();historyMove(1);}
+      event.preventDefault();
+      if(historyIndex>=0||!input.value.trim())historyMove(1);
+      else if(results().length){selectedIndex=Math.max(0,selectedIndex-1);renderResults();}
       return;
     }
     if(event.key==="PageUp"){event.preventDefault();historyMove(1);return;}
@@ -121,12 +127,12 @@
   }
   function openAliases(){ensureShell();aliasPanel.classList.add("open");renderAliases();}
   function saveAliases(){
-    let next=state.aliases;
     try{
+      const next={...state.aliases};
       for(const inputEl of aliasPanel.querySelectorAll("[data-alias-id]")){
-        next=domain.setAliases(next,inputEl.dataset.aliasId,inputEl.value.split(",").map(v=>v.trim()).filter(Boolean));
+        next[inputEl.dataset.aliasId]=inputEl.value.split(",").map(v=>v.trim()).filter(Boolean);
       }
-      state=domain.normalizePaletteState({...state,aliases:next});save();renderAliases();renderResults();toast("Command aliases сохранены");return true;
+      state=domain.normalizePaletteState({...state,aliases:domain.normalizeAliasMap(next)});save();renderAliases();renderResults();toast("Command aliases сохранены");return true;
     }catch(error){aliasPanel.querySelector("[data-alias-error]").textContent=String(error?.message??error);return false;}
   }
   function openPalette({query=""}={}){
