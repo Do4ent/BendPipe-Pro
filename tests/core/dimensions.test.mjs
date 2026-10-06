@@ -215,3 +215,11 @@ test("question 64: diameter radius and angle notation follows Dimension Style",(
   assert.equal(formatDimensionValue(createDimension({...common,kind:"radius"})),"R12.5 mm");
   assert.equal(formatDimensionValue(createDimension({...common,kind:"angle"})),"12.5°");
 });
+
+test("question 116: Stale dimensions use the explicit error visual state",()=>{
+  const stale={...base(),status:"Stale"};
+  const visual=dimensionVisualState(stale);
+  assert.equal(visual.error,true);
+  assert.equal(visual.emphasis,"Error");
+  assert.equal(visual.color,normalizeDimensionStyle({}).error_color);
+});
