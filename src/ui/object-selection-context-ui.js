@@ -76,6 +76,7 @@
   function assembliesApi(){return window.TubeBenderAssemblies??null;}
   function layerApi(){return window.TubeBenderLayers??null;}
   function lockApi(){return window.TubeBenderObjectLocks??null;}
+  function repeatApi(){return window.TubeBenderRepeatCommands??null;}
   function deleteDependencyApi(){return window.TubeBenderDeleteDependencies??null;}
   function propertiesApi(){return window.TubeBenderProperties??null;}
   function editingApi(){return window.TubeBenderEditing??null;}
@@ -992,6 +993,8 @@
     menu.className="tb-object-context-menu";
     menu.innerHTML=
       '<div class="tb-object-context-title" data-context-title>Выбрано: 1</div>'+
+      '<button type="button" data-object-action="repeat-last">↻ <span>Повторить команду</span></button>'+
+      '<div class="tb-object-context-separator" data-repeat-separator></div>'+
       '<button type="button" data-object-action="edit-object">✎ <span>Редактировать</span></button>'+
       '<button type="button" data-object-action="transform-object">⌖ <span>Transform / Gizmo</span></button>'+
       '<button type="button" data-object-action="properties">▤ <span>Свойства</span></button>'+
@@ -1022,7 +1025,8 @@
       if(!button||button.disabled)return;
       const action=button.dataset.objectAction;
       hideContextMenu();
-      if(action==="edit-object")openContextEdit();
+      if(action==="repeat-last")repeatApi()?.repeatLast?.();
+      else if(action==="edit-object")openContextEdit();
       else if(action==="transform-object")openContextTransform();
       else if(action==="properties")openContextProperties();
       else if(action==="move")openMovePanel();
@@ -1061,8 +1065,18 @@
       :profile.title;
     for(const button of menu.querySelectorAll("[data-object-action]")){
       const action=button.dataset.objectAction;
-      if(action!=="show-all")button.hidden=!hasSelection;
+      if(action!=="show-all"&&action!=="repeat-last")button.hidden=!hasSelection;
     }
+    const repeatButton=menu.querySelector('[data-object-action="repeat-last"]');
+    const repeatSeparator=menu.querySelector("[data-repeat-separator]");
+    const hasRepeat=repeatApi()?.hasLast?.()===true;
+    if(repeatButton){
+      repeatButton.hidden=hasSelection||!hasRepeat;
+      repeatButton.disabled=!hasRepeat;
+      const label=repeatButton.querySelector("span");
+      if(label)label.textContent=hasRepeat?repeatApi().lastLabel():"Повторить команду";
+    }
+    if(repeatSeparator)repeatSeparator.hidden=hasSelection||!hasRepeat;
     const contextualVisibility={
       "edit-object":profile.edit,
       "transform-object":profile.transform,
@@ -1785,6 +1799,10 @@
 
     const ok=typeof tbModelCommand==="function"?tbModelCommand(label,mutate):mutate();
     if(ok===false)return;
+    if(action==="hide"||action==="show"||action==="isolate"){
+      const repeatLabel=action==="hide"?"Скрыть":action==="show"?"Показать":"Скрыть другие";
+      try{repeatApi()?.record?.("context."+action,repeatLabel,{},"context");}catch{}
+    }
     try{if(typeof save==="function")save();}catch{}
     try{if(typeof renderAll==="function")renderAll();}catch{}
     try{groupsApi()?.applyVisibility?.();assembliesApi()?.applyVisibility?.();}catch{}
