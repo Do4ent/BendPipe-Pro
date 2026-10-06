@@ -2,6 +2,7 @@
   const PALETTE_URL="__TB_COMMAND_PALETTE_MODULE_URL__";
   const STORAGE_KEY="tubebender.commandPalette.v1";
   let domain=null,installed=false,state=null,shell=null,input=null,list=null,status=null,aliasPanel=null,open=false,selectedIndex=0,historyIndex=-1,activeStep=null;
+  const providers=new Set();
   const esc=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
   const clone=v=>v==null?v:structuredClone(v);
   const toast=m=>{try{window.TubeBenderEngineering?.toast?.(String(m??""));}catch{}};
@@ -14,6 +15,14 @@
   function executeCommand(command){
     if(!command)return false;
     let result=false;
+    if(typeof command.run==="function"){
+      try{result=command.run();}catch(error){toast(error?.message??error);return false;}
+      if(result!==false){
+        state=domain.normalizePaletteState({...state,recent_ids:[command.id,...(state.recent_ids??[]).filter(id=>id!==command.id)].slice(0,20)});
+        save();return true;
+      }
+      return false;
+    }
     if(command.id==="repeatLast")result=window.TubeBenderRepeatCommands?.repeatLast?.()??false;
     else if(command.id==="recentCommands"){window.TubeBenderRepeatCommands?.openRecent?.();result=true;}
     else if(command.id==="hotkeySettings"){window.TubeBenderHotkeys?.openSettings?.();result=true;}
@@ -38,8 +47,30 @@
       selectionFilter:"Настройте разрешённые типы выбора"
     })[String(id)]??"";
   }
+  function providerResults(query){
+    const out=[];
+    for(const provider of providers){
+      try{
+        const values=provider({query:String(query??""),recent_ids:recentIds()})??[];
+        for(const value of values){
+          if(!value)continue;
+          const command=value.command??value;
+          if(!command?.id)continue;
+          out.push({
+            command:{...command,dynamic:true},
+            aliases:Array.isArray(value.aliases)?value.aliases:[],
+            score:Number.isFinite(Number(value.score))?Number(value.score):100
+          });
+        }
+      }catch(error){console.warn("Command Palette provider:",error);}
+    }
+    return out;
+  }
   function results(){
-    return domain.searchCommands(input?.value??"",{alias_map:state.aliases,recent_ids:recentIds()}).slice(0,10);
+    const query=input?.value??"";
+    return [...domain.searchCommands(query,{alias_map:state.aliases,recent_ids:recentIds()}),...providerResults(query)]
+      .sort((a,b)=>(Number(b.score)||0)-(Number(a.score)||0))
+      .slice(0,10);
   }
   function renderResults(){
     if(!list)return;const found=results();selectedIndex=Math.max(0,Math.min(selectedIndex,Math.max(0,found.length-1)));
@@ -160,7 +191,10 @@
     window.addEventListener("tubebender-hotkey-change",()=>renderResults());
     window.addEventListener("tubebender-repeat-command-change",()=>renderResults());
     window.TubeBenderCommandLine=Object.freeze({
-      open:openPalette,close:closePalette,execute:(id)=>executeCommand(domain.commandById(id)),search:(query)=>domain.searchCommands(query,{alias_map:state.aliases,recent_ids:recentIds()}),
+      open:openPalette,close:closePalette,execute:(id)=>executeCommand(domain.commandById(id)),search:(query)=>[
+        ...domain.searchCommands(query,{alias_map:state.aliases,recent_ids:recentIds()}),...providerResults(query)
+      ].sort((a,b)=>(Number(b.score)||0)-(Number(a.score)||0)),
+      registerProvider:(provider)=>{if(typeof provider!=="function")throw new TypeError("Command provider must be a function");providers.add(provider);return ()=>providers.delete(provider);},
       setStep,clearStep,currentStep:()=>clone(activeStep),aliases:()=>clone(state.aliases),history:()=>clone(state.history),openAliases,
       domain
     });
