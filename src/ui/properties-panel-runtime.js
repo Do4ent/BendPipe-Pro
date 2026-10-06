@@ -226,6 +226,15 @@
   }
   function bindEditableFields(){
     if(!panel)return;
+    panel.querySelectorAll("[data-dimension-visibility]").forEach(button=>{
+      button.onclick=()=>{
+        const id=button.dataset.dimensionVisibility,visible=button.dataset.dimensionVisible==="1";
+        window.TubeBenderDimensionGrips?.setDimensionVisible?.(id,!visible);render(true);
+      };
+    });
+    panel.querySelectorAll("[data-dimension-delete]").forEach(button=>{
+      button.onclick=()=>{window.TubeBenderDimensionGrips?.deleteDimension?.(button.dataset.dimensionDelete);render(true);};
+    });
     panel.querySelector("[data-property-edit-array]")?.addEventListener("click",()=>window.TubeBenderEditing?.open?.("array"));
     panel.querySelector("[data-property-normalize]")?.addEventListener("click",()=>{normalizeApi()?.normalizeSelected?.();render(true);});
     panel.querySelector("[data-property-compare-normalized]")?.addEventListener("click",()=>{
@@ -403,7 +412,7 @@
         geometry_status:ref?.geometry_status,
         section_snapshot:ref?.section_snapshot??null
       }));
-      return {title:dimension?.note??"Dimension",kind:"dimension",groups:[
+      return {title:dimension?.note??"Dimension",kind:"dimension",dimensionId:dimension?.id,visible:dimension?.visible!==false,groups:[
         {name:"Dimension",rows:[
           ["ID",dimension?.id],["Kind",dimension?.kind],["Mode",dimension?.mode],["Value",dimension?.value],
           ["Status",dimension?.status],["Visible",dimension?.visible!==false],["Cross assembly",dimension?.cross_assembly?.cross_assembly===true]
@@ -486,10 +495,13 @@
     return panel;
   }
   function cardHtml(item){
+    const dimensionActions=item.kind==="dimension"&&item.dimensionId
+      ?'<div class="tb-prop-group"><strong>Dimension actions</strong><div class="tb-prop-edit-row"><label>Visibility</label><span><button data-dimension-visibility="'+esc(item.dimensionId)+'" data-dimension-visible="'+(item.visible?"1":"0")+'">'+(item.visible?"Hide":"Show")+'</button><button data-dimension-delete="'+esc(item.dimensionId)+'">Delete</button></span></div></div>'
+      :"";
     return '<div class="tb-prop-card"><div class="tb-prop-title">'+esc(item.title)+' <span class="tb-prop-kind">· '+esc(item.kind)+'</span></div>'+
       item.groups.map(group=>'<div class="tb-prop-group"><strong>'+esc(group.name)+'</strong>'+
         group.rows.map(([k,v])=>'<div class="tb-prop-row"><span class="tb-prop-key">'+esc(k)+'</span><span class="tb-prop-val">'+esc(value(v))+'</span></div>').join("")+
-      '</div>').join("")+'</div>';
+      '</div>').join("")+dimensionActions+'</div>';
   }
   function snapshot(){
     const selection=entries();
