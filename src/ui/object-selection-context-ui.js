@@ -1109,6 +1109,9 @@
         :"";
     }
     if(endSelection){
+      for(const button of menu.querySelectorAll("[data-object-action]")){
+        if(button.dataset.objectAction!=="anchor-end")button.hidden=true;
+      }
       if(title)title.textContent="Конец трубы";
     }
     const diagnosis=hasSelection?invalidElementDiagnosis(entries):null;
