@@ -56,6 +56,72 @@
     }
     return null;
   }
+
+  function descriptorForRef(ref){
+    const object=objectForRef(ref),p=project();
+    const entry={
+      ref:clone(ref),
+      kind:String(ref.kind),
+      name:String(object?.name??object?.label??object?.partNumber??object?.id??""),
+      layer_id:String(object?.layer_id??""),
+      visible:object?.visible!==false&&object?.uiHiddenIn3D!==true&&object?.hidden!==true,
+      locked:String(object?.lock_state?.mode??object?.lock_mode??"Unlocked")!=="Unlocked",
+      lock_mode:String(object?.lock_state?.mode??object?.lock_mode??"Unlocked"),
+      imported:!!(object?.importEvidence||object?.currentProjectImport||object?.source),
+      material_profile_id:String(object?.material_profile_id??""),
+      type:String(object?.type??object?.kind??ref.kind),
+      group_ids:[],
+      assembly_ids:[]
+    };
+    try{
+      if(ref.kind==="tube"){
+        const groups=window.TubeBenderGroups?.containingGroupsForEntry?.({kind:"tube",tubeId:ref.id})??[];
+        entry.group_ids=groups.map(group=>String(group.id));
+        const assemblies=window.TubeBenderAssemblies?.assembliesContainingMember?.({kind:"tube",id:String(ref.id)})??[];
+        entry.assembly_ids=assemblies.map(item=>String(item.id??item.assembly_id??"")).filter(Boolean);
+      }
+    }catch{}
+    if(ref.kind==="row"){
+      entry.tube_id=String(ref.tube_id);entry.row_index=Number(ref.row_index);
+      const tube=(p?.tubes??[]).find(x=>String(x?.id)===String(ref.tube_id));
+      entry.parent_name=String(tube?.name??tube?.id??"");
+    }
+    return entry;
+  }
+  function allProjectRefs(){
+    const p=project();if(!p)return [];
+    const refs=[],seen=new Set(),push=ref=>{
+      try{
+        const normalized=domain.normalizeSelectionRef(ref),key=domain.selectionRefKey(normalized);
+        if(!seen.has(key)){seen.add(key);refs.push(normalized);}
+      }catch{}
+    };
+    for(const tube of p.tubes??[]){
+      if(!tube?.id)continue;push({kind:"tube",id:String(tube.id)});
+      (tube.rows??[]).forEach((row,index)=>push({kind:"row",tube_id:String(tube.id),row_index:index}));
+    }
+    for(const instance of p.editable_mesh_instances??[])if(instance?.id)push({kind:"mesh-instance",id:String(instance.id)});
+    for(const group of p.groups??[])if(group?.id)push({kind:"group",id:String(group.id)});
+    for(const assembly of p.assemblies??p.project_assemblies??[])if(assembly?.id)push({kind:"project-assembly",id:String(assembly.id)});
+    for(const dim of [...(p.engineering_dimensions??[]),...(p.dimensions??[])])if(dim?.id)push({kind:"dimension",id:String(dim.id)});
+    for(const item of p.construction_geometry??[])if(item?.id)push({kind:"construction",id:String(item.id)});
+    for(const scene of p.referenceScenes??[]){
+      const visit=node=>{
+        if(node?.id)push({kind:"ref",scene_id:String(scene.id),node_id:String(node.id)});
+        for(const child of node?.children??[])visit(child);
+      };
+      for(const root of scene?.tree??[])visit(root);
+    }
+    return refs;
+  }
+  function dynamicCandidates(){return allProjectRefs().map(descriptorForRef);}
+  function resolvedMembers(set){
+    if(!set)return [];
+    return set.kind==="DynamicSelectionSet"
+      ?domain.evaluateDynamicSelectionSet(set,dynamicCandidates())
+      :(set.members??[]);
+  }
+
   function objectForRef(ref){
     const p=project();if(!p)return null;
     if(ref.kind==="tube")return (p.tubes??[]).find(x=>String(x?.id)===String(ref.id))??null;
@@ -99,7 +165,8 @@
   function selectSet(setId,{announce=true}={}){
     pruneMissing();
     const set=setById(setId);if(!set)return false;
-    const keys=(set.members??[]).map(selectionKey).filter(Boolean);
+    const members=resolvedMembers(set);
+    const keys=members.map(selectionKey).filter(Boolean);
     ctx()?.replaceSelectionKeys?.(keys,{announce});
     toast("Выбрано из "+set.name+": "+keys.length);return keys.length>0;
   }
@@ -113,7 +180,8 @@
   }
   function showHide(setId,visible){
     pruneMissing();const set=setById(setId);if(!set)return false;
-    return command(visible?"Показать Selection Set":"Скрыть Selection Set",()=>{for(const ref of set.members??[])setVisibleForRef(ref,visible);return true;});
+    const members=resolvedMembers(set);
+    return command(visible?"Показать Selection Set":"Скрыть Selection Set",()=>{for(const ref of members)setVisibleForRef(ref,visible);return true;});
   }
   function setLockForRef(ref,mode){
     const object=objectForRef(ref);if(!object)return;
@@ -124,7 +192,8 @@
   }
   function lockSet(setId,mode="Object"){
     pruneMissing();const set=setById(setId);if(!set)return false;
-    return command(mode==="Unlocked"?"Разблокировать Selection Set":"Заблокировать Selection Set",()=>{for(const ref of set.members??[])setLockForRef(ref,mode);return true;});
+    const members=resolvedMembers(set);
+    return command(mode==="Unlocked"?"Разблокировать Selection Set":"Заблокировать Selection Set",()=>{for(const ref of members)setLockForRef(ref,mode);return true;});
   }
   function useWith(setId,tool){
     if(!selectSet(setId))return false;
@@ -136,13 +205,13 @@
     const host=document.getElementById("tbProjectTree");if(!host||!domain)return;
     pruneMissing();
     const all=domain.ensureSelectionSetState(project());
-    const signature=JSON.stringify(all.map(set=>({id:set.id,name:set.name,members:set.members})));
+    const signature=JSON.stringify(all.map(set=>({id:set.id,name:set.name,kind:set.kind,members:set.kind==="DynamicSelectionSet"?resolvedMembers(set):set.members,rules:set.rules})));
     let section=host.querySelector("[data-selection-sets-tree-root]");
     if(section?.dataset.signature===signature)return;
     if(!section){section=document.createElement("div");section.dataset.selectionSetsTreeRoot="1";host.appendChild(section);}
     section.dataset.signature=signature;
     section.innerHTML='<div class="tb-tree-node level1"><span class="tb-tree-icon">▾</span><span class="tb-tree-label">⌑ Наборы выбора <small>· '+all.length+'</small></span></div>'+
-      all.map(set=>'<div class="tb-tree-node clickable tb-selection-set-row" style="padding-left:30px" data-selection-set="'+esc(set.id)+'"><span class="tb-tree-icon">⌑</span><span class="tb-tree-label">'+esc(set.name)+' <small>· '+(set.members?.length??0)+'</small></span></div>').join("");
+      all.map(set=>{const count=resolvedMembers(set).length,icon=set.kind==="DynamicSelectionSet"?"⟳":"⌑";return '<div class="tb-tree-node clickable tb-selection-set-row" style="padding-left:30px" data-selection-set="'+esc(set.id)+'"><span class="tb-tree-icon">'+icon+'</span><span class="tb-tree-label">'+esc(set.name)+' <small>· '+count+' · '+(set.kind==="DynamicSelectionSet"?"dynamic":"static")+'</small></span></div>';}).join("");
     section.querySelectorAll("[data-selection-set]").forEach(row=>row.onclick=event=>{event.preventDefault();event.stopPropagation();selectSet(row.dataset.selectionSet);renderPanel(row.dataset.selectionSet);});
     try{ctx()?.decorateProjectTreeAsTreeView?.();}catch{}
   }
@@ -157,21 +226,47 @@
     toggle.onclick=()=>{panel.classList.toggle("open");renderPanel();};panel.querySelector("[data-set-close]").onclick=()=>panel.classList.remove("open");
     return panel;
   }
+
+  function commandCreateDynamic(name,rules){
+    let created=null;
+    const ok=command("Создать Dynamic Selection Set",()=>{created=domain.createDynamicSelectionSet(project(),{name,rules});return true;});
+    return ok?created:false;
+  }
+  function saveDynamicRules(setId,text){
+    let parsed;
+    try{parsed=JSON.parse(String(text??"{}"));}catch{toast("Dynamic rules: некорректный JSON");return false;}
+    return command("Изменить правила Dynamic Selection Set",()=>{domain.updateDynamicSelectionSetRules(project(),setId,parsed);return true;});
+  }
+
   function renderPanel(selectedId=null){
     if(!domain)return;const p=project();if(!p)return;const root=ensurePanel(),body=root.querySelector("[data-set-body]");
     pruneMissing();const sets=domain.ensureSelectionSetState(p),id=selectedId??body.dataset.activeSet??sets[0]?.id??"",set=id?setById(id):null;
     body.dataset.activeSet=set?.id??"";
     const options='<option value="">—</option>'+sets.map(item=>'<option value="'+esc(item.id)+'" '+(String(item.id)===String(set?.id)?"selected":"")+'>'+esc(item.name)+'</option>').join("");
-    body.innerHTML='<div class="tb-set-grid"><label>Selection Set</label><select data-set-select>'+options+'</select><label>Name</label><input data-set-name value="'+esc(set?.name??"Selection Set")+'"><label>Members</label><span>'+(set?.members?.length??0)+'</span></div>'+
-      '<div class="tb-set-actions"><button data-set-create>Create from selection</button><button data-set-select-now '+(!set?"disabled":"")+'>Select</button><button data-set-rename '+(!set?"disabled":"")+'>Rename</button><button data-set-add '+(!set?"disabled":"")+'>Add selection</button><button data-set-remove '+(!set?"disabled":"")+'>Remove selection</button><button data-set-delete '+(!set?"disabled":"")+'>Delete set</button></div>'+
+    const resolvedCount=set?resolvedMembers(set).length:0;
+    const dynamic=set?.kind==="DynamicSelectionSet";
+    const rulesText=dynamic?JSON.stringify(set.rules??{match:"all",rules:[]},null,2):"";
+    body.innerHTML='<div class="tb-set-grid"><label>Selection Set</label><select data-set-select>'+options+'</select><label>Type</label><select data-set-type><option value="static" '+(!dynamic?"selected":"")+'>Static</option><option value="dynamic" '+(dynamic?"selected":"")+'>Dynamic</option></select><label>Name</label><input data-set-name value="'+esc(set?.name??"Selection Set")+'"><label>Members</label><span>'+resolvedCount+'</span></div>'+
+      (dynamic?'<div class="tb-set-grid" style="margin-top:8px"><label>Dynamic rules</label><textarea data-set-rules style="min-height:150px;background:#09131c;color:#fff;border:1px solid #40536a;border-radius:4px;padding:6px">'+esc(rulesText)+'</textarea></div>':'')+
+      '<div class="tb-set-actions"><button data-set-create>Create</button><button data-set-select-now '+(!set?"disabled":"")+'>Select</button><button data-set-rename '+(!set?"disabled":"")+'>Rename</button><button data-set-save-rules '+(!dynamic?"disabled":"")+'>Save rules</button><button data-set-add '+(!set||dynamic?"disabled":"")+'>Add selection</button><button data-set-remove '+(!set||dynamic?"disabled":"")+'>Remove selection</button><button data-set-delete '+(!set?"disabled":"")+'>Delete set</button></div>'+
       '<div class="tb-set-actions"><button data-set-show '+(!set?"disabled":"")+'>Show</button><button data-set-hide '+(!set?"disabled":"")+'>Hide</button><button data-set-lock '+(!set?"disabled":"")+'>Lock</button><button data-set-unlock '+(!set?"disabled":"")+'>Unlock</button></div>'+
       '<div class="tb-set-actions"><button data-set-tool="move" '+(!set?"disabled":"")+'>Move</button><button data-set-tool="copy" '+(!set?"disabled":"")+'>Copy</button><button data-set-tool="rotate" '+(!set?"disabled":"")+'>Rotate</button><button data-set-tool="array" '+(!set?"disabled":"")+'>Array</button></div>'+
-      '<div class="tb-set-note">Static Selection Set хранит только ссылки на конкретные объекты и не меняет TreeView/Assembly/Group иерархию. Один объект может входить в несколько наборов.</div>';
+      '<div class="tb-set-note">'+(dynamic?'Dynamic Selection Set хранит правила и автоматически пересчитывает состав по текущему проекту.':'Static Selection Set хранит только ссылки на конкретные объекты. Один объект может входить в несколько наборов.')+'</div>';
     body.querySelector("[data-set-select]").onchange=e=>renderPanel(e.target.value||null);
-    body.querySelector("[data-set-create]").onclick=()=>{const created=createFromSelection(body.querySelector("[data-set-name]").value);if(created)renderPanel(created.id);};
+    body.querySelector("[data-set-create]").onclick=()=>{
+      const name=body.querySelector("[data-set-name]").value;
+      const type=body.querySelector("[data-set-type]").value;
+      let created;
+      if(type==="dynamic"){
+        try{created=commandCreateDynamic(name,{match:"all",rules:[]});}catch(error){toast(error.message);return;}
+      }else created=createFromSelection(name);
+      if(created)renderPanel(created.id);
+    };
     if(!set)return;
     body.querySelector("[data-set-select-now]").onclick=()=>selectSet(set.id);
     body.querySelector("[data-set-rename]").onclick=()=>rename(set.id,body.querySelector("[data-set-name]").value);
+    const saveRules=body.querySelector("[data-set-save-rules]");
+    if(saveRules)saveRules.onclick=()=>saveDynamicRules(set.id,body.querySelector("[data-set-rules]")?.value??"{}");
     body.querySelector("[data-set-add]").onclick=()=>addSelection(set.id);
     body.querySelector("[data-set-remove]").onclick=()=>removeSelection(set.id);
     body.querySelector("[data-set-delete]").onclick=()=>deleteSet(set.id);
@@ -202,7 +297,7 @@
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))renderPanel();});
     window.addEventListener("tubebender-command-line-ready",registerProvider);
     window.TubeBenderSelectionSets=Object.freeze({
-      createFromSelection,rename,addSelection,removeSelection,deleteSet,selectSet,show:(id)=>showHide(id,true),hide:(id)=>showHide(id,false),lock:(id)=>lockSet(id,"Object"),unlock:(id)=>lockSet(id,"Unlocked"),useWith,pruneMissing,
+      createFromSelection,createDynamic:(name,rules)=>commandCreateDynamic(name,rules),updateDynamicRules:(id,rules)=>command("Изменить правила Dynamic Selection Set",()=>{domain.updateDynamicSelectionSetRules(project(),id,rules);return true;}),resolvedMembers:(id)=>clone(resolvedMembers(setById(id))),rename,addSelection,removeSelection,deleteSet,selectSet,show:(id)=>showHide(id,true),hide:(id)=>showHide(id,false),lock:(id)=>lockSet(id,"Object"),unlock:(id)=>lockSet(id,"Unlocked"),useWith,pruneMissing,
       sets:()=>clone(domain.ensureSelectionSetState(project())),byId:(id)=>clone(setById(id)),openPanel:()=>{ensurePanel().classList.add("open");renderPanel();},renderTree,renderPanel,domain
     });
     registerProvider();dispatch();
