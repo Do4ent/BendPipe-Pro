@@ -1248,6 +1248,8 @@
     const target=String(reason??"").trim();
     if(!target)return null;
     const items=savedDimensions().filter(dimension=>dimensionAuditReviewReasons(dimension).includes(target));
+    const selectedSet=new Set(selectedDimensionAuditIds());
+    const selectedIds=items.map(dimension=>String(dimension?.id??"")).filter(id=>selectedSet.has(id));
     return {
       schema:"TubeBender.DimensionReviewReasonAudit.v1",
       ...dimensionAuditProjectContext(),
@@ -1255,7 +1257,10 @@
         filter:"needs-review",
         sort:"audit",
         review_reason:target,
-        dimension_ids:items.map(dimension=>String(dimension?.id??""))
+        dimension_ids:items.map(dimension=>String(dimension?.id??"")),
+        selected_dimension_ids:selectedIds,
+        selected_dimension_count:selectedIds.length,
+        unselected_dimension_count:Math.max(0,items.length-selectedIds.length)
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
