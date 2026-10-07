@@ -9,7 +9,7 @@ const grips=fs.readFileSync(path.join(root,"src","ui","dimension-grips-runtime.j
 const props=fs.readFileSync(path.join(root,"src","ui","properties-panel-runtime.js"),"utf8");
 
 test("question 119: selecting a 3D dimension synchronizes Object Context selection",()=>{
-  assert.match(grips,/const key="dimension:"\+encodeURIComponent\(String\(id\)\)/);
+  assert.match(grips,/const key="dimension:"+encodeURIComponent(String(dimension.id))/);
   assert.match(grips,/TubeBenderObjectContext\?\.replaceSelectionKeys\?\.\(\[key\],\{announce:true\}\)/);
 });
 
