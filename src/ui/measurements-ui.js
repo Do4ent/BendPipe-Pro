@@ -1079,7 +1079,7 @@
   function downloadAllDimensionAudits(){
     const snapshot=allDimensionAuditSnapshot();
     const name=(snapshot.project_name||snapshot.project_id||"project").replace(/[^a-z0-9._-]+/gi,"_");
-    return downloadDimensionAuditJson(name+"-dimension-audit-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
+    return downloadDimensionAuditJson(name+"-dimension-audit-"+snapshot.dimension_count+"-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
   }
 
   async function copyVisibleDimensionAudits(){
