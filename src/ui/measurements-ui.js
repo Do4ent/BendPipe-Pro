@@ -1288,6 +1288,7 @@
         review_reason_pending_count:reviewReasonPendingCount,
         review_reason_count_consistent:reviewReasonCoverageSummary.complete+reviewReasonPendingCount===reviewReasonCount,
         review_reason_lists_consistent:completedReviewReasons.length===reviewReasonCoverageSummary.complete&&pendingReviewReasons.length===reviewReasonPendingCount,
+        review_progress_valid:(reviewReasonCoverageSummary.complete+reviewReasonPendingCount===reviewReasonCount)&&completedReviewReasons.length===reviewReasonCoverageSummary.complete&&pendingReviewReasons.length===reviewReasonPendingCount,
         completed_review_reasons:completedReviewReasons,
         pending_review_reasons:pendingReviewReasons,
         review_reason_all_complete:reviewReasonCount>0&&reviewReasonPendingCount===0,
