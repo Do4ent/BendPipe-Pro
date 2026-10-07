@@ -137,10 +137,12 @@ export function reviewProgressDiagnosticsSignature(diagnostics={}){
   });
 }
 
-export function reviewProgressDiagnosticsIntegrity(runtime={},state_consistent=true){
+export function reviewProgressDiagnosticsIntegrity(runtime={},state_consistent=true,parity_consistent=null){
   const stateConsistent=state_consistent===true;
   const snapshotSignatureConsistent=runtime?.snapshot_signature_consistent===true;
   const runtimeValid=runtime?.runtime_valid===true;
+  const parityAvailable=parity_consistent!==null&&parity_consistent!==undefined;
+  const parityConsistent=parityAvailable?parity_consistent===true:null;
   return freeze({
     schema:REVIEW_PROGRESS_DIAGNOSTICS_INTEGRITY_SCHEMA,
     source:String(runtime?.source??"ui-fallback"),
@@ -151,7 +153,9 @@ export function reviewProgressDiagnosticsIntegrity(runtime={},state_consistent=t
     state_consistent:stateConsistent,
     snapshot_signature_consistent:snapshotSignatureConsistent,
     runtime_valid:runtimeValid,
-    valid:stateConsistent&&snapshotSignatureConsistent&&runtimeValid
+    parity_available:parityAvailable,
+    parity_consistent:parityConsistent,
+    valid:stateConsistent&&snapshotSignatureConsistent&&runtimeValid&&parityConsistent!==false
   });
 }
 
@@ -166,6 +170,8 @@ export function reviewProgressDiagnosticsIntegritySignature(integrity={}){
     state_consistent:integrity?.state_consistent===true,
     snapshot_signature_consistent:integrity?.snapshot_signature_consistent===true,
     runtime_valid:integrity?.runtime_valid===true,
+    parity_available:integrity?.parity_available===true,
+    parity_consistent:integrity?.parity_consistent===null?null:integrity?.parity_consistent===true,
     valid:integrity?.valid===true
   });
 }
