@@ -888,6 +888,22 @@
     }catch(error){toast("Не удалось скопировать Rebind audit");return false;}
   }
 
+  function dimensionFittedEvidenceHtml(dimension){
+    const refs=(dimension?.references??[]).map((ref,index)=>({ref,index}))
+      .filter(item=>String(item.ref?.geometry_status??"")==="Fitted");
+    if(!refs.length)return "";
+    const rows=refs.map(({ref,index})=>{
+      const error=ref?.fitting_error??{};
+      return '<div class="tb-measure-note" style="padding:4px 0;border-top:1px solid #2b3a4a">'+
+        '#'+(index+1)+' · '+esc(ref?.object_id??"—")+(ref?.subentity_id!=null?' / '+esc(ref.subentity_id):'')+
+        ' · error '+esc(error?.mm??"—")+' mm / '+esc(error?.deg??"—")+'°'+
+        ' · confidence '+esc(ref?.confidence??"—")+
+        (ref?.evidence!=null?'<div style="margin-top:3px">Evidence: '+esc(ref.evidence)+'</div>':'')+
+        '</div>';
+    }).join("");
+    return '<details data-dim-fitted-evidence="'+esc(dimension.id)+'" style="margin-top:6px"><summary>Fitted evidence · '+refs.length+'</summary>'+rows+'</details>';
+  }
+
   function dimensionRebindAuditHtml(dimension){
     const history=Array.isArray(dimension?.rebound_history)?dimension.rebound_history:[];
     if(!history.length)return "";
@@ -978,6 +994,7 @@
         (stale?' · ⚠ Stale':' · '+esc(dimension.status??"NeedsUpdate"))+'</div>'+
         '<div class="tb-measure-note">'+esc(valueText)+' · '+(visible?'Visible':'Hidden')+' · '+esc(dimension.id)+'</div>'+
         (provenanceBits.length?'<div class="tb-measure-note" data-dim-provenance="'+esc(dimension.id)+'">'+esc(provenanceBits.join(' · '))+'</div>':'')+
+        dimensionFittedEvidenceHtml(dimension)+
         dimensionRebindAuditHtml(dimension)+
         '<div class="tb-measure-actions">'+
           '<button data-dim-manager-select="'+esc(dimension.id)+'" data-select-visible="'+(visible?"1":"0")+'">'+(visible?'Select':'Show & Select')+'</button>'+
