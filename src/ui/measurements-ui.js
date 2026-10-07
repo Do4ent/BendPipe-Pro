@@ -1592,7 +1592,6 @@
     }).join('');
     const reviewReasonPendingCount=reviewReasonCoverageCounts.partial+reviewReasonCoverageCounts.none;
     const reviewReasonPendingNames=reviewReasonEntries.filter(([reason])=>{
-      const buttonCoverage=reviewReasonCoverageCounts;
       const count=reviewReasonCounts[reason]??0;
       const selectedCount=items.filter(dimension=>
         reviewReasonSelectedIds.has(String(dimension?.id??""))&&dimensionAuditReviewReasons(dimension).includes(reason)
