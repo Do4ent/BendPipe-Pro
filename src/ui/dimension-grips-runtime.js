@@ -454,8 +454,19 @@
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();
   }
   function onClick(event){if(Date.now()<suppressUntil){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();}}
+  function clearActiveDimensionSelection(){
+    if(!activeId)return false;
+    const id=String(activeId),context=window.TubeBenderObjectContext;
+    const kept=(context?.selectionKeys?.()??[]).filter(key=>{
+      const entry=context?.parseSelectionKey?.(key);
+      return entry?.kind!=="dimension"||String(entry.dimensionId)!==id;
+    });
+    activeId=null;
+    context?.replaceSelectionKeys?.(kept,{announce:true});
+    rebuild();return true;
+  }
   function onKey(event){
-    if(event.key==="Escape"){if(drag)finishDrag(event,{cancel:true});else if(editor)closeEditor();else if(activeId){activeId=null;rebuild();}return;}
+    if(event.key==="Escape"){if(drag)finishDrag(event,{cancel:true});else if(editor)closeEditor();else clearActiveDimensionSelection();return;}
     if((event.key==="Delete"||event.key==="Backspace")&&activeId&&!drag&&!editor){
       event.preventDefault();deleteDimension(activeId);
     }
@@ -469,7 +480,7 @@
     installListeners();rebuild();
     window.addEventListener("tubebender-dimension-change",()=>{syncActiveDimensionFromSelection();rebuild();});window.addEventListener("tubebender-assembly-change",()=>rebuild());window.addEventListener("tubebender-layer-change",()=>rebuild());window.addEventListener("tubebender-selection-change",syncActiveDimensionFromSelection);window.addEventListener("tubebender-history-change",()=>{syncActiveDimensionFromSelection();rebuild();});
     if(typeof renderAll==="function"&&!renderAll._tbDimensionGrips){const original=renderAll;renderAll=function(...args){const result=original.apply(this,args);try{rebuild();}catch{}return result;};renderAll._tbDimensionGrips=true;}
-    window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,deleteDimension,setDimensionVisible,syncActiveDimensionFromSelection,selectionCandidateAtEvent,activeDimension:()=>dimensionById(activeId),dimensionLabelText,dimensionHoverText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
+    window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,deleteDimension,setDimensionVisible,syncActiveDimensionFromSelection,selectionCandidateAtEvent,clearActiveDimensionSelection,activeDimension:()=>dimensionById(activeId),dimensionLabelText,dimensionHoverText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
 })();
