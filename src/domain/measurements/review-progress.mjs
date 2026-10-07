@@ -25,6 +25,7 @@ function normalizeItems(items){
 export const REVIEW_PROGRESS_SCHEMA="TubeBender.DimensionReviewProgress.v1";
 export const REVIEW_PROGRESS_SNAPSHOT_SCHEMA="TubeBender.DimensionReviewProgressSnapshot.v1";
 export const REVIEW_PROGRESS_DIAGNOSTICS_SCHEMA="TubeBender.DimensionReviewProgressDiagnostics.v1";
+export const REVIEW_PROGRESS_DIAGNOSTICS_SNAPSHOT_SCHEMA="TubeBender.DimensionReviewProgressDiagnosticsSnapshot.v1";
 export const REVIEW_PROGRESS_ERROR_CODES=freeze([
   "REVIEW_REASON_COUNT_MISMATCH",
   "REVIEW_REASON_LIST_MISMATCH"
@@ -132,6 +133,22 @@ export function reviewProgressDiagnosticsSignature(diagnostics={}){
     primary_error:diagnostics.primary_error??null,
     valid:diagnostics.valid===true,
     status:String(diagnostics.status??"empty")
+  });
+}
+
+export function reviewProgressDiagnosticsSnapshot(diagnostics={}){
+  return freeze({
+    schema:REVIEW_PROGRESS_DIAGNOSTICS_SNAPSHOT_SCHEMA,
+    diagnostics_schema:String(diagnostics.schema??REVIEW_PROGRESS_DIAGNOSTICS_SCHEMA),
+    supported_error_codes:clone(diagnostics.supported_error_codes??REVIEW_PROGRESS_AUDIT_ERROR_CODES),
+    errors:clone(diagnostics.errors??[]),
+    issue_count:Number(diagnostics.issue_count??0),
+    issue_count_consistent:diagnostics.issue_count_consistent===true,
+    error_codes_valid:diagnostics.error_codes_valid===true,
+    primary_error:diagnostics.primary_error??null,
+    valid:diagnostics.valid===true,
+    status:String(diagnostics.status??"empty"),
+    signature:reviewProgressDiagnosticsSignature(diagnostics)
   });
 }
 
