@@ -9,5 +9,5 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 304: review queue audit exposes combined progress validity",()=>{
   const fn=ui.match(/function reviewQueueDimensionAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/review_progress_valid:\(reviewReasonCoverageSummary\.complete\+reviewReasonPendingCount===reviewReasonCount\)&&completedReviewReasons\.length===reviewReasonCoverageSummary\.complete&&pendingReviewReasons\.length===reviewReasonPendingCount/);
+  assert.match(fn,/review_progress_valid:reviewReasonCountConsistent&&reviewReasonListsConsistent/);
 });
