@@ -1524,7 +1524,8 @@
         reviewReasonSelectedIds.has(String(dimension?.id??""))&&dimensionAuditReviewReasons(dimension).includes(reason)
       ).length;
       const unselectedCount=Math.max(0,count-selectedCount);
-      return '<button data-dimension-review-reason="'+esc(reason)+'" '+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&dimensionManagerSearch===reason?'disabled':'')+'>'+esc(reason)+' ('+count+' · selected '+selectedCount+' · unselected '+unselectedCount+')</button>';
+      const selectedPercent=count?Math.round(selectedCount/count*100):0;
+      return '<button data-dimension-review-reason="'+esc(reason)+'" '+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&dimensionManagerSearch===reason?'disabled':'')+'>'+esc(reason)+' ('+count+' · selected '+selectedCount+' · unselected '+unselectedCount+' · '+selectedPercent+'%)</button>';
     }).join('');
     const fullReviewQueueActive=dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch;
     const activeReviewReason=activeDimensionReviewReason();
