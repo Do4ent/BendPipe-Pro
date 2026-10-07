@@ -1303,6 +1303,7 @@
   }
 
   function dimensionReviewProgressSnapshot(progress){
+    if(reviewProgressDomain?.reviewProgressSnapshot)return reviewProgressDomain.reviewProgressSnapshot(progress??{});
     const value=progress??{};
     return {
       schema:"TubeBender.DimensionReviewProgressSnapshot.v1",
