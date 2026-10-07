@@ -1118,9 +1118,17 @@
     const hasSelection=entries.length>0;
     const profile=contextProfile(entries,source);
     const title=menu.querySelector("[data-context-title]");
-    if(title)title.textContent=hasSelection
-      ?profile.title+(entries.length>1?" · "+entries.length:"")
-      :profile.title;
+    if(title){
+      if(hasSelection&&entries.length===1&&entries[0]?.kind==="dimension"){
+        const dimension=(project()?.engineering_dimensions??[]).find(item=>String(item?.id)===String(entries[0].dimensionId));
+        title.textContent="Dimension · "+String(dimension?.note??dimension?.id??entries[0].dimensionId)+
+          " · "+String(dimension?.mode??"Unknown")+" · "+String(dimension?.status??"Unknown");
+      }else{
+        title.textContent=hasSelection
+          ?profile.title+(entries.length>1?" · "+entries.length:"")
+          :profile.title;
+      }
+    }
     for(const button of menu.querySelectorAll("[data-object-action]")){
       const action=button.dataset.objectAction;
       if(action!=="show-all"&&action!=="repeat-last")button.hidden=!hasSelection;
