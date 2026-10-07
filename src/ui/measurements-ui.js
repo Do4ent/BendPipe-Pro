@@ -1073,6 +1073,15 @@
     return true;
   }
 
+  function exitDimensionReviewQueue(){
+    dimensionManagerFilter="all";
+    dimensionManagerSort="project";
+    dimensionManagerSearch="";
+    dimensionManagerFocusId="";
+    render();
+    return true;
+  }
+
   function selectedDimensionAuditIds(){
     return (context()?.selectionEntries?.()??[])
       .filter(entry=>entry?.kind==="dimension"&&entry?.dimensionId!=null)
@@ -1473,9 +1482,7 @@
     body.querySelector("[data-invert-dimension-review-queue]")?.addEventListener("click",()=>{
       invertReviewQueueDimensionSelection();render();
     });
-    body.querySelector("[data-dimension-review-queue-exit]")?.addEventListener("click",()=>{
-      dimensionManagerFilter="all";dimensionManagerSort="project";dimensionManagerSearch="";dimensionManagerFocusId="";render();
-    });
+    body.querySelector("[data-dimension-review-queue-exit]")?.addEventListener("click",exitDimensionReviewQueue);
     const searchInput=body.querySelector("[data-dimension-search]");
     body.querySelector("[data-dimension-search-apply]")?.addEventListener("click",()=>{
       dimensionManagerFocusId="";dimensionManagerSearch=String(searchInput?.value??"");render();
