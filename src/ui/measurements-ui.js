@@ -1275,6 +1275,7 @@
     const visibleItems=filteredDimensionManagerItems(items);
     const selectedIds=selectedDimensionAuditIds();
     const selectedIdSet=new Set(selectedIds);
+    const selectedReviewQueueCount=items.filter(dimension=>selectedIdSet.has(String(dimension?.id??""))&&dimensionAuditNeedsReview(dimension)).length;
     const selectionKindSummary=Object.entries(dimensionSelectionKindCounts())
       .map(([kind,count])=>kind+": "+count).join(" · ");
     const visibleIdSet=new Set(visibleItems.map(dimension=>String(dimension?.id??"")));
@@ -1331,7 +1332,7 @@
       '<div class="tb-measure-actions" data-dimension-audit-sort>'+
       '<button data-dimension-sort="project" '+(dimensionManagerSort==="project"?'disabled':'')+'>Project order</button>'+
       '<button data-dimension-sort="audit" '+(dimensionManagerSort==="audit"?'disabled':'')+'>Audit priority</button>'+
-      '<button data-dimension-review-queue '+(auditSummary.needs_review===0||dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?'disabled':'')+'>Review queue ('+auditSummary.needs_review+')'+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?' · Active':'')+'</button>'+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?'<button data-dimension-review-queue-exit>Exit review queue</button>':'')+'</div>'+
+      '<button data-dimension-review-queue '+(auditSummary.needs_review===0||dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?'disabled':'')+'>Review queue ('+auditSummary.needs_review+(selectedReviewQueueCount?' · selected '+selectedReviewQueueCount:'')+')'+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?' · Active':'')+'</button>'+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?'<button data-dimension-review-queue-exit>Exit review queue</button>':'')+'</div>'+
       '<div class="tb-measure-actions" data-dimension-audit-search>'+
       '<input data-dimension-search value="'+esc(dimensionManagerSearch)+'" placeholder="Search ID, kind, source, stale reason">'+
       '<button data-dimension-search-apply>Search</button><button data-dimension-search-clear '+(!dimensionManagerSearch?'disabled':'')+'>Clear</button>'+
