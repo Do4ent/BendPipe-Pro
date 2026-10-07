@@ -1221,6 +1221,59 @@
       dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
     };
   }
+  function dimensionReviewProgress(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
+    const reviewItems=(items??[]).filter(dimension=>dimensionAuditNeedsReview(dimension));
+    const selectedSet=new Set((selectedIds??[]).map(id=>String(id)));
+    const reasonCounts={};
+    for(const dimension of reviewItems){
+      for(const reason of dimensionAuditReviewReasons(dimension)){
+        const key=String(reason);reasonCounts[key]=(reasonCounts[key]??0)+1;
+      }
+    }
+    const reasonSelection={};
+    for(const [reason,count] of Object.entries(reasonCounts).sort(([a],[b])=>String(a).localeCompare(String(b)))){
+      const ids=reviewItems.filter(dimension=>dimensionAuditReviewReasons(dimension).includes(reason))
+        .map(dimension=>String(dimension?.id??""));
+      const selected=ids.filter(id=>selectedSet.has(id));
+      const unselected=ids.filter(id=>!selectedSet.has(id));
+      reasonSelection[reason]={
+        dimension_count:count,
+        selected_dimension_ids:selected,
+        unselected_dimension_ids:unselected,
+        selected_dimension_count:selected.length,
+        unselected_dimension_count:unselected.length,
+        selected_percent:count?Math.round(selected.length/count*100):0,
+        selection_coverage:selected.length===0?"none":selected.length===count?"complete":"partial"
+      };
+    }
+    const coverage={none:0,partial:0,complete:0};
+    for(const entry of Object.values(reasonSelection))coverage[String(entry.selection_coverage)]++;
+    const completed=Object.entries(reasonSelection).filter(([,entry])=>entry.selection_coverage==="complete").map(([reason])=>reason);
+    const pending=Object.entries(reasonSelection).filter(([,entry])=>entry.selection_coverage!=="complete").map(([reason])=>reason);
+    const count=Object.keys(reasonCounts).length;
+    const pendingCount=coverage.partial+coverage.none;
+    const errors=[
+      coverage.complete+pendingCount!==count?"REVIEW_REASON_COUNT_MISMATCH":null,
+      (completed.length!==coverage.complete||pending.length!==pendingCount)?"REVIEW_REASON_LIST_MISMATCH":null
+    ].filter(Boolean);
+    return {
+      review_items:reviewItems,
+      reason_counts:reasonCounts,
+      reason_selection:reasonSelection,
+      coverage,
+      completed_reasons:completed,
+      pending_reasons:pending,
+      reason_count:count,
+      pending_count:pendingCount,
+      complete_percent:count?Math.round(coverage.complete/count*100):0,
+      completion_state:count===0?"empty":pendingCount===0?"complete":"pending",
+      errors,
+      issue_count:errors.length,
+      valid:errors.length===0,
+      status:count===0?"empty":errors.length===0?"ok":"error"
+    };
+  }
+
   function reviewQueueDimensionAuditSnapshot(){
     const items=savedDimensions().filter(dimension=>dimensionAuditNeedsReview(dimension));
     const reviewReasonCounts={};
