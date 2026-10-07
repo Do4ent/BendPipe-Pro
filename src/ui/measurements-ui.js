@@ -1393,6 +1393,14 @@
     const reviewReasonPendingCount=reviewReasonCoverageSummary.partial+reviewReasonCoverageSummary.none;
     const reviewReasonCompletePercent=reviewReasonCount?Math.round(reviewReasonCoverageSummary.complete/reviewReasonCount*100):0;
     const reviewReasonCompletionState=reviewReasonCount===0?"empty":reviewReasonPendingCount===0?"complete":"pending";
+    const reviewProgressSchema=reviewProgressDomain?.REVIEW_PROGRESS_SCHEMA??"TubeBender.DimensionReviewProgress.v1";
+    const reviewProgressDiagnosticsSchema=reviewProgressDomain?.REVIEW_PROGRESS_DIAGNOSTICS_SCHEMA??"TubeBender.DimensionReviewProgressDiagnostics.v1";
+    const reviewProgressSupportedErrorCodes=[...(reviewProgressDomain?.REVIEW_PROGRESS_AUDIT_ERROR_CODES??[
+      "REVIEW_REASON_COUNT_MISMATCH",
+      "REVIEW_REASON_LIST_MISMATCH",
+      "REVIEW_PROGRESS_MODEL_DIVERGENCE",
+      "REVIEW_PROGRESS_DOMAIN_DIVERGENCE"
+    ])];
     const sharedReviewProgress=dimensionReviewProgress(items,selectedDimensionAuditIds());
     const domainReviewProgress=domainDimensionReviewProgress(items,selectedDimensionAuditIds());
     const domainReviewProgressConsistent=domainReviewProgress!=null
@@ -1418,14 +1426,14 @@
         unselected_dimension_count:unselectedIds.length,
         selected_percent:selectedPercent,
         selection_coverage:selectionCoverage,
-        review_progress_schema:"TubeBender.DimensionReviewProgress.v1",
+        review_progress_schema:reviewProgressSchema,
         review_progress_source:canonicalReviewProgress.source,
         review_progress_model:canonicalReviewProgress.snapshot,
         review_progress_signature:canonicalReviewProgress.signature,
         review_progress_model_consistent:sharedReviewProgressConsistent,
         review_progress_domain_consistent:domainReviewProgressConsistent,
-        review_progress_diagnostics_schema:"TubeBender.DimensionReviewProgressDiagnostics.v1",
-        review_progress_supported_error_codes:["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH","REVIEW_PROGRESS_MODEL_DIVERGENCE","REVIEW_PROGRESS_DOMAIN_DIVERGENCE"],
+        review_progress_diagnostics_schema:reviewProgressDiagnosticsSchema,
+        review_progress_supported_error_codes:reviewProgressSupportedErrorCodes,
         review_progress_generated_at:new Date().toISOString(),
         review_reason_count:reviewReasonCount,
         review_reason_complete_count:reviewReasonCoverageSummary.complete,
