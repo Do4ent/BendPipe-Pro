@@ -1228,9 +1228,13 @@
       &&typeof reviewProgressDomain.buildReviewProgress==="function"
       &&typeof reviewProgressDomain.reviewProgressSignature==="function"
       &&typeof reviewProgressDomain.reviewProgressSnapshot==="function"
+      &&typeof reviewProgressDomain.buildReviewProgressDiagnostics==="function"
+      &&typeof reviewProgressDomain.reviewProgressDiagnosticsSignature==="function"
+      &&typeof reviewProgressDomain.reviewProgressDiagnosticsSnapshot==="function"
       &&reviewProgressDomain.REVIEW_PROGRESS_SCHEMA==="TubeBender.DimensionReviewProgress.v1"
       &&reviewProgressDomain.REVIEW_PROGRESS_SNAPSHOT_SCHEMA==="TubeBender.DimensionReviewProgressSnapshot.v1"
-      &&reviewProgressDomain.REVIEW_PROGRESS_DIAGNOSTICS_SCHEMA==="TubeBender.DimensionReviewProgressDiagnostics.v1";
+      &&reviewProgressDomain.REVIEW_PROGRESS_DIAGNOSTICS_SCHEMA==="TubeBender.DimensionReviewProgressDiagnostics.v1"
+      &&reviewProgressDomain.REVIEW_PROGRESS_DIAGNOSTICS_SNAPSHOT_SCHEMA==="TubeBender.DimensionReviewProgressDiagnosticsSnapshot.v1";
     return {
       available,
       compatible,
