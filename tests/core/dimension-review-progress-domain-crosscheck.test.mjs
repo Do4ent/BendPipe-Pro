@@ -8,8 +8,8 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 343: UI review progress cross-checks pure domain model",()=>{
-  assert.match(ui,/function domainDimensionReviewProgress\(items=savedDimensions\(\),selectedIds=selectedDimensionAuditIds\(\)\)/);
-  assert.match(ui,/reviewProgressDomain\.buildReviewProgress/);
-  assert.match(ui,/reviewProgressDomain\.reviewProgressSignature\(domainReviewProgress\)===dimensionReviewProgressSignature\(sharedReviewProgress\)/);
+  assert.match(ui,/function dimensionReviewProgressParity\(items=savedDimensions\(\),selectedIds=selectedDimensionAuditIds\(\)\)/);
+  assert.match(ui,/const reviewProgressParity=dimensionReviewProgressParity\(items,selectedDimensionAuditIds\(\)\)/);
+  assert.match(ui,/review_progress_domain_available:domainReviewProgressAvailable/);
   assert.match(ui,/review_progress_domain_consistent:domainReviewProgressConsistent/);
 });
