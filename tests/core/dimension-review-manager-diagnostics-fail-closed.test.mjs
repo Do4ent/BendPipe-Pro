@@ -8,7 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 327: manager diagnostics fail closed on shared model divergence",()=>{
-  assert.match(ui,/const reviewReasonDiagnosticsValid=reviewReasonProgressValid/);
-  assert.match(ui,/&&sharedManagerReviewProgressConsistent/);
-  assert.match(ui,/&&reviewReasonProgressErrors\.length===0/);
+  assert.match(ui,/model_consistent:sharedManagerReviewProgressConsistent/);
+  assert.match(ui,/const reviewReasonDiagnosticsValid=managerReviewDiagnosticsModel\.valid/);
+  assert.match(ui,/const reviewReasonProgressErrors=managerReviewDiagnosticsModel\.errors/);
 });
