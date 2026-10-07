@@ -12,3 +12,10 @@ test("question 161: Saved Dimensions filters Section-derived dimensions explicit
   assert.match(ui,/result=items\.filter\(isSectionDerivedDimension\)/);
   assert.match(ui,/'section-derived':'Section-derived'/);
 });
+
+
+test("question 162: audit summary counts Section-derived dimensions",()=>{
+  assert.match(ui,/section_derived:0/);
+  assert.match(ui,/if\(isSectionDerivedDimension\(dimension\)\)summary\.section_derived\+\+/);
+  assert.match(ui,/Section-derived: '\+auditSummary\.section_derived/);
+});
