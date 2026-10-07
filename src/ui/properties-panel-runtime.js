@@ -414,6 +414,9 @@
         subentity_id:ref?.subentity_id,
         snap_type:ref?.snap_type,
         geometry_status:ref?.geometry_status,
+        fitting_error:ref?.fitting_error??null,
+        confidence:ref?.confidence??null,
+        evidence:ref?.evidence??null,
         section_snapshot:ref?.section_snapshot??null
       }));
       return {title:dimension?.note??"Dimension",kind:"dimension",dimensionId:dimension?.id,visible:dimension?.visible!==false,groups:[
