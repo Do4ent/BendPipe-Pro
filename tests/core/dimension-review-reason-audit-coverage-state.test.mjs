@@ -8,11 +8,11 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 278: review reason audit persists exact selection coverage state",()=>{
-  const fn=ui.match(/function reviewReasonDimensionAuditSnapshot\([^)]*\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/const dimensionIds=items\.map/);
-  assert.match(fn,/const selectedIds=dimensionIds\.filter/);
-  assert.match(fn,/const unselectedIds=dimensionIds\.filter/);
-  assert.match(fn,/selected_percent:selectedPercent/);
-  assert.match(fn,/selection_coverage:selectionCoverage/);
-  assert.match(fn,/unselected_dimension_ids:unselectedIds/);
+  assert.match(ui,/function reviewReasonDimensionAuditSnapshot\(reason=activeDimensionReviewReason\(\)\)/);
+  assert.match(ui,/const dimensionIds=items\.map/);
+  assert.match(ui,/const selectedIds=dimensionIds\.filter/);
+  assert.match(ui,/const unselectedIds=dimensionIds\.filter/);
+  assert.match(ui,/selected_percent:selectedPercent/);
+  assert.match(ui,/selection_coverage:selectionCoverage/);
+  assert.match(ui,/unselected_dimension_ids:unselectedIds/);
 });
