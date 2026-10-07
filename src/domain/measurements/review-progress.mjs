@@ -20,7 +20,7 @@ function normalizeItems(items){
     const reasons=[...new Set((Array.isArray(item.reasons)?item.reasons:[]).map(text).filter(Boolean))]
       .sort((a,b)=>a.localeCompare(b));
     return freeze({id,reasons});
-  });
+  }).sort((a,b)=>a.id.localeCompare(b.id));
 }
 export const REVIEW_PROGRESS_SCHEMA="TubeBender.DimensionReviewProgress.v1";
 export const REVIEW_PROGRESS_SNAPSHOT_SCHEMA="TubeBender.DimensionReviewProgressSnapshot.v1";
