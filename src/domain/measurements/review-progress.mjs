@@ -87,6 +87,38 @@ export function buildReviewProgress({items=[],selected_ids=[]}={}){
   });
 }
 
+export function buildReviewProgressDiagnostics({
+  reason_count=0,
+  count_consistent=true,
+  lists_consistent=true,
+  model_consistent=true,
+  domain_status="unavailable",
+  domain_consistent=null
+}={}){
+  const count=Math.max(0,Math.trunc(Number(reason_count)||0));
+  const domainStatus=String(domain_status??"unavailable");
+  if(!["unavailable","compatible","incompatible"].includes(domainStatus)){
+    throw new RangeError("domain_status must be unavailable, compatible or incompatible");
+  }
+  const errors=[];
+  if(count_consistent!==true)errors.push("REVIEW_REASON_COUNT_MISMATCH");
+  if(lists_consistent!==true)errors.push("REVIEW_REASON_LIST_MISMATCH");
+  if(model_consistent!==true)errors.push("REVIEW_PROGRESS_MODEL_DIVERGENCE");
+  if(domainStatus==="incompatible")errors.push("REVIEW_PROGRESS_DOMAIN_INCOMPATIBLE");
+  else if(domainStatus==="compatible"&&domain_consistent!==true)errors.push("REVIEW_PROGRESS_DOMAIN_DIVERGENCE");
+  const errorCodesValid=errors.every(code=>REVIEW_PROGRESS_AUDIT_ERROR_CODES.includes(code));
+  const valid=errors.length===0&&errorCodesValid;
+  return freeze({
+    errors,
+    issue_count:errors.length,
+    issue_count_consistent:errors.length===errors.filter(Boolean).length,
+    error_codes_valid:errorCodesValid,
+    primary_error:errors[0]??null,
+    valid,
+    status:count===0?"empty":valid?"ok":"error"
+  });
+}
+
 export function reviewProgressSignature(progress={}){
   return JSON.stringify({
     reason_count:Number(progress.reason_count??0),
