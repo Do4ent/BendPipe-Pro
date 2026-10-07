@@ -1151,13 +1151,21 @@
   }
   function reviewQueueDimensionAuditSnapshot(){
     const items=savedDimensions().filter(dimension=>dimensionAuditNeedsReview(dimension));
+    const reviewReasonCounts={};
+    for(const dimension of items){
+      for(const reason of dimensionAuditReviewReasons(dimension)){
+        const key=String(reason);
+        reviewReasonCounts[key]=(reviewReasonCounts[key]??0)+1;
+      }
+    }
     return {
       schema:"TubeBender.DimensionReviewQueueAudit.v1",
       ...dimensionAuditProjectContext(),
       queue:{
         filter:"needs-review",
         sort:"audit",
-        dimension_ids:items.map(dimension=>String(dimension?.id??""))
+        dimension_ids:items.map(dimension=>String(dimension?.id??"")),
+        review_reason_counts:reviewReasonCounts
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
