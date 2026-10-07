@@ -1280,6 +1280,23 @@
     };
   }
 
+  function dimensionReviewProgressDiagnosticsSignature(diagnostics={}){
+    if(reviewProgressDomainCompatibility().compatible&&typeof reviewProgressDomain?.reviewProgressDiagnosticsSignature==="function"){
+      return reviewProgressDomain.reviewProgressDiagnosticsSignature(diagnostics);
+    }
+    return JSON.stringify({
+      schema:String(diagnostics?.schema??"TubeBender.DimensionReviewProgressDiagnostics.v1"),
+      supported_error_codes:diagnostics?.supported_error_codes??reviewProgressAuditErrorCodes(),
+      errors:diagnostics?.errors??[],
+      issue_count:Number(diagnostics?.issue_count??0),
+      issue_count_consistent:diagnostics?.issue_count_consistent===true,
+      error_codes_valid:diagnostics?.error_codes_valid===true,
+      primary_error:diagnostics?.primary_error??null,
+      valid:diagnostics?.valid===true,
+      status:String(diagnostics?.status??"empty")
+    });
+  }
+
   function dimensionReviewProgressItems(items=savedDimensions()){
     if(!Array.isArray(items))throw new TypeError("review progress items must be an array");
     const reviewItems=items.filter(dimension=>dimensionAuditNeedsReview(dimension))
@@ -1544,6 +1561,7 @@
       domain_status:reviewProgressRuntime.domain_status,
       domain_consistent:domainReviewProgressConsistent
     });
+    const reviewProgressDiagnosticsSignature=dimensionReviewProgressDiagnosticsSignature(reviewProgressDiagnosticsModel);
     const legacyReviewProgressErrors=[
       !reviewReasonCountConsistent?"REVIEW_REASON_COUNT_MISMATCH":null,
       !reviewReasonListsConsistent?"REVIEW_REASON_LIST_MISMATCH":null,
@@ -1590,6 +1608,7 @@
         review_progress_domain_consistent:domainReviewProgressConsistent,
         review_progress_diagnostics_schema:reviewProgressDiagnosticsSchema,
         review_progress_diagnostics_model:reviewProgressDiagnosticsModel,
+        review_progress_diagnostics_signature:reviewProgressDiagnosticsSignature,
         review_progress_diagnostics_model_consistent:reviewProgressDiagnosticsModelConsistent,
         review_progress_supported_error_codes:reviewProgressSupportedErrorCodes,
         review_progress_generated_at:new Date().toISOString(),
