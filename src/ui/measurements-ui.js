@@ -694,6 +694,7 @@
       status:String(dimension?.status??""),
       geometry_class:dimensionAuditGeometryClass(dimension),
       reference_geometry_statuses:referenceGeometryStatuses,
+      fitted_stats:clone(dimensionFittedAuditStats(dimension)),
       current_value:dimension?.value??null,
       stale_reason:dimension?.stale_reason??null,
       current_references:clone(references),
