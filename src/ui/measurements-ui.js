@@ -1222,6 +1222,15 @@
       dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
     };
   }
+  function reviewProgressAuditErrorCodes(){
+    return [...(reviewProgressDomain?.REVIEW_PROGRESS_AUDIT_ERROR_CODES??[
+      "REVIEW_REASON_COUNT_MISMATCH",
+      "REVIEW_REASON_LIST_MISMATCH",
+      "REVIEW_PROGRESS_MODEL_DIVERGENCE",
+      "REVIEW_PROGRESS_DOMAIN_DIVERGENCE"
+    ])];
+  }
+
   function dimensionReviewProgress(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
     const reviewItems=(items??[]).filter(dimension=>dimensionAuditNeedsReview(dimension));
     const selectedSet=new Set((selectedIds??[]).map(id=>String(id)));
@@ -1395,12 +1404,7 @@
     const reviewReasonCompletionState=reviewReasonCount===0?"empty":reviewReasonPendingCount===0?"complete":"pending";
     const reviewProgressSchema=reviewProgressDomain?.REVIEW_PROGRESS_SCHEMA??"TubeBender.DimensionReviewProgress.v1";
     const reviewProgressDiagnosticsSchema=reviewProgressDomain?.REVIEW_PROGRESS_DIAGNOSTICS_SCHEMA??"TubeBender.DimensionReviewProgressDiagnostics.v1";
-    const reviewProgressSupportedErrorCodes=[...(reviewProgressDomain?.REVIEW_PROGRESS_AUDIT_ERROR_CODES??[
-      "REVIEW_REASON_COUNT_MISMATCH",
-      "REVIEW_REASON_LIST_MISMATCH",
-      "REVIEW_PROGRESS_MODEL_DIVERGENCE",
-      "REVIEW_PROGRESS_DOMAIN_DIVERGENCE"
-    ])];
+    const reviewProgressSupportedErrorCodes=reviewProgressAuditErrorCodes();
     const sharedReviewProgress=dimensionReviewProgress(items,selectedDimensionAuditIds());
     const domainReviewProgress=domainDimensionReviewProgress(items,selectedDimensionAuditIds());
     const domainReviewProgressConsistent=domainReviewProgress!=null
@@ -1468,7 +1472,7 @@
           (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
           !sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null,
           !domainReviewProgressConsistent?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null
-        ].filter(Boolean).every(code=>["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH","REVIEW_PROGRESS_MODEL_DIVERGENCE","REVIEW_PROGRESS_DOMAIN_DIVERGENCE"].includes(code)),
+        ].filter(Boolean).every(code=>reviewProgressSupportedErrorCodes.includes(code)),
         review_progress_status:reviewReasonCount===0?"empty":(
           ((reviewReasonCoverageSummary.complete+reviewReasonPendingCount===reviewReasonCount)
             &&completedReviewReasons.length===reviewReasonCoverageSummary.complete
@@ -1486,7 +1490,7 @@
             (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
             !sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null,
             !domainReviewProgressConsistent?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null
-          ].filter(Boolean).every(code=>["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH","REVIEW_PROGRESS_MODEL_DIVERGENCE","REVIEW_PROGRESS_DOMAIN_DIVERGENCE"].includes(code))
+          ].filter(Boolean).every(code=>reviewProgressSupportedErrorCodes.includes(code))
           &&(((reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?1:0)
             +((completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?1:0)
             +(!sharedReviewProgressConsistent?1:0)
@@ -1844,6 +1848,7 @@
     const canonicalManagerReviewProgress=canonicalDimensionReviewProgress(items,selectedDimensionAuditIds());
     const canonicalManagerReviewProgressSignature=canonicalManagerReviewProgress.signature;
     const canonicalManagerReviewProgressSource=canonicalManagerReviewProgress.source;
+    const reviewReasonSupportedErrorCodes=reviewProgressAuditErrorCodes();
     const reviewReasonProgressErrors=[
       reviewReasonCoverageCounts.complete+reviewReasonPendingCount!==reviewReasonEntries.length?"REVIEW_REASON_COUNT_MISMATCH":null,
       (reviewReasonCompletedNames.length!==reviewReasonCoverageCounts.complete||reviewReasonPendingNames.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
@@ -1856,7 +1861,7 @@
       &&sharedManagerReviewProgressConsistent
       &&domainManagerReviewProgressConsistent
       &&reviewReasonProgressErrors.length===0
-      &&reviewReasonProgressErrors.every(code=>["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH","REVIEW_PROGRESS_MODEL_DIVERGENCE","REVIEW_PROGRESS_DOMAIN_DIVERGENCE"].includes(code));
+      &&reviewReasonProgressErrors.every(code=>reviewReasonSupportedErrorCodes.includes(code));
     const reviewReasonProgressStatus=reviewReasonEntries.length===0?"empty":reviewReasonDiagnosticsValid?"ok":"error";
     const fullReviewQueueActive=dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch;
     const activeReviewReason=activeDimensionReviewReason();
