@@ -860,7 +860,8 @@
       view:{
         filter:dimensionManagerFilter,
         sort:dimensionManagerSort,
-        search:String(dimensionManagerSearch??"")
+        search:String(dimensionManagerSearch??""),
+        focus_id:dimensionManagerFocusId||null
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
