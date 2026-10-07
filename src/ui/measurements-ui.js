@@ -1004,6 +1004,7 @@
   function dimensionManagerHtml(){
     const items=savedDimensions();
     if(!items.length)return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div><div class="tb-measure-note">Сохранённых размеров пока нет.</div></div>';
+    const locked=readonly();
     const auditSummary=dimensionAuditSummary(items);
     const statusSummary=Object.entries(auditSummary.by_status).map(([status,count])=>status+': '+count).join(' · ');
     const modeSummary=Object.entries(auditSummary.by_mode).map(([mode,count])=>mode+': '+count).join(' · ');
@@ -1047,10 +1048,10 @@
         dimensionFittedEvidenceHtml(dimension)+
         dimensionRebindAuditHtml(dimension)+
         '<div class="tb-measure-actions">'+
-          '<button data-dim-manager-select="'+esc(dimension.id)+'" data-select-visible="'+(visible?"1":"0")+'">'+(visible?'Select':'Show & Select')+'</button>'+
-          '<button data-dim-manager-visible="'+esc(dimension.id)+'" data-visible="'+(visible?"1":"0")+'">'+(visible?'Hide':'Show')+'</button>'+
-          '<button data-dim-manager-delete="'+esc(dimension.id)+'">Delete</button>'+
-          (stale&&isSectionDerivedDimension(dimension)?'<button data-section-rebind="'+esc(dimension.id)+'">Rebind</button>':'')+
+          '<button data-dim-manager-select="'+esc(dimension.id)+'" data-select-visible="'+(visible?"1":"0")+'" '+(!visible&&locked?'disabled title="Проект открыт только для просмотра"':'')+'>'+(visible?'Select':'Show & Select')+'</button>'+
+          '<button data-dim-manager-visible="'+esc(dimension.id)+'" data-visible="'+(visible?"1":"0")+'" '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>'+(visible?'Hide':'Show')+'</button>'+
+          '<button data-dim-manager-delete="'+esc(dimension.id)+'" '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>Delete</button>'+
+          (stale&&isSectionDerivedDimension(dimension)?'<button data-section-rebind="'+esc(dimension.id)+'" '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>Rebind</button>':'')+
         '</div></div>';
     }).join("")||'<div class="tb-measure-result" style="margin-top:7px"><div class="tb-measure-note">Нет размеров для выбранного audit-фильтра.</div></div>';
     const filters='<div class="tb-measure-actions" data-dimension-audit-filters>'+
@@ -1069,7 +1070,7 @@
       '<div class="tb-measure-note" data-dimension-visible-count>Showing '+visibleItems.length+' of '+items.length+'</div>'+
       (dimensionManagerFocusId?'<div class="tb-measure-note" data-dimension-exact-focus>Exact focus: '+esc(dimensionManagerFocusId)+' <button data-dimension-focus-clear>Clear focus</button></div>':'')+
       filters+
-      '<div class="tb-measure-actions"><button data-select-visible-dimension-audit>Select visible results</button><button data-show-dimension-audit>Show results</button><button data-show-select-dimension-audit>Show & Select results</button><button data-hide-dimension-audit>Hide results</button><button data-copy-visible-dimension-audits>Copy visible audit JSON</button><button data-copy-all-dimension-audits>Copy all audit JSON</button></div></div>'+rows;
+      '<div class="tb-measure-actions"><button data-select-visible-dimension-audit>Select visible results</button><button data-show-dimension-audit '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>Show results</button><button data-show-select-dimension-audit '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>Show & Select results</button><button data-hide-dimension-audit '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>Hide results</button><button data-copy-visible-dimension-audits>Copy visible audit JSON</button><button data-copy-all-dimension-audits>Copy all audit JSON</button></div></div>'+rows;
   }
   function bindDimensionManagerActions(body){
     body.querySelectorAll("[data-dim-manager-select]").forEach(button=>{
