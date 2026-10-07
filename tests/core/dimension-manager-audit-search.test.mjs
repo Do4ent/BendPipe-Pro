@@ -20,3 +20,9 @@ test("question 151: Saved Dimensions filters by search text",()=>{
   assert.match(ui,/data-dimension-search-apply/);
   assert.match(ui,/data-dimension-search-clear/);
 });
+
+
+test("question 165: Saved Dimensions search indexes trusted geometry provenance",()=>{
+  assert.match(ui,/const geometryStatuses=refs\.map\(ref=>String\(ref\?\.geometry_status\?\?""\)\)/);
+  assert.match(ui,/dimensionAuditGeometryClass\(dimension\),\.\.\.geometryStatuses,\.\.\.sources/);
+});
