@@ -8,8 +8,8 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 421: diagnostics integrity fallback is isolated from domain delegation",()=>{
-  assert.match(ui,/function dimensionReviewProgressDiagnosticsIntegrityFallback\(runtime,stateConsistent=true\)/);
-  assert.match(ui,/return dimensionReviewProgressDiagnosticsIntegrityFallback\(runtime,stateConsistent\)/);
+  assert.match(ui,/function dimensionReviewProgressDiagnosticsIntegrityFallback\(runtime,stateConsistent=true,parityConsistent=null\)/);
+  assert.match(ui,/return dimensionReviewProgressDiagnosticsIntegrityFallback\(runtime,stateConsistent,parityConsistent\)/);
   assert.match(ui,/function dimensionReviewProgressDiagnosticsIntegritySignatureFallback\(integrity=\{\}\)/);
   assert.match(ui,/return dimensionReviewProgressDiagnosticsIntegritySignatureFallback\(integrity\)/);
 });
