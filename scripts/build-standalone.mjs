@@ -74,6 +74,7 @@ const batchNormalizeFittedDomainPath = path.join(root, "src", "domain", "geometr
 const deleteDependenciesDomainPath = path.join(root, "src", "domain", "project", "delete-dependencies.mjs");
 const geometryMeasurementsDomainPath = path.join(root, "src", "domain", "measurements", "geometry-measurements.mjs");
 const dimensionsDomainPath = path.join(root, "src", "domain", "measurements", "dimensions.mjs");
+const reviewProgressDomainPath = path.join(root, "src", "domain", "measurements", "review-progress.mjs");
 const equipmentRuntimeBridgePath = path.join(root, "src", "ui", "equipment-runtime-bridge.js");
 const trimCutRuntimeBridgePath = path.join(root, "src", "ui", "trim-cut-runtime-bridge.js");
 const materialDomainPath = path.join(root, "src", "domain", "materials", "material-profiles.mjs");
@@ -2515,9 +2516,11 @@ const bundledMaterialManufacturingBridge =
 
 const geometryMeasurementsDomainUrl = moduleDataUrl(geometryMeasurementsDomainPath);
 const dimensionsDomainUrl = moduleDataUrl(dimensionsDomainPath);
+const reviewProgressDomainUrl = moduleDataUrl(reviewProgressDomainPath);
 const measurementsUi = fs.readFileSync(measurementsUiPath, "utf8")
   .replace("__TB_GEOMETRY_MEASUREMENTS_MODULE_URL__", geometryMeasurementsDomainUrl)
   .replace("__TB_DIMENSIONS_MODULE_URL__", dimensionsDomainUrl)
+  .replace("__TB_REVIEW_PROGRESS_MODULE_URL__", reviewProgressDomainUrl)
   .replace(/<\/script/gi, "<\\/script");
 const bundledMeasurementsUi =
   `<script data-tubebender-bundled="measurements-ui">\n${measurementsUi}\n</script>`;
