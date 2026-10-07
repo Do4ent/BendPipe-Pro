@@ -1073,7 +1073,8 @@
   function downloadVisibleDimensionAudits(){
     const snapshot=visibleDimensionAuditSnapshot();
     const name=(snapshot.project_name||snapshot.project_id||"project").replace(/[^a-z0-9._-]+/gi,"_");
-    return downloadDimensionAuditJson(name+"-dimension-audit-view-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
+    const filterName=String(snapshot?.view?.filter??"all").replace(/[^a-z0-9._-]+/gi,"_");
+    return downloadDimensionAuditJson(name+"-dimension-audit-view-"+filterName+"-"+snapshot.dimension_count+"-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
   }
   function downloadAllDimensionAudits(){
     const snapshot=allDimensionAuditSnapshot();
