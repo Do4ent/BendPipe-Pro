@@ -84,6 +84,10 @@
     try{return typeof activeProject==="function"?activeProject():null;}
     catch{return null;}
   }
+  function engineeringReadonly(){
+    try{return window.TubeBenderEngineering?.readonly?.()===true;}
+    catch{return false;}
+  }
   function refApi(){return window.TubeBenderReferenceSceneUi??null;}
   function groupsApi(){return window.TubeBenderGroups??null;}
   function assembliesApi(){return window.TubeBenderAssemblies??null;}
@@ -1186,20 +1190,26 @@
     const dimensionEdit=menu.querySelector('[data-object-action="dimension-edit"]');
     if(dimensionEdit){
       const dimensionOnly=entries.length===1&&entries[0]?.kind==="dimension";
+      const readOnly=engineeringReadonly();
       dimensionEdit.hidden=!dimensionOnly;
-      dimensionEdit.disabled=!dimensionOnly;
+      dimensionEdit.disabled=!dimensionOnly||readOnly;
+      dimensionEdit.title=readOnly?"Проект открыт только для просмотра":"";
     }
     const dimensionHide=menu.querySelector('[data-object-action="dimension-hide"]');
     if(dimensionHide){
       const dimensionOnly=entries.length===1&&entries[0]?.kind==="dimension";
+      const readOnly=engineeringReadonly();
       dimensionHide.hidden=!dimensionOnly;
-      dimensionHide.disabled=!dimensionOnly;
+      dimensionHide.disabled=!dimensionOnly||readOnly;
+      dimensionHide.title=readOnly?"Проект открыт только для просмотра":"";
     }
     const dimensionDelete=menu.querySelector('[data-object-action="dimension-delete"]');
     if(dimensionDelete){
       const dimensionOnly=entries.length===1&&entries[0]?.kind==="dimension";
+      const readOnly=engineeringReadonly();
       dimensionDelete.hidden=!dimensionOnly;
-      dimensionDelete.disabled=!dimensionOnly;
+      dimensionDelete.disabled=!dimensionOnly||readOnly;
+      dimensionDelete.title=readOnly?"Проект открыт только для просмотра":"";
     }
     const endSelection=hasSelection?endConstraintSelection(entries):null;
     const anchorEnd=menu.querySelector('[data-object-action="anchor-end"]');
