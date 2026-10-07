@@ -1049,11 +1049,13 @@
   function dimensionAuditFilenameStamp(value=new Date()){
     return value.toISOString().replace(/[:.]/g,"-");
   }
-  function dimensionAuditFilenamePart(value,fallback="item"){
+  function dimensionAuditFilenamePart(value,fallback="item",maxLength=80){
+    const limit=Math.max(8,Math.min(120,Math.trunc(Number(maxLength)||80)));
     const safe=String(value??"").trim()
       .replace(/[^\p{L}\p{N}._-]+/gu,"_")
       .replace(/^[_\-.]+|[_\-.]+$/g,"");
-    return safe||String(fallback);
+    const clipped=safe.slice(0,limit).replace(/[_\-.]+$/g,"");
+    return clipped||String(fallback).slice(0,limit);
   }
   function downloadSelectedDimensionAudits(){
     const snapshot=selectedDimensionAuditSnapshot();
