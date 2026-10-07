@@ -1412,6 +1412,7 @@
     const reviewReasonButtons=Object.entries(reviewReasonCounts).map(([reason,count])=>
       '<button data-dimension-review-reason="'+esc(reason)+'" '+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&dimensionManagerSearch===reason?'disabled':'')+'>'+esc(reason)+' ('+count+')</button>'
     ).join('');
+    const fullReviewQueueActive=dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch;
     const visibleItems=filteredDimensionManagerItems(items);
     const selectedIds=selectedDimensionAuditIds();
     const selectedIdSet=new Set(selectedIds);
@@ -1480,7 +1481,7 @@
     return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div>'+
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
       '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Visible: '+auditSummary.visible+' · Hidden: '+auditSummary.hidden+' · Selected: '+auditSummary.selected+' · Unselected: '+auditSummary.unselected+' · Needs review: '+auditSummary.needs_review+' · Section-derived: '+auditSummary.section_derived+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+(geometrySummary?' · '+esc(geometrySummary):'')+(referenceSummary?' · '+esc(referenceSummary):'')+'</div>'+
-      (auditSummary.needs_review?'<div class="tb-measure-note" data-dimension-review-reason-summary>Review queue reasons: '+esc(reviewReasonSummary||'—')+(reviewReasonButtons?'<div class="tb-measure-actions" data-dimension-review-reason-filters>'+reviewReasonButtons+'</div>':'')+'</div>':'')+
+      (auditSummary.needs_review?'<div class="tb-measure-note" data-dimension-review-reason-summary>Review queue reasons: '+esc(reviewReasonSummary||'—')+(reviewReasonButtons?'<div class="tb-measure-actions" data-dimension-review-reason-filters><button data-dimension-review-reason-clear '+(fullReviewQueueActive?'disabled':'')+'>All review reasons</button>'+reviewReasonButtons+'</div>':'')+'</div>':'')+
       '<div class="tb-measure-note" data-dimension-visible-count>Showing '+visibleItems.length+' of '+items.length+'</div>'+
       '<div class="tb-measure-note" data-dimension-selection-scope>Selected in view: '+selectedInViewCount+' · outside view: '+selectedOutsideViewCount+(selectionKindSummary?' · '+esc(selectionKindSummary):'')+'</div>'+
       (dimensionManagerFocusId?'<div class="tb-measure-note" data-dimension-exact-focus>Exact focus: '+esc(dimensionManagerFocusId)+' <button data-dimension-focus-clear>Clear focus</button></div>':'')+
@@ -1559,6 +1560,13 @@
         dimensionManagerSearch=String(button.dataset.dimensionReviewReason??"");
         render();
       };
+    });
+    body.querySelector("[data-dimension-review-reason-clear]")?.addEventListener("click",()=>{
+      dimensionManagerFocusId="";
+      dimensionManagerFilter="needs-review";
+      dimensionManagerSort="audit";
+      dimensionManagerSearch="";
+      render();
     });
     const searchInput=body.querySelector("[data-dimension-search]");
     body.querySelector("[data-dimension-search-apply]")?.addEventListener("click",()=>{
