@@ -1587,7 +1587,7 @@
     const reviewReasonPendingCount=reviewReasonCoverageCounts.partial+reviewReasonCoverageCounts.none;
     const reviewReasonCompletePercent=reviewReasonEntries.length
       ?Math.round(reviewReasonCoverageCounts.complete/reviewReasonEntries.length*100):0;
-    const reviewReasonCompletionState=reviewReasonEntries.length>0&&reviewReasonPendingCount===0?"complete":"pending";
+    const reviewReasonCompletionState=reviewReasonEntries.length===0?"empty":reviewReasonPendingCount===0?"complete":"pending";
     const fullReviewQueueActive=dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch;
     const activeReviewReason=activeDimensionReviewReason();
     const visibleItems=filteredDimensionManagerItems(items);
