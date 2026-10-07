@@ -1321,6 +1321,14 @@
     const reviewReasonPendingCount=reviewReasonCoverageSummary.partial+reviewReasonCoverageSummary.none;
     const reviewReasonCompletePercent=reviewReasonCount?Math.round(reviewReasonCoverageSummary.complete/reviewReasonCount*100):0;
     const reviewReasonCompletionState=reviewReasonCount===0?"empty":reviewReasonPendingCount===0?"complete":"pending";
+    const sharedReviewProgress=dimensionReviewProgress(items,selectedDimensionAuditIds());
+    const sharedReviewProgressConsistent=
+      sharedReviewProgress.reason_count===reviewReasonCount
+      &&sharedReviewProgress.pending_count===reviewReasonPendingCount
+      &&sharedReviewProgress.complete_percent===reviewReasonCompletePercent
+      &&sharedReviewProgress.completion_state===reviewReasonCompletionState
+      &&JSON.stringify(sharedReviewProgress.reason_counts)===JSON.stringify(reviewReasonCounts)
+      &&JSON.stringify(sharedReviewProgress.reason_selection)===JSON.stringify(reviewReasonSelection);
     return {
       schema:"TubeBender.DimensionReviewQueueAudit.v1",
       ...dimensionAuditProjectContext(),
@@ -1335,6 +1343,7 @@
         selected_percent:selectedPercent,
         selection_coverage:selectionCoverage,
         review_progress_schema:"TubeBender.DimensionReviewProgress.v1",
+        review_progress_model_consistent:sharedReviewProgressConsistent,
         review_progress_diagnostics_schema:"TubeBender.DimensionReviewProgressDiagnostics.v1",
         review_progress_supported_error_codes:["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH"],
         review_progress_generated_at:new Date().toISOString(),
