@@ -204,10 +204,15 @@
     if(!id)return null;
     const dimension=dimensionById(id);
     if(!dimension||dimension.visible===false)return null;
+    const audit=window.TubeBenderMeasurements??null;
     return Object.freeze({
       dimensionId:id,
       distance:Number(picked?.hit?.distance)||0,
-      part:String(picked?.data?.dimensionPart??picked?.data?.dimensionGrip??"dimension")
+      part:String(picked?.data?.dimensionPart??picked?.data?.dimensionGrip??"dimension"),
+      status:String(dimension?.status??"Unknown"),
+      mode:String(dimension?.mode??"Unknown"),
+      geometryClass:String(audit?.dimensionAuditGeometryClass?.(dimension)??"Unknown"),
+      needsReview:audit?.dimensionAuditNeedsReview?.(dimension)===true
     });
   }
   function pick(event){
