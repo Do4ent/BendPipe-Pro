@@ -1095,6 +1095,14 @@
     }
     return counts;
   }
+  function activeDimensionReviewReason(){
+    if(dimensionManagerFilter!=="needs-review"||dimensionManagerSort!=="audit")return null;
+    const search=String(dimensionManagerSearch??"").trim().toLowerCase();
+    if(!search)return null;
+    const reasons=[...new Set(savedDimensions().flatMap(dimension=>dimensionAuditReviewReasons(dimension)))];
+    return reasons.find(reason=>String(reason).toLowerCase()===search)??null;
+  }
+
   function selectedDimensionAuditSnapshot(){
     const entries=context()?.selectionEntries?.()??[];
     const selectedIds=entries
@@ -1109,7 +1117,8 @@
         filter:dimensionManagerFilter,
         sort:dimensionManagerSort,
         search:String(dimensionManagerSearch??""),
-        focus_id:dimensionManagerFocusId||null
+        focus_id:dimensionManagerFocusId||null,
+        review_reason:activeDimensionReviewReason()
       },
       selection:{
         selected_dimension_ids:selectedIds,
@@ -1137,6 +1146,7 @@
         sort:dimensionManagerSort,
         search:String(dimensionManagerSearch??""),
         focus_id:dimensionManagerFocusId||null,
+        review_reason:activeDimensionReviewReason(),
         selected_dimension_ids:selectionIds,
         selected_dimension_count:selectionIds.length,
         selected_in_view_ids:selectedInView,
@@ -1728,7 +1738,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,focusDimensionAudit,refresh:render,dimensionAuditViewProjectId,dimensionAuditViewStorageKey,persistDimensionAuditViewState,clearPersistedDimensionAuditViewState,restoreDimensionAuditViewState,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,dimensionAuditFilenamePart,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,selectedDimensionAuditIds,dimensionSelectionKindCounts,selectedDimensionAuditSnapshot,copySelectedDimensionAudits,downloadSelectedDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,clearDimensionSelection,pruneDimensionSelectionToAuditView,invertVisibleDimensionAuditSelection,removeVisibleDimensionAuditResultsFromSelection,addVisibleDimensionAuditResultsToSelection,selectVisibleDimensionAuditResults,selectReviewQueueDimensionResults,addReviewQueueDimensionResultsToSelection,removeReviewQueueDimensionResultsFromSelection,invertReviewQueueDimensionSelection,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
+      open,close,focusDimensionAudit,refresh:render,dimensionAuditViewProjectId,dimensionAuditViewStorageKey,persistDimensionAuditViewState,clearPersistedDimensionAuditViewState,restoreDimensionAuditViewState,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,dimensionAuditFilenamePart,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,selectedDimensionAuditIds,dimensionSelectionKindCounts,selectedDimensionAuditSnapshot,copySelectedDimensionAudits,downloadSelectedDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,activeDimensionReviewReason,filteredDimensionManagerItems,clearDimensionSelection,pruneDimensionSelectionToAuditView,invertVisibleDimensionAuditSelection,removeVisibleDimensionAuditResultsFromSelection,addVisibleDimensionAuditResultsToSelection,selectVisibleDimensionAuditResults,selectReviewQueueDimensionResults,addReviewQueueDimensionResultsToSelection,removeReviewQueueDimensionResultsFromSelection,invertReviewQueueDimensionSelection,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
