@@ -11,5 +11,6 @@ test("question 371: review progress selected IDs are validated consistently",()=
   const fn=ui.match(/function dimensionReviewProgress\(items=savedDimensions\(\),selectedIds=selectedDimensionAuditIds\(\)\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(fn,/if\(!Array\.isArray\(selectedIds\)\)throw new TypeError\("selected_ids must be an array"\)/);
   assert.match(fn,/selected_ids:selectedIds\.map\(id=>String\(id\)\)/);
-  assert.match(fn,/const selectedSet=new Set\(selectedIds\.map\(id=>String\(id\)\)\)/);
+  const fallback=ui.match(/function dimensionReviewProgressFallback\(reviewItems,selectedIds\)\{([\s\S]*?)\n  \}/)?.[1]??"";
+  assert.match(fallback,/const selectedSet=new Set\(selectedIds\.map\(id=>String\(id\)\)\)/);
 });
