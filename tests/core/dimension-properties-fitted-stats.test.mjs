@@ -9,7 +9,7 @@ const properties=fs.readFileSync(path.join(root,"src","ui","properties-panel-run
 
 test("question 189: Dimension Properties expands Fitted audit statistics",()=>{
   assert.match(properties,/\["Fitted reference count",fittedStats\?\.reference_count\]/);
-  assert.match(properties,/\["Max fit error mm",fittedStats\?\.max_error_mm\]/);
-  assert.match(properties,/\["Max fit error deg",fittedStats\?\.max_error_deg\]/);
-  assert.match(properties,/\["Min confidence",fittedStats\?\.min_confidence\]/);
+  assert.match(properties,/\["Max fit error mm",fittedStats\?audit\?\.auditNumber\?\.\(fittedStats\.max_error_mm\):null\]/);
+  assert.match(properties,/\["Max fit error deg",fittedStats\?audit\?\.auditNumber\?\.\(fittedStats\.max_error_deg\):null\]/);
+  assert.match(properties,/\["Min confidence",fittedStats\?audit\?\.auditNumber\?\.\(fittedStats\.min_confidence\):null\]/);
 });
