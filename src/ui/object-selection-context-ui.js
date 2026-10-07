@@ -1950,7 +1950,16 @@
     const dimensionCandidate=dimensionGripsApi()?.selectionCandidateAtEvent?.(event)??null;
     if(dimensionCandidate?.dimensionId){
       const key=dimensionKey(dimensionCandidate.dimensionId);
-      map.set(key,{key,entry:{kind:"dimension",dimensionId:String(dimensionCandidate.dimensionId)},distance:Number(dimensionCandidate.distance)||0,dimensionPart:dimensionCandidate.part??null});
+      map.set(key,{
+        key,
+        entry:{kind:"dimension",dimensionId:String(dimensionCandidate.dimensionId)},
+        distance:Number(dimensionCandidate.distance)||0,
+        dimensionPart:dimensionCandidate.part??null,
+        dimensionStatus:dimensionCandidate.status??null,
+        dimensionMode:dimensionCandidate.mode??null,
+        dimensionGeometryClass:dimensionCandidate.geometryClass??null,
+        dimensionNeedsReview:dimensionCandidate.needsReview===true
+      });
     }
     const sectionCandidates=window.TubeBenderSectionView?.selectionCandidatesAtEvent?.(event)??[];
     for(const record of sectionCandidates){
@@ -2006,12 +2015,13 @@
     if(entry.kind==="row")return "Tube element · #"+(Number(entry.rowIndex)+1);
     if(entry.kind==="dimension"){
       const dimension=(project()?.engineering_dimensions??[]).find(item=>String(item?.id)===String(entry.dimensionId));
-      const audit=window.TubeBenderMeasurements??null;
-      const geometryClass=audit?.dimensionAuditGeometryClass?.(dimension)??"Unknown";
-      const needsReview=audit?.dimensionAuditNeedsReview?.(dimension)===true;
       const part=String(candidate?.dimensionPart??"dimension");
       const partLabel=part==="text"?"Text":part==="line"?"Line":part==="reference"?"Reference":part;
-      return "Dimension · "+String(dimension?.note??entry.dimensionId)+" · "+partLabel+" · "+geometryClass+(needsReview?" · ⚠ Needs review":"");
+      const geometryClass=String(candidate?.dimensionGeometryClass??window.TubeBenderMeasurements?.dimensionAuditGeometryClass?.(dimension)??"Unknown");
+      const status=String(candidate?.dimensionStatus??dimension?.status??"Unknown");
+      const mode=String(candidate?.dimensionMode??dimension?.mode??"Unknown");
+      const needsReview=candidate?.dimensionNeedsReview===true||window.TubeBenderMeasurements?.dimensionAuditNeedsReview?.(dimension)===true;
+      return "Dimension · "+String(dimension?.note??entry.dimensionId)+" · "+partLabel+" · "+mode+" · "+status+" · "+geometryClass+(needsReview?" · ⚠ Needs review":"");
     }
     if(entry.kind==="section-derived"){
       const record=window.TubeBenderSectionView?.derivedSelectionById?.(entry.derivedId);
