@@ -692,6 +692,7 @@
       kind:String(dimension?.kind??""),
       mode:String(dimension?.mode??""),
       status:String(dimension?.status??""),
+      needs_review:dimensionAuditNeedsReview(dimension),
       geometry_class:dimensionAuditGeometryClass(dimension),
       reference_geometry_statuses:referenceGeometryStatuses,
       fitted_stats:clone(dimensionFittedAuditStats(dimension)),
