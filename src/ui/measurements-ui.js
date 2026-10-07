@@ -1945,27 +1945,8 @@
     const domainManagerReviewProgressCompatible=managerReviewProgressRuntime.domain_compatible;
     const domainManagerReviewProgressComparable=managerReviewProgressRuntime.domain_comparable;
     const domainManagerReviewProgressConsistent=managerReviewProgressRuntime.domain_consistent;
-    const domainManagerReviewProgressIncompatible=domainManagerReviewProgressAvailable&&!domainManagerReviewProgressCompatible;
-    const domainManagerReviewProgressDiverged=domainManagerReviewProgressComparable&&domainManagerReviewProgressConsistent===false;
     const canonicalManagerReviewProgressSignature=managerReviewProgressRuntime.signature;
     const canonicalManagerReviewProgressSource=managerReviewProgressRuntime.source;
-    const reviewReasonSupportedErrorCodes=reviewProgressAuditErrorCodes();
-    const reviewReasonProgressErrors=[
-      reviewReasonCoverageCounts.complete+reviewReasonPendingCount!==reviewReasonEntries.length?"REVIEW_REASON_COUNT_MISMATCH":null,
-      (reviewReasonCompletedNames.length!==reviewReasonCoverageCounts.complete||reviewReasonPendingNames.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
-      !sharedManagerReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null,
-      domainManagerReviewProgressDiverged?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null,
-      domainManagerReviewProgressIncompatible?"REVIEW_PROGRESS_DOMAIN_INCOMPATIBLE":null
-    ].filter(Boolean);
-    const reviewReasonProgressIssueCount=reviewReasonProgressErrors.length;
-    const reviewReasonProgressError=reviewReasonProgressErrors[0]??null;
-    const reviewReasonDiagnosticsValid=reviewReasonProgressValid
-      &&sharedManagerReviewProgressConsistent
-      &&!domainManagerReviewProgressDiverged
-      &&!domainManagerReviewProgressIncompatible
-      &&reviewReasonProgressErrors.length===0
-      &&reviewReasonProgressErrors.every(code=>reviewReasonSupportedErrorCodes.includes(code));
-    const reviewReasonProgressStatus=reviewReasonEntries.length===0?"empty":reviewReasonDiagnosticsValid?"ok":"error";
     const managerReviewDiagnosticsModel=dimensionReviewProgressDiagnostics({
       reason_count:reviewReasonEntries.length,
       count_consistent:reviewReasonCoverageCounts.complete+reviewReasonPendingCount===reviewReasonEntries.length,
@@ -1974,12 +1955,14 @@
       domain_status:managerReviewProgressRuntime.domain_status,
       domain_consistent:domainManagerReviewProgressConsistent
     });
+    const reviewReasonProgressErrors=managerReviewDiagnosticsModel.errors;
+    const reviewReasonProgressIssueCount=managerReviewDiagnosticsModel.issue_count;
+    const reviewReasonProgressError=managerReviewDiagnosticsModel.primary_error;
+    const reviewReasonDiagnosticsValid=managerReviewDiagnosticsModel.valid;
+    const reviewReasonProgressStatus=managerReviewDiagnosticsModel.status;
     const managerReviewDiagnosticsModelConsistent=
-      managerReviewDiagnosticsModel.issue_count===reviewReasonProgressIssueCount
-      &&JSON.stringify(managerReviewDiagnosticsModel.errors)===JSON.stringify(reviewReasonProgressErrors)
-      &&managerReviewDiagnosticsModel.primary_error===reviewReasonProgressError
-      &&managerReviewDiagnosticsModel.valid===reviewReasonDiagnosticsValid
-      &&managerReviewDiagnosticsModel.status===reviewReasonProgressStatus;
+      managerReviewDiagnosticsModel.issue_count_consistent
+      &&managerReviewDiagnosticsModel.error_codes_valid;
     const fullReviewQueueActive=dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch;
     const activeReviewReason=activeDimensionReviewReason();
     const visibleItems=filteredDimensionManagerItems(items);
