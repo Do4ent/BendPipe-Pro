@@ -1316,7 +1316,7 @@
   function dimensionReviewProgress(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
     const reviewItems=dimensionReviewProgressItems(items);
     if(!Array.isArray(selectedIds))throw new TypeError("selected_ids must be an array");
-    if(reviewProgressDomain?.buildReviewProgress){
+    if(reviewProgressDomainCompatibility().compatible){
       const progress=reviewProgressDomain.buildReviewProgress({
         items:reviewItems.map(dimension=>({
           id:String(dimension?.id??""),
@@ -1330,7 +1330,7 @@
   }
 
   function dimensionReviewProgressSignature(progress){
-    if(reviewProgressDomain?.reviewProgressSignature)return reviewProgressDomain.reviewProgressSignature(progress??{});
+    if(reviewProgressDomainCompatibility().compatible)return reviewProgressDomain.reviewProgressSignature(progress??{});
     const value=progress??{};
     return JSON.stringify({
       reason_count:Number(value.reason_count??0),
@@ -1348,7 +1348,7 @@
   }
 
   function dimensionReviewProgressSnapshot(progress){
-    if(reviewProgressDomain?.reviewProgressSnapshot)return reviewProgressDomain.reviewProgressSnapshot(progress??{});
+    if(reviewProgressDomainCompatibility().compatible)return reviewProgressDomain.reviewProgressSnapshot(progress??{});
     const value=progress??{};
     return {
       schema:"TubeBender.DimensionReviewProgressSnapshot.v1",
@@ -1370,7 +1370,7 @@
   }
 
   function domainDimensionReviewProgress(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
-    if(!reviewProgressDomain?.buildReviewProgress)return null;
+    if(!reviewProgressDomainCompatibility().compatible)return null;
     const reviewItems=dimensionReviewProgressItems(items);
     if(!Array.isArray(selectedIds))throw new TypeError("selected_ids must be an array");
     const normalized=reviewItems.map(dimension=>({
