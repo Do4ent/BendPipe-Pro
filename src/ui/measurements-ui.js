@@ -1274,6 +1274,23 @@
     };
   }
 
+  function dimensionReviewProgressSignature(progress){
+    const value=progress??{};
+    return JSON.stringify({
+      reason_count:Number(value.reason_count??0),
+      reason_counts:value.reason_counts??{},
+      reason_selection:value.reason_selection??{},
+      completed_reasons:value.completed_reasons??[],
+      pending_reasons:value.pending_reasons??[],
+      complete_percent:Number(value.complete_percent??0),
+      completion_state:String(value.completion_state??"empty"),
+      errors:value.errors??[],
+      issue_count:Number(value.issue_count??0),
+      valid:value.valid===true,
+      status:String(value.status??"empty")
+    });
+  }
+
   function reviewQueueDimensionAuditSnapshot(){
     const items=savedDimensions().filter(dimension=>dimensionAuditNeedsReview(dimension));
     const reviewReasonCounts={};
@@ -1343,6 +1360,7 @@
         selected_percent:selectedPercent,
         selection_coverage:selectionCoverage,
         review_progress_schema:"TubeBender.DimensionReviewProgress.v1",
+        review_progress_signature:dimensionReviewProgressSignature(sharedReviewProgress),
         review_progress_model_consistent:sharedReviewProgressConsistent,
         review_progress_diagnostics_schema:"TubeBender.DimensionReviewProgressDiagnostics.v1",
         review_progress_supported_error_codes:["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH","REVIEW_PROGRESS_MODEL_DIVERGENCE"],
