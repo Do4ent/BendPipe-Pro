@@ -1327,6 +1327,25 @@
     });
   }
 
+  function canonicalDimensionReviewProgress(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
+    const domain=domainDimensionReviewProgress(items,selectedIds);
+    if(domain&&reviewProgressDomain?.reviewProgressSnapshot&&reviewProgressDomain?.reviewProgressSignature){
+      return {
+        source:"domain",
+        progress:domain,
+        snapshot:reviewProgressDomain.reviewProgressSnapshot(domain),
+        signature:reviewProgressDomain.reviewProgressSignature(domain)
+      };
+    }
+    const local=dimensionReviewProgress(items,selectedIds);
+    return {
+      source:"ui-fallback",
+      progress:local,
+      snapshot:dimensionReviewProgressSnapshot(local),
+      signature:dimensionReviewProgressSignature(local)
+    };
+  }
+
   function reviewQueueDimensionAuditSnapshot(){
     const items=savedDimensions().filter(dimension=>dimensionAuditNeedsReview(dimension));
     const reviewReasonCounts={};
