@@ -11,7 +11,8 @@ test("question 260: Saved Dimensions shows review queue reason counts",()=>{
   assert.match(ui,/const reviewReasonCounts=\{\}/);
   assert.match(ui,/dimensionAuditNeedsReview\(dimension\)/);
   assert.match(ui,/dimensionAuditReviewReasons\(dimension\)/);
-  assert.match(ui,/const reviewReasonEntries=Object\.entries\(reviewReasonCounts\)\.sort/);\n  assert.match(ui,/const reviewReasonSummary=reviewReasonEntries\.map/);
+  assert.match(ui,/const reviewReasonEntries=Object\.entries\(reviewReasonCounts\)\.sort/);
+  assert.match(ui,/const reviewReasonSummary=reviewReasonEntries\.map/);
   assert.match(ui,/data-dimension-review-reason-summary/);
   assert.match(ui,/Review queue reasons: /);
 });
