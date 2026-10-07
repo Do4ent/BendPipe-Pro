@@ -1034,6 +1034,7 @@
       '<button type="button" data-object-action="dimension-audit-focus">⌕ <span>Open in Saved Dimensions</span></button>'+
       '<button type="button" data-object-action="dimension-audit-copy">⧉ <span>Copy Dimension audit JSON</span></button>'+
       '<button type="button" data-object-action="dimension-edit">✎ <span>Edit Dimension…</span></button>'+
+      '<button type="button" data-object-action="dimension-hide">◌ <span>Hide Dimension</span></button>'+
       '<button type="button" class="danger" data-object-action="dimension-delete">🗑 <span>Delete Dimension</span></button>'+
       '<div class="tb-object-context-separator"></div>'+
       '<button type="button" data-object-action="move">↔ <span>Переместить…</span></button>'+
@@ -1077,6 +1078,10 @@
       else if(action==="dimension-edit"){
         const entry=selectionEntries().find(item=>item?.kind==="dimension");
         if(entry)dimensionGripsApi()?.openEditor?.(entry.dimensionId,{clientX:event.clientX,clientY:event.clientY});
+      }
+      else if(action==="dimension-hide"){
+        const entry=selectionEntries().find(item=>item?.kind==="dimension");
+        if(entry)dimensionGripsApi()?.setDimensionVisible?.(entry.dimensionId,false);
       }
       else if(action==="dimension-delete"){
         const entry=selectionEntries().find(item=>item?.kind==="dimension");
@@ -1165,6 +1170,12 @@
       const dimensionOnly=entries.length===1&&entries[0]?.kind==="dimension";
       dimensionEdit.hidden=!dimensionOnly;
       dimensionEdit.disabled=!dimensionOnly;
+    }
+    const dimensionHide=menu.querySelector('[data-object-action="dimension-hide"]');
+    if(dimensionHide){
+      const dimensionOnly=entries.length===1&&entries[0]?.kind==="dimension";
+      dimensionHide.hidden=!dimensionOnly;
+      dimensionHide.disabled=!dimensionOnly;
     }
     const dimensionDelete=menu.querySelector('[data-object-action="dimension-delete"]');
     if(dimensionDelete){
