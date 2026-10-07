@@ -1121,8 +1121,12 @@
     if(title){
       if(hasSelection&&entries.length===1&&entries[0]?.kind==="dimension"){
         const dimension=(project()?.engineering_dimensions??[]).find(item=>String(item?.id)===String(entries[0].dimensionId));
+        const audit=window.TubeBenderMeasurements??null;
+        const geometryClass=String(audit?.dimensionAuditGeometryClass?.(dimension)??"Unknown");
+        const needsReview=audit?.dimensionAuditNeedsReview?.(dimension)===true;
         title.textContent="Dimension · "+String(dimension?.note??dimension?.id??entries[0].dimensionId)+
-          " · "+String(dimension?.mode??"Unknown")+" · "+String(dimension?.status??"Unknown");
+          " · "+String(dimension?.mode??"Unknown")+" · "+String(dimension?.status??"Unknown")+
+          " · "+geometryClass+(needsReview?" · ⚠ Needs review":"");
       }else{
         title.textContent=hasSelection
           ?profile.title+(entries.length>1?" · "+entries.length:"")
