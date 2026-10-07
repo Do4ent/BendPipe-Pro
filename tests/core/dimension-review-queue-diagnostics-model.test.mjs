@@ -11,8 +11,8 @@ test("question 387: review queue audit persists domain-generated diagnostics mod
   const fn=ui.match(/function reviewQueueDimensionAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(fn,/const reviewReasonCountConsistent=/);
   assert.match(fn,/const reviewReasonListsConsistent=/);
-  assert.match(fn,/const reviewProgressDiagnosticsModel=dimensionReviewProgressDiagnostics\(\{/);
-  assert.match(fn,/domain_status:reviewProgressRuntime\.domain_status/);
-  assert.match(fn,/domain_consistent:domainReviewProgressConsistent/);
+  assert.match(fn,/const reviewProgressDiagnosticsModel=standaloneReviewDiagnosticsRuntime\.diagnostics/);
+  assert.match(fn,/const standaloneReviewDiagnosticsRuntime=dimensionReviewProgressDiagnosticsRuntimeState\(items,selectedDimensionAuditIds\(\)\)/);
+  assert.match(fn,/review_progress_diagnostics_domain_status:standaloneReviewDiagnosticsRuntime\.domain_status/);
   assert.match(fn,/review_progress_diagnostics_model:reviewProgressDiagnosticsModel/);
 });
