@@ -1271,6 +1271,7 @@
         unselected_dimension_count:unselectedIds.length,
         selected_percent:selectedPercent,
         selection_coverage:selectionCoverage,
+        review_reason_count:Object.keys(reviewReasonCounts).length,
         review_reason_counts:reviewReasonCounts,
         review_reason_selection:reviewReasonSelection,
         review_reason_coverage_summary:reviewReasonCoverageSummary
