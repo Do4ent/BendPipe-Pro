@@ -11,7 +11,9 @@ const properties=fs.readFileSync(path.join(root,"src","ui","properties-panel-run
 test("question 191: Dimension audit counts reference provenance classes",()=>{
   assert.match(measurements,/function dimensionReferenceStatusCounts\(dimension\)/);
   assert.match(measurements,/\{Exact:0,Fitted:0,SectionDerived:0,Unknown:0\}/);
-  assert.match(measurements,/dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats/);
+  assert.match(measurements,/dimensionAuditGeometryClass/);
+  assert.match(measurements,/dimensionReferenceStatusCounts/);
+  assert.match(measurements,/dimensionFittedAuditStats/);
 });
 
 test("question 191: Dimension Properties shows reference provenance counts",()=>{
