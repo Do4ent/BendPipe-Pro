@@ -888,6 +888,9 @@
   function visibleDimensionAuditSnapshot(){
     const items=filteredDimensionManagerItems(savedDimensions());
     const selectionIds=selectedDimensionAuditIds();
+    const viewIds=new Set(items.map(dimension=>String(dimension?.id??"")));
+    const selectedInView=selectionIds.filter(id=>viewIds.has(String(id)));
+    const selectedOutsideView=selectionIds.filter(id=>!viewIds.has(String(id)));
     return {
       schema:"TubeBender.DimensionAuditView.v1",
       ...dimensionAuditProjectContext(),
@@ -897,7 +900,11 @@
         search:String(dimensionManagerSearch??""),
         focus_id:dimensionManagerFocusId||null,
         selected_dimension_ids:selectionIds,
-        selected_dimension_count:selectionIds.length
+        selected_dimension_count:selectionIds.length,
+        selected_in_view_ids:selectedInView,
+        selected_in_view_count:selectedInView.length,
+        selected_outside_view_ids:selectedOutsideView,
+        selected_outside_view_count:selectedOutsideView.length
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
