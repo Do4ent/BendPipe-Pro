@@ -1598,6 +1598,13 @@
       ).length;
       return count>0&&selectedCount<count;
     }).map(([reason])=>reason);
+    const reviewReasonCompletedNames=reviewReasonEntries.filter(([reason])=>{
+      const count=reviewReasonCounts[reason]??0;
+      const selectedCount=items.filter(dimension=>
+        reviewReasonSelectedIds.has(String(dimension?.id??""))&&dimensionAuditReviewReasons(dimension).includes(reason)
+      ).length;
+      return count>0&&selectedCount===count;
+    }).map(([reason])=>reason);
     const reviewReasonCompletePercent=reviewReasonEntries.length
       ?Math.round(reviewReasonCoverageCounts.complete/reviewReasonEntries.length*100):0;
     const reviewReasonCompletionState=reviewReasonEntries.length===0?"empty":reviewReasonPendingCount===0?"complete":"pending";
@@ -1680,7 +1687,7 @@
     return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div>'+
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
       '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Visible: '+auditSummary.visible+' · Hidden: '+auditSummary.hidden+' · Selected: '+auditSummary.selected+' · Unselected: '+auditSummary.unselected+' · Needs review: '+auditSummary.needs_review+' · Section-derived: '+auditSummary.section_derived+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+(geometrySummary?' · '+esc(geometrySummary):'')+(referenceSummary?' · '+esc(referenceSummary):'')+'</div>'+
-      (auditSummary.needs_review?'<div class="tb-measure-note" data-dimension-review-reason-summary>Review queue reasons: '+esc(reviewReasonSummary||'—')+' · Coverage complete: '+reviewReasonCoverageCounts.complete+' · partial: '+reviewReasonCoverageCounts.partial+' · none: '+reviewReasonCoverageCounts.none+' · completed '+reviewReasonCoverageCounts.complete+' · pending '+reviewReasonPendingCount+(reviewReasonPendingNames.length?' ['+esc(reviewReasonPendingNames.join(', '))+']':'')+' · complete '+reviewReasonCompletePercent+'% · state '+reviewReasonCompletionState+(reviewReasonButtons?'<div class="tb-measure-actions" data-dimension-review-reason-filters><button data-dimension-review-reason-clear '+(fullReviewQueueActive?'disabled':'')+'>All review reasons</button>'+reviewReasonButtons+'</div>':'')+'</div>':'')+
+      (auditSummary.needs_review?'<div class="tb-measure-note" data-dimension-review-reason-summary>Review queue reasons: '+esc(reviewReasonSummary||'—')+' · Coverage complete: '+reviewReasonCoverageCounts.complete+' · partial: '+reviewReasonCoverageCounts.partial+' · none: '+reviewReasonCoverageCounts.none+' · completed '+reviewReasonCoverageCounts.complete+(reviewReasonCompletedNames.length?' ['+esc(reviewReasonCompletedNames.join(', '))+']':'')+' · pending '+reviewReasonPendingCount+(reviewReasonPendingNames.length?' ['+esc(reviewReasonPendingNames.join(', '))+']':'')+' · complete '+reviewReasonCompletePercent+'% · state '+reviewReasonCompletionState+(reviewReasonButtons?'<div class="tb-measure-actions" data-dimension-review-reason-filters><button data-dimension-review-reason-clear '+(fullReviewQueueActive?'disabled':'')+'>All review reasons</button>'+reviewReasonButtons+'</div>':'')+'</div>':'')+
       (activeReviewReason?'<div class="tb-measure-note" data-dimension-review-reason-active data-selection-coverage="'+selectedReviewReasonCoverage+'">Active reason: '+esc(activeReviewReason)+' · total '+activeReviewReasonIds.length+' · selected '+selectedReviewReasonCount+' · unselected '+Math.max(0,activeReviewReasonIds.length-selectedReviewReasonCount)+' · coverage '+selectedReviewReasonPercent+'% · '+selectedReviewReasonCoverage+'</div>':'')+
       '<div class="tb-measure-note" data-dimension-visible-count>Showing '+visibleItems.length+' of '+items.length+'</div>'+
       '<div class="tb-measure-note" data-dimension-selection-scope>Selected in view: '+selectedInViewCount+' · outside view: '+selectedOutsideViewCount+(selectionKindSummary?' · '+esc(selectionKindSummary):'')+'</div>'+
