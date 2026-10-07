@@ -1317,6 +1317,8 @@
     const state=dimensionReviewProgressDiagnosticsState(items,selectedIds);
     const domainDiagnosticsAvailable=compatibility.compatible
       &&typeof reviewProgressDomain?.buildReviewProgressDiagnostics==="function";
+    const snapshot=dimensionReviewProgressDiagnosticsSnapshot(state.diagnostics);
+    const snapshotSignatureConsistent=String(snapshot?.signature??"")===String(state.signature??"");
     return {
       source:domainDiagnosticsAvailable?"domain":"ui-fallback",
       domain_available:compatibility.available,
@@ -1324,7 +1326,8 @@
       domain_status:compatibility.status,
       diagnostics_available:domainDiagnosticsAvailable,
       diagnostics:state.diagnostics,
-      snapshot:dimensionReviewProgressDiagnosticsSnapshot(state.diagnostics),
+      snapshot,
+      snapshot_signature_consistent:snapshotSignatureConsistent,
       signature:state.signature,
       state
     };
