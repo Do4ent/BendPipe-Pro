@@ -8,6 +8,6 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 240: filtered audit filename includes active filter and Dimension count",()=>{
-  assert.match(ui,/const filterName=String\(snapshot\?\.view\?\.filter\?\?"all"\)/);
+  assert.match(ui,/const filterName=dimensionAuditFilenamePart\(snapshot\?\.view\?\.filter,"all"\)/);
   assert.match(ui,/dimension-audit-view-"\+filterName\+"-"\+snapshot\.dimension_count\+"-"/);
 });
