@@ -10,8 +10,9 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 388: manager cross-checks legacy diagnostics against domain model",()=>{
   assert.match(ui,/const managerReviewDiagnosticsModel=dimensionReviewProgressDiagnostics\(\{/);
   assert.match(ui,/const managerReviewDiagnosticsModelConsistent=/);
-  assert.match(ui,/managerReviewDiagnosticsModel\.issue_count===reviewReasonProgressIssueCount/);
-  assert.match(ui,/managerReviewDiagnosticsModel\.valid===reviewReasonDiagnosticsValid/);
+  assert.match(ui,/managerReviewDiagnosticsModel\.issue_count_consistent/);
+  assert.match(ui,/managerReviewDiagnosticsModel\.error_codes_valid/);
+  assert.match(ui,/const reviewReasonDiagnosticsValid=managerReviewDiagnosticsModel\.valid/);
   assert.match(ui,/data-review-diagnostics-model-consistent="'\+\(managerReviewDiagnosticsModelConsistent\?'1':'0'\)\+'"/);
   assert.match(ui,/diag-model '\+\(managerReviewDiagnosticsModelConsistent\?'aligned':'diverged'\)/);
 });
