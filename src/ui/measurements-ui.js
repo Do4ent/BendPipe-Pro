@@ -1239,13 +1239,43 @@
   }
 
   function reviewProgressAuditErrorCodes(){
-    return [...(reviewProgressDomain?.REVIEW_PROGRESS_AUDIT_ERROR_CODES??[
+    const fallback=[
       "REVIEW_REASON_COUNT_MISMATCH",
       "REVIEW_REASON_LIST_MISMATCH",
       "REVIEW_PROGRESS_MODEL_DIVERGENCE",
       "REVIEW_PROGRESS_DOMAIN_DIVERGENCE",
       "REVIEW_PROGRESS_DOMAIN_INCOMPATIBLE"
-    ])];
+    ];
+    return reviewProgressDomainCompatibility().compatible&&Array.isArray(reviewProgressDomain?.REVIEW_PROGRESS_AUDIT_ERROR_CODES)
+      ?[...reviewProgressDomain.REVIEW_PROGRESS_AUDIT_ERROR_CODES]:fallback;
+  }
+
+  function dimensionReviewProgressDiagnostics(input={}){
+    if(reviewProgressDomainCompatibility().compatible&&typeof reviewProgressDomain?.buildReviewProgressDiagnostics==="function"){
+      return reviewProgressDomain.buildReviewProgressDiagnostics(input);
+    }
+    const reasonCount=Math.max(0,Math.trunc(Number(input?.reason_count)||0));
+    const domainStatus=String(input?.domain_status??"unavailable");
+    if(!["unavailable","compatible","incompatible"].includes(domainStatus)){
+      throw new RangeError("domain_status must be unavailable, compatible or incompatible");
+    }
+    const errors=[];
+    if(input?.count_consistent!==true)errors.push("REVIEW_REASON_COUNT_MISMATCH");
+    if(input?.lists_consistent!==true)errors.push("REVIEW_REASON_LIST_MISMATCH");
+    if(input?.model_consistent!==true)errors.push("REVIEW_PROGRESS_MODEL_DIVERGENCE");
+    if(domainStatus==="incompatible")errors.push("REVIEW_PROGRESS_DOMAIN_INCOMPATIBLE");
+    else if(domainStatus==="compatible"&&input?.domain_consistent!==true)errors.push("REVIEW_PROGRESS_DOMAIN_DIVERGENCE");
+    const errorCodesValid=errors.every(code=>reviewProgressAuditErrorCodes().includes(code));
+    const valid=errors.length===0&&errorCodesValid;
+    return {
+      errors,
+      issue_count:errors.length,
+      issue_count_consistent:errors.length===errors.filter(Boolean).length,
+      error_codes_valid:errorCodesValid,
+      primary_error:errors[0]??null,
+      valid,
+      status:reasonCount===0?"empty":valid?"ok":"error"
+    };
   }
 
   function dimensionReviewProgressItems(items=savedDimensions()){
