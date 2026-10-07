@@ -12,10 +12,10 @@ test("question 377: unavailable review domain is not treated as divergence",()=>
   assert.match(audit,/const reviewProgressRuntime=dimensionReviewProgressRuntimeState\(items,selectedDimensionAuditIds\(\)\)/);
   assert.match(audit,/const domainReviewProgressAvailable=reviewProgressRuntime\.domain_available/);
   assert.match(audit,/const domainReviewProgressConsistent=reviewProgressRuntime\.domain_consistent/);
-  assert.match(audit,/const domainReviewProgressDiverged=domainReviewProgressAvailable&&domainReviewProgressConsistent===false/);
+  assert.match(audit,/const domainReviewProgressDiverged=domainReviewProgressComparable&&domainReviewProgressConsistent===false/);
   assert.match(audit,/review_progress_domain_available:domainReviewProgressAvailable/);
   assert.match(audit,/domainReviewProgressDiverged\?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null/);
   assert.match(ui,/domainManagerReviewProgressAvailable\?'1':'0'/);
-  assert.match(ui,/!domainManagerReviewProgressAvailable\?'na':domainManagerReviewProgressConsistent\?'1':'0'/);
-  assert.match(ui,/!domainManagerReviewProgressAvailable\?'unavailable':domainManagerReviewProgressConsistent\?'aligned':'diverged'/);
+  assert.match(ui,/!domainManagerReviewProgressComparable\?'na':domainManagerReviewProgressConsistent\?'1':'0'/);
+  assert.match(ui,/!domainManagerReviewProgressAvailable\?'unavailable':!domainManagerReviewProgressCompatible\?'incompatible':domainManagerReviewProgressConsistent\?'aligned':'diverged'/);
 });
