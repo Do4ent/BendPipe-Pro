@@ -10,6 +10,6 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 334: review queue audit persists normalized shared progress model",()=>{
   assert.match(ui,/function dimensionReviewProgressSnapshot\(progress\)/);
   assert.match(ui,/schema:"TubeBender\.DimensionReviewProgressSnapshot\.v1"/);
-  assert.match(ui,/review_progress_model:canonicalReviewProgressModel/);
+  assert.match(ui,/review_progress_model:canonicalReviewProgress\.snapshot/);
   assert.match(ui,/signature:dimensionReviewProgressSignature\(value\)/);
 });
