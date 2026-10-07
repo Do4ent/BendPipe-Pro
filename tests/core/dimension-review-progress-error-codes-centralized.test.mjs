@@ -10,7 +10,7 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 361: review diagnostic error codes are centralized",()=>{
   assert.match(ui,/function reviewProgressAuditErrorCodes\(\)/);
   assert.match(ui,/const reviewProgressSupportedErrorCodes=reviewProgressAuditErrorCodes\(\)/);
-  assert.match(ui,/const reviewReasonSupportedErrorCodes=reviewProgressAuditErrorCodes\(\)/);
+  assert.match(ui,/function dimensionReviewProgressDiagnostics\(input=\{\}\)/);
   assert.match(ui,/\.every\(code=>reviewProgressSupportedErrorCodes\.includes\(code\)\)/);
-  assert.match(ui,/reviewReasonProgressErrors\.every\(code=>reviewReasonSupportedErrorCodes\.includes\(code\)\)/);
+  assert.match(ui,/reviewProgressAuditErrorCodes\(\)\.includes\(code\)/);
 });
