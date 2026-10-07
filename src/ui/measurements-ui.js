@@ -1182,6 +1182,48 @@
       dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
     };
   }
+  function reviewReasonDimensionAuditSnapshot(reason=activeDimensionReviewReason()){
+    const target=String(reason??"").trim();
+    if(!target)return null;
+    const items=savedDimensions().filter(dimension=>dimensionAuditReviewReasons(dimension).includes(target));
+    return {
+      schema:"TubeBender.DimensionReviewReasonAudit.v1",
+      ...dimensionAuditProjectContext(),
+      queue:{
+        filter:"needs-review",
+        sort:"audit",
+        review_reason:target,
+        dimension_ids:items.map(dimension=>String(dimension?.id??""))
+      },
+      dimension_count:items.length,
+      summary:dimensionAuditSummary(items),
+      dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
+    };
+  }
+
+  async function copyReviewReasonDimensionAudits(){
+    const snapshot=reviewReasonDimensionAuditSnapshot();
+    if(!snapshot?.dimension_count){toast("Подочередь Review reason пуста");return false;}
+    const text=JSON.stringify(snapshot,null,2);
+    try{
+      if(navigator?.clipboard?.writeText)await navigator.clipboard.writeText(text);
+      else{
+        const area=document.createElement("textarea");area.value=text;area.style.position="fixed";area.style.opacity="0";
+        document.body.appendChild(area);area.select();document.execCommand("copy");area.remove();
+      }
+      toast("Audit Review reason скопирован");
+      return true;
+    }catch(error){toast("Не удалось скопировать audit Review reason");return false;}
+  }
+
+  function downloadReviewReasonDimensionAudits(){
+    const snapshot=reviewReasonDimensionAuditSnapshot();
+    if(!snapshot?.dimension_count){toast("Подочередь Review reason пуста");return false;}
+    const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
+    const reason=dimensionAuditFilenamePart(snapshot?.queue?.review_reason,"reason");
+    return downloadDimensionAuditJson(name+"-dimension-review-reason-"+reason+"-"+snapshot.dimension_count+"-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
+  }
+
   async function copyReviewQueueDimensionAudits(){
     const snapshot=reviewQueueDimensionAuditSnapshot();
     if(!snapshot.dimension_count){toast("Review queue пуст");return false;}
@@ -1413,6 +1455,7 @@
       '<button data-dimension-review-reason="'+esc(reason)+'" '+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&dimensionManagerSearch===reason?'disabled':'')+'>'+esc(reason)+' ('+count+')</button>'
     ).join('');
     const fullReviewQueueActive=dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch;
+    const activeReviewReason=activeDimensionReviewReason();
     const visibleItems=filteredDimensionManagerItems(items);
     const selectedIds=selectedDimensionAuditIds();
     const selectedIdSet=new Set(selectedIds);
@@ -1473,7 +1516,7 @@
       '<div class="tb-measure-actions" data-dimension-audit-sort>'+
       '<button data-dimension-sort="project" '+(dimensionManagerSort==="project"?'disabled':'')+'>Project order</button>'+
       '<button data-dimension-sort="audit" '+(dimensionManagerSort==="audit"?'disabled':'')+'>Audit priority</button>'+
-      '<button data-dimension-review-queue '+(auditSummary.needs_review===0||dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?'disabled':'')+'>Review queue ('+auditSummary.needs_review+(selectedReviewQueueCount?' · selected '+selectedReviewQueueCount:'')+')'+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?' · Active':'')+'</button>'+(auditSummary.needs_review?'<button data-select-dimension-review-queue '+(selectedReviewQueueCount===auditSummary.needs_review?'disabled':'')+'>Select review queue</button>':'')+(auditSummary.needs_review?'<button data-add-dimension-review-queue>Add review queue</button>':'')+(selectedReviewQueueCount?'<button data-remove-dimension-review-queue>Remove review queue</button>':'')+(auditSummary.needs_review?'<button data-invert-dimension-review-queue>Invert review queue</button>':'')+(auditSummary.needs_review?'<button data-copy-dimension-review-queue-audit>Copy review queue audit JSON</button>':'')+(auditSummary.needs_review?'<button data-download-dimension-review-queue-audit>Download review queue audit JSON</button>':'')+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?'<button data-dimension-review-queue-exit>Exit review queue</button>':'')+'</div>'+
+      '<button data-dimension-review-queue '+(auditSummary.needs_review===0||dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?'disabled':'')+'>Review queue ('+auditSummary.needs_review+(selectedReviewQueueCount?' · selected '+selectedReviewQueueCount:'')+')'+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?' · Active':'')+'</button>'+(auditSummary.needs_review?'<button data-select-dimension-review-queue '+(selectedReviewQueueCount===auditSummary.needs_review?'disabled':'')+'>Select review queue</button>':'')+(auditSummary.needs_review?'<button data-add-dimension-review-queue>Add review queue</button>':'')+(selectedReviewQueueCount?'<button data-remove-dimension-review-queue>Remove review queue</button>':'')+(auditSummary.needs_review?'<button data-invert-dimension-review-queue>Invert review queue</button>':'')+(auditSummary.needs_review?'<button data-copy-dimension-review-queue-audit>Copy review queue audit JSON</button>':'')+(auditSummary.needs_review?'<button data-download-dimension-review-queue-audit>Download review queue audit JSON</button>':'')+(activeReviewReason?'<button data-copy-dimension-review-reason-audit>Copy reason audit JSON</button><button data-download-dimension-review-reason-audit>Download reason audit JSON</button>':'')+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?'<button data-dimension-review-queue-exit>Exit review queue</button>':'')+'</div>'+
       '<div class="tb-measure-actions" data-dimension-audit-search>'+
       '<input data-dimension-search value="'+esc(dimensionManagerSearch)+'" placeholder="Search ID, kind, source, stale reason">'+
       '<button data-dimension-search-apply>Search</button><button data-dimension-search-clear '+(!dimensionManagerSearch?'disabled':'')+'>Clear</button>'+
@@ -1551,6 +1594,8 @@
     });
     body.querySelector("[data-copy-dimension-review-queue-audit]")?.addEventListener("click",copyReviewQueueDimensionAudits);
     body.querySelector("[data-download-dimension-review-queue-audit]")?.addEventListener("click",downloadReviewQueueDimensionAudits);
+    body.querySelector("[data-copy-dimension-review-reason-audit]")?.addEventListener("click",copyReviewReasonDimensionAudits);
+    body.querySelector("[data-download-dimension-review-reason-audit]")?.addEventListener("click",downloadReviewReasonDimensionAudits);
     body.querySelector("[data-dimension-review-queue-exit]")?.addEventListener("click",exitDimensionReviewQueue);
     body.querySelectorAll("[data-dimension-review-reason]").forEach(button=>{
       button.onclick=()=>{
