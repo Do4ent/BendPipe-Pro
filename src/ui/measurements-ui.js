@@ -937,11 +937,21 @@
       .map(entry=>String(entry.dimensionId));
   }
   function selectedDimensionAuditSnapshot(){
-    const ids=new Set(selectedDimensionAuditIds());
+    const entries=context()?.selectionEntries?.()??[];
+    const selectedIds=entries
+      .filter(entry=>entry?.kind==="dimension"&&entry?.dimensionId!=null)
+      .map(entry=>String(entry.dimensionId));
+    const ids=new Set(selectedIds);
     const items=savedDimensions().filter(dimension=>ids.has(String(dimension?.id??"")));
     return {
       schema:"TubeBender.DimensionSelectionAudit.v1",
       ...dimensionAuditProjectContext(),
+      selection:{
+        selected_dimension_ids:selectedIds,
+        selected_dimension_count:selectedIds.length,
+        global_selection_count:entries.length,
+        non_dimension_selection_count:entries.filter(entry=>entry?.kind!=="dimension").length
+      },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
       dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
