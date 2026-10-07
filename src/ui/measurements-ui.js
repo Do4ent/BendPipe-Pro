@@ -1453,9 +1453,10 @@
     const reviewProgressDiagnosticsSchema=reviewProgressDomain?.REVIEW_PROGRESS_DIAGNOSTICS_SCHEMA??"TubeBender.DimensionReviewProgressDiagnostics.v1";
     const reviewProgressSupportedErrorCodes=reviewProgressAuditErrorCodes();
     const sharedReviewProgress=dimensionReviewProgress(items,selectedDimensionAuditIds());
-    const domainReviewProgress=domainDimensionReviewProgress(items,selectedDimensionAuditIds());
-    const domainReviewProgressConsistent=domainReviewProgress!=null
-      &&reviewProgressDomain.reviewProgressSignature(domainReviewProgress)===dimensionReviewProgressSignature(sharedReviewProgress);
+    const reviewProgressParity=dimensionReviewProgressParity(items,selectedDimensionAuditIds());
+    const domainReviewProgressAvailable=reviewProgressParity.available;
+    const domainReviewProgressConsistent=reviewProgressParity.consistent;
+    const domainReviewProgressDiverged=domainReviewProgressAvailable&&domainReviewProgressConsistent===false;
     const canonicalReviewProgress=canonicalDimensionReviewProgress(items,selectedDimensionAuditIds());
     const sharedReviewProgressConsistent=
       sharedReviewProgress.reason_count===reviewReasonCount
@@ -1482,6 +1483,7 @@
         review_progress_model:canonicalReviewProgress.snapshot,
         review_progress_signature:canonicalReviewProgress.signature,
         review_progress_model_consistent:sharedReviewProgressConsistent,
+        review_progress_domain_available:domainReviewProgressAvailable,
         review_progress_domain_consistent:domainReviewProgressConsistent,
         review_progress_diagnostics_schema:reviewProgressDiagnosticsSchema,
         review_progress_supported_error_codes:reviewProgressSupportedErrorCodes,
@@ -1496,62 +1498,62 @@
           (reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?1:0)
           +((completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?1:0)
           +(!sharedReviewProgressConsistent?1:0)
-          +(!domainReviewProgressConsistent?1:0),
+          +(domainReviewProgressDiverged?1:0),
         review_progress_errors:[
           reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
           (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
           !sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null,
-          !domainReviewProgressConsistent?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null
+          domainReviewProgressDiverged?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null
         ].filter(Boolean),
         review_progress_issue_count_consistent:
           ((reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?1:0)
           +((completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?1:0)
           +(!sharedReviewProgressConsistent?1:0)
-          +(!domainReviewProgressConsistent?1:0))
+          +(domainReviewProgressDiverged?1:0))
           ===[
             reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
             (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
             !sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null,
-            !domainReviewProgressConsistent?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null
+            domainReviewProgressDiverged?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null
           ].filter(Boolean).length,
         review_progress_error_codes_valid:[
           reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
           (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
           !sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null,
-          !domainReviewProgressConsistent?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null
+          domainReviewProgressDiverged?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null
         ].filter(Boolean).every(code=>reviewProgressSupportedErrorCodes.includes(code)),
         review_progress_status:reviewReasonCount===0?"empty":(
           ((reviewReasonCoverageSummary.complete+reviewReasonPendingCount===reviewReasonCount)
             &&completedReviewReasons.length===reviewReasonCoverageSummary.complete
             &&pendingReviewReasons.length===reviewReasonPendingCount
             &&sharedReviewProgressConsistent
-            &&domainReviewProgressConsistent)?"ok":"error"),
+            &&!domainReviewProgressDiverged)?"ok":"error"),
         review_progress_diagnostics_valid:
           ((reviewReasonCoverageSummary.complete+reviewReasonPendingCount===reviewReasonCount)
             &&completedReviewReasons.length===reviewReasonCoverageSummary.complete
             &&pendingReviewReasons.length===reviewReasonPendingCount
             &&sharedReviewProgressConsistent
-            &&domainReviewProgressConsistent)
+            &&!domainReviewProgressDiverged)
           &&[
             reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
             (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
             !sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null,
-            !domainReviewProgressConsistent?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null
+            domainReviewProgressDiverged?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null
           ].filter(Boolean).every(code=>reviewProgressSupportedErrorCodes.includes(code))
           &&(((reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?1:0)
             +((completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?1:0)
             +(!sharedReviewProgressConsistent?1:0)
-            +(!domainReviewProgressConsistent?1:0))
+            +(domainReviewProgressDiverged?1:0))
             ===[
               reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
               (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
               !sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null,
-              !domainReviewProgressConsistent?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null
+              domainReviewProgressDiverged?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null
             ].filter(Boolean).length),
         review_progress_error:(reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount)
           ?"REVIEW_REASON_COUNT_MISMATCH"
           :(completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)
-            ?"REVIEW_REASON_LIST_MISMATCH":!sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":!domainReviewProgressConsistent?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null,
+            ?"REVIEW_REASON_LIST_MISMATCH":!sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":domainReviewProgressDiverged?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null,
         completed_review_reasons:completedReviewReasons,
         pending_review_reasons:pendingReviewReasons,
         review_reason_all_complete:reviewReasonCount>0&&reviewReasonPendingCount===0,
@@ -1889,9 +1891,10 @@
       &&sharedManagerReviewProgress.completion_state===reviewReasonCompletionState
       &&sharedManagerReviewProgress.status===(reviewReasonEntries.length===0?"empty":reviewReasonProgressValid?"ok":"error");
     const reviewReasonProgressSignature=dimensionReviewProgressSignature(sharedManagerReviewProgress);
-    const domainManagerReviewProgress=domainDimensionReviewProgress(items,selectedDimensionAuditIds());
-    const domainManagerReviewProgressConsistent=domainManagerReviewProgress!=null
-      &&reviewProgressDomain.reviewProgressSignature(domainManagerReviewProgress)===reviewReasonProgressSignature;
+    const managerReviewProgressParity=dimensionReviewProgressParity(items,selectedDimensionAuditIds());
+    const domainManagerReviewProgressAvailable=managerReviewProgressParity.available;
+    const domainManagerReviewProgressConsistent=managerReviewProgressParity.consistent;
+    const domainManagerReviewProgressDiverged=domainManagerReviewProgressAvailable&&domainManagerReviewProgressConsistent===false;
     const canonicalManagerReviewProgress=canonicalDimensionReviewProgress(items,selectedDimensionAuditIds());
     const canonicalManagerReviewProgressSignature=canonicalManagerReviewProgress.signature;
     const canonicalManagerReviewProgressSource=canonicalManagerReviewProgress.source;
@@ -1900,13 +1903,13 @@
       reviewReasonCoverageCounts.complete+reviewReasonPendingCount!==reviewReasonEntries.length?"REVIEW_REASON_COUNT_MISMATCH":null,
       (reviewReasonCompletedNames.length!==reviewReasonCoverageCounts.complete||reviewReasonPendingNames.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
       !sharedManagerReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null,
-      !domainManagerReviewProgressConsistent?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null
+      domainManagerReviewProgressDiverged?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null
     ].filter(Boolean);
     const reviewReasonProgressIssueCount=reviewReasonProgressErrors.length;
     const reviewReasonProgressError=reviewReasonProgressErrors[0]??null;
     const reviewReasonDiagnosticsValid=reviewReasonProgressValid
       &&sharedManagerReviewProgressConsistent
-      &&domainManagerReviewProgressConsistent
+      &&!domainManagerReviewProgressDiverged
       &&reviewReasonProgressErrors.length===0
       &&reviewReasonProgressErrors.every(code=>reviewReasonSupportedErrorCodes.includes(code));
     const reviewReasonProgressStatus=reviewReasonEntries.length===0?"empty":reviewReasonDiagnosticsValid?"ok":"error";
@@ -1989,7 +1992,7 @@
     return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div>'+
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
       '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Visible: '+auditSummary.visible+' · Hidden: '+auditSummary.hidden+' · Selected: '+auditSummary.selected+' · Unselected: '+auditSummary.unselected+' · Needs review: '+auditSummary.needs_review+' · Section-derived: '+auditSummary.section_derived+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+(geometrySummary?' · '+esc(geometrySummary):'')+(referenceSummary?' · '+esc(referenceSummary):'')+'</div>'+
-      (auditSummary.needs_review?'<div class="tb-measure-note" data-dimension-review-reason-summary data-review-progress-status="'+esc(reviewReasonProgressStatus)+'" data-review-progress-source="'+esc(canonicalManagerReviewProgressSource)+'" data-review-progress-signature="'+esc(canonicalManagerReviewProgressSignature)+'" data-review-progress-valid="'+(reviewReasonProgressValid?'1':'0')+'" data-review-diagnostics-valid="'+(reviewReasonDiagnosticsValid?'1':'0')+'" data-review-progress-model-consistent="'+(sharedManagerReviewProgressConsistent?'1':'0')+'" data-review-progress-domain-consistent="'+(domainManagerReviewProgressConsistent?'1':'0')+'" data-review-progress-issues="'+reviewReasonProgressIssueCount+'">Review queue reasons: '+esc(reviewReasonSummary||'—')+' · Coverage complete: '+reviewReasonCoverageCounts.complete+' · partial: '+reviewReasonCoverageCounts.partial+' · none: '+reviewReasonCoverageCounts.none+' · completed '+reviewReasonCoverageCounts.complete+(reviewReasonCompletedNames.length?' ['+esc(reviewReasonCompletedNames.join(', '))+']':'')+' · pending '+reviewReasonPendingCount+(reviewReasonPendingNames.length?' ['+esc(reviewReasonPendingNames.join(', '))+']':'')+' · complete '+reviewReasonCompletePercent+'% · state '+reviewReasonCompletionState+' · progress '+(reviewReasonProgressValid?'valid':'invalid')+' · diagnostics '+(reviewReasonDiagnosticsValid?'valid':'invalid')+' · status '+reviewReasonProgressStatus+' · model '+(sharedManagerReviewProgressConsistent?'aligned':'diverged')+' · domain '+(domainManagerReviewProgressConsistent?'aligned':'diverged')+' · issues '+reviewReasonProgressIssueCount+(reviewReasonProgressErrors.length?' ['+reviewReasonProgressErrors.join(', ')+']':'')+(reviewReasonButtons?'<div class="tb-measure-actions" data-dimension-review-reason-filters><button data-dimension-review-reason-clear '+(fullReviewQueueActive?'disabled':'')+'>All review reasons</button>'+reviewReasonButtons+'</div>':'')+'</div>':'')+
+      (auditSummary.needs_review?'<div class="tb-measure-note" data-dimension-review-reason-summary data-review-progress-status="'+esc(reviewReasonProgressStatus)+'" data-review-progress-source="'+esc(canonicalManagerReviewProgressSource)+'" data-review-progress-signature="'+esc(canonicalManagerReviewProgressSignature)+'" data-review-progress-valid="'+(reviewReasonProgressValid?'1':'0')+'" data-review-diagnostics-valid="'+(reviewReasonDiagnosticsValid?'1':'0')+'" data-review-progress-model-consistent="'+(sharedManagerReviewProgressConsistent?'1':'0')+'" data-review-progress-domain-available="'+(domainManagerReviewProgressAvailable?'1':'0')+'" data-review-progress-domain-consistent="'+(!domainManagerReviewProgressAvailable?'na':domainManagerReviewProgressConsistent?'1':'0')+'" data-review-progress-issues="'+reviewReasonProgressIssueCount+'">Review queue reasons: '+esc(reviewReasonSummary||'—')+' · Coverage complete: '+reviewReasonCoverageCounts.complete+' · partial: '+reviewReasonCoverageCounts.partial+' · none: '+reviewReasonCoverageCounts.none+' · completed '+reviewReasonCoverageCounts.complete+(reviewReasonCompletedNames.length?' ['+esc(reviewReasonCompletedNames.join(', '))+']':'')+' · pending '+reviewReasonPendingCount+(reviewReasonPendingNames.length?' ['+esc(reviewReasonPendingNames.join(', '))+']':'')+' · complete '+reviewReasonCompletePercent+'% · state '+reviewReasonCompletionState+' · progress '+(reviewReasonProgressValid?'valid':'invalid')+' · diagnostics '+(reviewReasonDiagnosticsValid?'valid':'invalid')+' · status '+reviewReasonProgressStatus+' · model '+(sharedManagerReviewProgressConsistent?'aligned':'diverged')+' · domain '+(!domainManagerReviewProgressAvailable?'unavailable':domainManagerReviewProgressConsistent?'aligned':'diverged')+' · issues '+reviewReasonProgressIssueCount+(reviewReasonProgressErrors.length?' ['+reviewReasonProgressErrors.join(', ')+']':'')+(reviewReasonButtons?'<div class="tb-measure-actions" data-dimension-review-reason-filters><button data-dimension-review-reason-clear '+(fullReviewQueueActive?'disabled':'')+'>All review reasons</button>'+reviewReasonButtons+'</div>':'')+'</div>':'')+
       (activeReviewReason?'<div class="tb-measure-note" data-dimension-review-reason-active data-selection-coverage="'+selectedReviewReasonCoverage+'">Active reason: '+esc(activeReviewReason)+' · total '+activeReviewReasonIds.length+' · selected '+selectedReviewReasonCount+' · unselected '+Math.max(0,activeReviewReasonIds.length-selectedReviewReasonCount)+' · coverage '+selectedReviewReasonPercent+'% · '+selectedReviewReasonCoverage+'</div>':'')+
       '<div class="tb-measure-note" data-dimension-visible-count>Showing '+visibleItems.length+' of '+items.length+'</div>'+
       '<div class="tb-measure-note" data-dimension-selection-scope>Selected in view: '+selectedInViewCount+' · outside view: '+selectedOutsideViewCount+(selectionKindSummary?' · '+esc(selectionKindSummary):'')+'</div>'+
