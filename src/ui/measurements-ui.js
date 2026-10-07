@@ -2218,8 +2218,13 @@
   }
   async function install(){
     if(installed)return;installed=true;
-    try{[geometry,dimensions,reviewProgressDomain]=await Promise.all([import(GEOMETRY_URL),import(DIMENSIONS_URL),import(REVIEW_PROGRESS_URL)]);}
-    catch(error){console.error("Measurements UI failed to load",error);return;}
+    try{
+      [geometry,dimensions,reviewProgressDomain]=await Promise.all([
+        import(GEOMETRY_URL),
+        import(DIMENSIONS_URL),
+        import(REVIEW_PROGRESS_URL).catch(error=>{console.warn("Review progress domain failed to load; using UI fallback",error);return null;})
+      ]);
+    }catch(error){console.error("Measurements UI failed to load",error);return;}
     ensureShell();
     const update=()=>{
       const next=selectionSignature();
