@@ -1268,6 +1268,8 @@
     const errorCodesValid=errors.every(code=>reviewProgressAuditErrorCodes().includes(code));
     const valid=errors.length===0&&errorCodesValid;
     return {
+      schema:"TubeBender.DimensionReviewProgressDiagnostics.v1",
+      supported_error_codes:reviewProgressAuditErrorCodes(),
       errors,
       issue_count:errors.length,
       issue_count_consistent:errors.length===errors.filter(Boolean).length,
