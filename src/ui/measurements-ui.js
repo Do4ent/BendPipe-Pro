@@ -1217,6 +1217,7 @@
     const referenceSummary=Object.entries(auditSummary.reference_geometry_counts).map(([status,count])=>'Refs '+status+': '+count).join(' · ');
     const visibleItems=filteredDimensionManagerItems(items);
     const selectedIds=selectedDimensionAuditIds();
+    const selectedIdSet=new Set(selectedIds);
     const selectionKindSummary=Object.entries(dimensionSelectionKindCounts())
       .map(([kind,count])=>kind+": "+count).join(" · ");
     const visibleIdSet=new Set(visibleItems.map(dimension=>String(dimension?.id??"")));
@@ -1225,6 +1226,7 @@
     const selectableVisibleCount=visibleItems.filter(dimension=>dimension?.visible!==false).length;
     const rows=visibleItems.map(dimension=>{
       const stale=String(dimension.status)==="Stale",visible=dimension.visible!==false;
+      const selected=selectedIdSet.has(String(dimension?.id??""));
       const unit=/angle/i.test(String(dimension.kind))?"deg":"mm";
       const valueText=Number.isFinite(Number(dimension.value))?formatted(Number(dimension.value),unit):"—";
       const rebindCount=Array.isArray(dimension.rebound_history)?dimension.rebound_history.length:0;
@@ -1252,8 +1254,8 @@
         latestRebind?.previous_stale_reason?("Previous reason: "+String(latestRebind.previous_stale_reason)):null,
         latestRebind&&latestRebind.previous_value!=null?("Previous value: "+String(latestRebind.previous_value)):null
       ].filter(Boolean);
-      return '<div class="tb-measure-result" style="margin-top:7px">'+
-        '<div class="tb-measure-title">'+esc(dimension.note??dimension.kind)+' · '+esc(dimension.mode??"Reference")+
+      return '<div class="tb-measure-result" style="margin-top:7px" data-dim-selected="'+(selected?'1':'0')+'">'+
+        '<div class="tb-measure-title">'+(selected?'✓ Selected · ':'')+esc(dimension.note??dimension.kind)+' · '+esc(dimension.mode??"Reference")+
         (stale?' · ⚠ Stale':' · '+esc(dimension.status??"NeedsUpdate"))+'</div>'+
         '<div class="tb-measure-note">'+esc(valueText)+' · '+(visible?'Visible':'Hidden')+' · '+esc(dimension.id)+'</div>'+
         (provenanceBits.length?'<div class="tb-measure-note" data-dim-provenance="'+esc(dimension.id)+'" '+(needsReview?'data-dim-needs-review="1"':'')+'>'+esc(provenanceBits.join(' · '))+'</div>':'')+
