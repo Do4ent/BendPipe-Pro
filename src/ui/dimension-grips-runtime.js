@@ -398,6 +398,14 @@
     const dimension=dimensionById(id);
     if(!dimension||dimension.visible===false){
       if(String(activeId??"")===String(id??""))activeId=null;
+      try{
+        const context=window.TubeBenderObjectContext;
+        const kept=(context?.selectionKeys?.()??[]).filter(key=>{
+          const entry=context?.parseSelectionKey?.(key);
+          return entry?.kind!=="dimension"||String(entry.dimensionId)!==String(id??"");
+        });
+        context?.replaceSelectionKeys?.(kept,{announce:true});
+      }catch{}
       rebuild();return null;
     }
     activeId=String(dimension.id);
