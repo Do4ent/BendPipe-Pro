@@ -1723,22 +1723,23 @@
     const reviewReasonProgressValid=reviewReasonCoverageCounts.complete+reviewReasonPendingCount===reviewReasonEntries.length
       &&reviewReasonCompletedNames.length===reviewReasonCoverageCounts.complete
       &&reviewReasonPendingNames.length===reviewReasonPendingCount;
-    const reviewReasonProgressErrors=[
-      reviewReasonCoverageCounts.complete+reviewReasonPendingCount!==reviewReasonEntries.length?"REVIEW_REASON_COUNT_MISMATCH":null,
-      (reviewReasonCompletedNames.length!==reviewReasonCoverageCounts.complete||reviewReasonPendingNames.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null
-    ].filter(Boolean);
-    const reviewReasonProgressIssueCount=reviewReasonProgressErrors.length;
-    const reviewReasonProgressError=reviewReasonProgressErrors[0]??null;
-    const reviewReasonDiagnosticsValid=reviewReasonProgressValid
-      &&reviewReasonProgressErrors.every(code=>["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH"].includes(code));
-    const reviewReasonProgressStatus=reviewReasonEntries.length===0?"empty":reviewReasonDiagnosticsValid?"ok":"error";
     const sharedManagerReviewProgress=dimensionReviewProgress(items,selectedDimensionAuditIds());
     const sharedManagerReviewProgressConsistent=
       sharedManagerReviewProgress.reason_count===reviewReasonEntries.length
       &&sharedManagerReviewProgress.pending_count===reviewReasonPendingCount
       &&sharedManagerReviewProgress.complete_percent===reviewReasonCompletePercent
       &&sharedManagerReviewProgress.completion_state===reviewReasonCompletionState
-      &&sharedManagerReviewProgress.status===reviewReasonProgressStatus;
+      &&sharedManagerReviewProgress.status===(reviewReasonEntries.length===0?"empty":reviewReasonProgressValid?"ok":"error");
+    const reviewReasonProgressErrors=[
+      reviewReasonCoverageCounts.complete+reviewReasonPendingCount!==reviewReasonEntries.length?"REVIEW_REASON_COUNT_MISMATCH":null,
+      (reviewReasonCompletedNames.length!==reviewReasonCoverageCounts.complete||reviewReasonPendingNames.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
+      !sharedManagerReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null
+    ].filter(Boolean);
+    const reviewReasonProgressIssueCount=reviewReasonProgressErrors.length;
+    const reviewReasonProgressError=reviewReasonProgressErrors[0]??null;
+    const reviewReasonDiagnosticsValid=reviewReasonProgressValid
+      &&reviewReasonProgressErrors.every(code=>["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH","REVIEW_PROGRESS_MODEL_DIVERGENCE"].includes(code));
+    const reviewReasonProgressStatus=reviewReasonEntries.length===0?"empty":reviewReasonDiagnosticsValid?"ok":"error";
     const fullReviewQueueActive=dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch;
     const activeReviewReason=activeDimensionReviewReason();
     const visibleItems=filteredDimensionManagerItems(items);
