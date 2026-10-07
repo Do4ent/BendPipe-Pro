@@ -8,7 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 353: manager uses centralized canonical review progress helper",()=>{
-  assert.match(ui,/const canonicalManagerReviewProgress=canonicalDimensionReviewProgress\(items,selectedDimensionAuditIds\(\)\)/);
-  assert.match(ui,/const canonicalManagerReviewProgressSignature=canonicalManagerReviewProgress\.signature/);
-  assert.match(ui,/const canonicalManagerReviewProgressSource=canonicalManagerReviewProgress\.source/);
+  assert.match(ui,/const managerReviewProgressRuntime=dimensionReviewProgressRuntimeState\(items,selectedDimensionAuditIds\(\)\)/);
+  assert.match(ui,/const canonicalManagerReviewProgressSignature=managerReviewProgressRuntime\.signature/);
+  assert.match(ui,/const canonicalManagerReviewProgressSource=managerReviewProgressRuntime\.source/);
 });
