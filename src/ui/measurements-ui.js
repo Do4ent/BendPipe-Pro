@@ -1181,6 +1181,8 @@
     const referenceSummary=Object.entries(auditSummary.reference_geometry_counts).map(([status,count])=>'Refs '+status+': '+count).join(' · ');
     const visibleItems=filteredDimensionManagerItems(items);
     const selectedIds=selectedDimensionAuditIds();
+    const selectionKindSummary=Object.entries(dimensionSelectionKindCounts())
+      .map(([kind,count])=>kind+": "+count).join(" · ");
     const visibleIdSet=new Set(visibleItems.map(dimension=>String(dimension?.id??"")));
     const selectedInViewCount=selectedIds.filter(id=>visibleIdSet.has(String(id))).length;
     const selectedOutsideViewCount=selectedIds.length-selectedInViewCount;
@@ -1241,7 +1243,7 @@
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
       '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Visible: '+auditSummary.visible+' · Hidden: '+auditSummary.hidden+' · Selected: '+auditSummary.selected+' · Unselected: '+auditSummary.unselected+' · Needs review: '+auditSummary.needs_review+' · Section-derived: '+auditSummary.section_derived+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+(geometrySummary?' · '+esc(geometrySummary):'')+(referenceSummary?' · '+esc(referenceSummary):'')+'</div>'+
       '<div class="tb-measure-note" data-dimension-visible-count>Showing '+visibleItems.length+' of '+items.length+'</div>'+
-      '<div class="tb-measure-note" data-dimension-selection-scope>Selected in view: '+selectedInViewCount+' · outside view: '+selectedOutsideViewCount+'</div>'+
+      '<div class="tb-measure-note" data-dimension-selection-scope>Selected in view: '+selectedInViewCount+' · outside view: '+selectedOutsideViewCount+(selectionKindSummary?' · '+esc(selectionKindSummary):'')+'</div>'+
       (dimensionManagerFocusId?'<div class="tb-measure-note" data-dimension-exact-focus>Exact focus: '+esc(dimensionManagerFocusId)+' <button data-dimension-focus-clear>Clear focus</button></div>':'')+
       filters+
       '<div class="tb-measure-actions"><button data-select-visible-dimension-audit>Select visible results</button><button data-add-visible-dimension-audit>Add visible results</button><button data-remove-visible-dimension-audit>Remove visible results</button><button data-prune-dimension-selection '+(selectedOutsideViewCount===0?'disabled':'')+'>Prune selection to view</button><button data-show-dimension-audit '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>Show results</button><button data-show-select-dimension-audit '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>Show & Select results</button><button data-hide-dimension-audit '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>Hide results</button><button data-copy-selected-dimension-audits '+(selectedIds.length?'':'disabled')+'>Copy selected audit JSON ('+selectedIds.length+')</button><button data-download-selected-dimension-audits '+(selectedIds.length?'':'disabled')+'>Download selected audit JSON ('+selectedIds.length+')</button><button data-copy-visible-dimension-audits>Copy visible audit JSON</button><button data-download-visible-dimension-audits>Download visible audit JSON</button><button data-copy-all-dimension-audits>Copy all audit JSON</button><button data-download-all-dimension-audits>Download all audit JSON</button></div></div>'+rows;
