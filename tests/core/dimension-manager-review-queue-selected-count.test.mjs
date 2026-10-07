@@ -9,5 +9,5 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 250: Review queue shows how many review items are selected",()=>{
   assert.match(ui,/const selectedReviewQueueCount=items\.filter\(dimension=>selectedIdSet\.has\(String\(dimension\?\.id\?\?""\)\)&&dimensionAuditNeedsReview\(dimension\)\)\.length/);
-  assert.match(ui,/selectedReviewQueueCount\?' · selected '\+selectedReviewQueueCount:''/);
+  assert.match(ui,/selected '\+selectedReviewQueueCount\+' · unselected '\+unselectedReviewQueueCount/);
 });
