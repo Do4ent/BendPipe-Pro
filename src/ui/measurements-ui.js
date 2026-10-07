@@ -1419,13 +1419,17 @@
   }
 
   function dimensionReviewProgressRuntimeState(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
+    const compatibility=reviewProgressDomainCompatibility();
     const canonical=canonicalDimensionReviewProgress(items,selectedIds);
     const parity=dimensionReviewProgressParity(items,selectedIds);
     return {
       source:canonical.source,
       signature:canonical.signature,
       snapshot:canonical.snapshot,
-      domain_available:parity.available,
+      domain_available:compatibility.available,
+      domain_compatible:compatibility.compatible,
+      domain_status:compatibility.status,
+      domain_comparable:parity.available,
       domain_consistent:parity.consistent,
       fallback_signature:parity.fallback_signature,
       domain_signature:parity.domain_signature
