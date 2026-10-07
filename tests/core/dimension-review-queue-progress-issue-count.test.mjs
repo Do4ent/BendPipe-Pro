@@ -9,6 +9,6 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 308: review queue audit counts progress consistency issues",()=>{
   const fn=ui.match(/function reviewQueueDimensionAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/review_progress_issue_count:/);
-  assert.match(fn,/reviewReasonCoverageSummary\.complete\+reviewReasonPendingCount!==reviewReasonCount\?1:0/);
+  assert.match(fn,/review_progress_issue_count:reviewProgressDiagnosticsModel\.issue_count/);
+  assert.match(fn,/count_consistent:reviewReasonCountConsistent/);
 });
