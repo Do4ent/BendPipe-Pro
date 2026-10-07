@@ -1034,6 +1034,7 @@
       '<button type="button" data-object-action="dimension-audit-focus">⌕ <span>Open in Saved Dimensions</span></button>'+
       '<button type="button" data-object-action="dimension-audit-copy">⧉ <span>Copy Dimension audit JSON</span></button>'+
       '<button type="button" data-object-action="dimension-edit">✎ <span>Edit Dimension…</span></button>'+
+      '<button type="button" class="danger" data-object-action="dimension-delete">🗑 <span>Delete Dimension</span></button>'+
       '<div class="tb-object-context-separator"></div>'+
       '<button type="button" data-object-action="move">↔ <span>Переместить…</span></button>'+
       '<button type="button" data-object-action="hide">◌ <span>Скрыть</span></button>'+
@@ -1076,6 +1077,10 @@
       else if(action==="dimension-edit"){
         const entry=selectionEntries().find(item=>item?.kind==="dimension");
         if(entry)dimensionGripsApi()?.openEditor?.(entry.dimensionId,{clientX:event.clientX,clientY:event.clientY});
+      }
+      else if(action==="dimension-delete"){
+        const entry=selectionEntries().find(item=>item?.kind==="dimension");
+        if(entry)dimensionGripsApi()?.deleteDimension?.(entry.dimensionId);
       }
       else if(action==="move")openMovePanel();
       else if(action==="anchor-end")toggleEndConstraint();
@@ -1160,6 +1165,12 @@
       const dimensionOnly=entries.length===1&&entries[0]?.kind==="dimension";
       dimensionEdit.hidden=!dimensionOnly;
       dimensionEdit.disabled=!dimensionOnly;
+    }
+    const dimensionDelete=menu.querySelector('[data-object-action="dimension-delete"]');
+    if(dimensionDelete){
+      const dimensionOnly=entries.length===1&&entries[0]?.kind==="dimension";
+      dimensionDelete.hidden=!dimensionOnly;
+      dimensionDelete.disabled=!dimensionOnly;
     }
     const endSelection=hasSelection?endConstraintSelection(entries):null;
     const anchorEnd=menu.querySelector('[data-object-action="anchor-end"]');
