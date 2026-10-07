@@ -8,6 +8,8 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 354: canonical review progress helper is exposed for QA",()=>{
-  assert.match(ui,/domainDimensionReviewProgress,canonicalDimensionReviewProgress,dimensionReviewProgressSignature/);
+  assert.match(ui,/domainDimensionReviewProgress/);
+  assert.match(ui,/canonicalDimensionReviewProgress/);
+  assert.match(ui,/dimensionReviewProgressSignature/);
   assert.match(ui,/currentCanonicalReviewProgress:\(\)=>canonicalDimensionReviewProgress\(\)/);
 });
