@@ -693,6 +693,7 @@
       mode:String(dimension?.mode??""),
       status:String(dimension?.status??""),
       needs_review:dimensionAuditNeedsReview(dimension),
+      review_reasons:clone(dimensionAuditReviewReasons(dimension)),
       geometry_class:dimensionAuditGeometryClass(dimension),
       reference_geometry_statuses:referenceGeometryStatuses,
       fitted_stats:clone(dimensionFittedAuditStats(dimension)),
@@ -724,9 +725,15 @@
       min_confidence:confidence.length?Math.min(...confidence):null
     };
   }
+  function dimensionAuditReviewReasons(dimension){
+    const geometryClass=dimensionAuditGeometryClass(dimension),reasons=[];
+    if(String(dimension?.status??"")==="Stale")reasons.push("Stale");
+    if(geometryClass==="Fitted")reasons.push("Fitted geometry");
+    if(geometryClass==="Unknown")reasons.push("Unknown geometry provenance");
+    return Object.freeze(reasons);
+  }
   function dimensionAuditNeedsReview(dimension){
-    const geometryClass=dimensionAuditGeometryClass(dimension);
-    return String(dimension?.status??"")==="Stale"||geometryClass==="Fitted"||geometryClass==="Unknown";
+    return dimensionAuditReviewReasons(dimension).length>0;
   }
   function dimensionAuditSummary(items=savedDimensions()){
     const summary={total:items.length,stale:0,rebound:0,section_derived:0,visible:0,hidden:0,needs_review:0,by_status:{},by_mode:{},by_geometry_status:{}};
@@ -1237,7 +1244,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,dimensionAuditGeometryClass,dimensionFittedAuditStats,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
+      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,dimensionAuditGeometryClass,dimensionFittedAuditStats,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
