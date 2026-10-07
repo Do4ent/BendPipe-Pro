@@ -11,6 +11,6 @@ test("question 344: domain divergence participates in all review progress diagno
   const fn=ui.match(/function reviewQueueDimensionAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(fn,/REVIEW_PROGRESS_DOMAIN_DIVERGENCE/);
   assert.match(fn,/\+\(!domainReviewProgressConsistent\?1:0\)/);
-  assert.match(fn,/&&domainReviewProgressConsistent\)\?"ok":"error"/);
+  assert.match(fn,/&&!domainReviewProgressDiverged\)\?"ok":"error"/);
   assert.match(fn,/review_progress_domain_consistent:domainReviewProgressConsistent/);
 });
