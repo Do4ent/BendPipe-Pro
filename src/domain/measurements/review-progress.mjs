@@ -109,6 +109,8 @@ export function buildReviewProgressDiagnostics({
   const errorCodesValid=errors.every(code=>REVIEW_PROGRESS_AUDIT_ERROR_CODES.includes(code));
   const valid=errors.length===0&&errorCodesValid;
   return freeze({
+    schema:REVIEW_PROGRESS_DIAGNOSTICS_SCHEMA,
+    supported_error_codes:REVIEW_PROGRESS_AUDIT_ERROR_CODES,
     errors,
     issue_count:errors.length,
     issue_count_consistent:errors.length===errors.filter(Boolean).length,
