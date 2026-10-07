@@ -1282,6 +1282,7 @@
         selected_percent:selectedPercent,
         selection_coverage:selectionCoverage,
         review_progress_schema:"TubeBender.DimensionReviewProgress.v1",
+        review_progress_generated_at:new Date().toISOString(),
         review_reason_count:reviewReasonCount,
         review_reason_complete_count:reviewReasonCoverageSummary.complete,
         review_reason_pending_count:reviewReasonPendingCount,
