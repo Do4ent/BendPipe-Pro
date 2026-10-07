@@ -1313,6 +1313,20 @@
     };
   }
 
+  function domainDimensionReviewProgress(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
+    if(!reviewProgressDomain?.buildReviewProgress)return null;
+    const normalized=(items??[])
+      .filter(dimension=>dimensionAuditNeedsReview(dimension))
+      .map(dimension=>({
+        id:String(dimension?.id??""),
+        reasons:dimensionAuditReviewReasons(dimension)
+      }));
+    return reviewProgressDomain.buildReviewProgress({
+      items:normalized,
+      selected_ids:(selectedIds??[]).map(id=>String(id))
+    });
+  }
+
   function reviewQueueDimensionAuditSnapshot(){
     const items=savedDimensions().filter(dimension=>dimensionAuditNeedsReview(dimension));
     const reviewReasonCounts={};
@@ -1361,6 +1375,9 @@
     const reviewReasonCompletePercent=reviewReasonCount?Math.round(reviewReasonCoverageSummary.complete/reviewReasonCount*100):0;
     const reviewReasonCompletionState=reviewReasonCount===0?"empty":reviewReasonPendingCount===0?"complete":"pending";
     const sharedReviewProgress=dimensionReviewProgress(items,selectedDimensionAuditIds());
+    const domainReviewProgress=domainDimensionReviewProgress(items,selectedDimensionAuditIds());
+    const domainReviewProgressConsistent=domainReviewProgress!=null
+      &&reviewProgressDomain.reviewProgressSignature(domainReviewProgress)===dimensionReviewProgressSignature(sharedReviewProgress);
     const sharedReviewProgressConsistent=
       sharedReviewProgress.reason_count===reviewReasonCount
       &&sharedReviewProgress.pending_count===reviewReasonPendingCount
@@ -1385,6 +1402,7 @@
         review_progress_model:dimensionReviewProgressSnapshot(sharedReviewProgress),
         review_progress_signature:dimensionReviewProgressSignature(sharedReviewProgress),
         review_progress_model_consistent:sharedReviewProgressConsistent,
+        review_progress_domain_consistent:domainReviewProgressConsistent,
         review_progress_diagnostics_schema:"TubeBender.DimensionReviewProgressDiagnostics.v1",
         review_progress_supported_error_codes:["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH","REVIEW_PROGRESS_MODEL_DIVERGENCE"],
         review_progress_generated_at:new Date().toISOString(),
