@@ -1289,6 +1289,9 @@
         review_reason_count_consistent:reviewReasonCoverageSummary.complete+reviewReasonPendingCount===reviewReasonCount,
         review_reason_lists_consistent:completedReviewReasons.length===reviewReasonCoverageSummary.complete&&pendingReviewReasons.length===reviewReasonPendingCount,
         review_progress_valid:(reviewReasonCoverageSummary.complete+reviewReasonPendingCount===reviewReasonCount)&&completedReviewReasons.length===reviewReasonCoverageSummary.complete&&pendingReviewReasons.length===reviewReasonPendingCount,
+        review_progress_issue_count:
+          (reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?1:0)
+          +((completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?1:0),
         review_progress_error:(reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount)
           ?"REVIEW_REASON_COUNT_MISMATCH"
           :(completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)
