@@ -1378,6 +1378,13 @@
     const domainReviewProgress=domainDimensionReviewProgress(items,selectedDimensionAuditIds());
     const domainReviewProgressConsistent=domainReviewProgress!=null
       &&reviewProgressDomain.reviewProgressSignature(domainReviewProgress)===dimensionReviewProgressSignature(sharedReviewProgress);
+    const canonicalReviewProgressModel=domainReviewProgress&&reviewProgressDomain?.reviewProgressSnapshot
+      ?reviewProgressDomain.reviewProgressSnapshot(domainReviewProgress)
+      :dimensionReviewProgressSnapshot(sharedReviewProgress);
+    const canonicalReviewProgressSignature=domainReviewProgress&&reviewProgressDomain?.reviewProgressSignature
+      ?reviewProgressDomain.reviewProgressSignature(domainReviewProgress)
+      :dimensionReviewProgressSignature(sharedReviewProgress);
+    const canonicalReviewProgressSource=domainReviewProgress?"domain":"ui-fallback";
     const sharedReviewProgressConsistent=
       sharedReviewProgress.reason_count===reviewReasonCount
       &&sharedReviewProgress.pending_count===reviewReasonPendingCount
@@ -1399,8 +1406,9 @@
         selected_percent:selectedPercent,
         selection_coverage:selectionCoverage,
         review_progress_schema:"TubeBender.DimensionReviewProgress.v1",
-        review_progress_model:dimensionReviewProgressSnapshot(sharedReviewProgress),
-        review_progress_signature:dimensionReviewProgressSignature(sharedReviewProgress),
+        review_progress_source:canonicalReviewProgressSource,
+        review_progress_model:canonicalReviewProgressModel,
+        review_progress_signature:canonicalReviewProgressSignature,
         review_progress_model_consistent:sharedReviewProgressConsistent,
         review_progress_domain_consistent:domainReviewProgressConsistent,
         review_progress_diagnostics_schema:"TubeBender.DimensionReviewProgressDiagnostics.v1",
