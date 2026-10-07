@@ -943,6 +943,14 @@
       return true;
     }catch(error){toast("Не удалось скопировать Dimension audit проекта");return false;}
   }
+  function downloadDimensionRebindAudit(dimensionId){
+    const dimension=savedDimensions().find(item=>String(item?.id)===String(dimensionId));
+    if(!dimension)return false;
+    const p=dimensionAuditProjectContext();
+    const projectName=(p.project_name||p.project_id||"project").replace(/[^a-z0-9._-]+/gi,"_");
+    const dimensionName=String(dimension?.id??"dimension").replace(/[^a-z0-9._-]+/gi,"_");
+    return downloadDimensionAuditJson(projectName+"-"+dimensionName+"-dimension-audit.json",dimensionRebindAuditSnapshot(dimension));
+  }
   async function copyDimensionRebindAudit(dimensionId){
     const dimension=savedDimensions().find(item=>String(item?.id)===String(dimensionId));
     if(!dimension)return false;
@@ -994,7 +1002,7 @@
         '<div style="margin-top:3px">New refs: '+esc(signatures)+'</div></div>';
     }).join("");
     return '<details data-dim-rebind-audit="'+esc(dimension.id)+'" style="margin-top:6px"><summary>Rebind audit · '+history.length+'</summary>'+
-      '<div class="tb-measure-actions"><button data-copy-rebind-audit="'+esc(dimension.id)+'">Copy audit JSON</button></div>'+rows+'</details>';
+      '<div class="tb-measure-actions"><button data-copy-rebind-audit="'+esc(dimension.id)+'">Copy audit JSON</button><button data-download-rebind-audit="'+esc(dimension.id)+'">Download audit JSON</button></div>'+rows+'</details>';
   }
 
   function dimensionSearchText(dimension){
@@ -1126,6 +1134,9 @@
     });
     body.querySelectorAll("[data-copy-rebind-audit]").forEach(button=>{
       button.onclick=()=>copyDimensionRebindAudit(button.dataset.copyRebindAudit);
+    });
+    body.querySelectorAll("[data-download-rebind-audit]").forEach(button=>{
+      button.onclick=()=>downloadDimensionRebindAudit(button.dataset.downloadRebindAudit);
     });
     body.querySelector("[data-select-visible-dimension-audit]")?.addEventListener("click",selectVisibleDimensionAuditResults);
     body.querySelector("[data-show-dimension-audit]")?.addEventListener("click",showDimensionAuditResults);
@@ -1318,7 +1329,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,focusDimensionAudit,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionAuditJson,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
+      open,close,focusDimensionAudit,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
