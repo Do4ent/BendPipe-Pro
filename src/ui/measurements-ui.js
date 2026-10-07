@@ -1236,6 +1236,23 @@
     const unselectedIds=dimensionIds.filter(id=>!selectedSet.has(id));
     const selectedPercent=dimensionIds.length?Math.round(selectedIds.length/dimensionIds.length*100):0;
     const selectionCoverage=selectedIds.length===0?"none":selectedIds.length===dimensionIds.length?"complete":"partial";
+    const reviewReasonSelection={};
+    for(const [reason,count] of Object.entries(reviewReasonCounts)){
+      const reasonIds=items
+        .filter(dimension=>dimensionAuditReviewReasons(dimension).includes(reason))
+        .map(dimension=>String(dimension?.id??""));
+      const reasonSelectedIds=reasonIds.filter(id=>selectedSet.has(id));
+      const reasonUnselectedIds=reasonIds.filter(id=>!selectedSet.has(id));
+      reviewReasonSelection[reason]={
+        dimension_count:count,
+        selected_dimension_ids:reasonSelectedIds,
+        unselected_dimension_ids:reasonUnselectedIds,
+        selected_dimension_count:reasonSelectedIds.length,
+        unselected_dimension_count:reasonUnselectedIds.length,
+        selected_percent:count?Math.round(reasonSelectedIds.length/count*100):0,
+        selection_coverage:reasonSelectedIds.length===0?"none":reasonSelectedIds.length===count?"complete":"partial"
+      };
+    }
     return {
       schema:"TubeBender.DimensionReviewQueueAudit.v1",
       ...dimensionAuditProjectContext(),
@@ -1249,7 +1266,8 @@
         unselected_dimension_count:unselectedIds.length,
         selected_percent:selectedPercent,
         selection_coverage:selectionCoverage,
-        review_reason_counts:reviewReasonCounts
+        review_reason_counts:reviewReasonCounts,
+        review_reason_selection:reviewReasonSelection
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
