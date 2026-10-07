@@ -1008,6 +1008,7 @@
     const statusSummary=Object.entries(auditSummary.by_status).map(([status,count])=>status+': '+count).join(' · ');
     const modeSummary=Object.entries(auditSummary.by_mode).map(([mode,count])=>mode+': '+count).join(' · ');
     const geometrySummary=Object.entries(auditSummary.by_geometry_status).map(([status,count])=>'Geometry '+status+': '+count).join(' · ');
+    const referenceSummary=Object.entries(auditSummary.reference_geometry_counts).map(([status,count])=>'Refs '+status+': '+count).join(' · ');
     const visibleItems=filteredDimensionManagerItems(items);
     const rows=visibleItems.map(dimension=>{
       const stale=String(dimension.status)==="Stale",visible=dimension.visible!==false;
@@ -1064,7 +1065,7 @@
       '<button data-dimension-view-reset '+(dimensionManagerFilter==="all"&&dimensionManagerSort==="project"&&!dimensionManagerSearch?'disabled':'')+'>Reset view</button></div>';
     return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div>'+
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
-      '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Visible: '+auditSummary.visible+' · Hidden: '+auditSummary.hidden+' · Needs review: '+auditSummary.needs_review+' · Section-derived: '+auditSummary.section_derived+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+(geometrySummary?' · '+esc(geometrySummary):'')+'</div>'+
+      '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Visible: '+auditSummary.visible+' · Hidden: '+auditSummary.hidden+' · Needs review: '+auditSummary.needs_review+' · Section-derived: '+auditSummary.section_derived+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+(geometrySummary?' · '+esc(geometrySummary):'')+(referenceSummary?' · '+esc(referenceSummary):'')+'</div>'+
       '<div class="tb-measure-note" data-dimension-visible-count>Showing '+visibleItems.length+' of '+items.length+'</div>'+
       (dimensionManagerFocusId?'<div class="tb-measure-note" data-dimension-exact-focus>Exact focus: '+esc(dimensionManagerFocusId)+' <button data-dimension-focus-clear>Clear focus</button></div>':'')+
       filters+
