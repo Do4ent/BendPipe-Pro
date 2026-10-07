@@ -701,6 +701,7 @@
       review_reasons:clone(dimensionAuditReviewReasons(dimension)),
       geometry_class:dimensionAuditGeometryClass(dimension),
       reference_geometry_statuses:referenceGeometryStatuses,
+      reference_geometry_counts:clone(dimensionReferenceStatusCounts(dimension)),
       fitted_stats:clone(dimensionFittedAuditStats(dimension)),
       current_value:dimension?.value??null,
       stale_reason:dimension?.stale_reason??null,
