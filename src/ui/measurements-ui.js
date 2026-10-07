@@ -897,6 +897,7 @@
     else if(dimensionManagerFilter==="driving")result=items.filter(dimension=>String(dimension?.mode??"")==="Driving");
     else if(dimensionManagerFilter==="visible")result=items.filter(dimension=>dimension?.visible!==false);
     else if(dimensionManagerFilter==="hidden")result=items.filter(dimension=>dimension?.visible===false);
+    else if(dimensionManagerFilter==="section-derived")result=items.filter(isSectionDerivedDimension);
     const search=String(dimensionManagerSearch??"").trim().toLowerCase();
     if(search)result=result.filter(dimension=>dimensionSearchText(dimension).includes(search));
     if(dimensionManagerSort!=="audit")return result;
@@ -942,7 +943,7 @@
         '</div></div>';
     }).join("")||'<div class="tb-measure-result" style="margin-top:7px"><div class="tb-measure-note">Нет размеров для выбранного audit-фильтра.</div></div>';
     const filters='<div class="tb-measure-actions" data-dimension-audit-filters>'+
-      ['all','stale','rebound','reference','driving','visible','hidden'].map(name=>'<button data-dimension-filter="'+name+'" '+(dimensionManagerFilter===name?'disabled':'')+'>'+({all:'All',stale:'Stale',rebound:'Rebound',reference:'Reference',driving:'Driving',visible:'Visible',hidden:'Hidden'}[name])+'</button>').join('')+
+      ['all','stale','rebound','section-derived','reference','driving','visible','hidden'].map(name=>'<button data-dimension-filter="'+name+'" '+(dimensionManagerFilter===name?'disabled':'')+'>'+({all:'All',stale:'Stale',rebound:'Rebound','section-derived':'Section-derived',reference:'Reference',driving:'Driving',visible:'Visible',hidden:'Hidden'}[name])+'</button>').join('')+
       '</div>'+
       '<div class="tb-measure-actions" data-dimension-audit-sort>'+
       '<button data-dimension-sort="project" '+(dimensionManagerSort==="project"?'disabled':'')+'>Project order</button>'+
