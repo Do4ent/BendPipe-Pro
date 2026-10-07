@@ -1747,6 +1747,8 @@
     const reviewReasonProgressIssueCount=reviewReasonProgressErrors.length;
     const reviewReasonProgressError=reviewReasonProgressErrors[0]??null;
     const reviewReasonDiagnosticsValid=reviewReasonProgressValid
+      &&sharedManagerReviewProgressConsistent
+      &&reviewReasonProgressErrors.length===0
       &&reviewReasonProgressErrors.every(code=>["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH","REVIEW_PROGRESS_MODEL_DIVERGENCE"].includes(code));
     const reviewReasonProgressStatus=reviewReasonEntries.length===0?"empty":reviewReasonDiagnosticsValid?"ok":"error";
     const fullReviewQueueActive=dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch;
