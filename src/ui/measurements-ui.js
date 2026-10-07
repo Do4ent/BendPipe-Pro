@@ -1016,6 +1016,16 @@
     return true;
   }
 
+  function addReviewQueueDimensionResultsToSelection(){
+    const items=savedDimensions().filter(dimension=>dimensionAuditNeedsReview(dimension));
+    const keys=items.map(dimension=>"dimension:"+encodeURIComponent(String(dimension.id)));
+    if(!keys.length){toast("Review queue пуст");return false;}
+    const merged=[...new Set([...(context()?.selectionKeys?.()??[]),...keys])];
+    context()?.replaceSelectionKeys?.(merged,{announce:true});
+    toast("Добавлено Dimension из Review queue: "+keys.length);
+    return true;
+  }
+
   function selectedDimensionAuditIds(){
     return (context()?.selectionEntries?.()??[])
       .filter(entry=>entry?.kind==="dimension"&&entry?.dimensionId!=null)
@@ -1341,7 +1351,7 @@
       '<div class="tb-measure-actions" data-dimension-audit-sort>'+
       '<button data-dimension-sort="project" '+(dimensionManagerSort==="project"?'disabled':'')+'>Project order</button>'+
       '<button data-dimension-sort="audit" '+(dimensionManagerSort==="audit"?'disabled':'')+'>Audit priority</button>'+
-      '<button data-dimension-review-queue '+(auditSummary.needs_review===0||dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?'disabled':'')+'>Review queue ('+auditSummary.needs_review+(selectedReviewQueueCount?' · selected '+selectedReviewQueueCount:'')+')'+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?' · Active':'')+'</button>'+(auditSummary.needs_review?'<button data-select-dimension-review-queue '+(selectedReviewQueueCount===auditSummary.needs_review?'disabled':'')+'>Select review queue</button>':'')+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?'<button data-dimension-review-queue-exit>Exit review queue</button>':'')+'</div>'+
+      '<button data-dimension-review-queue '+(auditSummary.needs_review===0||dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?'disabled':'')+'>Review queue ('+auditSummary.needs_review+(selectedReviewQueueCount?' · selected '+selectedReviewQueueCount:'')+')'+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?' · Active':'')+'</button>'+(auditSummary.needs_review?'<button data-select-dimension-review-queue '+(selectedReviewQueueCount===auditSummary.needs_review?'disabled':'')+'>Select review queue</button>':'')+(auditSummary.needs_review?'<button data-add-dimension-review-queue>Add review queue</button>':'')+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?'<button data-dimension-review-queue-exit>Exit review queue</button>':'')+'</div>'+
       '<div class="tb-measure-actions" data-dimension-audit-search>'+
       '<input data-dimension-search value="'+esc(dimensionManagerSearch)+'" placeholder="Search ID, kind, source, stale reason">'+
       '<button data-dimension-search-apply>Search</button><button data-dimension-search-clear '+(!dimensionManagerSearch?'disabled':'')+'>Clear</button>'+
@@ -1406,6 +1416,9 @@
     });
     body.querySelector("[data-select-dimension-review-queue]")?.addEventListener("click",()=>{
       selectReviewQueueDimensionResults();render();
+    });
+    body.querySelector("[data-add-dimension-review-queue]")?.addEventListener("click",()=>{
+      addReviewQueueDimensionResultsToSelection();render();
     });
     body.querySelector("[data-dimension-review-queue-exit]")?.addEventListener("click",()=>{
       dimensionManagerFilter="all";dimensionManagerSort="project";dimensionManagerSearch="";dimensionManagerFocusId="";render();
@@ -1588,7 +1601,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,focusDimensionAudit,refresh:render,dimensionAuditViewProjectId,dimensionAuditViewStorageKey,persistDimensionAuditViewState,clearPersistedDimensionAuditViewState,restoreDimensionAuditViewState,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,dimensionAuditFilenamePart,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,selectedDimensionAuditIds,dimensionSelectionKindCounts,selectedDimensionAuditSnapshot,copySelectedDimensionAudits,downloadSelectedDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,clearDimensionSelection,pruneDimensionSelectionToAuditView,invertVisibleDimensionAuditSelection,removeVisibleDimensionAuditResultsFromSelection,addVisibleDimensionAuditResultsToSelection,selectVisibleDimensionAuditResults,selectReviewQueueDimensionResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
+      open,close,focusDimensionAudit,refresh:render,dimensionAuditViewProjectId,dimensionAuditViewStorageKey,persistDimensionAuditViewState,clearPersistedDimensionAuditViewState,restoreDimensionAuditViewState,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,dimensionAuditFilenamePart,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,selectedDimensionAuditIds,dimensionSelectionKindCounts,selectedDimensionAuditSnapshot,copySelectedDimensionAudits,downloadSelectedDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,clearDimensionSelection,pruneDimensionSelectionToAuditView,invertVisibleDimensionAuditSelection,removeVisibleDimensionAuditResultsFromSelection,addVisibleDimensionAuditResultsToSelection,selectVisibleDimensionAuditResults,selectReviewQueueDimensionResults,addReviewQueueDimensionResultsToSelection,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
