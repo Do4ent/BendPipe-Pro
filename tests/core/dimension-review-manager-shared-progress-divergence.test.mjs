@@ -9,5 +9,5 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 325: manager reports shared review progress divergence",()=>{
   assert.match(ui,/!sharedManagerReviewProgressConsistent\?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null/);
-  assert.match(ui,/\["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH","REVIEW_PROGRESS_MODEL_DIVERGENCE","REVIEW_PROGRESS_DOMAIN_DIVERGENCE"\]/);
+  assert.match(ui,/const reviewReasonSupportedErrorCodes=reviewProgressAuditErrorCodes\(\)/);
 });
