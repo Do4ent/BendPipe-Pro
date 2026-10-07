@@ -1345,7 +1345,7 @@
         review_progress_schema:"TubeBender.DimensionReviewProgress.v1",
         review_progress_model_consistent:sharedReviewProgressConsistent,
         review_progress_diagnostics_schema:"TubeBender.DimensionReviewProgressDiagnostics.v1",
-        review_progress_supported_error_codes:["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH"],
+        review_progress_supported_error_codes:["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH","REVIEW_PROGRESS_MODEL_DIVERGENCE"],
         review_progress_generated_at:new Date().toISOString(),
         review_reason_count:reviewReasonCount,
         review_reason_complete_count:reviewReasonCoverageSummary.complete,
@@ -1358,7 +1358,8 @@
           +((completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?1:0),
         review_progress_errors:[
           reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
-          (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null
+          (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
+          !sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null
         ].filter(Boolean),
         review_progress_issue_count_consistent:
           ((reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?1:0)
@@ -1370,7 +1371,7 @@
         review_progress_error_codes_valid:[
           reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
           (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null
-        ].filter(Boolean).every(code=>["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH"].includes(code)),
+        ].filter(Boolean).every(code=>["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH","REVIEW_PROGRESS_MODEL_DIVERGENCE"].includes(code)),
         review_progress_status:reviewReasonCount===0?"empty":(
           ((reviewReasonCoverageSummary.complete+reviewReasonPendingCount===reviewReasonCount)
             &&completedReviewReasons.length===reviewReasonCoverageSummary.complete
