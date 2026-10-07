@@ -1525,7 +1525,8 @@
       ).length;
       const unselectedCount=Math.max(0,count-selectedCount);
       const selectedPercent=count?Math.round(selectedCount/count*100):0;
-      return '<button data-dimension-review-reason="'+esc(reason)+'" '+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&dimensionManagerSearch===reason?'disabled':'')+'>'+esc(reason)+' ('+count+' · selected '+selectedCount+' · unselected '+unselectedCount+' · '+selectedPercent+'%)</button>';
+      const selectionCoverage=selectedCount===0?"none":selectedCount===count?"complete":"partial";
+      return '<button data-dimension-review-reason="'+esc(reason)+'" data-selection-coverage="'+selectionCoverage+'" '+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&dimensionManagerSearch===reason?'disabled':'')+'>'+esc(reason)+' ('+count+' · selected '+selectedCount+' · unselected '+unselectedCount+' · '+selectedPercent+'% · '+selectionCoverage+')</button>';
     }).join('');
     const fullReviewQueueActive=dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch;
     const activeReviewReason=activeDimensionReviewReason();
