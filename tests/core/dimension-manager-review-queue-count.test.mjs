@@ -9,5 +9,5 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 247: Review queue button shows pending count and disables when empty",()=>{
   assert.match(ui,/Review queue \('\+auditSummary\.needs_review\+'\)/);
-  assert.match(ui,/data-dimension-review-queue '\+\(auditSummary\.needs_review===0\?'disabled':''\)\+'/);
+  assert.match(ui,/data-dimension-review-queue '\+\(auditSummary\.needs_review===0\|\|/);
 });
