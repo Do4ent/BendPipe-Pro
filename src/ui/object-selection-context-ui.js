@@ -2009,7 +2009,9 @@
       const audit=window.TubeBenderMeasurements??null;
       const geometryClass=audit?.dimensionAuditGeometryClass?.(dimension)??"Unknown";
       const needsReview=audit?.dimensionAuditNeedsReview?.(dimension)===true;
-      return "Dimension · "+String(dimension?.note??entry.dimensionId)+" · "+geometryClass+(needsReview?" · ⚠ Needs review":"");
+      const part=String(candidate?.dimensionPart??"dimension");
+      const partLabel=part==="text"?"Text":part==="line"?"Line":part==="reference"?"Reference":part;
+      return "Dimension · "+String(dimension?.note??entry.dimensionId)+" · "+partLabel+" · "+geometryClass+(needsReview?" · ⚠ Needs review":"");
     }
     if(entry.kind==="section-derived"){
       const record=window.TubeBenderSectionView?.derivedSelectionById?.(entry.derivedId);
