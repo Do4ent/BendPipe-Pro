@@ -1324,6 +1324,7 @@
       domain_status:compatibility.status,
       diagnostics_available:domainDiagnosticsAvailable,
       diagnostics:state.diagnostics,
+      snapshot:dimensionReviewProgressDiagnosticsSnapshot(state.diagnostics),
       signature:state.signature,
       state
     };
@@ -1673,7 +1674,7 @@
         review_progress_diagnostics_schema:reviewProgressDiagnosticsSchema,
         review_progress_diagnostics_model:reviewProgressDiagnosticsModel,
         review_progress_diagnostics_signature:reviewProgressDiagnosticsSignature,
-        review_progress_diagnostics_snapshot:dimensionReviewProgressDiagnosticsSnapshot(reviewProgressDiagnosticsModel),
+        review_progress_diagnostics_snapshot:standaloneReviewDiagnosticsRuntime.snapshot,
         review_progress_diagnostics_source:standaloneReviewDiagnosticsRuntime.source,
         review_progress_diagnostics_domain_status:standaloneReviewDiagnosticsRuntime.domain_status,
         review_progress_diagnostics_state_consistent:standaloneReviewDiagnosticsConsistent,
