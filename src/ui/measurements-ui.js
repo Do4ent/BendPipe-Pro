@@ -1241,17 +1241,18 @@
       if(reviewIds.has(id))throw new RangeError("duplicate review progress item id: "+id);
       reviewIds.add(id);
     }
+    if(!Array.isArray(selectedIds))throw new TypeError("selected_ids must be an array");
     if(reviewProgressDomain?.buildReviewProgress){
       const progress=reviewProgressDomain.buildReviewProgress({
         items:reviewItems.map(dimension=>({
           id:String(dimension?.id??""),
           reasons:dimensionAuditReviewReasons(dimension)
         })),
-        selected_ids:(selectedIds??[]).map(id=>String(id))
+        selected_ids:selectedIds.map(id=>String(id))
       });
       return {...progress,review_items:reviewItems};
     }
-    const selectedSet=new Set((selectedIds??[]).map(id=>String(id)));
+    const selectedSet=new Set(selectedIds.map(id=>String(id)));
     const reasonCounts={};
     for(const dimension of reviewItems){
       for(const reason of dimensionAuditReviewReasons(dimension)){
