@@ -699,7 +699,7 @@
     };
   }
   function dimensionAuditSummary(items=savedDimensions()){
-    const summary={total:items.length,stale:0,rebound:0,by_status:{},by_mode:{}};
+    const summary={total:items.length,stale:0,rebound:0,visible:0,hidden:0,by_status:{},by_mode:{}};
     for(const dimension of items){
       const status=String(dimension?.status??"Unknown");
       const mode=String(dimension?.mode??"Unknown");
@@ -707,6 +707,7 @@
       summary.by_mode[mode]=(summary.by_mode[mode]??0)+1;
       if(status==="Stale")summary.stale++;
       if(dimension?.rebound_from_stale===true)summary.rebound++;
+      if(dimension?.visible===false)summary.hidden++;else summary.visible++;
     }
     return summary;
   }
@@ -950,7 +951,7 @@
       '<button data-dimension-view-reset '+(dimensionManagerFilter==="all"&&dimensionManagerSort==="project"&&!dimensionManagerSearch?'disabled':'')+'>Reset view</button></div>';
     return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div>'+
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
-      '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+'</div>'+
+      '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Visible: '+auditSummary.visible+' · Hidden: '+auditSummary.hidden+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+'</div>'+
       '<div class="tb-measure-note" data-dimension-visible-count>Showing '+visibleItems.length+' of '+items.length+'</div>'+
       filters+
       '<div class="tb-measure-actions"><button data-select-visible-dimension-audit>Select visible results</button><button data-show-dimension-audit>Show results</button><button data-show-select-dimension-audit>Show & Select results</button><button data-hide-dimension-audit>Hide results</button><button data-copy-visible-dimension-audits>Copy visible audit JSON</button><button data-copy-all-dimension-audits>Copy all audit JSON</button></div></div>'+rows;
