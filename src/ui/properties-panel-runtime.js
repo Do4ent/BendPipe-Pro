@@ -415,6 +415,9 @@
       const referenceStatusCounts=audit?.dimensionReferenceStatusCounts?.(dimension)??null;
       const reviewReasons=audit?.dimensionAuditReviewReasons?.(dimension)??[];
       const fittedStats=audit?.dimensionFittedAuditStats?.(dimension)??null;
+      const reviewProgressSnapshot=audit?.currentCanonicalReviewProgressSnapshot?.()??null;
+      const reviewDiagnosticsRuntime=audit?.currentReviewProgressDiagnosticsRuntimeState?.()??null;
+      const reviewDiagnosticsIntegrityState=audit?.currentReviewProgressDiagnosticsIntegrityState?.()??null;
       const refs=(dimension?.references??[]).map((ref,index)=>({
         index,
         object_id:ref?.object_id,
@@ -445,6 +448,16 @@
           ["Max fit error deg",fittedStats?audit?.auditNumber?.(fittedStats.max_error_deg):null],
           ["Min confidence",fittedStats?audit?.auditNumber?.(fittedStats.min_confidence):null],
           ["Fitted stats",fittedStats]
+        ]},
+        {name:"Review queue context",rows:[
+          ["Progress source",audit?.currentCanonicalReviewProgressSource?.()??null],
+          ["Progress status",reviewProgressSnapshot?.status],
+          ["Progress complete %",reviewProgressSnapshot?.complete_percent],
+          ["Diagnostics source",reviewDiagnosticsRuntime?.source],
+          ["Diagnostics domain status",reviewDiagnosticsRuntime?.domain_status],
+          ["Diagnostics runtime valid",reviewDiagnosticsRuntime?.runtime_valid],
+          ["Diagnostics integrity valid",reviewDiagnosticsIntegrityState?.integrity?.valid],
+          ["Diagnostics parity",reviewDiagnosticsIntegrityState?.parity?.available===true?reviewDiagnosticsIntegrityState?.parity?.consistent:null]
         ]},
         {name:"Rebind audit",rows:[
           ["Rebound from stale",dimension?.rebound_from_stale===true],
