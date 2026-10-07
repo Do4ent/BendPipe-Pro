@@ -2012,7 +2012,7 @@
     const domainManagerReviewProgressConsistent=managerReviewProgressRuntime.domain_consistent;
     const canonicalManagerReviewProgressSignature=managerReviewProgressRuntime.signature;
     const canonicalManagerReviewProgressSource=managerReviewProgressRuntime.source;
-    const managerReviewDiagnosticsModel=dimensionReviewProgressDiagnostics({
+    const legacyManagerReviewDiagnosticsModel=dimensionReviewProgressDiagnostics({
       reason_count:reviewReasonEntries.length,
       count_consistent:reviewReasonCoverageCounts.complete+reviewReasonPendingCount===reviewReasonEntries.length,
       lists_consistent:reviewReasonCompletedNames.length===reviewReasonCoverageCounts.complete&&reviewReasonPendingNames.length===reviewReasonPendingCount,
@@ -2020,6 +2020,8 @@
       domain_status:managerReviewProgressRuntime.domain_status,
       domain_consistent:domainManagerReviewProgressConsistent
     });
+    const standaloneManagerReviewDiagnosticsRuntime=dimensionReviewProgressDiagnosticsRuntimeState(items,selectedDimensionAuditIds());
+    const managerReviewDiagnosticsModel=standaloneManagerReviewDiagnosticsRuntime.diagnostics;
     const reviewReasonProgressErrors=managerReviewDiagnosticsModel.errors;
     const reviewReasonProgressIssueCount=managerReviewDiagnosticsModel.issue_count;
     const reviewReasonProgressError=managerReviewDiagnosticsModel.primary_error;
@@ -2028,11 +2030,9 @@
     const managerReviewDiagnosticsModelConsistent=
       managerReviewDiagnosticsModel.issue_count_consistent
       &&managerReviewDiagnosticsModel.error_codes_valid;
-    const managerReviewDiagnosticsSignature=dimensionReviewProgressDiagnosticsSignature(managerReviewDiagnosticsModel);
-    const standaloneManagerReviewDiagnosticsState=dimensionReviewProgressDiagnosticsState(items,selectedDimensionAuditIds());
-    const standaloneManagerReviewDiagnosticsRuntime=dimensionReviewProgressDiagnosticsRuntimeState(items,selectedDimensionAuditIds());
+    const managerReviewDiagnosticsSignature=standaloneManagerReviewDiagnosticsRuntime.signature;
     const standaloneManagerReviewDiagnosticsConsistent=
-      standaloneManagerReviewDiagnosticsState.signature===managerReviewDiagnosticsSignature;
+      dimensionReviewProgressDiagnosticsSignature(legacyManagerReviewDiagnosticsModel)===managerReviewDiagnosticsSignature;
     const fullReviewQueueActive=dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch;
     const activeReviewReason=activeDimensionReviewReason();
     const visibleItems=filteredDimensionManagerItems(items);
