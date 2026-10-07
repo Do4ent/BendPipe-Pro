@@ -21,3 +21,10 @@ test("question 143: Saved Dimensions can copy audit JSON without mutating model"
   assert.match(ui,/data-copy-rebind-audit=/);
   assert.match(ui,/Copy audit JSON/);
 });
+
+
+test("question 166: Dimension audit snapshot carries trusted geometry provenance",()=>{
+  assert.match(ui,/geometry_class:dimensionAuditGeometryClass\(dimension\)/);
+  assert.match(ui,/reference_geometry_statuses:referenceGeometryStatuses/);
+  assert.match(ui,/new Set\(references\.map\(ref=>String\(ref\?\.geometry_status\?\?""\)\.trim\(\)\)\.filter\(Boolean\)\)/);
+});
