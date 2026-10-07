@@ -904,6 +904,28 @@
     return true;
   }
 
+  function invertVisibleDimensionAuditSelection(){
+    const items=filteredDimensionManagerItems(savedDimensions()).filter(dimension=>dimension?.visible!==false);
+    const ids=new Set(items.map(dimension=>String(dimension.id)));
+    if(!ids.size){toast("Нет видимых Dimension в текущем audit-view");return false;}
+    const currentKeys=context()?.selectionKeys?.()??[];
+    const selectedIds=new Set(
+      (context()?.selectionEntries?.()??[])
+        .filter(entry=>entry?.kind==="dimension"&&ids.has(String(entry.dimensionId)))
+        .map(entry=>String(entry.dimensionId))
+    );
+    const kept=currentKeys.filter(key=>{
+      const entry=context()?.parseSelectionKey?.(key);
+      return entry?.kind!=="dimension"||!ids.has(String(entry.dimensionId));
+    });
+    const add=[...ids]
+      .filter(id=>!selectedIds.has(id))
+      .map(id=>"dimension:"+encodeURIComponent(id));
+    context()?.replaceSelectionKeys?.([...kept,...add],{announce:true});
+    toast("Инвертирован Dimension selection: "+ids.size);
+    return true;
+  }
+
   function removeVisibleDimensionAuditResultsFromSelection(){
     const ids=new Set(
       filteredDimensionManagerItems(savedDimensions())
@@ -1200,6 +1222,7 @@
     const visibleIdSet=new Set(visibleItems.map(dimension=>String(dimension?.id??"")));
     const selectedInViewCount=selectedIds.filter(id=>visibleIdSet.has(String(id))).length;
     const selectedOutsideViewCount=selectedIds.length-selectedInViewCount;
+    const selectableVisibleCount=visibleItems.filter(dimension=>dimension?.visible!==false).length;
     const rows=visibleItems.map(dimension=>{
       const stale=String(dimension.status)==="Stale",visible=dimension.visible!==false;
       const unit=/angle/i.test(String(dimension.kind))?"deg":"mm";
@@ -1260,7 +1283,7 @@
       '<div class="tb-measure-note" data-dimension-selection-scope>Selected in view: '+selectedInViewCount+' · outside view: '+selectedOutsideViewCount+(selectionKindSummary?' · '+esc(selectionKindSummary):'')+'</div>'+
       (dimensionManagerFocusId?'<div class="tb-measure-note" data-dimension-exact-focus>Exact focus: '+esc(dimensionManagerFocusId)+' <button data-dimension-focus-clear>Clear focus</button></div>':'')+
       filters+
-      '<div class="tb-measure-actions"><button data-select-visible-dimension-audit>Select visible results</button><button data-add-visible-dimension-audit>Add visible results</button><button data-remove-visible-dimension-audit>Remove visible results</button><button data-clear-dimension-selection '+(selectedIds.length===0?'disabled':'')+'>Clear Dimension selection</button><button data-prune-dimension-selection '+(selectedOutsideViewCount===0?'disabled':'')+'>Prune selection to view</button><button data-show-dimension-audit '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>Show results</button><button data-show-select-dimension-audit '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>Show & Select results</button><button data-hide-dimension-audit '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>Hide results</button><button data-copy-selected-dimension-audits '+(selectedIds.length?'':'disabled')+'>Copy selected audit JSON ('+selectedIds.length+')</button><button data-download-selected-dimension-audits '+(selectedIds.length?'':'disabled')+'>Download selected audit JSON ('+selectedIds.length+')</button><button data-copy-visible-dimension-audits>Copy visible audit JSON</button><button data-download-visible-dimension-audits>Download visible audit JSON</button><button data-copy-all-dimension-audits>Copy all audit JSON</button><button data-download-all-dimension-audits>Download all audit JSON</button></div></div>'+rows;
+      '<div class="tb-measure-actions"><button data-select-visible-dimension-audit>Select visible results</button><button data-add-visible-dimension-audit>Add visible results</button><button data-remove-visible-dimension-audit>Remove visible results</button><button data-invert-visible-dimension-audit '+(selectableVisibleCount===0?'disabled':'')+'>Invert visible results</button><button data-clear-dimension-selection '+(selectedIds.length===0?'disabled':'')+'>Clear Dimension selection</button><button data-prune-dimension-selection '+(selectedOutsideViewCount===0?'disabled':'')+'>Prune selection to view</button><button data-show-dimension-audit '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>Show results</button><button data-show-select-dimension-audit '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>Show & Select results</button><button data-hide-dimension-audit '+(locked?'disabled title="Проект открыт только для просмотра"':'')+'>Hide results</button><button data-copy-selected-dimension-audits '+(selectedIds.length?'':'disabled')+'>Copy selected audit JSON ('+selectedIds.length+')</button><button data-download-selected-dimension-audits '+(selectedIds.length?'':'disabled')+'>Download selected audit JSON ('+selectedIds.length+')</button><button data-copy-visible-dimension-audits>Copy visible audit JSON</button><button data-download-visible-dimension-audits>Download visible audit JSON</button><button data-copy-all-dimension-audits>Copy all audit JSON</button><button data-download-all-dimension-audits>Download all audit JSON</button></div></div>'+rows;
   }
   function bindDimensionManagerActions(body){
     body.querySelectorAll("[data-dim-manager-select]").forEach(button=>{
@@ -1290,6 +1313,7 @@
     body.querySelector("[data-select-visible-dimension-audit]")?.addEventListener("click",selectVisibleDimensionAuditResults);
     body.querySelector("[data-add-visible-dimension-audit]")?.addEventListener("click",addVisibleDimensionAuditResultsToSelection);
     body.querySelector("[data-remove-visible-dimension-audit]")?.addEventListener("click",removeVisibleDimensionAuditResultsFromSelection);
+    body.querySelector("[data-invert-visible-dimension-audit]")?.addEventListener("click",invertVisibleDimensionAuditSelection);
     body.querySelector("[data-clear-dimension-selection]")?.addEventListener("click",clearDimensionSelection);
     body.querySelector("[data-prune-dimension-selection]")?.addEventListener("click",pruneDimensionSelectionToAuditView);
     body.querySelector("[data-show-dimension-audit]")?.addEventListener("click",showDimensionAuditResults);
@@ -1484,7 +1508,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,focusDimensionAudit,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,selectedDimensionAuditIds,dimensionSelectionKindCounts,selectedDimensionAuditSnapshot,copySelectedDimensionAudits,downloadSelectedDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,clearDimensionSelection,pruneDimensionSelectionToAuditView,removeVisibleDimensionAuditResultsFromSelection,addVisibleDimensionAuditResultsToSelection,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
+      open,close,focusDimensionAudit,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,selectedDimensionAuditIds,dimensionSelectionKindCounts,selectedDimensionAuditSnapshot,copySelectedDimensionAudits,downloadSelectedDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,clearDimensionSelection,pruneDimensionSelectionToAuditView,invertVisibleDimensionAuditSelection,removeVisibleDimensionAuditResultsFromSelection,addVisibleDimensionAuditResultsToSelection,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
