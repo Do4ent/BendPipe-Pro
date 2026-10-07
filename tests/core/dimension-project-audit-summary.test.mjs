@@ -9,7 +9,9 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 145: project Dimension audit exposes summary counters",()=>{
   assert.match(ui,/function dimensionAuditSummary\(items=savedDimensions\(\)\)/);
-  assert.match(ui,/summary=\{total:items\.length,stale:0,rebound:0,section_derived:0,visible:0,hidden:0,by_status:\{\},by_mode:\{\}\}/);
+  assert.match(ui,/total:items\.length/);
+  assert.match(ui,/stale:0,rebound:0,section_derived:0,visible:0,hidden:0/);
+  assert.match(ui,/by_status:\{\},by_mode:\{\},by_geometry_status:\{\}/);
   assert.match(ui,/summary\.by_status\[status\]/);
   assert.match(ui,/summary\.by_mode\[mode\]/);
   assert.match(ui,/if\(status==="Stale"\)summary\.stale\+\+/);
