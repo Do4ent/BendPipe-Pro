@@ -10,7 +10,7 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 143: Rebind audit exports a structured diagnostic snapshot",()=>{
   assert.match(ui,/function dimensionRebindAuditSnapshot\(dimension\)/);
   assert.match(ui,/dimension_id:String\(dimension\?\.id\?\?""\)/);
-  assert.match(ui,/current_references:clone\(dimension\?\.references\?\?\[\]\)/);
+  assert.match(ui,/current_references:clone\(references\)/);
   assert.match(ui,/rebound_history:clone/);
 });
 
