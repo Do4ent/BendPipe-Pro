@@ -1283,6 +1283,7 @@
         selection_coverage:selectionCoverage,
         review_progress_schema:"TubeBender.DimensionReviewProgress.v1",
         review_progress_diagnostics_schema:"TubeBender.DimensionReviewProgressDiagnostics.v1",
+        review_progress_supported_error_codes:["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH"],
         review_progress_generated_at:new Date().toISOString(),
         review_reason_count:reviewReasonCount,
         review_reason_complete_count:reviewReasonCoverageSummary.complete,
