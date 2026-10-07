@@ -27,8 +27,12 @@ export const REVIEW_PROGRESS_SNAPSHOT_SCHEMA="TubeBender.DimensionReviewProgress
 export const REVIEW_PROGRESS_DIAGNOSTICS_SCHEMA="TubeBender.DimensionReviewProgressDiagnostics.v1";
 export const REVIEW_PROGRESS_ERROR_CODES=freeze([
   "REVIEW_REASON_COUNT_MISMATCH",
-  "REVIEW_REASON_LIST_MISMATCH",
-  "REVIEW_PROGRESS_MODEL_DIVERGENCE"
+  "REVIEW_REASON_LIST_MISMATCH"
+]);
+export const REVIEW_PROGRESS_AUDIT_ERROR_CODES=freeze([
+  ...REVIEW_PROGRESS_ERROR_CODES,
+  "REVIEW_PROGRESS_MODEL_DIVERGENCE",
+  "REVIEW_PROGRESS_DOMAIN_DIVERGENCE"
 ]);
 
 export function buildReviewProgress({items=[],selected_ids=[]}={}){
