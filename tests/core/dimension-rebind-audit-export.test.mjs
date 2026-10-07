@@ -33,3 +33,8 @@ test("question 166: Dimension audit snapshot carries trusted geometry provenance
 test("question 169: Dimension audit snapshot carries conservative Fitted stats",()=>{
   assert.match(ui,/fitted_stats:clone\(dimensionFittedAuditStats\(dimension\)\)/);
 });
+
+
+test("question 173: Dimension audit snapshot persists Needs review policy result",()=>{
+  assert.match(ui,/needs_review:dimensionAuditNeedsReview\(dimension\)/);
+});
