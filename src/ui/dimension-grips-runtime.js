@@ -199,6 +199,17 @@
     node.style.top=Math.min((Number(event.clientY)||0)+14,Math.max(8,window.innerHeight-node.offsetHeight-8))+"px";
     return dimension;
   }
+  function selectionCandidateAtEvent(event){
+    const picked=pick(event),id=String(picked?.data?.dimensionId??"");
+    if(!id)return null;
+    const dimension=dimensionById(id);
+    if(!dimension||dimension.visible===false)return null;
+    return Object.freeze({
+      dimensionId:id,
+      distance:Number(picked?.hit?.distance)||0,
+      part:String(picked?.data?.dimensionPart??picked?.data?.dimensionGrip??"dimension")
+    });
+  }
   function pick(event){
     if(!root||typeof camera==="undefined")return null;const c=canvas(),rect=c?.getBoundingClientRect?.();if(!c||!rect?.width||!rect?.height)return null;
     const mouse=new THREE.Vector2(((event.clientX-rect.left)/rect.width)*2-1,-((event.clientY-rect.top)/rect.height)*2+1),ray=new THREE.Raycaster();ray.params.Line={threshold:.12};ray.setFromCamera(mouse,camera);
@@ -438,7 +449,7 @@
     installListeners();rebuild();
     window.addEventListener("tubebender-dimension-change",()=>{syncActiveDimensionFromSelection();rebuild();});window.addEventListener("tubebender-assembly-change",()=>rebuild());window.addEventListener("tubebender-layer-change",()=>rebuild());window.addEventListener("tubebender-selection-change",syncActiveDimensionFromSelection);window.addEventListener("tubebender-history-change",()=>{syncActiveDimensionFromSelection();rebuild();});
     if(typeof renderAll==="function"&&!renderAll._tbDimensionGrips){const original=renderAll;renderAll=function(...args){const result=original.apply(this,args);try{rebuild();}catch{}return result;};renderAll._tbDimensionGrips=true;}
-    window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,deleteDimension,setDimensionVisible,syncActiveDimensionFromSelection,activeDimension:()=>dimensionById(activeId),dimensionLabelText,dimensionHoverText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
+    window.TubeBenderDimensionGrips=Object.freeze({rebuild,selectDimension,deleteDimension,setDimensionVisible,syncActiveDimensionFromSelection,selectionCandidateAtEvent,activeDimension:()=>dimensionById(activeId),dimensionLabelText,dimensionHoverText,openEditor:(id,event)=>{const d=dimensionById(id);if(d)openEditor(d,event??{clientX:100,clientY:100});}});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>install().catch(console.error),{once:true});else install().catch(console.error);
 })();
