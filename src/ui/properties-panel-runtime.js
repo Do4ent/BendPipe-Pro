@@ -439,9 +439,9 @@
           ["Needs review",reviewReasons.length>0],
           ["Review reasons",reviewReasons],
           ["Fitted reference count",fittedStats?.reference_count],
-          ["Max fit error mm",fittedStats?.max_error_mm],
-          ["Max fit error deg",fittedStats?.max_error_deg],
-          ["Min confidence",fittedStats?.min_confidence],
+          ["Max fit error mm",fittedStats?audit?.auditNumber?.(fittedStats.max_error_mm):null],
+          ["Max fit error deg",fittedStats?audit?.auditNumber?.(fittedStats.max_error_deg):null],
+          ["Min confidence",fittedStats?audit?.auditNumber?.(fittedStats.min_confidence):null],
           ["Fitted stats",fittedStats]
         ]},
         {name:"Rebind audit",rows:[
