@@ -1253,6 +1253,11 @@
         selection_coverage:reasonSelectedIds.length===0?"none":reasonSelectedIds.length===count?"complete":"partial"
       };
     }
+    const reviewReasonCoverageSummary={none:0,partial:0,complete:0};
+    for(const entry of Object.values(reviewReasonSelection)){
+      const state=String(entry?.selection_coverage??"none");
+      if(Object.prototype.hasOwnProperty.call(reviewReasonCoverageSummary,state))reviewReasonCoverageSummary[state]++;
+    }
     return {
       schema:"TubeBender.DimensionReviewQueueAudit.v1",
       ...dimensionAuditProjectContext(),
@@ -1267,7 +1272,8 @@
         selected_percent:selectedPercent,
         selection_coverage:selectionCoverage,
         review_reason_counts:reviewReasonCounts,
-        review_reason_selection:reviewReasonSelection
+        review_reason_selection:reviewReasonSelection,
+        review_reason_coverage_summary:reviewReasonCoverageSummary
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
