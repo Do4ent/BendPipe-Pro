@@ -1328,6 +1328,7 @@
       diagnostics:state.diagnostics,
       snapshot,
       snapshot_signature_consistent:snapshotSignatureConsistent,
+      runtime_valid:state.diagnostics?.valid===true&&snapshotSignatureConsistent,
       signature:state.signature,
       state
     };
