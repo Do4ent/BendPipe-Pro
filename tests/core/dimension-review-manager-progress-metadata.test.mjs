@@ -8,7 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 332: review progress status and signature are machine-readable in manager",()=>{
-  assert.match(ui,/const reviewReasonProgressSignature=dimensionReviewProgressSignature\(sharedManagerReviewProgress\)/);
+  assert.match(ui,/const managerReviewProgressRuntime=dimensionReviewProgressRuntimeState\(items,selectedDimensionAuditIds\(\)\)/);
   assert.match(ui,/data-review-progress-status="'\+esc\(reviewReasonProgressStatus\)\+'"/);
   assert.match(ui,/data-review-progress-signature="'\+esc\(canonicalManagerReviewProgressSignature\)\+'"/);
 });
