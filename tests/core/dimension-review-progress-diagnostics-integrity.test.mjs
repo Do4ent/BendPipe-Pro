@@ -11,5 +11,5 @@ test("question 414: review diagnostics integrity is normalized for audit and QA"
   assert.match(ui,/function dimensionReviewProgressDiagnosticsIntegrity\(runtime,stateConsistent=true,parityConsistent=null\)/);
   assert.match(ui,/schema:"TubeBender\.DimensionReviewProgressDiagnosticsIntegrity\.v1"/);
   assert.match(ui,/review_progress_diagnostics_integrity:reviewProgressDiagnosticsIntegrity/);
-  assert.match(ui,/currentReviewProgressDiagnosticsIntegrity:\(\)=>\{const runtime=dimensionReviewProgressDiagnosticsRuntimeState\(\);return dimensionReviewProgressDiagnosticsIntegrity\(runtime,true\);\}/);
+  assert.match(ui,/currentReviewProgressDiagnosticsIntegrity:\(\)=>dimensionReviewProgressDiagnosticsIntegrityState\(\)\.integrity/);
 });
