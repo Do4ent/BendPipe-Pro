@@ -21,3 +21,10 @@ test("question 171: audit summary and filters expose Needs review",()=>{
   assert.match(ui,/'needs-review':'Needs review'/);
   assert.match(ui,/Needs review: '\+auditSummary\.needs_review/);
 });
+
+
+test("question 172: Needs review is visible on each Saved Dimension row",()=>{
+  assert.match(ui,/const needsReview=dimensionAuditNeedsReview\(dimension\)/);
+  assert.match(ui,/needsReview\?"Audit: Needs review":null/);
+  assert.match(ui,/data-dim-needs-review="1"/);
+});
