@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
-test("question 282: Saved Dimensions summarizes review reason coverage states",()=>{
+test("question 283: Saved Dimensions summarizes review reason coverage states",()=>{
   assert.match(ui,/const reviewReasonCoverageCounts=\{none:0,partial:0,complete:0\}/);
   assert.match(ui,/reviewReasonCoverageCounts\[selectionCoverage\]\+\+/);
   assert.match(ui,/Coverage complete: '\+reviewReasonCoverageCounts\.complete/);
