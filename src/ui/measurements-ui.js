@@ -1590,6 +1590,9 @@
       domain_consistent:domainReviewProgressConsistent
     });
     const reviewProgressDiagnosticsSignature=dimensionReviewProgressDiagnosticsSignature(reviewProgressDiagnosticsModel);
+    const standaloneReviewDiagnosticsState=dimensionReviewProgressDiagnosticsState(items,selectedDimensionAuditIds());
+    const standaloneReviewDiagnosticsConsistent=
+      standaloneReviewDiagnosticsState.signature===reviewProgressDiagnosticsSignature;
     const legacyReviewProgressErrors=[
       !reviewReasonCountConsistent?"REVIEW_REASON_COUNT_MISMATCH":null,
       !reviewReasonListsConsistent?"REVIEW_REASON_LIST_MISMATCH":null,
@@ -1637,6 +1640,7 @@
         review_progress_diagnostics_schema:reviewProgressDiagnosticsSchema,
         review_progress_diagnostics_model:reviewProgressDiagnosticsModel,
         review_progress_diagnostics_signature:reviewProgressDiagnosticsSignature,
+        review_progress_diagnostics_state_consistent:standaloneReviewDiagnosticsConsistent,
         review_progress_diagnostics_model_consistent:reviewProgressDiagnosticsModelConsistent,
         review_progress_supported_error_codes:reviewProgressSupportedErrorCodes,
         review_progress_generated_at:new Date().toISOString(),
