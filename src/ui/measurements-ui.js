@@ -1542,6 +1542,27 @@
       domain_status:reviewProgressRuntime.domain_status,
       domain_consistent:domainReviewProgressConsistent
     });
+    const legacyReviewProgressErrors=[
+      !reviewReasonCountConsistent?"REVIEW_REASON_COUNT_MISMATCH":null,
+      !reviewReasonListsConsistent?"REVIEW_REASON_LIST_MISMATCH":null,
+      !sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null,
+      domainReviewProgressDiverged?"REVIEW_PROGRESS_DOMAIN_DIVERGENCE":null,
+      domainReviewProgressIncompatible?"REVIEW_PROGRESS_DOMAIN_INCOMPATIBLE":null
+    ].filter(Boolean);
+    const legacyReviewProgressDiagnosticsValid=
+      reviewReasonCountConsistent
+      &&reviewReasonListsConsistent
+      &&sharedReviewProgressConsistent
+      &&!domainReviewProgressDiverged
+      &&!domainReviewProgressIncompatible
+      &&legacyReviewProgressErrors.every(code=>reviewProgressSupportedErrorCodes.includes(code));
+    const legacyReviewProgressStatus=reviewReasonCount===0?"empty":legacyReviewProgressDiagnosticsValid?"ok":"error";
+    const reviewProgressDiagnosticsModelConsistent=
+      reviewProgressDiagnosticsModel.issue_count===legacyReviewProgressErrors.length
+      &&JSON.stringify(reviewProgressDiagnosticsModel.errors)===JSON.stringify(legacyReviewProgressErrors)
+      &&reviewProgressDiagnosticsModel.primary_error===(legacyReviewProgressErrors[0]??null)
+      &&reviewProgressDiagnosticsModel.valid===legacyReviewProgressDiagnosticsValid
+      &&reviewProgressDiagnosticsModel.status===legacyReviewProgressStatus;
     return {
       schema:"TubeBender.DimensionReviewQueueAudit.v1",
       ...dimensionAuditProjectContext(),
@@ -1567,6 +1588,7 @@
         review_progress_domain_consistent:domainReviewProgressConsistent,
         review_progress_diagnostics_schema:reviewProgressDiagnosticsSchema,
         review_progress_diagnostics_model:reviewProgressDiagnosticsModel,
+        review_progress_diagnostics_model_consistent:reviewProgressDiagnosticsModelConsistent,
         review_progress_supported_error_codes:reviewProgressSupportedErrorCodes,
         review_progress_generated_at:new Date().toISOString(),
         review_reason_count:reviewReasonCount,
