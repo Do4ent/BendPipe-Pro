@@ -8,7 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 310: Saved Dimensions shows all review progress errors",()=>{
-  assert.match(ui,/const reviewReasonProgressErrors=\[/);
-  assert.match(ui,/reviewReasonProgressErrors\[0\]\?\?null/);
+  assert.match(ui,/const reviewReasonProgressErrors=managerReviewDiagnosticsModel\.errors/);
+  assert.match(ui,/const reviewReasonProgressError=managerReviewDiagnosticsModel\.primary_error/);
   assert.match(ui,/reviewReasonProgressErrors\.join\(', '\)/);
 });
