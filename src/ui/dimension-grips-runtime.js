@@ -161,7 +161,12 @@
     const reason=staleDimension(dimension)&&dimension?.stale_reason?(" · "+String(dimension.stale_reason)):"";
     const sources=[...new Set((dimension?.references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean))];
     const auditCount=Array.isArray(dimension?.rebound_history)?dimension.rebound_history.length:0;
+    const audit=window.TubeBenderMeasurements??null;
+    const geometryClass=audit?.dimensionAuditGeometryClass?.(dimension)??null;
+    const reviewReasons=audit?.dimensionAuditReviewReasons?.(dimension)??[];
     const provenance=[
+      geometryClass?("Geometry: "+geometryClass):null,
+      reviewReasons.length?("Needs review: "+reviewReasons.join(", ")):null,
       sources.length?("Source: "+sources.join(", ")):null,
       dimension?.rebound_from_stale===true?("Rebind audit: "+auditCount):null
     ].filter(Boolean);
