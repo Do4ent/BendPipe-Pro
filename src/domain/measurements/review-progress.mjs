@@ -26,6 +26,7 @@ export const REVIEW_PROGRESS_SCHEMA="TubeBender.DimensionReviewProgress.v1";
 export const REVIEW_PROGRESS_SNAPSHOT_SCHEMA="TubeBender.DimensionReviewProgressSnapshot.v1";
 export const REVIEW_PROGRESS_DIAGNOSTICS_SCHEMA="TubeBender.DimensionReviewProgressDiagnostics.v1";
 export const REVIEW_PROGRESS_DIAGNOSTICS_SNAPSHOT_SCHEMA="TubeBender.DimensionReviewProgressDiagnosticsSnapshot.v1";
+export const REVIEW_PROGRESS_DIAGNOSTICS_INTEGRITY_SCHEMA="TubeBender.DimensionReviewProgressDiagnosticsIntegrity.v1";
 export const REVIEW_PROGRESS_ERROR_CODES=freeze([
   "REVIEW_REASON_COUNT_MISMATCH",
   "REVIEW_REASON_LIST_MISMATCH"
@@ -133,6 +134,39 @@ export function reviewProgressDiagnosticsSignature(diagnostics={}){
     primary_error:diagnostics.primary_error??null,
     valid:diagnostics.valid===true,
     status:String(diagnostics.status??"empty")
+  });
+}
+
+export function reviewProgressDiagnosticsIntegrity(runtime={},state_consistent=true){
+  const stateConsistent=state_consistent===true;
+  const snapshotSignatureConsistent=runtime?.snapshot_signature_consistent===true;
+  const runtimeValid=runtime?.runtime_valid===true;
+  return freeze({
+    schema:REVIEW_PROGRESS_DIAGNOSTICS_INTEGRITY_SCHEMA,
+    source:String(runtime?.source??"ui-fallback"),
+    domain_available:runtime?.domain_available===true,
+    domain_compatible:runtime?.domain_compatible===true,
+    domain_status:String(runtime?.domain_status??"unavailable"),
+    diagnostics_available:runtime?.diagnostics_available===true,
+    state_consistent:stateConsistent,
+    snapshot_signature_consistent:snapshotSignatureConsistent,
+    runtime_valid:runtimeValid,
+    valid:stateConsistent&&snapshotSignatureConsistent&&runtimeValid
+  });
+}
+
+export function reviewProgressDiagnosticsIntegritySignature(integrity={}){
+  return JSON.stringify({
+    schema:String(integrity?.schema??REVIEW_PROGRESS_DIAGNOSTICS_INTEGRITY_SCHEMA),
+    source:String(integrity?.source??"ui-fallback"),
+    domain_available:integrity?.domain_available===true,
+    domain_compatible:integrity?.domain_compatible===true,
+    domain_status:String(integrity?.domain_status??"unavailable"),
+    diagnostics_available:integrity?.diagnostics_available===true,
+    state_consistent:integrity?.state_consistent===true,
+    snapshot_signature_consistent:integrity?.snapshot_signature_consistent===true,
+    runtime_valid:integrity?.runtime_valid===true,
+    valid:integrity?.valid===true
   });
 }
 
