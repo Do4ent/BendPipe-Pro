@@ -9,6 +9,7 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 406: diagnostics runtime state carries canonical snapshot",()=>{
   const fn=ui.match(/function dimensionReviewProgressDiagnosticsRuntimeState\(items=savedDimensions\(\),selectedIds=selectedDimensionAuditIds\(\)\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/snapshot:dimensionReviewProgressDiagnosticsSnapshot\(state\.diagnostics\)/);
+  assert.match(fn,/const snapshot=dimensionReviewProgressDiagnosticsSnapshot\(state\.diagnostics\)/);
+  assert.match(fn,/snapshot,/);
   assert.match(ui,/review_progress_diagnostics_snapshot:standaloneReviewDiagnosticsRuntime\.snapshot/);
 });
