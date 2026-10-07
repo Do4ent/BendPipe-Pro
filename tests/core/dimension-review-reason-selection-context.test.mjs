@@ -9,8 +9,9 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 270: review reason audit persists selection context",()=>{
   assert.match(ui,/const selectedSet=new Set\(selectedDimensionAuditIds\(\)\)/);
-  assert.match(ui,/const selectedIds=items\.map\(dimension=>String\(dimension\?\.id\?\?""\)\)\.filter\(id=>selectedSet\.has\(id\)\)/);
+  assert.match(ui,/const dimensionIds=items\.map\(dimension=>String\(dimension\?\.id\?\?""\)\)/);
+  assert.match(ui,/const selectedIds=dimensionIds\.filter\(id=>selectedSet\.has\(id\)\)/);
   assert.match(ui,/selected_dimension_ids:selectedIds/);
   assert.match(ui,/selected_dimension_count:selectedIds\.length/);
-  assert.match(ui,/unselected_dimension_count:Math\.max\(0,items\.length-selectedIds\.length\)/);
+  assert.match(ui,/unselected_dimension_count:unselectedIds\.length/);
 });
