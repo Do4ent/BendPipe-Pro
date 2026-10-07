@@ -9,6 +9,6 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 319: review queue audit exposes compact progress status",()=>{
   const fn=ui.match(/function reviewQueueDimensionAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/review_progress_status:reviewReasonCount===0\?"empty":\(/);
-  assert.match(fn,/\?"ok":"error"\)/);
+  assert.match(fn,/review_progress_status:reviewProgressDiagnosticsModel\.status/);
+  assert.match(fn,/const legacyReviewProgressStatus=reviewReasonCount===0\?"empty":legacyReviewProgressDiagnosticsValid\?"ok":"error"/);
 });
