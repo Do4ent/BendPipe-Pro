@@ -1518,9 +1518,13 @@
       }
     }
     const reviewReasonSummary=Object.entries(reviewReasonCounts).map(([reason,count])=>reason+': '+count).join(' · ');
-    const reviewReasonButtons=Object.entries(reviewReasonCounts).map(([reason,count])=>
-      '<button data-dimension-review-reason="'+esc(reason)+'" '+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&dimensionManagerSearch===reason?'disabled':'')+'>'+esc(reason)+' ('+count+')</button>'
-    ).join('');
+    const reviewReasonSelectedIds=new Set(selectedDimensionAuditIds());
+    const reviewReasonButtons=Object.entries(reviewReasonCounts).map(([reason,count])=>{
+      const selectedCount=items.filter(dimension=>
+        reviewReasonSelectedIds.has(String(dimension?.id??""))&&dimensionAuditReviewReasons(dimension).includes(reason)
+      ).length;
+      return '<button data-dimension-review-reason="'+esc(reason)+'" '+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&dimensionManagerSearch===reason?'disabled':'')+'>'+esc(reason)+' ('+count+(selectedCount?' · selected '+selectedCount:'')+')</button>';
+    }).join('');
     const fullReviewQueueActive=dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch;
     const activeReviewReason=activeDimensionReviewReason();
     const visibleItems=filteredDimensionManagerItems(items);
