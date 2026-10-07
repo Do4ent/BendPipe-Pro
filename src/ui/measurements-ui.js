@@ -1298,6 +1298,13 @@
           reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
           (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null
         ].filter(Boolean),
+        review_progress_issue_count_consistent:
+          ((reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?1:0)
+          +((completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?1:0))
+          ===[
+            reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
+            (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null
+          ].filter(Boolean).length,
         review_progress_error_codes_valid:[
           reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
           (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null
