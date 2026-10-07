@@ -1231,6 +1231,20 @@
     ])];
   }
 
+  function dimensionReviewProgressItems(items=savedDimensions()){
+    if(!Array.isArray(items))throw new TypeError("review progress items must be an array");
+    const reviewItems=items.filter(dimension=>dimensionAuditNeedsReview(dimension))
+      .slice().sort((a,b)=>String(a?.id??"").localeCompare(String(b?.id??"")));
+    const reviewIds=new Set();
+    for(const [index,dimension] of reviewItems.entries()){
+      const id=String(dimension?.id??"").trim();
+      if(!id)throw new TypeError("review progress item "+index+" id must be non-empty");
+      if(reviewIds.has(id))throw new RangeError("duplicate review progress item id: "+id);
+      reviewIds.add(id);
+    }
+    return reviewItems;
+  }
+
   function dimensionReviewProgressFallback(reviewItems,selectedIds){
     const selectedSet=new Set(selectedIds.map(id=>String(id)));
     const reasonCounts={};
@@ -1284,16 +1298,7 @@
   }
 
   function dimensionReviewProgress(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
-    if(!Array.isArray(items))throw new TypeError("review progress items must be an array");
-    const reviewItems=items.filter(dimension=>dimensionAuditNeedsReview(dimension))
-      .slice().sort((a,b)=>String(a?.id??"").localeCompare(String(b?.id??"")));
-    const reviewIds=new Set();
-    for(const [index,dimension] of reviewItems.entries()){
-      const id=String(dimension?.id??"").trim();
-      if(!id)throw new TypeError("review progress item "+index+" id must be non-empty");
-      if(reviewIds.has(id))throw new RangeError("duplicate review progress item id: "+id);
-      reviewIds.add(id);
-    }
+    const reviewItems=dimensionReviewProgressItems(items);
     if(!Array.isArray(selectedIds))throw new TypeError("selected_ids must be an array");
     if(reviewProgressDomain?.buildReviewProgress){
       const progress=reviewProgressDomain.buildReviewProgress({
@@ -1350,14 +1355,12 @@
 
   function domainDimensionReviewProgress(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
     if(!reviewProgressDomain?.buildReviewProgress)return null;
-    if(!Array.isArray(items))throw new TypeError("review progress items must be an array");
+    const reviewItems=dimensionReviewProgressItems(items);
     if(!Array.isArray(selectedIds))throw new TypeError("selected_ids must be an array");
-    const normalized=items
-      .filter(dimension=>dimensionAuditNeedsReview(dimension))
-      .map(dimension=>({
-        id:String(dimension?.id??""),
-        reasons:dimensionAuditReviewReasons(dimension)
-      }));
+    const normalized=reviewItems.map(dimension=>({
+      id:String(dimension?.id??""),
+      reasons:dimensionAuditReviewReasons(dimension)
+    }));
     return reviewProgressDomain.buildReviewProgress({
       items:normalized,
       selected_ids:selectedIds.map(id=>String(id))
