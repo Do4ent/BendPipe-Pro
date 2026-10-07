@@ -1712,16 +1712,17 @@
     const reviewProgressDiagnosticsSignature=standaloneReviewDiagnosticsRuntime.signature;
     const standaloneReviewDiagnosticsConsistent=
       dimensionReviewProgressDiagnosticsSignature(reviewProgressDiagnosticsModel)===reviewProgressDiagnosticsSignature;
-    const reviewProgressDiagnosticsIntegrity=dimensionReviewProgressDiagnosticsIntegrity(
-      standaloneReviewDiagnosticsRuntime,
-      standaloneReviewDiagnosticsConsistent
-    );
-    const reviewProgressDiagnosticsIntegritySignature=
-      dimensionReviewProgressDiagnosticsIntegritySignature(reviewProgressDiagnosticsIntegrity);
     const reviewDiagnosticsIntegrityParity=dimensionReviewProgressDiagnosticsIntegrityParity(
       standaloneReviewDiagnosticsRuntime,
       standaloneReviewDiagnosticsConsistent
     );
+    const reviewProgressDiagnosticsIntegrity=dimensionReviewProgressDiagnosticsIntegrity(
+      standaloneReviewDiagnosticsRuntime,
+      standaloneReviewDiagnosticsConsistent,
+      reviewDiagnosticsIntegrityParity.available?reviewDiagnosticsIntegrityParity.consistent:null
+    );
+    const reviewProgressDiagnosticsIntegritySignature=
+      dimensionReviewProgressDiagnosticsIntegritySignature(reviewProgressDiagnosticsIntegrity);
     const legacyReviewProgressErrors=[
       !reviewReasonCountConsistent?"REVIEW_REASON_COUNT_MISMATCH":null,
       !reviewReasonListsConsistent?"REVIEW_REASON_LIST_MISMATCH":null,
