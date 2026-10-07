@@ -1249,7 +1249,11 @@
     if(!target)return null;
     const items=savedDimensions().filter(dimension=>dimensionAuditReviewReasons(dimension).includes(target));
     const selectedSet=new Set(selectedDimensionAuditIds());
-    const selectedIds=items.map(dimension=>String(dimension?.id??"")).filter(id=>selectedSet.has(id));
+    const dimensionIds=items.map(dimension=>String(dimension?.id??""));
+    const selectedIds=dimensionIds.filter(id=>selectedSet.has(id));
+    const unselectedIds=dimensionIds.filter(id=>!selectedSet.has(id));
+    const selectedPercent=dimensionIds.length?Math.round(selectedIds.length/dimensionIds.length*100):0;
+    const selectionCoverage=selectedIds.length===0?"none":selectedIds.length===dimensionIds.length?"complete":"partial";
     return {
       schema:"TubeBender.DimensionReviewReasonAudit.v1",
       ...dimensionAuditProjectContext(),
@@ -1257,10 +1261,13 @@
         filter:"needs-review",
         sort:"audit",
         review_reason:target,
-        dimension_ids:items.map(dimension=>String(dimension?.id??"")),
+        dimension_ids:dimensionIds,
         selected_dimension_ids:selectedIds,
+        unselected_dimension_ids:unselectedIds,
         selected_dimension_count:selectedIds.length,
-        unselected_dimension_count:Math.max(0,items.length-selectedIds.length)
+        unselected_dimension_count:unselectedIds.length,
+        selected_percent:selectedPercent,
+        selection_coverage:selectionCoverage
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
