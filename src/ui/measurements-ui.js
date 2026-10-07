@@ -1231,10 +1231,13 @@
       &&typeof reviewProgressDomain.buildReviewProgressDiagnostics==="function"
       &&typeof reviewProgressDomain.reviewProgressDiagnosticsSignature==="function"
       &&typeof reviewProgressDomain.reviewProgressDiagnosticsSnapshot==="function"
+      &&typeof reviewProgressDomain.reviewProgressDiagnosticsIntegrity==="function"
+      &&typeof reviewProgressDomain.reviewProgressDiagnosticsIntegritySignature==="function"
       &&reviewProgressDomain.REVIEW_PROGRESS_SCHEMA==="TubeBender.DimensionReviewProgress.v1"
       &&reviewProgressDomain.REVIEW_PROGRESS_SNAPSHOT_SCHEMA==="TubeBender.DimensionReviewProgressSnapshot.v1"
       &&reviewProgressDomain.REVIEW_PROGRESS_DIAGNOSTICS_SCHEMA==="TubeBender.DimensionReviewProgressDiagnostics.v1"
-      &&reviewProgressDomain.REVIEW_PROGRESS_DIAGNOSTICS_SNAPSHOT_SCHEMA==="TubeBender.DimensionReviewProgressDiagnosticsSnapshot.v1";
+      &&reviewProgressDomain.REVIEW_PROGRESS_DIAGNOSTICS_SNAPSHOT_SCHEMA==="TubeBender.DimensionReviewProgressDiagnosticsSnapshot.v1"
+      &&reviewProgressDomain.REVIEW_PROGRESS_DIAGNOSTICS_INTEGRITY_SCHEMA==="TubeBender.DimensionReviewProgressDiagnosticsIntegrity.v1";
     return {
       available,
       compatible,
