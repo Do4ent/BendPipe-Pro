@@ -1230,13 +1230,25 @@
         reviewReasonCounts[key]=(reviewReasonCounts[key]??0)+1;
       }
     }
+    const dimensionIds=items.map(dimension=>String(dimension?.id??""));
+    const selectedSet=new Set(selectedDimensionAuditIds());
+    const selectedIds=dimensionIds.filter(id=>selectedSet.has(id));
+    const unselectedIds=dimensionIds.filter(id=>!selectedSet.has(id));
+    const selectedPercent=dimensionIds.length?Math.round(selectedIds.length/dimensionIds.length*100):0;
+    const selectionCoverage=selectedIds.length===0?"none":selectedIds.length===dimensionIds.length?"complete":"partial";
     return {
       schema:"TubeBender.DimensionReviewQueueAudit.v1",
       ...dimensionAuditProjectContext(),
       queue:{
         filter:"needs-review",
         sort:"audit",
-        dimension_ids:items.map(dimension=>String(dimension?.id??"")),
+        dimension_ids:dimensionIds,
+        selected_dimension_ids:selectedIds,
+        unselected_dimension_ids:unselectedIds,
+        selected_dimension_count:selectedIds.length,
+        unselected_dimension_count:unselectedIds.length,
+        selected_percent:selectedPercent,
+        selection_coverage:selectionCoverage,
         review_reason_counts:reviewReasonCounts
       },
       dimension_count:items.length,
