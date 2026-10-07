@@ -95,6 +95,7 @@
   function editingApi(){return window.TubeBenderEditing??null;}
   function gizmoApi(){return window.TubeBenderTransformGizmo??null;}
   function geometryGripsApi(){return window.TubeBenderGeometryGrips??null;}
+  function dimensionGripsApi(){return window.TubeBenderDimensionGrips??null;}
   function lockAllowed(action,{notify=true}={}){
     const api=lockApi();
     return typeof api?.canSelection==="function"?api.canSelection(action,{notify}):true;
@@ -1946,6 +1947,11 @@
   }
   function selectionCandidatesAtEvent(event,{direct=false}={}){
     const map=new Map();
+    const dimensionCandidate=dimensionGripsApi()?.selectionCandidateAtEvent?.(event)??null;
+    if(dimensionCandidate?.dimensionId){
+      const key=dimensionKey(dimensionCandidate.dimensionId);
+      map.set(key,{key,entry:{kind:"dimension",dimensionId:String(dimensionCandidate.dimensionId)},distance:Number(dimensionCandidate.distance)||0,dimensionPart:dimensionCandidate.part??null});
+    }
     const sectionCandidates=window.TubeBenderSectionView?.selectionCandidatesAtEvent?.(event)??[];
     for(const record of sectionCandidates){
       const key=sectionDerivedKey(record.id);
@@ -1998,6 +2004,13 @@
     if(entry.kind==="group")return "Group · "+String(groupsApi()?.groupById?.(entry.groupId)?.name??entry.groupId);
     if(entry.kind==="project-assembly")return "Assembly · "+String(assembliesApi()?.assemblyById?.(entry.assemblyId)?.name??entry.assemblyId);
     if(entry.kind==="row")return "Tube element · #"+(Number(entry.rowIndex)+1);
+    if(entry.kind==="dimension"){
+      const dimension=(project()?.engineering_dimensions??[]).find(item=>String(item?.id)===String(entry.dimensionId));
+      const audit=window.TubeBenderMeasurements??null;
+      const geometryClass=audit?.dimensionAuditGeometryClass?.(dimension)??"Unknown";
+      const needsReview=audit?.dimensionAuditNeedsReview?.(dimension)===true;
+      return "Dimension · "+String(dimension?.note??entry.dimensionId)+" · "+geometryClass+(needsReview?" · ⚠ Needs review":"");
+    }
     if(entry.kind==="section-derived"){
       const record=window.TubeBenderSectionView?.derivedSelectionById?.(entry.derivedId);
       return "Section-derived · "+String(record?.section_face??entry.derivedId);
