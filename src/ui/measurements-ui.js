@@ -942,7 +942,9 @@
       const latestRebind=rebindCount?dimension.rebound_history[rebindCount-1]:null;
       const previousSources=latestRebind?[...new Set((latestRebind.previous_references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean))]:[];
       const sourceObjects=[...new Set((dimension.references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean))];
+      const geometryClass=dimensionAuditGeometryClass(dimension);
       const provenanceBits=[
+        "Geometry: "+geometryClass,
         stale&&dimension.stale_reason?("Reason: "+String(dimension.stale_reason)):null,
         sourceObjects.length?("Source: "+sourceObjects.join(", ")):null,
         dimension.rebound_from_stale===true?("Rebound · audit "+rebindCount):null,
