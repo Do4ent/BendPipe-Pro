@@ -10,7 +10,7 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 219: Dimension audit download filenames include generated timestamp",()=>{
   assert.match(ui,/function dimensionAuditFilenameStamp\(value=new Date\(\)\)/);
   assert.match(ui,/value\.toISOString\(\)\.replace\(\/\[:\.\]\/g,"-"\)/);
-  assert.match(ui,/dimension-audit-view-"\+dimensionAuditFilenameStamp/);
+  assert.match(ui,/dimension-audit-view-"\+filterName\+"-"\+snapshot\.dimension_count\+"-"\+dimensionAuditFilenameStamp/);
   assert.match(ui,/dimension-audit-"\+dimensionAuditFilenameStamp/);
 });
 
