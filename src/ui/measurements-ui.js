@@ -1789,6 +1789,7 @@
         review_progress_diagnostics_snapshot:standaloneReviewDiagnosticsRuntime.snapshot,
         review_progress_diagnostics_snapshot_signature_consistent:standaloneReviewDiagnosticsRuntime.snapshot_signature_consistent,
         review_progress_diagnostics_runtime_valid:standaloneReviewDiagnosticsRuntime.runtime_valid,
+        review_progress_diagnostics_integrity_schema:reviewProgressDiagnosticsIntegrity.schema,
         review_progress_diagnostics_integrity:reviewProgressDiagnosticsIntegrity,
         review_progress_diagnostics_integrity_signature:reviewProgressDiagnosticsIntegritySignature,
         review_progress_diagnostics_integrity_parity:reviewDiagnosticsIntegrityParity,
