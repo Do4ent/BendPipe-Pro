@@ -987,7 +987,8 @@
       const previousSources=latestRebind?[...new Set((latestRebind.previous_references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean))]:[];
       const sourceObjects=[...new Set((dimension.references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean))];
       const geometryClass=dimensionAuditGeometryClass(dimension);
-      const needsReview=dimensionAuditNeedsReview(dimension);
+      const reviewReasons=dimensionAuditReviewReasons(dimension);
+      const needsReview=reviewReasons.length>0;
       const fittedStats=dimensionFittedAuditStats(dimension);
       const fittedText=fittedStats
         ?("Fitted refs: "+fittedStats.reference_count+
@@ -997,6 +998,7 @@
       const provenanceBits=[
         "Geometry: "+geometryClass,
         needsReview?"Audit: Needs review":null,
+        reviewReasons.length?("Review reasons: "+reviewReasons.join(", ")):null,
         fittedText,
         stale&&dimension.stale_reason?("Reason: "+String(dimension.stale_reason)):null,
         sourceObjects.length?("Source: "+sourceObjects.join(", ")):null,
