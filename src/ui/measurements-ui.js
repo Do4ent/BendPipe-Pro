@@ -1330,7 +1330,8 @@
       '</div>'+
       '<div class="tb-measure-actions" data-dimension-audit-sort>'+
       '<button data-dimension-sort="project" '+(dimensionManagerSort==="project"?'disabled':'')+'>Project order</button>'+
-      '<button data-dimension-sort="audit" '+(dimensionManagerSort==="audit"?'disabled':'')+'>Audit priority</button></div>'+
+      '<button data-dimension-sort="audit" '+(dimensionManagerSort==="audit"?'disabled':'')+'>Audit priority</button>'+
+      '<button data-dimension-review-queue>Review queue</button></div>'+
       '<div class="tb-measure-actions" data-dimension-audit-search>'+
       '<input data-dimension-search value="'+esc(dimensionManagerSearch)+'" placeholder="Search ID, kind, source, stale reason">'+
       '<button data-dimension-search-apply>Search</button><button data-dimension-search-clear '+(!dimensionManagerSearch?'disabled':'')+'>Clear</button>'+
@@ -1389,6 +1390,9 @@
     });
     body.querySelectorAll("[data-dimension-sort]").forEach(button=>{
       button.onclick=()=>{dimensionManagerFocusId="";dimensionManagerSort=button.dataset.dimensionSort||"project";render();};
+    });
+    body.querySelector("[data-dimension-review-queue]")?.addEventListener("click",()=>{
+      dimensionManagerFocusId="";dimensionManagerFilter="needs-review";dimensionManagerSort="audit";dimensionManagerSearch="";render();
     });
     const searchInput=body.querySelector("[data-dimension-search]");
     body.querySelector("[data-dimension-search-apply]")?.addEventListener("click",()=>{
