@@ -1532,6 +1532,16 @@
       &&sharedReviewProgress.completion_state===reviewReasonCompletionState
       &&JSON.stringify(sharedReviewProgress.reason_counts)===JSON.stringify(reviewReasonCounts)
       &&JSON.stringify(sharedReviewProgress.reason_selection)===JSON.stringify(reviewReasonSelection);
+    const reviewReasonCountConsistent=reviewReasonCoverageSummary.complete+reviewReasonPendingCount===reviewReasonCount;
+    const reviewReasonListsConsistent=completedReviewReasons.length===reviewReasonCoverageSummary.complete&&pendingReviewReasons.length===reviewReasonPendingCount;
+    const reviewProgressDiagnosticsModel=dimensionReviewProgressDiagnostics({
+      reason_count:reviewReasonCount,
+      count_consistent:reviewReasonCountConsistent,
+      lists_consistent:reviewReasonListsConsistent,
+      model_consistent:sharedReviewProgressConsistent,
+      domain_status:reviewProgressRuntime.domain_status,
+      domain_consistent:domainReviewProgressConsistent
+    });
     return {
       schema:"TubeBender.DimensionReviewQueueAudit.v1",
       ...dimensionAuditProjectContext(),
@@ -1556,6 +1566,7 @@
         review_progress_domain_comparable:domainReviewProgressComparable,
         review_progress_domain_consistent:domainReviewProgressConsistent,
         review_progress_diagnostics_schema:reviewProgressDiagnosticsSchema,
+        review_progress_diagnostics_model:reviewProgressDiagnosticsModel,
         review_progress_supported_error_codes:reviewProgressSupportedErrorCodes,
         review_progress_generated_at:new Date().toISOString(),
         review_reason_count:reviewReasonCount,
