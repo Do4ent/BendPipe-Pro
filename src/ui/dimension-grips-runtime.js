@@ -419,7 +419,7 @@
       status.textContent="Stale · "+String(dimension.stale_reason??"Section-derived reference changed");
       const apply=box.querySelector("[data-dim-edit-apply]");if(apply){apply.disabled=true;apply.title="Используйте явный Rebind в панели Измерения";}
     }
-    const sync=()=>{if(stale)return;input.disabled=mode.value!=="Driving";input.title=input.disabled?"Reference Dimension не изменяет геометрию. Сначала переключите Mode на Driving.":"Введите число или формулу";};sync();mode.onchange=sync;
+    const sync=()=>{if(stale||locked)return;input.disabled=mode.value!=="Driving";input.title=input.disabled?"Reference Dimension не изменяет геометрию. Сначала переключите Mode на Driving.":"Введите число или формулу";};sync();mode.onchange=sync;
     box.querySelector("[data-dim-edit-close]").onclick=closeEditor;
     box.querySelector("[data-dim-edit-apply]").onclick=()=>{
       const id=String(dimension.id),nextMode=mode.value;
