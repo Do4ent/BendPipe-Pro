@@ -11,6 +11,6 @@ test("question 394: review queue audit persists deterministic diagnostics signat
   assert.match(ui,/function dimensionReviewProgressDiagnosticsSignature\(diagnostics=\{\}\)/);
   assert.match(ui,/reviewProgressDomain\?\.reviewProgressDiagnosticsSignature/);
   const fn=ui.match(/function reviewQueueDimensionAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/const reviewProgressDiagnosticsSignature=dimensionReviewProgressDiagnosticsSignature\(reviewProgressDiagnosticsModel\)/);
+  assert.match(fn,/const reviewProgressDiagnosticsSignature=standaloneReviewDiagnosticsRuntime\.signature/);
   assert.match(fn,/review_progress_diagnostics_signature:reviewProgressDiagnosticsSignature/);
 });
