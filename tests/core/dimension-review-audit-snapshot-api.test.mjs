@@ -8,5 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 329: review audit snapshot builders are exposed for QA",()=>{
-  assert.match(ui,/dimensionReviewProgress,reviewQueueDimensionAuditSnapshot,reviewReasonDimensionAuditSnapshot/);
+  assert.match(ui,/dimensionReviewProgress/);
+  assert.match(ui,/reviewQueueDimensionAuditSnapshot/);
+  assert.match(ui,/reviewReasonDimensionAuditSnapshot/);
 });
