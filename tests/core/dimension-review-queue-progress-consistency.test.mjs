@@ -9,5 +9,6 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 302: review queue audit validates review reason progress counts",()=>{
   const fn=ui.match(/function reviewQueueDimensionAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/review_reason_count_consistent:reviewReasonCoverageSummary\.complete\+reviewReasonPendingCount===reviewReasonCount/);
+  assert.match(fn,/const reviewReasonCountConsistent=reviewReasonCoverageSummary\.complete\+reviewReasonPendingCount===reviewReasonCount/);
+  assert.match(fn,/review_reason_count_consistent:reviewReasonCountConsistent/);
 });
