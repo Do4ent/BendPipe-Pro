@@ -9,5 +9,5 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 312: review progress diagnostics have their own schema",()=>{
   const fn=ui.match(/function reviewQueueDimensionAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/review_progress_diagnostics_schema:"TubeBender\.DimensionReviewProgressDiagnostics\.v1"/);
+  assert.match(fn,/review_progress_diagnostics_schema:reviewProgressDiagnosticsSchema/);
 });
