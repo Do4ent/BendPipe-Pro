@@ -698,13 +698,22 @@
       rebound_history:clone(Array.isArray(dimension?.rebound_history)?dimension.rebound_history:[])
     };
   }
+  function dimensionAuditGeometryClass(dimension){
+    const statuses=(dimension?.references??[]).map(ref=>String(ref?.geometry_status??"").trim()).filter(Boolean);
+    if(statuses.includes("Fitted"))return "Fitted";
+    if(statuses.includes("SectionDerived"))return "SectionDerived";
+    if(statuses.length&&statuses.every(status=>status==="Exact"))return "Exact";
+    return "Unknown";
+  }
   function dimensionAuditSummary(items=savedDimensions()){
-    const summary={total:items.length,stale:0,rebound:0,section_derived:0,visible:0,hidden:0,by_status:{},by_mode:{}};
+    const summary={total:items.length,stale:0,rebound:0,section_derived:0,visible:0,hidden:0,by_status:{},by_mode:{},by_geometry_status:{}};
     for(const dimension of items){
       const status=String(dimension?.status??"Unknown");
       const mode=String(dimension?.mode??"Unknown");
+      const geometryStatus=dimensionAuditGeometryClass(dimension);
       summary.by_status[status]=(summary.by_status[status]??0)+1;
       summary.by_mode[mode]=(summary.by_mode[mode]??0)+1;
+      summary.by_geometry_status[geometryStatus]=(summary.by_geometry_status[geometryStatus]??0)+1;
       if(status==="Stale")summary.stale++;
       if(dimension?.rebound_from_stale===true)summary.rebound++;
       if(isSectionDerivedDimension(dimension))summary.section_derived++;
@@ -913,6 +922,7 @@
     const auditSummary=dimensionAuditSummary(items);
     const statusSummary=Object.entries(auditSummary.by_status).map(([status,count])=>status+': '+count).join(' · ');
     const modeSummary=Object.entries(auditSummary.by_mode).map(([mode,count])=>mode+': '+count).join(' · ');
+    const geometrySummary=Object.entries(auditSummary.by_geometry_status).map(([status,count])=>'Geometry '+status+': '+count).join(' · ');
     const visibleItems=filteredDimensionManagerItems(items);
     const rows=visibleItems.map(dimension=>{
       const stale=String(dimension.status)==="Stale",visible=dimension.visible!==false;
@@ -955,7 +965,7 @@
       '<button data-dimension-view-reset '+(dimensionManagerFilter==="all"&&dimensionManagerSort==="project"&&!dimensionManagerSearch?'disabled':'')+'>Reset view</button></div>';
     return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div>'+
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
-      '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Visible: '+auditSummary.visible+' · Hidden: '+auditSummary.hidden+' · Section-derived: '+auditSummary.section_derived+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+'</div>'+
+      '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Visible: '+auditSummary.visible+' · Hidden: '+auditSummary.hidden+' · Section-derived: '+auditSummary.section_derived+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+(geometrySummary?' · '+esc(geometrySummary):'')+'</div>'+
       '<div class="tb-measure-note" data-dimension-visible-count>Showing '+visibleItems.length+' of '+items.length+'</div>'+
       filters+
       '<div class="tb-measure-actions"><button data-select-visible-dimension-audit>Select visible results</button><button data-show-dimension-audit>Show results</button><button data-show-select-dimension-audit>Show & Select results</button><button data-hide-dimension-audit>Hide results</button><button data-copy-visible-dimension-audits>Copy visible audit JSON</button><button data-copy-all-dimension-audits>Copy all audit JSON</button></div></div>'+rows;
@@ -1168,7 +1178,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
+      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,dimensionAuditGeometryClass,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
