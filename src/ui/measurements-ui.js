@@ -1285,6 +1285,7 @@
   }
 
   function dimensionReviewProgressSignature(progress){
+    if(reviewProgressDomain?.reviewProgressSignature)return reviewProgressDomain.reviewProgressSignature(progress??{});
     const value=progress??{};
     return JSON.stringify({
       reason_count:Number(value.reason_count??0),
