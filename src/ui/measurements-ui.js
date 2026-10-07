@@ -894,9 +894,12 @@
   }
 
   function dimensionSearchText(dimension){
-    const sources=(dimension?.references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean);
+    const refs=dimension?.references??[];
+    const sources=refs.map(ref=>String(ref?.object_id??"")).filter(Boolean);
+    const geometryStatuses=refs.map(ref=>String(ref?.geometry_status??"")).filter(Boolean);
     return [
-      dimension?.id,dimension?.note,dimension?.kind,dimension?.mode,dimension?.status,dimension?.stale_reason,...sources
+      dimension?.id,dimension?.note,dimension?.kind,dimension?.mode,dimension?.status,dimension?.stale_reason,
+      dimensionAuditGeometryClass(dimension),...geometryStatuses,...sources
     ].filter(value=>value!=null).join(" ").toLowerCase();
   }
   function filteredDimensionManagerItems(items=savedDimensions()){
