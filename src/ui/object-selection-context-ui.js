@@ -1165,6 +1165,12 @@
         :contextBlockedReason(action,profile,entries);
       setContextButtonAvailability(menu,action,{allowed,reason,visible:hasSelection});
     }
+    if(profile.type==="dimension"){
+      for(const action of ["edit-object","transform-object","hide","show","isolate","transparent","delete"]){
+        const button=menu.querySelector('[data-object-action="'+action+'"]');
+        if(button)button.hidden=true;
+      }
+    }
     const dimensionAuditFocus=menu.querySelector('[data-object-action="dimension-audit-focus"]');
     if(dimensionAuditFocus){
       const dimensionOnly=entries.length===1&&entries[0]?.kind==="dimension";
