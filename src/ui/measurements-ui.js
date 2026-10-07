@@ -1,7 +1,8 @@
 (()=>{
   const GEOMETRY_URL="__TB_GEOMETRY_MEASUREMENTS_MODULE_URL__";
   const DIMENSIONS_URL="__TB_DIMENSIONS_MODULE_URL__";
-  let geometry=null,dimensions=null,installed=false,panel=null,resultsPanel=null,button=null,lastResult=null,lastSelectionKey="",poll=null,formulaMeasurementValue=null,dimensionManagerFilter="all",dimensionManagerSort="project",dimensionManagerSearch="",dimensionManagerFocusId="",dimensionManagerStateProjectId=null;
+  const REVIEW_PROGRESS_URL="__TB_REVIEW_PROGRESS_MODULE_URL__";
+  let geometry=null,dimensions=null,reviewProgressDomain=null,installed=false,panel=null,resultsPanel=null,button=null,lastResult=null,lastSelectionKey="",poll=null,formulaMeasurementValue=null,dimensionManagerFilter="all",dimensionManagerSort="project",dimensionManagerSearch="",dimensionManagerFocusId="",dimensionManagerStateProjectId=null;
   const quick={active:false,points:[],candidates:[],current:null,result:null};
 
   const $=(s,r=document)=>r.querySelector(s);
@@ -2135,7 +2136,7 @@
   }
   async function install(){
     if(installed)return;installed=true;
-    try{[geometry,dimensions]=await Promise.all([import(GEOMETRY_URL),import(DIMENSIONS_URL)]);}
+    try{[geometry,dimensions,reviewProgressDomain]=await Promise.all([import(GEOMETRY_URL),import(DIMENSIONS_URL),import(REVIEW_PROGRESS_URL)]);}
     catch(error){console.error("Measurements UI failed to load",error);return;}
     ensureShell();
     const update=()=>{
