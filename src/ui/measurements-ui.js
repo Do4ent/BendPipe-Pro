@@ -1335,6 +1335,9 @@
   }
 
   function dimensionReviewProgressDiagnosticsIntegritySignature(integrity={}){
+    if(typeof reviewProgressDomain?.reviewProgressDiagnosticsIntegritySignature==="function"){
+      return reviewProgressDomain.reviewProgressDiagnosticsIntegritySignature(integrity);
+    }
     return JSON.stringify({
       schema:String(integrity?.schema??"TubeBender.DimensionReviewProgressDiagnosticsIntegrity.v1"),
       source:String(integrity?.source??"ui-fallback"),
@@ -1369,6 +1372,9 @@
   }
 
   function dimensionReviewProgressDiagnosticsIntegrity(runtime,stateConsistent=true){
+    if(typeof reviewProgressDomain?.reviewProgressDiagnosticsIntegrity==="function"){
+      return reviewProgressDomain.reviewProgressDiagnosticsIntegrity(runtime??{},stateConsistent);
+    }
     const value=runtime??{};
     return {
       schema:"TubeBender.DimensionReviewProgressDiagnosticsIntegrity.v1",
