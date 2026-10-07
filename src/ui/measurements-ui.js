@@ -1237,7 +1237,7 @@
     const selectedPercent=dimensionIds.length?Math.round(selectedIds.length/dimensionIds.length*100):0;
     const selectionCoverage=selectedIds.length===0?"none":selectedIds.length===dimensionIds.length?"complete":"partial";
     const reviewReasonSelection={};
-    for(const [reason,count] of Object.entries(reviewReasonCounts)){
+    for(const [reason,count] of Object.entries(reviewReasonCounts).sort(([a],[b])=>String(a).localeCompare(String(b)))){
       const reasonIds=items
         .filter(dimension=>dimensionAuditReviewReasons(dimension).includes(reason))
         .map(dimension=>String(dimension?.id??""));
@@ -1554,9 +1554,10 @@
         const key=String(reason);reviewReasonCounts[key]=(reviewReasonCounts[key]??0)+1;
       }
     }
-    const reviewReasonSummary=Object.entries(reviewReasonCounts).map(([reason,count])=>reason+': '+count).join(' · ');
+    const reviewReasonEntries=Object.entries(reviewReasonCounts).sort(([a],[b])=>String(a).localeCompare(String(b)));
+    const reviewReasonSummary=reviewReasonEntries.map(([reason,count])=>reason+': '+count).join(' · ');
     const reviewReasonSelectedIds=new Set(selectedDimensionAuditIds());
-    const reviewReasonButtons=Object.entries(reviewReasonCounts).map(([reason,count])=>{
+    const reviewReasonButtons=reviewReasonEntries.map(([reason,count])=>{
       const selectedCount=items.filter(dimension=>
         reviewReasonSelectedIds.has(String(dimension?.id??""))&&dimensionAuditReviewReasons(dimension).includes(reason)
       ).length;
