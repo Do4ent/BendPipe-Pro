@@ -9,5 +9,5 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 300: review queue audit versions review progress state",()=>{
   const fn=ui.match(/function reviewQueueDimensionAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/review_progress_schema:"TubeBender\.DimensionReviewProgress\.v1"/);
+  assert.match(fn,/review_progress_schema:reviewProgressSchema/);
 });
