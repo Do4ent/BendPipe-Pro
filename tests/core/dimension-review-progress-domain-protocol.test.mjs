@@ -20,7 +20,8 @@ test("question 367: review progress domain protocol exports are stable and immut
     "REVIEW_REASON_COUNT_MISMATCH",
     "REVIEW_REASON_LIST_MISMATCH",
     "REVIEW_PROGRESS_MODEL_DIVERGENCE",
-    "REVIEW_PROGRESS_DOMAIN_DIVERGENCE"
+    "REVIEW_PROGRESS_DOMAIN_DIVERGENCE",
+    "REVIEW_PROGRESS_DOMAIN_INCOMPATIBLE"
   ]);
   assert.equal(Object.isFrozen(REVIEW_PROGRESS_ERROR_CODES),true);
   assert.equal(Object.isFrozen(REVIEW_PROGRESS_AUDIT_ERROR_CODES),true);
