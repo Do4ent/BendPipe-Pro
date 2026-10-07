@@ -9,7 +9,7 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 416: review diagnostics integrity has deterministic signature",()=>{
   assert.match(ui,/function dimensionReviewProgressDiagnosticsIntegritySignature\(integrity=\{\}\)/);
-  assert.match(ui,/review_progress_diagnostics_integrity_signature:dimensionReviewProgressDiagnosticsIntegritySignature/);
+  assert.match(ui,/review_progress_diagnostics_integrity_signature:reviewProgressDiagnosticsIntegritySignature/);
   assert.match(ui,/data-review-diagnostics-integrity-signature="'\+esc\(managerReviewDiagnosticsIntegritySignature\)\+'"/);
   assert.match(ui,/currentReviewProgressDiagnosticsIntegritySignature:/);
 });
