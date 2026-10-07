@@ -11,6 +11,8 @@ test("question 326: shared model divergence participates in all audit diagnostic
   const fn=ui.match(/function reviewQueueDimensionAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(fn,/\+\(!sharedReviewProgressConsistent\?1:0\)/);
   assert.match(fn,/!sharedReviewProgressConsistent\?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null/);
-  assert.match(fn,/&&sharedReviewProgressConsistent\)\?"ok":"error"/);
+  assert.match(fn,/&&sharedReviewProgressConsistent/);
+  assert.match(fn,/&&domainReviewProgressConsistent/);
+  assert.match(fn,/\?"ok":"error"/);
   assert.match(fn,/REVIEW_PROGRESS_MODEL_DIVERGENCE":null/);
 });
