@@ -412,6 +412,7 @@
       const dimension=(p?.engineering_dimensions??[]).find(item=>String(item?.id)===String(entry.dimensionId))??null;
       const audit=window.TubeBenderMeasurements??null;
       const geometryClass=audit?.dimensionAuditGeometryClass?.(dimension)??null;
+      const referenceStatusCounts=audit?.dimensionReferenceStatusCounts?.(dimension)??null;
       const reviewReasons=audit?.dimensionAuditReviewReasons?.(dimension)??[];
       const fittedStats=audit?.dimensionFittedAuditStats?.(dimension)??null;
       const refs=(dimension?.references??[]).map((ref,index)=>({
@@ -436,6 +437,7 @@
         ]},
         {name:"Trusted geometry audit",rows:[
           ["Geometry class",geometryClass],
+          ["Reference provenance counts",referenceStatusCounts],
           ["Needs review",reviewReasons.length>0],
           ["Review reasons",reviewReasons],
           ["Fitted reference count",fittedStats?.reference_count],
