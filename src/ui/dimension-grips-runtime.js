@@ -7,6 +7,7 @@
   const screenSpace=()=>window.TubeBenderScreenSpace??null;
   const interaction=()=>window.TubeBenderInteractionPriority??null;
   const project=()=>{try{return eng()?.activeProject?.()??null;}catch{return null;}};
+  const readonly=()=>{try{return eng()?.readonly?.()===true;}catch{return false;}};
   const canvas=()=>document.getElementById("threeCanvas");
   const clone=v=>v==null?v:structuredClone(v);
   const scale=()=>typeof GEOM_SCALE==="number"&&Number.isFinite(GEOM_SCALE)&&Math.abs(GEOM_SCALE)>1e-12?GEOM_SCALE:1;
@@ -236,6 +237,7 @@
     p.engineering_dimensions[index]=clone(next);return true;
   }
   function commit(id,label,mutator){
+    if(readonly()){toast("Проект открыт только для просмотра");return false;}
     const current=dimensionById(id);if(!current)return false;
     const fn=eng()?.modelCommand,run=()=>{const next=mutator(clone(current));if(!next)return false;return replaceDimensionObject(id,next);};
     let ok;try{ok=typeof fn==="function"?fn(label,run):run();}catch(error){toast(error?.message??error);return false;}
@@ -259,6 +261,7 @@
     };
   }
   function beginDrag(event,picked){
+    if(readonly()){toast("Проект открыт только для просмотра");return false;}
     const data=picked?.data,dimension=dimensionById(data?.dimensionId);if(!dimension||!data?.dimensionGrip)return false;
     if(staleDimension(dimension)&&data.dimensionGrip==="reference"){
       toast("Stale Dimension: reference можно изменить только через явный Rebind");
@@ -317,6 +320,7 @@
     suppressUntil=Date.now()+120;rebuild();event?.preventDefault?.();event?.stopPropagation?.();event?.stopImmediatePropagation?.();return ok;
   }
   function setDimensionVisible(id,visible){
+    if(readonly()){toast("Проект открыт только для просмотра");return false;}
     const dimension=dimensionById(id),p=project();if(!dimension||!p)return false;
     const run=()=>replaceDimensionObject(id,{...clone(dimension),visible:visible===true});
     const command=eng()?.modelCommand;
@@ -337,6 +341,7 @@
     rebuild();dispatch(id,visible?"show-dimension":"hide-dimension");return true;
   }
   function deleteDimension(id){
+    if(readonly()){toast("Проект открыт только для просмотра");return false;}
     const dimension=dimensionById(id),p=project();if(!dimension||!p)return false;
     const run=()=>{
       const before=saved(),next=before.filter(item=>String(item?.id)!==String(id));
@@ -404,8 +409,12 @@
     document.body.appendChild(box);editor=box;box.style.left=Math.min(event.clientX+8,window.innerWidth-300)+"px";box.style.top=Math.min(event.clientY+8,window.innerHeight-145)+"px";
     const mode=box.querySelector("[data-dim-edit-mode]"),input=box.querySelector("[data-dim-edit-value]"),status=box.querySelector("[data-dim-edit-status]");
     mode.value=dimension.mode??"Reference";input.value=dimension.mode==="Driving"?String(dimension.target_formula??dimension.target_value??dimension.value??""):String(dimension.value??"");status.textContent=String(dimension.status??"");
-    const stale=staleDimension(dimension);
-    if(stale){
+    const stale=staleDimension(dimension),locked=readonly();
+    if(locked){
+      mode.disabled=true;input.disabled=true;
+      status.textContent="Read-only · "+String(dimension.status??"");
+      const apply=box.querySelector("[data-dim-edit-apply]");if(apply){apply.disabled=true;apply.title="Проект открыт только для просмотра";}
+    }else if(stale){
       mode.disabled=true;input.disabled=true;
       status.textContent="Stale · "+String(dimension.stale_reason??"Section-derived reference changed");
       const apply=box.querySelector("[data-dim-edit-apply]");if(apply){apply.disabled=true;apply.title="Используйте явный Rebind в панели Измерения";}
