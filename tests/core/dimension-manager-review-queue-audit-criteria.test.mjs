@@ -12,5 +12,6 @@ test("question 258: Review queue audit records reproducible queue criteria and i
   assert.match(fn,/queue:\{/);
   assert.match(fn,/filter:"needs-review"/);
   assert.match(fn,/sort:"audit"/);
-  assert.match(fn,/dimension_ids:items\.map/);
+  assert.match(fn,/const dimensionIds=items\.map/);
+  assert.match(fn,/dimension_ids:dimensionIds/);
 });
