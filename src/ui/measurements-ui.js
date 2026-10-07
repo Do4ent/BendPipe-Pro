@@ -1903,14 +1903,12 @@
       &&sharedManagerReviewProgress.complete_percent===reviewReasonCompletePercent
       &&sharedManagerReviewProgress.completion_state===reviewReasonCompletionState
       &&sharedManagerReviewProgress.status===(reviewReasonEntries.length===0?"empty":reviewReasonProgressValid?"ok":"error");
-    const reviewReasonProgressSignature=dimensionReviewProgressSignature(sharedManagerReviewProgress);
-    const managerReviewProgressParity=dimensionReviewProgressParity(items,selectedDimensionAuditIds());
-    const domainManagerReviewProgressAvailable=managerReviewProgressParity.available;
-    const domainManagerReviewProgressConsistent=managerReviewProgressParity.consistent;
+    const managerReviewProgressRuntime=dimensionReviewProgressRuntimeState(items,selectedDimensionAuditIds());
+    const domainManagerReviewProgressAvailable=managerReviewProgressRuntime.domain_available;
+    const domainManagerReviewProgressConsistent=managerReviewProgressRuntime.domain_consistent;
     const domainManagerReviewProgressDiverged=domainManagerReviewProgressAvailable&&domainManagerReviewProgressConsistent===false;
-    const canonicalManagerReviewProgress=canonicalDimensionReviewProgress(items,selectedDimensionAuditIds());
-    const canonicalManagerReviewProgressSignature=canonicalManagerReviewProgress.signature;
-    const canonicalManagerReviewProgressSource=canonicalManagerReviewProgress.source;
+    const canonicalManagerReviewProgressSignature=managerReviewProgressRuntime.signature;
+    const canonicalManagerReviewProgressSource=managerReviewProgressRuntime.source;
     const reviewReasonSupportedErrorCodes=reviewProgressAuditErrorCodes();
     const reviewReasonProgressErrors=[
       reviewReasonCoverageCounts.complete+reviewReasonPendingCount!==reviewReasonEntries.length?"REVIEW_REASON_COUNT_MISMATCH":null,
