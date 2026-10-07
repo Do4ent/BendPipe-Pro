@@ -1538,6 +1538,7 @@
       :[];
     const selectedReviewReasonCount=activeReviewReasonIds.filter(id=>selectedIdSet.has(id)).length;
     const selectedReviewReasonPercent=activeReviewReasonIds.length?Math.round(selectedReviewReasonCount/activeReviewReasonIds.length*100):0;
+    const selectedReviewReasonCoverage=selectedReviewReasonCount===0?"none":selectedReviewReasonCount===activeReviewReasonIds.length?"complete":"partial";
     const selectionKindSummary=Object.entries(dimensionSelectionKindCounts())
       .map(([kind,count])=>kind+": "+count).join(" · ");
     const visibleIdSet=new Set(visibleItems.map(dimension=>String(dimension?.id??"")));
@@ -1603,7 +1604,7 @@
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
       '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Visible: '+auditSummary.visible+' · Hidden: '+auditSummary.hidden+' · Selected: '+auditSummary.selected+' · Unselected: '+auditSummary.unselected+' · Needs review: '+auditSummary.needs_review+' · Section-derived: '+auditSummary.section_derived+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+(geometrySummary?' · '+esc(geometrySummary):'')+(referenceSummary?' · '+esc(referenceSummary):'')+'</div>'+
       (auditSummary.needs_review?'<div class="tb-measure-note" data-dimension-review-reason-summary>Review queue reasons: '+esc(reviewReasonSummary||'—')+(reviewReasonButtons?'<div class="tb-measure-actions" data-dimension-review-reason-filters><button data-dimension-review-reason-clear '+(fullReviewQueueActive?'disabled':'')+'>All review reasons</button>'+reviewReasonButtons+'</div>':'')+'</div>':'')+
-      (activeReviewReason?'<div class="tb-measure-note" data-dimension-review-reason-active>Active reason: '+esc(activeReviewReason)+' · total '+activeReviewReasonIds.length+' · selected '+selectedReviewReasonCount+' · coverage '+selectedReviewReasonPercent+'%</div>':'')+
+      (activeReviewReason?'<div class="tb-measure-note" data-dimension-review-reason-active data-selection-coverage="'+selectedReviewReasonCoverage+'">Active reason: '+esc(activeReviewReason)+' · total '+activeReviewReasonIds.length+' · selected '+selectedReviewReasonCount+' · coverage '+selectedReviewReasonPercent+'% · '+selectedReviewReasonCoverage+'</div>':'')+
       '<div class="tb-measure-note" data-dimension-visible-count>Showing '+visibleItems.length+' of '+items.length+'</div>'+
       '<div class="tb-measure-note" data-dimension-selection-scope>Selected in view: '+selectedInViewCount+' · outside view: '+selectedOutsideViewCount+(selectionKindSummary?' · '+esc(selectionKindSummary):'')+'</div>'+
       (dimensionManagerFocusId?'<div class="tb-measure-note" data-dimension-exact-focus>Exact focus: '+esc(dimensionManagerFocusId)+' <button data-dimension-focus-clear>Clear focus</button></div>':'')+
