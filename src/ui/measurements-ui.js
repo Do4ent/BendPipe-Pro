@@ -1598,19 +1598,11 @@
       &&JSON.stringify(sharedReviewProgress.reason_selection)===JSON.stringify(reviewReasonSelection);
     const reviewReasonCountConsistent=reviewReasonCoverageSummary.complete+reviewReasonPendingCount===reviewReasonCount;
     const reviewReasonListsConsistent=completedReviewReasons.length===reviewReasonCoverageSummary.complete&&pendingReviewReasons.length===reviewReasonPendingCount;
-    const reviewProgressDiagnosticsModel=dimensionReviewProgressDiagnostics({
-      reason_count:reviewReasonCount,
-      count_consistent:reviewReasonCountConsistent,
-      lists_consistent:reviewReasonListsConsistent,
-      model_consistent:sharedReviewProgressConsistent,
-      domain_status:reviewProgressRuntime.domain_status,
-      domain_consistent:domainReviewProgressConsistent
-    });
-    const reviewProgressDiagnosticsSignature=dimensionReviewProgressDiagnosticsSignature(reviewProgressDiagnosticsModel);
-    const standaloneReviewDiagnosticsState=dimensionReviewProgressDiagnosticsState(items,selectedDimensionAuditIds());
     const standaloneReviewDiagnosticsRuntime=dimensionReviewProgressDiagnosticsRuntimeState(items,selectedDimensionAuditIds());
+    const reviewProgressDiagnosticsModel=standaloneReviewDiagnosticsRuntime.diagnostics;
+    const reviewProgressDiagnosticsSignature=standaloneReviewDiagnosticsRuntime.signature;
     const standaloneReviewDiagnosticsConsistent=
-      standaloneReviewDiagnosticsState.signature===reviewProgressDiagnosticsSignature;
+      dimensionReviewProgressDiagnosticsSignature(reviewProgressDiagnosticsModel)===reviewProgressDiagnosticsSignature;
     const legacyReviewProgressErrors=[
       !reviewReasonCountConsistent?"REVIEW_REASON_COUNT_MISMATCH":null,
       !reviewReasonListsConsistent?"REVIEW_REASON_LIST_MISMATCH":null,
