@@ -28,3 +28,8 @@ test("question 166: Dimension audit snapshot carries trusted geometry provenance
   assert.match(ui,/reference_geometry_statuses:referenceGeometryStatuses/);
   assert.match(ui,/new Set\(references\.map\(ref=>String\(ref\?\.geometry_status\?\?""\)\.trim\(\)\)\.filter\(Boolean\)\)/);
 });
+
+
+test("question 169: Dimension audit snapshot carries conservative Fitted stats",()=>{
+  assert.match(ui,/fitted_stats:clone\(dimensionFittedAuditStats\(dimension\)\)/);
+});
