@@ -1047,6 +1047,7 @@
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
       '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Visible: '+auditSummary.visible+' · Hidden: '+auditSummary.hidden+' · Needs review: '+auditSummary.needs_review+' · Section-derived: '+auditSummary.section_derived+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+(geometrySummary?' · '+esc(geometrySummary):'')+'</div>'+
       '<div class="tb-measure-note" data-dimension-visible-count>Showing '+visibleItems.length+' of '+items.length+'</div>'+
+      (dimensionManagerFocusId?'<div class="tb-measure-note" data-dimension-exact-focus>Exact focus: '+esc(dimensionManagerFocusId)+' <button data-dimension-focus-clear>Clear focus</button></div>':'')+
       filters+
       '<div class="tb-measure-actions"><button data-select-visible-dimension-audit>Select visible results</button><button data-show-dimension-audit>Show results</button><button data-show-select-dimension-audit>Show & Select results</button><button data-hide-dimension-audit>Hide results</button><button data-copy-visible-dimension-audits>Copy visible audit JSON</button><button data-copy-all-dimension-audits>Copy all audit JSON</button></div></div>'+rows;
   }
@@ -1092,6 +1093,9 @@
       if(event.key==="Enter"){event.preventDefault();dimensionManagerFocusId="";dimensionManagerSearch=String(searchInput.value??"");render();}
     });
     body.querySelector("[data-dimension-search-clear]")?.addEventListener("click",()=>{dimensionManagerFocusId="";dimensionManagerSearch="";render();});
+    body.querySelector("[data-dimension-focus-clear]")?.addEventListener("click",()=>{
+      dimensionManagerFocusId="";dimensionManagerSearch="";render();
+    });
     body.querySelector("[data-dimension-view-reset]")?.addEventListener("click",()=>{
       dimensionManagerFilter="all";dimensionManagerSort="project";dimensionManagerSearch="";dimensionManagerFocusId="";render();
     });
