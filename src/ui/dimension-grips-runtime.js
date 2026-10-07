@@ -168,6 +168,7 @@
     const fittedSummary=fittedStats?[
       "Fitted refs: "+String(fittedStats.reference_count??0),
       Number.isFinite(Number(fittedStats.max_error_mm))?("max error: "+Number(fittedStats.max_error_mm).toFixed(3)+" mm"):null,
+      Number.isFinite(Number(fittedStats.max_error_deg))?("max angle error: "+Number(fittedStats.max_error_deg).toFixed(3)+"°"):null,
       Number.isFinite(Number(fittedStats.min_confidence))?("min confidence: "+Number(fittedStats.min_confidence).toFixed(3)):null
     ].filter(Boolean).join(" · "):null;
     const provenance=[
