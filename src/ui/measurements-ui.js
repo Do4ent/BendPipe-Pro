@@ -685,14 +685,18 @@
     render();return true;
   }
   function dimensionRebindAuditSnapshot(dimension){
+    const references=dimension?.references??[];
+    const referenceGeometryStatuses=[...new Set(references.map(ref=>String(ref?.geometry_status??"").trim()).filter(Boolean))];
     return {
       dimension_id:String(dimension?.id??""),
       kind:String(dimension?.kind??""),
       mode:String(dimension?.mode??""),
       status:String(dimension?.status??""),
+      geometry_class:dimensionAuditGeometryClass(dimension),
+      reference_geometry_statuses:referenceGeometryStatuses,
       current_value:dimension?.value??null,
       stale_reason:dimension?.stale_reason??null,
-      current_references:clone(dimension?.references??[]),
+      current_references:clone(references),
       rebound_from_stale:dimension?.rebound_from_stale===true,
       rebound_at_section_view:clone(dimension?.rebound_at_section_view??null),
       rebound_history:clone(Array.isArray(dimension?.rebound_history)?dimension.rebound_history:[])
