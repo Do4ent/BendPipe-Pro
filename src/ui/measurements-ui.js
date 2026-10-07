@@ -1664,6 +1664,12 @@
     const reviewProgressDiagnosticsSignature=standaloneReviewDiagnosticsRuntime.signature;
     const standaloneReviewDiagnosticsConsistent=
       dimensionReviewProgressDiagnosticsSignature(reviewProgressDiagnosticsModel)===reviewProgressDiagnosticsSignature;
+    const reviewProgressDiagnosticsIntegrity=dimensionReviewProgressDiagnosticsIntegrity(
+      standaloneReviewDiagnosticsRuntime,
+      standaloneReviewDiagnosticsConsistent
+    );
+    const reviewProgressDiagnosticsIntegritySignature=
+      dimensionReviewProgressDiagnosticsIntegritySignature(reviewProgressDiagnosticsIntegrity);
     const legacyReviewProgressErrors=[
       !reviewReasonCountConsistent?"REVIEW_REASON_COUNT_MISMATCH":null,
       !reviewReasonListsConsistent?"REVIEW_REASON_LIST_MISMATCH":null,
@@ -1714,8 +1720,8 @@
         review_progress_diagnostics_snapshot:standaloneReviewDiagnosticsRuntime.snapshot,
         review_progress_diagnostics_snapshot_signature_consistent:standaloneReviewDiagnosticsRuntime.snapshot_signature_consistent,
         review_progress_diagnostics_runtime_valid:standaloneReviewDiagnosticsRuntime.runtime_valid,
-        review_progress_diagnostics_integrity:dimensionReviewProgressDiagnosticsIntegrity(standaloneReviewDiagnosticsRuntime,standaloneReviewDiagnosticsConsistent),
-        review_progress_diagnostics_integrity_signature:dimensionReviewProgressDiagnosticsIntegritySignature(dimensionReviewProgressDiagnosticsIntegrity(standaloneReviewDiagnosticsRuntime,standaloneReviewDiagnosticsConsistent)),
+        review_progress_diagnostics_integrity:reviewProgressDiagnosticsIntegrity,
+        review_progress_diagnostics_integrity_signature:reviewProgressDiagnosticsIntegritySignature,
         review_progress_diagnostics_source:standaloneReviewDiagnosticsRuntime.source,
         review_progress_diagnostics_domain_status:standaloneReviewDiagnosticsRuntime.domain_status,
         review_progress_diagnostics_state_consistent:standaloneReviewDiagnosticsConsistent,
