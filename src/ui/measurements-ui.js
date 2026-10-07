@@ -765,7 +765,8 @@
     return dimensionAuditReviewReasons(dimension).length>0;
   }
   function dimensionAuditSummary(items=savedDimensions()){
-    const summary={total:items.length,stale:0,rebound:0,section_derived:0,visible:0,hidden:0,needs_review:0,by_status:{},by_mode:{},by_geometry_status:{},reference_geometry_counts:{Exact:0,Fitted:0,SectionDerived:0,Unknown:0}};
+    const selectedIds=new Set(selectedDimensionAuditIds());
+    const summary={total:items.length,selected:0,unselected:0,stale:0,rebound:0,section_derived:0,visible:0,hidden:0,needs_review:0,by_status:{},by_mode:{},by_geometry_status:{},reference_geometry_counts:{Exact:0,Fitted:0,SectionDerived:0,Unknown:0}};
     for(const dimension of items){
       const status=String(dimension?.status??"Unknown");
       const mode=String(dimension?.mode??"Unknown");
@@ -777,6 +778,7 @@
       for(const key of Object.keys(summary.reference_geometry_counts)){
         summary.reference_geometry_counts[key]+=Number(referenceCounts[key]??0);
       }
+      if(selectedIds.has(String(dimension?.id??"")))summary.selected++;else summary.unselected++;
       if(status==="Stale")summary.stale++;
       if(dimension?.rebound_from_stale===true)summary.rebound++;
       if(isSectionDerivedDimension(dimension))summary.section_derived++;
@@ -1186,7 +1188,7 @@
       '<button data-dimension-view-reset '+(dimensionManagerFilter==="all"&&dimensionManagerSort==="project"&&!dimensionManagerSearch?'disabled':'')+'>Reset view</button></div>';
     return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div>'+
       '<div class="tb-measure-note">Управление сохранёнными Reference/Driving Dimensions, включая скрытые размеры.</div>'+
-      '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Visible: '+auditSummary.visible+' · Hidden: '+auditSummary.hidden+' · Needs review: '+auditSummary.needs_review+' · Section-derived: '+auditSummary.section_derived+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+(geometrySummary?' · '+esc(geometrySummary):'')+(referenceSummary?' · '+esc(referenceSummary):'')+'</div>'+
+      '<div class="tb-measure-note" data-dimension-audit-summary>Total: '+auditSummary.total+' · Visible: '+auditSummary.visible+' · Hidden: '+auditSummary.hidden+' · Selected: '+auditSummary.selected+' · Unselected: '+auditSummary.unselected+' · Needs review: '+auditSummary.needs_review+' · Section-derived: '+auditSummary.section_derived+' · Stale: '+auditSummary.stale+' · Rebound: '+auditSummary.rebound+(statusSummary?' · '+esc(statusSummary):'')+(modeSummary?' · '+esc(modeSummary):'')+(geometrySummary?' · '+esc(geometrySummary):'')+(referenceSummary?' · '+esc(referenceSummary):'')+'</div>'+
       '<div class="tb-measure-note" data-dimension-visible-count>Showing '+visibleItems.length+' of '+items.length+'</div>'+
       '<div class="tb-measure-note" data-dimension-selection-scope>Selected in view: '+selectedInViewCount+' · outside view: '+selectedOutsideViewCount+'</div>'+
       (dimensionManagerFocusId?'<div class="tb-measure-note" data-dimension-exact-focus>Exact focus: '+esc(dimensionManagerFocusId)+' <button data-dimension-focus-clear>Clear focus</button></div>':'')+
