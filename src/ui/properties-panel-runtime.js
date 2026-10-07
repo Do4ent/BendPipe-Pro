@@ -404,6 +404,10 @@
     }
     if(entry.kind==="dimension"){
       const dimension=(p?.engineering_dimensions??[]).find(item=>String(item?.id)===String(entry.dimensionId))??null;
+      const audit=window.TubeBenderMeasurements??null;
+      const geometryClass=audit?.dimensionAuditGeometryClass?.(dimension)??null;
+      const reviewReasons=audit?.dimensionAuditReviewReasons?.(dimension)??[];
+      const fittedStats=audit?.dimensionFittedAuditStats?.(dimension)??null;
       const refs=(dimension?.references??[]).map((ref,index)=>({
         index,
         object_id:ref?.object_id,
@@ -420,6 +424,12 @@
         {name:"Associativity",rows:[
           ["References",refs],["Reference count",refs.length],
           ["Stale reason",dimension?.stale_reason],["Stale at Section View",dimension?.stale_at_section_view]
+        ]},
+        {name:"Trusted geometry audit",rows:[
+          ["Geometry class",geometryClass],
+          ["Needs review",reviewReasons.length>0],
+          ["Review reasons",reviewReasons],
+          ["Fitted stats",fittedStats]
         ]},
         {name:"Rebind audit",rows:[
           ["Rebound from stale",dimension?.rebound_from_stale===true],
