@@ -990,6 +990,12 @@
     return {
       schema:"TubeBender.DimensionSelectionAudit.v1",
       ...dimensionAuditProjectContext(),
+      view:{
+        filter:dimensionManagerFilter,
+        sort:dimensionManagerSort,
+        search:String(dimensionManagerSearch??""),
+        focus_id:dimensionManagerFocusId||null
+      },
       selection:{
         selected_dimension_ids:selectedIds,
         selected_dimension_count:selectedIds.length,
