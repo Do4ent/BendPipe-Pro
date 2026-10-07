@@ -1154,6 +1154,11 @@
     return {
       schema:"TubeBender.DimensionReviewQueueAudit.v1",
       ...dimensionAuditProjectContext(),
+      queue:{
+        filter:"needs-review",
+        sort:"audit",
+        dimension_ids:items.map(dimension=>String(dimension?.id??""))
+      },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
       dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
