@@ -1259,6 +1259,7 @@
       if(Object.prototype.hasOwnProperty.call(reviewReasonCoverageSummary,state))reviewReasonCoverageSummary[state]++;
     }
     const reviewReasonCount=Object.keys(reviewReasonCounts).length;
+    const reviewReasonPendingCount=reviewReasonCoverageSummary.partial+reviewReasonCoverageSummary.none;
     const reviewReasonCompletePercent=reviewReasonCount?Math.round(reviewReasonCoverageSummary.complete/reviewReasonCount*100):0;
     return {
       schema:"TubeBender.DimensionReviewQueueAudit.v1",
@@ -1274,6 +1275,7 @@
         selected_percent:selectedPercent,
         selection_coverage:selectionCoverage,
         review_reason_count:reviewReasonCount,
+        review_reason_pending_count:reviewReasonPendingCount,
         review_reason_complete_percent:reviewReasonCompletePercent,
         review_reason_counts:reviewReasonCounts,
         review_reason_selection:reviewReasonSelection,
