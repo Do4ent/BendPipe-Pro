@@ -709,6 +709,19 @@
     if(statuses.length&&statuses.every(status=>status==="Exact"))return "Exact";
     return "Unknown";
   }
+  function dimensionFittedAuditStats(dimension){
+    const refs=(dimension?.references??[]).filter(ref=>String(ref?.geometry_status??"")==="Fitted");
+    if(!refs.length)return null;
+    const mm=refs.map(ref=>Number(ref?.fitting_error?.mm)).filter(Number.isFinite);
+    const deg=refs.map(ref=>Number(ref?.fitting_error?.deg)).filter(Number.isFinite);
+    const confidence=refs.map(ref=>Number(ref?.confidence)).filter(Number.isFinite);
+    return {
+      reference_count:refs.length,
+      max_error_mm:mm.length?Math.max(...mm):null,
+      max_error_deg:deg.length?Math.max(...deg):null,
+      min_confidence:confidence.length?Math.min(...confidence):null
+    };
+  }
   function dimensionAuditSummary(items=savedDimensions()){
     const summary={total:items.length,stale:0,rebound:0,section_derived:0,visible:0,hidden:0,by_status:{},by_mode:{},by_geometry_status:{}};
     for(const dimension of items){
@@ -943,8 +956,15 @@
       const previousSources=latestRebind?[...new Set((latestRebind.previous_references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean))]:[];
       const sourceObjects=[...new Set((dimension.references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean))];
       const geometryClass=dimensionAuditGeometryClass(dimension);
+      const fittedStats=dimensionFittedAuditStats(dimension);
+      const fittedText=fittedStats
+        ?("Fitted refs: "+fittedStats.reference_count+
+          " · max error "+(fittedStats.max_error_mm??"—")+" mm / "+(fittedStats.max_error_deg??"—")+"°"+
+          " · min confidence "+(fittedStats.min_confidence??"—"))
+        :null;
       const provenanceBits=[
         "Geometry: "+geometryClass,
+        fittedText,
         stale&&dimension.stale_reason?("Reason: "+String(dimension.stale_reason)):null,
         sourceObjects.length?("Source: "+sourceObjects.join(", ")):null,
         dimension.rebound_from_stale===true?("Rebound · audit "+rebindCount):null,
@@ -1190,7 +1210,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,dimensionAuditGeometryClass,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
+      open,close,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,dimensionAuditGeometryClass,dimensionFittedAuditStats,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
