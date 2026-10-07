@@ -10,5 +10,6 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 348: review progress model consistency is machine-readable",()=>{
   assert.match(ui,/data-review-progress-model-consistent="'\+\(sharedManagerReviewProgressConsistent\?'1':'0'\)\+'"/);
   assert.match(ui,/data-review-progress-domain-available="'\+\(domainManagerReviewProgressAvailable\?'1':'0'\)\+'"/);
-  assert.match(ui,/data-review-progress-domain-consistent="'\+\(!domainManagerReviewProgressAvailable\?'na':domainManagerReviewProgressConsistent\?'1':'0'\)\+'"/);
+  assert.match(ui,/data-review-progress-domain-compatible="'\+\(domainManagerReviewProgressCompatible\?'1':'0'\)\+'"/);
+  assert.match(ui,/data-review-progress-domain-consistent="'\+\(!domainManagerReviewProgressComparable\?'na':domainManagerReviewProgressConsistent\?'1':'0'\)\+'"/);
 });
