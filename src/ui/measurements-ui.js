@@ -1345,6 +1345,7 @@
 
   function domainDimensionReviewProgress(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
     if(!reviewProgressDomain?.buildReviewProgress)return null;
+    if(!Array.isArray(selectedIds))throw new TypeError("selected_ids must be an array");
     const normalized=(items??[])
       .filter(dimension=>dimensionAuditNeedsReview(dimension))
       .map(dimension=>({
@@ -1353,7 +1354,7 @@
       }));
     return reviewProgressDomain.buildReviewProgress({
       items:normalized,
-      selected_ids:(selectedIds??[]).map(id=>String(id))
+      selected_ids:selectedIds.map(id=>String(id))
     });
   }
 
