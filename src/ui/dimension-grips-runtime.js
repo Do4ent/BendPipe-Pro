@@ -395,10 +395,15 @@
     activeId=next;rebuild();return true;
   }
   function selectDimension(id){
-    activeId=String(id);
-    const key="dimension:"+encodeURIComponent(String(id));
+    const dimension=dimensionById(id);
+    if(!dimension||dimension.visible===false){
+      if(String(activeId??"")===String(id??""))activeId=null;
+      rebuild();return null;
+    }
+    activeId=String(dimension.id);
+    const key="dimension:"+encodeURIComponent(String(dimension.id));
     try{window.TubeBenderObjectContext?.replaceSelectionKeys?.([key],{announce:true});}catch{}
-    rebuild();dispatch(id,"select");return dimensionById(id);
+    rebuild();dispatch(dimension.id,"select");return dimension;
   }
   function closeEditor(){editor?.remove?.();editor=null;}
   function evaluateTarget(input,dimension){
