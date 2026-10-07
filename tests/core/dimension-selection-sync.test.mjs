@@ -20,5 +20,5 @@ test("question 125: selecting a non-Dimension clears stale active grips",()=>{
 });
 
 test("question 125: synchronization helper is exposed for integration",()=>{
-  assert.match(runtime,/setDimensionVisible,syncActiveDimensionFromSelection,selectionCandidateAtEvent,activeDimension/);
+  assert.match(runtime,/setDimensionVisible,syncActiveDimensionFromSelection,selectionCandidateAtEvent,clearActiveDimensionSelection,activeDimension/);
 });
