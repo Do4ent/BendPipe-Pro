@@ -1292,6 +1292,10 @@
         review_progress_issue_count:
           (reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?1:0)
           +((completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?1:0),
+        review_progress_errors:[
+          reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
+          (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null
+        ].filter(Boolean),
         review_progress_error:(reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount)
           ?"REVIEW_REASON_COUNT_MISMATCH"
           :(completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)
