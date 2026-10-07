@@ -1275,6 +1275,7 @@
         selected_percent:selectedPercent,
         selection_coverage:selectionCoverage,
         review_reason_count:reviewReasonCount,
+        review_reason_complete_count:reviewReasonCoverageSummary.complete,
         review_reason_pending_count:reviewReasonPendingCount,
         review_reason_complete_percent:reviewReasonCompletePercent,
         review_reason_counts:reviewReasonCounts,
