@@ -693,6 +693,7 @@
     const references=dimension?.references??[];
     const referenceGeometryStatuses=[...new Set(references.map(ref=>String(ref?.geometry_status??"").trim()).filter(Boolean))];
     return {
+      project_readonly:readonly(),
       dimension_id:String(dimension?.id??""),
       kind:String(dimension?.kind??""),
       mode:String(dimension?.mode??""),
@@ -780,6 +781,7 @@
     return {
       schema:"TubeBender.DimensionAudit.v1",
       project_id:String(project()?.id??project()?.project_id??""),
+      project_readonly:readonly(),
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
       dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
@@ -875,6 +877,7 @@
     return {
       schema:"TubeBender.DimensionAuditView.v1",
       project_id:String(project()?.id??project()?.project_id??""),
+      project_readonly:readonly(),
       view:{
         filter:dimensionManagerFilter,
         sort:dimensionManagerSort,
