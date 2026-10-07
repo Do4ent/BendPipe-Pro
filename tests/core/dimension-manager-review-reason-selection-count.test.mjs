@@ -15,6 +15,6 @@ test("question 269: active review reason shows total and selected counts",()=>{
 });
 
 test("question 269: reason selection actions reflect current selection state",()=>{
-  assert.match(ui,/selectedReviewReasonCount===activeReviewReasonIds.length?'disabled':''/);
-  assert.match(ui,/Remove reason queue ('+selectedReviewReasonCount+')/);
+  assert.ok(ui.includes("selectedReviewReasonCount===activeReviewReasonIds.length?'disabled':''"));
+  assert.ok(ui.includes("Remove reason queue ('+selectedReviewReasonCount+')"));
 });
