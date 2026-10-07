@@ -121,6 +121,20 @@ export function buildReviewProgressDiagnostics({
   });
 }
 
+export function reviewProgressDiagnosticsSignature(diagnostics={}){
+  return JSON.stringify({
+    schema:String(diagnostics.schema??REVIEW_PROGRESS_DIAGNOSTICS_SCHEMA),
+    supported_error_codes:diagnostics.supported_error_codes??REVIEW_PROGRESS_AUDIT_ERROR_CODES,
+    errors:diagnostics.errors??[],
+    issue_count:Number(diagnostics.issue_count??0),
+    issue_count_consistent:diagnostics.issue_count_consistent===true,
+    error_codes_valid:diagnostics.error_codes_valid===true,
+    primary_error:diagnostics.primary_error??null,
+    valid:diagnostics.valid===true,
+    status:String(diagnostics.status??"empty")
+  });
+}
+
 export function reviewProgressSignature(progress={}){
   return JSON.stringify({
     reason_count:Number(progress.reason_count??0),
