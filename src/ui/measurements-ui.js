@@ -1833,10 +1833,9 @@
     const domainManagerReviewProgress=domainDimensionReviewProgress(items,selectedDimensionAuditIds());
     const domainManagerReviewProgressConsistent=domainManagerReviewProgress!=null
       &&reviewProgressDomain.reviewProgressSignature(domainManagerReviewProgress)===reviewReasonProgressSignature;
-    const canonicalManagerReviewProgressSignature=domainManagerReviewProgress&&reviewProgressDomain?.reviewProgressSignature
-      ?reviewProgressDomain.reviewProgressSignature(domainManagerReviewProgress)
-      :reviewReasonProgressSignature;
-    const canonicalManagerReviewProgressSource=domainManagerReviewProgress?"domain":"ui-fallback";
+    const canonicalManagerReviewProgress=canonicalDimensionReviewProgress(items,selectedDimensionAuditIds());
+    const canonicalManagerReviewProgressSignature=canonicalManagerReviewProgress.signature;
+    const canonicalManagerReviewProgressSource=canonicalManagerReviewProgress.source;
     const reviewReasonProgressErrors=[
       reviewReasonCoverageCounts.complete+reviewReasonPendingCount!==reviewReasonEntries.length?"REVIEW_REASON_COUNT_MISMATCH":null,
       (reviewReasonCompletedNames.length!==reviewReasonCoverageCounts.complete||reviewReasonPendingNames.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
