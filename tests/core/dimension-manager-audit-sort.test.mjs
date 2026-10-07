@@ -14,7 +14,11 @@ test("question 150: Saved Dimensions can sort by project order or audit priority
   assert.match(ui,/data-dimension-sort="audit"/);
 });
 
-test("question 150: audit priority sorts Stale then Rebound then remaining items",()=>{
-  assert.match(ui,/String\(dimension\?\.status\?\?""\)==="Stale"\?0:dimension\?\.rebound_from_stale===true\?1:2/);
+test("question 150: audit priority keeps a stable explicit rank",()=>{
+  assert.match(ui,/const rank=dimension=>String\(dimension\?\.status\?\?""\)==="Stale"/);
   assert.match(ui,/rank\(a\.dimension\)-rank\(b\.dimension\)\|\|a\.index-b\.index/);
+});
+
+test("question 176: audit priority orders Stale, Needs review, Rebound, then remaining items",()=>{
+  assert.match(ui,/\?0\s*\n\s*:dimensionAuditNeedsReview\(dimension\)\?1\s*\n\s*:dimension\?\.rebound_from_stale===true\?2:3/);
 });
