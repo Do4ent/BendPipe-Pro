@@ -1,0 +1,23 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
+const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
+
+test("question 171: Needs review is a conservative audit-only classification",()=>{
+  assert.match(ui,/function dimensionAuditNeedsReview\(dimension\)/);
+  assert.match(ui,/String\(dimension\?\.status\?\?""\)==="Stale"/);
+  assert.match(ui,/geometryClass==="Fitted"/);
+  assert.match(ui,/geometryClass==="Unknown"/);
+});
+
+test("question 171: audit summary and filters expose Needs review",()=>{
+  assert.match(ui,/needs_review:0/);
+  assert.match(ui,/summary\.needs_review\+\+/);
+  assert.match(ui,/dimensionManagerFilter==="needs-review"/);
+  assert.match(ui,/'needs-review':'Needs review'/);
+  assert.match(ui,/Needs review: '\+auditSummary\.needs_review/);
+});
