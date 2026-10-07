@@ -919,8 +919,8 @@
       const error=ref?.fitting_error??{};
       return '<div class="tb-measure-note" style="padding:4px 0;border-top:1px solid #2b3a4a">'+
         '#'+(index+1)+' · '+esc(ref?.object_id??"—")+(ref?.subentity_id!=null?' / '+esc(ref.subentity_id):'')+
-        ' · error '+esc(error?.mm??"—")+' mm / '+esc(error?.deg??"—")+'°'+
-        ' · confidence '+esc(ref?.confidence??"—")+
+        ' · error '+esc(auditNumber(error?.mm))+' mm / '+esc(auditNumber(error?.deg))+'°'+
+        ' · confidence '+esc(auditNumber(ref?.confidence))+
         (ref?.evidence!=null?'<div style="margin-top:3px">Evidence: '+esc(ref.evidence)+'</div>':'')+
         '</div>';
     }).join("");
