@@ -11,7 +11,7 @@ test("question 219: Dimension audit download filenames include generated timesta
   assert.match(ui,/function dimensionAuditFilenameStamp\(value=new Date\(\)\)/);
   assert.match(ui,/value\.toISOString\(\)\.replace\(\/\[:\.\]\/g,"-"\)/);
   assert.match(ui,/dimension-audit-view-"\+filterName\+"-"\+snapshot\.dimension_count\+"-"\+dimensionAuditFilenameStamp/);
-  assert.match(ui,/dimension-audit-"\+dimensionAuditFilenameStamp/);
+  assert.match(ui,/dimension-audit-"\+snapshot\.dimension_count\+"-"\+dimensionAuditFilenameStamp/);
 });
 
 test("question 219: individual Dimension audit download also uses generated_at timestamp",()=>{
