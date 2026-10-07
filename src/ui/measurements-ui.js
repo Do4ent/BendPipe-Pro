@@ -1049,10 +1049,16 @@
   function dimensionAuditFilenameStamp(value=new Date()){
     return value.toISOString().replace(/[:.]/g,"-");
   }
+  function dimensionAuditFilenamePart(value,fallback="item"){
+    const safe=String(value??"").trim()
+      .replace(/[^\p{L}\p{N}._-]+/gu,"_")
+      .replace(/^[_\-.]+|[_\-.]+$/g,"");
+    return safe||String(fallback);
+  }
   function downloadSelectedDimensionAudits(){
     const snapshot=selectedDimensionAuditSnapshot();
     if(!snapshot.dimension_count){toast("Нет выбранных Dimension для audit-export");return false;}
-    const name=(snapshot.project_name||snapshot.project_id||"project").replace(/[^a-z0-9._-]+/gi,"_");
+    const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
     return downloadDimensionAuditJson(name+"-dimension-selection-audit-"+snapshot.dimension_count+"-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
   }
   async function copySelectedDimensionAudits(){
@@ -1072,13 +1078,13 @@
 
   function downloadVisibleDimensionAudits(){
     const snapshot=visibleDimensionAuditSnapshot();
-    const name=(snapshot.project_name||snapshot.project_id||"project").replace(/[^a-z0-9._-]+/gi,"_");
-    const filterName=String(snapshot?.view?.filter??"all").replace(/[^a-z0-9._-]+/gi,"_");
+    const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
+    const filterName=dimensionAuditFilenamePart(snapshot?.view?.filter,"all");
     return downloadDimensionAuditJson(name+"-dimension-audit-view-"+filterName+"-"+snapshot.dimension_count+"-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
   }
   function downloadAllDimensionAudits(){
     const snapshot=allDimensionAuditSnapshot();
-    const name=(snapshot.project_name||snapshot.project_id||"project").replace(/[^a-z0-9._-]+/gi,"_");
+    const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
     return downloadDimensionAuditJson(name+"-dimension-audit-"+snapshot.dimension_count+"-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
   }
 
@@ -1110,8 +1116,8 @@
     const dimension=savedDimensions().find(item=>String(item?.id)===String(dimensionId));
     if(!dimension)return false;
     const snapshot=dimensionRebindAuditSnapshot(dimension);
-    const projectName=(snapshot.project_name||snapshot.project_id||"project").replace(/[^a-z0-9._-]+/gi,"_");
-    const dimensionName=String(dimension?.id??"dimension").replace(/[^a-z0-9._-]+/gi,"_");
+    const projectName=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
+    const dimensionName=dimensionAuditFilenamePart(dimension?.id,"dimension");
     return downloadDimensionAuditJson(projectName+"-"+dimensionName+"-dimension-audit-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
   }
   async function copyDimensionRebindAudit(dimensionId){
@@ -1517,7 +1523,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,focusDimensionAudit,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,selectedDimensionAuditIds,dimensionSelectionKindCounts,selectedDimensionAuditSnapshot,copySelectedDimensionAudits,downloadSelectedDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,clearDimensionSelection,pruneDimensionSelectionToAuditView,invertVisibleDimensionAuditSelection,removeVisibleDimensionAuditResultsFromSelection,addVisibleDimensionAuditResultsToSelection,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
+      open,close,focusDimensionAudit,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,dimensionAuditFilenamePart,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,selectedDimensionAuditIds,dimensionSelectionKindCounts,selectedDimensionAuditSnapshot,copySelectedDimensionAudits,downloadSelectedDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,clearDimensionSelection,pruneDimensionSelectionToAuditView,invertVisibleDimensionAuditSelection,removeVisibleDimensionAuditResultsFromSelection,addVisibleDimensionAuditResultsToSelection,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
