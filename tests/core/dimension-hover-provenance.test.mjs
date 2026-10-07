@@ -16,3 +16,12 @@ test("question 140: rebound Dimension hover includes audit count",()=>{
   assert.match(runtime,/const auditCount=Array\.isArray\(dimension\?\.rebound_history\)\?dimension\.rebound_history\.length:0/);
   assert.match(runtime,/Rebind audit: /);
 });
+
+
+test("question 177: 3D Dimension hover surfaces trusted geometry audit state",()=>{
+  assert.match(runtime,/window\.TubeBenderMeasurements\?\?null/);
+  assert.match(runtime,/dimensionAuditGeometryClass\?\.\(dimension\)/);
+  assert.match(runtime,/dimensionAuditReviewReasons\?\.\(dimension\)/);
+  assert.match(runtime,/Geometry: /);
+  assert.match(runtime,/Needs review: /);
+});
