@@ -1,7 +1,7 @@
 (()=>{
   const GEOMETRY_URL="__TB_GEOMETRY_MEASUREMENTS_MODULE_URL__";
   const DIMENSIONS_URL="__TB_DIMENSIONS_MODULE_URL__";
-  let geometry=null,dimensions=null,installed=false,panel=null,resultsPanel=null,button=null,lastResult=null,lastSelectionKey="",poll=null,formulaMeasurementValue=null,dimensionManagerFilter="all",dimensionManagerSort="project",dimensionManagerSearch="",dimensionManagerFocusId="";
+  let geometry=null,dimensions=null,installed=false,panel=null,resultsPanel=null,button=null,lastResult=null,lastSelectionKey="",poll=null,formulaMeasurementValue=null,dimensionManagerFilter="all",dimensionManagerSort="project",dimensionManagerSearch="",dimensionManagerFocusId="",dimensionManagerStateProjectId=null;
   const quick={active:false,points:[],candidates:[],current:null,result:null};
 
   const $=(s,r=document)=>r.querySelector(s);
@@ -15,6 +15,40 @@
   const project=()=>{try{return api()?.activeProject?.()??null;}catch{return null;}};
   const readonly=()=>{try{return api()?.readonly?.()===true;}catch{return false;}};
   const toast=(m)=>{try{api()?.toast?.(String(m??""));}catch{}};
+  function dimensionAuditViewProjectId(){
+    return String(project()?.id??project()?.project_id??"");
+  }
+  function dimensionAuditViewStorageKey(projectId=dimensionAuditViewProjectId()){
+    return "TubeBender.DimensionAuditViewState.v1."+encodeURIComponent(String(projectId||"default"));
+  }
+  function persistDimensionAuditViewState(){
+    const projectId=dimensionAuditViewProjectId();if(!projectId)return false;
+    dimensionManagerStateProjectId=projectId;
+    try{
+      sessionStorage.setItem(dimensionAuditViewStorageKey(projectId),JSON.stringify({
+        filter:dimensionManagerFilter,
+        sort:dimensionManagerSort,
+        search:dimensionManagerSearch
+      }));
+      return true;
+    }catch{return false;}
+  }
+  function restoreDimensionAuditViewState(){
+    const projectId=dimensionAuditViewProjectId();
+    if(dimensionManagerStateProjectId===projectId)return false;
+    dimensionManagerStateProjectId=projectId;
+    dimensionManagerFocusId="";
+    if(!projectId)return false;
+    try{
+      const raw=sessionStorage.getItem(dimensionAuditViewStorageKey(projectId));if(!raw)return false;
+      const state=JSON.parse(raw);
+      const filters=["all","selected","unselected","needs-review","stale","rebound","section-derived","exact","fitted","unknown-geometry","reference","driving","visible","hidden"];
+      if(filters.includes(String(state?.filter)))dimensionManagerFilter=String(state.filter);
+      if(["project","audit"].includes(String(state?.sort)))dimensionManagerSort=String(state.sort);
+      dimensionManagerSearch=String(state?.search??"");
+      return true;
+    }catch{return false;}
+  }
   function dispatchDimensionChange(dimensionId,reason){
     try{window.dispatchEvent(new CustomEvent("tubebender-dimension-change",{detail:{dimension_id:String(dimensionId??""),reason:String(reason??"change")}}));}catch{}
   }
@@ -540,6 +574,7 @@
   }
   function open(){ensureShell().classList.add("open");render();}
   function focusDimensionAudit(dimensionId){
+    restoreDimensionAuditViewState();
     const id=String(dimensionId??"").trim();if(!id)return false;
     dimensionManagerFilter="all";dimensionManagerSort="project";dimensionManagerSearch=id;dimensionManagerFocusId=id;
     open();return true;
@@ -1222,6 +1257,8 @@
       .map(item=>item.dimension);
   }
   function dimensionManagerHtml(){
+    restoreDimensionAuditViewState();
+    if(!dimensionManagerFocusId)persistDimensionAuditViewState();
     const items=savedDimensions();
     if(!items.length)return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div><div class="tb-measure-note">Сохранённых размеров пока нет.</div></div>';
     const locked=readonly();
@@ -1525,7 +1562,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,focusDimensionAudit,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,dimensionAuditFilenamePart,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,selectedDimensionAuditIds,dimensionSelectionKindCounts,selectedDimensionAuditSnapshot,copySelectedDimensionAudits,downloadSelectedDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,clearDimensionSelection,pruneDimensionSelectionToAuditView,invertVisibleDimensionAuditSelection,removeVisibleDimensionAuditResultsFromSelection,addVisibleDimensionAuditResultsToSelection,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
+      open,close,focusDimensionAudit,refresh:render,dimensionAuditViewProjectId,dimensionAuditViewStorageKey,persistDimensionAuditViewState,restoreDimensionAuditViewState,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,dimensionAuditFilenamePart,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,selectedDimensionAuditIds,dimensionSelectionKindCounts,selectedDimensionAuditSnapshot,copySelectedDimensionAudits,downloadSelectedDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,clearDimensionSelection,pruneDimensionSelectionToAuditView,invertVisibleDimensionAuditSelection,removeVisibleDimensionAuditResultsFromSelection,addVisibleDimensionAuditResultsToSelection,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
