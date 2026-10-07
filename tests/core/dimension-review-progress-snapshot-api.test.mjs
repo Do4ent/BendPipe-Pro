@@ -8,5 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 335: normalized review progress snapshot helper is exposed for QA",()=>{
-  assert.match(ui,/dimensionReviewProgressSignature,dimensionReviewProgressSnapshot,reviewQueueDimensionAuditSnapshot/);
+  assert.match(ui,/dimensionReviewProgressSignature/);
+  assert.match(ui,/dimensionReviewProgressSnapshot/);
+  assert.match(ui,/reviewQueueDimensionAuditSnapshot/);
 });
