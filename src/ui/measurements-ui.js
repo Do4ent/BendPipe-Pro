@@ -2159,16 +2159,17 @@
     const managerReviewDiagnosticsSignature=standaloneManagerReviewDiagnosticsRuntime.signature;
     const standaloneManagerReviewDiagnosticsConsistent=
       dimensionReviewProgressDiagnosticsSignature(legacyManagerReviewDiagnosticsModel)===managerReviewDiagnosticsSignature;
-    const managerReviewDiagnosticsIntegrity=dimensionReviewProgressDiagnosticsIntegrity(
-      standaloneManagerReviewDiagnosticsRuntime,
-      standaloneManagerReviewDiagnosticsConsistent
-    );
-    const managerReviewDiagnosticsIntegritySignature=
-      dimensionReviewProgressDiagnosticsIntegritySignature(managerReviewDiagnosticsIntegrity);
     const managerReviewDiagnosticsIntegrityParity=dimensionReviewProgressDiagnosticsIntegrityParity(
       standaloneManagerReviewDiagnosticsRuntime,
       standaloneManagerReviewDiagnosticsConsistent
     );
+    const managerReviewDiagnosticsIntegrity=dimensionReviewProgressDiagnosticsIntegrity(
+      standaloneManagerReviewDiagnosticsRuntime,
+      standaloneManagerReviewDiagnosticsConsistent,
+      managerReviewDiagnosticsIntegrityParity.available?managerReviewDiagnosticsIntegrityParity.consistent:null
+    );
+    const managerReviewDiagnosticsIntegritySignature=
+      dimensionReviewProgressDiagnosticsIntegritySignature(managerReviewDiagnosticsIntegrity);
     const fullReviewQueueActive=dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch;
     const activeReviewReason=activeDimensionReviewReason();
     const visibleItems=filteredDimensionManagerItems(items);
