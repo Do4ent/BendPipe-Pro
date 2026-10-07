@@ -965,7 +965,10 @@
     const search=String(dimensionManagerSearch??"").trim().toLowerCase();
     if(search)result=result.filter(dimension=>dimensionSearchText(dimension).includes(search));
     if(dimensionManagerSort!=="audit")return result;
-    const rank=dimension=>String(dimension?.status??"")==="Stale"?0:dimension?.rebound_from_stale===true?1:2;
+    const rank=dimension=>String(dimension?.status??"")==="Stale"
+      ?0
+      :dimensionAuditNeedsReview(dimension)?1
+      :dimension?.rebound_from_stale===true?2:3;
     return result.map((dimension,index)=>({dimension,index}))
       .sort((a,b)=>rank(a.dimension)-rank(b.dimension)||a.index-b.index)
       .map(item=>item.dimension);
