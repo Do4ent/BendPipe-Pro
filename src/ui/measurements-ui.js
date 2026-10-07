@@ -1277,6 +1277,7 @@
         review_reason_count:reviewReasonCount,
         review_reason_complete_count:reviewReasonCoverageSummary.complete,
         review_reason_pending_count:reviewReasonPendingCount,
+        review_reason_all_complete:reviewReasonCount>0&&reviewReasonPendingCount===0,
         review_reason_complete_percent:reviewReasonCompletePercent,
         review_reason_counts:reviewReasonCounts,
         review_reason_selection:reviewReasonSelection,
