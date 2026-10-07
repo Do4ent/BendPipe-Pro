@@ -164,9 +164,16 @@
     const audit=window.TubeBenderMeasurements??null;
     const geometryClass=audit?.dimensionAuditGeometryClass?.(dimension)??null;
     const reviewReasons=audit?.dimensionAuditReviewReasons?.(dimension)??[];
+    const fittedStats=audit?.dimensionFittedAuditStats?.(dimension)??null;
+    const fittedSummary=fittedStats?[
+      "Fitted refs: "+String(fittedStats.reference_count??0),
+      Number.isFinite(Number(fittedStats.max_error_mm))?("max error: "+Number(fittedStats.max_error_mm).toFixed(3)+" mm"):null,
+      Number.isFinite(Number(fittedStats.min_confidence))?("min confidence: "+Number(fittedStats.min_confidence).toFixed(3)):null
+    ].filter(Boolean).join(" · "):null;
     const provenance=[
       geometryClass?("Geometry: "+geometryClass):null,
       reviewReasons.length?("Needs review: "+reviewReasons.join(", ")):null,
+      fittedSummary,
       sources.length?("Source: "+sources.join(", ")):null,
       dimension?.rebound_from_stale===true?("Rebind audit: "+auditCount):null
     ].filter(Boolean);
