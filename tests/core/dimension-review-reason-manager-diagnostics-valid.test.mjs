@@ -8,6 +8,6 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 316: Saved Dimensions shows review diagnostics validity",()=>{
-  assert.match(ui,/const reviewReasonDiagnosticsValid=reviewReasonProgressValid/);
+  assert.match(ui,/const reviewReasonDiagnosticsValid=managerReviewDiagnosticsModel\.valid/);
   assert.match(ui,/diagnostics '\+\(reviewReasonDiagnosticsValid\?'valid':'invalid'\)/);
 });
