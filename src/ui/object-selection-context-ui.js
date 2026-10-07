@@ -1032,6 +1032,7 @@
       '<button type="button" data-object-action="transform-object">⌖ <span>Transform / Gizmo</span></button>'+
       '<button type="button" data-object-action="properties">▤ <span>Свойства</span></button>'+
       '<button type="button" data-object-action="dimension-audit-focus">⌕ <span>Open in Saved Dimensions</span></button>'+
+      '<button type="button" data-object-action="dimension-audit-copy">⧉ <span>Copy Dimension audit JSON</span></button>'+
       '<div class="tb-object-context-separator"></div>'+
       '<button type="button" data-object-action="move">↔ <span>Переместить…</span></button>'+
       '<button type="button" data-object-action="hide">◌ <span>Скрыть</span></button>'+
@@ -1066,6 +1067,10 @@
       else if(action==="dimension-audit-focus"){
         const entry=selectionEntries().find(item=>item?.kind==="dimension");
         if(entry)window.TubeBenderMeasurements?.focusDimensionAudit?.(entry.dimensionId);
+      }
+      else if(action==="dimension-audit-copy"){
+        const entry=selectionEntries().find(item=>item?.kind==="dimension");
+        if(entry)window.TubeBenderMeasurements?.copyDimensionRebindAudit?.(entry.dimensionId);
       }
       else if(action==="move")openMovePanel();
       else if(action==="anchor-end")toggleEndConstraint();
@@ -1138,6 +1143,12 @@
       const dimensionOnly=entries.length===1&&entries[0]?.kind==="dimension";
       dimensionAuditFocus.hidden=!dimensionOnly;
       dimensionAuditFocus.disabled=!dimensionOnly;
+    }
+    const dimensionAuditCopy=menu.querySelector('[data-object-action="dimension-audit-copy"]');
+    if(dimensionAuditCopy){
+      const dimensionOnly=entries.length===1&&entries[0]?.kind==="dimension";
+      dimensionAuditCopy.hidden=!dimensionOnly;
+      dimensionAuditCopy.disabled=!dimensionOnly;
     }
     const endSelection=hasSelection?endConstraintSelection(entries):null;
     const anchorEnd=menu.querySelector('[data-object-action="anchor-end"]');
