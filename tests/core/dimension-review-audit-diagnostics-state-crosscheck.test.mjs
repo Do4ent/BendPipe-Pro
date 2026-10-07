@@ -9,7 +9,7 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 398: review audit cross-checks standalone diagnostics state",()=>{
   const fn=ui.match(/function reviewQueueDimensionAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/const standaloneReviewDiagnosticsState=dimensionReviewProgressDiagnosticsState\(items,selectedDimensionAuditIds\(\)\)/);
-  assert.match(fn,/standaloneReviewDiagnosticsState\.signature===reviewProgressDiagnosticsSignature/);
+  assert.match(fn,/const standaloneReviewDiagnosticsRuntime=dimensionReviewProgressDiagnosticsRuntimeState\(items,selectedDimensionAuditIds\(\)\)/);
+  assert.match(fn,/dimensionReviewProgressDiagnosticsSignature\(reviewProgressDiagnosticsModel\)===reviewProgressDiagnosticsSignature/);
   assert.match(fn,/review_progress_diagnostics_state_consistent:standaloneReviewDiagnosticsConsistent/);
 });
