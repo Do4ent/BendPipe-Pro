@@ -1234,6 +1234,13 @@
   function dimensionReviewProgress(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
     const reviewItems=(items??[]).filter(dimension=>dimensionAuditNeedsReview(dimension))
       .slice().sort((a,b)=>String(a?.id??"").localeCompare(String(b?.id??"")));
+    const reviewIds=new Set();
+    for(const [index,dimension] of reviewItems.entries()){
+      const id=String(dimension?.id??"").trim();
+      if(!id)throw new TypeError("review progress item "+index+" id must be non-empty");
+      if(reviewIds.has(id))throw new RangeError("duplicate review progress item id: "+id);
+      reviewIds.add(id);
+    }
     if(reviewProgressDomain?.buildReviewProgress){
       const progress=reviewProgressDomain.buildReviewProgress({
         items:reviewItems.map(dimension=>({
