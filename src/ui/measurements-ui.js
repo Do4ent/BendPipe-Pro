@@ -1355,7 +1355,8 @@
         review_progress_valid:(reviewReasonCoverageSummary.complete+reviewReasonPendingCount===reviewReasonCount)&&completedReviewReasons.length===reviewReasonCoverageSummary.complete&&pendingReviewReasons.length===reviewReasonPendingCount,
         review_progress_issue_count:
           (reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?1:0)
-          +((completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?1:0),
+          +((completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?1:0)
+          +(!sharedReviewProgressConsistent?1:0),
         review_progress_errors:[
           reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
           (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
@@ -1363,37 +1364,45 @@
         ].filter(Boolean),
         review_progress_issue_count_consistent:
           ((reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?1:0)
-          +((completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?1:0))
+          +((completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?1:0)
+          +(!sharedReviewProgressConsistent?1:0))
           ===[
             reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
-            (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null
+            (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
+            !sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null
           ].filter(Boolean).length,
         review_progress_error_codes_valid:[
           reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
-          (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null
+          (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
+          !sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null
         ].filter(Boolean).every(code=>["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH","REVIEW_PROGRESS_MODEL_DIVERGENCE"].includes(code)),
         review_progress_status:reviewReasonCount===0?"empty":(
           ((reviewReasonCoverageSummary.complete+reviewReasonPendingCount===reviewReasonCount)
             &&completedReviewReasons.length===reviewReasonCoverageSummary.complete
-            &&pendingReviewReasons.length===reviewReasonPendingCount)?"ok":"error"),
+            &&pendingReviewReasons.length===reviewReasonPendingCount
+            &&sharedReviewProgressConsistent)?"ok":"error"),
         review_progress_diagnostics_valid:
           ((reviewReasonCoverageSummary.complete+reviewReasonPendingCount===reviewReasonCount)
             &&completedReviewReasons.length===reviewReasonCoverageSummary.complete
-            &&pendingReviewReasons.length===reviewReasonPendingCount)
+            &&pendingReviewReasons.length===reviewReasonPendingCount
+            &&sharedReviewProgressConsistent)
           &&[
             reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
-            (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null
-          ].filter(Boolean).every(code=>["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH"].includes(code))
+            (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
+            !sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null
+          ].filter(Boolean).every(code=>["REVIEW_REASON_COUNT_MISMATCH","REVIEW_REASON_LIST_MISMATCH","REVIEW_PROGRESS_MODEL_DIVERGENCE"].includes(code))
           &&(((reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?1:0)
-            +((completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?1:0))
+            +((completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?1:0)
+            +(!sharedReviewProgressConsistent?1:0))
             ===[
               reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount?"REVIEW_REASON_COUNT_MISMATCH":null,
-              (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null
+              (completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)?"REVIEW_REASON_LIST_MISMATCH":null,
+              !sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null
             ].filter(Boolean).length),
         review_progress_error:(reviewReasonCoverageSummary.complete+reviewReasonPendingCount!==reviewReasonCount)
           ?"REVIEW_REASON_COUNT_MISMATCH"
           :(completedReviewReasons.length!==reviewReasonCoverageSummary.complete||pendingReviewReasons.length!==reviewReasonPendingCount)
-            ?"REVIEW_REASON_LIST_MISMATCH":null,
+            ?"REVIEW_REASON_LIST_MISMATCH":!sharedReviewProgressConsistent?"REVIEW_PROGRESS_MODEL_DIVERGENCE":null,
         completed_review_reasons:completedReviewReasons,
         pending_review_reasons:pendingReviewReasons,
         review_reason_all_complete:reviewReasonCount>0&&reviewReasonPendingCount===0,
