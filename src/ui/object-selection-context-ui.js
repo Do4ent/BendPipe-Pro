@@ -1033,6 +1033,7 @@
       '<button type="button" data-object-action="properties">▤ <span>Свойства</span></button>'+
       '<button type="button" data-object-action="dimension-audit-focus">⌕ <span>Open in Saved Dimensions</span></button>'+
       '<button type="button" data-object-action="dimension-audit-copy">⧉ <span>Copy Dimension audit JSON</span></button>'+
+      '<button type="button" data-object-action="dimension-edit">✎ <span>Edit Dimension…</span></button>'+
       '<div class="tb-object-context-separator"></div>'+
       '<button type="button" data-object-action="move">↔ <span>Переместить…</span></button>'+
       '<button type="button" data-object-action="hide">◌ <span>Скрыть</span></button>'+
@@ -1071,6 +1072,10 @@
       else if(action==="dimension-audit-copy"){
         const entry=selectionEntries().find(item=>item?.kind==="dimension");
         if(entry)window.TubeBenderMeasurements?.copyDimensionRebindAudit?.(entry.dimensionId);
+      }
+      else if(action==="dimension-edit"){
+        const entry=selectionEntries().find(item=>item?.kind==="dimension");
+        if(entry)dimensionGripsApi()?.openEditor?.(entry.dimensionId,{clientX:event.clientX,clientY:event.clientY});
       }
       else if(action==="move")openMovePanel();
       else if(action==="anchor-end")toggleEndConstraint();
@@ -1149,6 +1154,12 @@
       const dimensionOnly=entries.length===1&&entries[0]?.kind==="dimension";
       dimensionAuditCopy.hidden=!dimensionOnly;
       dimensionAuditCopy.disabled=!dimensionOnly;
+    }
+    const dimensionEdit=menu.querySelector('[data-object-action="dimension-edit"]');
+    if(dimensionEdit){
+      const dimensionOnly=entries.length===1&&entries[0]?.kind==="dimension";
+      dimensionEdit.hidden=!dimensionOnly;
+      dimensionEdit.disabled=!dimensionOnly;
     }
     const endSelection=hasSelection?endConstraintSelection(entries):null;
     const anchorEnd=menu.querySelector('[data-object-action="anchor-end"]');
