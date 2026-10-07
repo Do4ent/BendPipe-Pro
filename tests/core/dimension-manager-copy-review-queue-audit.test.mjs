@@ -15,5 +15,7 @@ test("question 256: Review queue audit can be copied independently of current se
   assert.match(ui,/data-copy-dimension-review-queue-audit/);
   assert.match(ui,/Copy review queue audit JSON/);
   const fn=ui.match(/function reviewQueueDimensionAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.doesNotMatch(fn,/selectionKeys|selectionEntries|selectedDimensionAuditIds/);
+  assert.match(fn,/const dimensionIds=items\.map/);
+  assert.match(fn,/dimension_ids:dimensionIds/);
+  assert.match(fn,/selected_dimension_ids:selectedIds/);
 });
