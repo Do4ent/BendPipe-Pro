@@ -1232,7 +1232,8 @@
   }
 
   function dimensionReviewProgress(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
-    const reviewItems=(items??[]).filter(dimension=>dimensionAuditNeedsReview(dimension));
+    const reviewItems=(items??[]).filter(dimension=>dimensionAuditNeedsReview(dimension))
+      .slice().sort((a,b)=>String(a?.id??"").localeCompare(String(b?.id??"")));
     if(reviewProgressDomain?.buildReviewProgress){
       const progress=reviewProgressDomain.buildReviewProgress({
         items:reviewItems.map(dimension=>({
