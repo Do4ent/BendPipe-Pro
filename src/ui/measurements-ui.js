@@ -1291,6 +1291,27 @@
     });
   }
 
+  function dimensionReviewProgressSnapshot(progress){
+    const value=progress??{};
+    return {
+      schema:"TubeBender.DimensionReviewProgressSnapshot.v1",
+      reason_count:Number(value.reason_count??0),
+      reason_counts:clone(value.reason_counts??{}),
+      reason_selection:clone(value.reason_selection??{}),
+      coverage:clone(value.coverage??{none:0,partial:0,complete:0}),
+      completed_reasons:clone(value.completed_reasons??[]),
+      pending_reasons:clone(value.pending_reasons??[]),
+      pending_count:Number(value.pending_count??0),
+      complete_percent:Number(value.complete_percent??0),
+      completion_state:String(value.completion_state??"empty"),
+      errors:clone(value.errors??[]),
+      issue_count:Number(value.issue_count??0),
+      valid:value.valid===true,
+      status:String(value.status??"empty"),
+      signature:dimensionReviewProgressSignature(value)
+    };
+  }
+
   function reviewQueueDimensionAuditSnapshot(){
     const items=savedDimensions().filter(dimension=>dimensionAuditNeedsReview(dimension));
     const reviewReasonCounts={};
@@ -1360,6 +1381,7 @@
         selected_percent:selectedPercent,
         selection_coverage:selectionCoverage,
         review_progress_schema:"TubeBender.DimensionReviewProgress.v1",
+        review_progress_model:dimensionReviewProgressSnapshot(sharedReviewProgress),
         review_progress_signature:dimensionReviewProgressSignature(sharedReviewProgress),
         review_progress_model_consistent:sharedReviewProgressConsistent,
         review_progress_diagnostics_schema:"TubeBender.DimensionReviewProgressDiagnostics.v1",
