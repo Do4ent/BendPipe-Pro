@@ -908,15 +908,18 @@
       return true;
     }catch(error){toast("Не удалось сохранить Dimension audit JSON");return false;}
   }
+  function dimensionAuditFilenameStamp(value=new Date()){
+    return value.toISOString().replace(/[:.]/g,"-");
+  }
   function downloadVisibleDimensionAudits(){
-    const p=dimensionAuditProjectContext();
-    const name=(p.project_name||p.project_id||"project").replace(/[^a-z0-9._-]+/gi,"_");
-    return downloadDimensionAuditJson(name+"-dimension-audit-view.json",visibleDimensionAuditSnapshot());
+    const snapshot=visibleDimensionAuditSnapshot();
+    const name=(snapshot.project_name||snapshot.project_id||"project").replace(/[^a-z0-9._-]+/gi,"_");
+    return downloadDimensionAuditJson(name+"-dimension-audit-view-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
   }
   function downloadAllDimensionAudits(){
-    const p=dimensionAuditProjectContext();
-    const name=(p.project_name||p.project_id||"project").replace(/[^a-z0-9._-]+/gi,"_");
-    return downloadDimensionAuditJson(name+"-dimension-audit.json",allDimensionAuditSnapshot());
+    const snapshot=allDimensionAuditSnapshot();
+    const name=(snapshot.project_name||snapshot.project_id||"project").replace(/[^a-z0-9._-]+/gi,"_");
+    return downloadDimensionAuditJson(name+"-dimension-audit-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
   }
 
   async function copyVisibleDimensionAudits(){
@@ -946,10 +949,10 @@
   function downloadDimensionRebindAudit(dimensionId){
     const dimension=savedDimensions().find(item=>String(item?.id)===String(dimensionId));
     if(!dimension)return false;
-    const p=dimensionAuditProjectContext();
-    const projectName=(p.project_name||p.project_id||"project").replace(/[^a-z0-9._-]+/gi,"_");
+    const snapshot=dimensionRebindAuditSnapshot(dimension);
+    const projectName=(snapshot.project_name||snapshot.project_id||"project").replace(/[^a-z0-9._-]+/gi,"_");
     const dimensionName=String(dimension?.id??"dimension").replace(/[^a-z0-9._-]+/gi,"_");
-    return downloadDimensionAuditJson(projectName+"-"+dimensionName+"-dimension-audit.json",dimensionRebindAuditSnapshot(dimension));
+    return downloadDimensionAuditJson(projectName+"-"+dimensionName+"-dimension-audit-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
   }
   async function copyDimensionRebindAudit(dimensionId){
     const dimension=savedDimensions().find(item=>String(item?.id)===String(dimensionId));
@@ -1329,7 +1332,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,focusDimensionAudit,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
+      open,close,focusDimensionAudit,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
