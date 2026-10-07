@@ -1232,7 +1232,8 @@
   }
 
   function dimensionReviewProgress(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
-    const reviewItems=(items??[]).filter(dimension=>dimensionAuditNeedsReview(dimension))
+    if(!Array.isArray(items))throw new TypeError("review progress items must be an array");
+    const reviewItems=items.filter(dimension=>dimensionAuditNeedsReview(dimension))
       .slice().sort((a,b)=>String(a?.id??"").localeCompare(String(b?.id??"")));
     const reviewIds=new Set();
     for(const [index,dimension] of reviewItems.entries()){
@@ -1345,8 +1346,9 @@
 
   function domainDimensionReviewProgress(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
     if(!reviewProgressDomain?.buildReviewProgress)return null;
+    if(!Array.isArray(items))throw new TypeError("review progress items must be an array");
     if(!Array.isArray(selectedIds))throw new TypeError("selected_ids must be an array");
-    const normalized=(items??[])
+    const normalized=items
       .filter(dimension=>dimensionAuditNeedsReview(dimension))
       .map(dimension=>({
         id:String(dimension?.id??""),
