@@ -1222,6 +1222,22 @@
       dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
     };
   }
+  function reviewProgressDomainCompatibility(){
+    const available=reviewProgressDomain!=null;
+    const compatible=available
+      &&typeof reviewProgressDomain.buildReviewProgress==="function"
+      &&typeof reviewProgressDomain.reviewProgressSignature==="function"
+      &&typeof reviewProgressDomain.reviewProgressSnapshot==="function"
+      &&reviewProgressDomain.REVIEW_PROGRESS_SCHEMA==="TubeBender.DimensionReviewProgress.v1"
+      &&reviewProgressDomain.REVIEW_PROGRESS_SNAPSHOT_SCHEMA==="TubeBender.DimensionReviewProgressSnapshot.v1"
+      &&reviewProgressDomain.REVIEW_PROGRESS_DIAGNOSTICS_SCHEMA==="TubeBender.DimensionReviewProgressDiagnostics.v1";
+    return {
+      available,
+      compatible,
+      status:!available?"unavailable":compatible?"compatible":"incompatible"
+    };
+  }
+
   function reviewProgressAuditErrorCodes(){
     return [...(reviewProgressDomain?.REVIEW_PROGRESS_AUDIT_ERROR_CODES??[
       "REVIEW_REASON_COUNT_MISMATCH",
