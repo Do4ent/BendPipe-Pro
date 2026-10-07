@@ -1367,6 +1367,22 @@
     });
   }
 
+  function dimensionReviewProgressParity(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
+    const reviewItems=dimensionReviewProgressItems(items);
+    if(!Array.isArray(selectedIds))throw new TypeError("selected_ids must be an array");
+    const fallback=dimensionReviewProgressFallback(reviewItems,selectedIds);
+    const domain=domainDimensionReviewProgress(items,selectedIds);
+    const fallbackSignature=dimensionReviewProgressSignature(fallback);
+    const domainSignature=domain&&reviewProgressDomain?.reviewProgressSignature
+      ?reviewProgressDomain.reviewProgressSignature(domain):null;
+    return {
+      available:domain!=null,
+      consistent:domain!=null?domainSignature===fallbackSignature:null,
+      fallback_signature:fallbackSignature,
+      domain_signature:domainSignature
+    };
+  }
+
   function canonicalDimensionReviewProgress(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
     const domain=domainDimensionReviewProgress(items,selectedIds);
     if(domain&&reviewProgressDomain?.reviewProgressSnapshot&&reviewProgressDomain?.reviewProgressSignature){
