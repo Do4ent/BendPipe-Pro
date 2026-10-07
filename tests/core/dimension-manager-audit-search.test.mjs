@@ -24,5 +24,5 @@ test("question 151: Saved Dimensions filters by search text",()=>{
 
 test("question 165: Saved Dimensions search indexes trusted geometry provenance",()=>{
   assert.match(ui,/const geometryStatuses=refs\.map\(ref=>String\(ref\?\.geometry_status\?\?""\)\)/);
-  assert.match(ui,/dimensionAuditGeometryClass\(dimension\),\.\.\.geometryStatuses,\.\.\.sources/);
+  assert.match(ui,/dimensionAuditGeometryClass\(dimension\),\.\.\.dimensionAuditReviewReasons\(dimension\),\.\.\.geometryStatuses,\.\.\.sources/);
 });
