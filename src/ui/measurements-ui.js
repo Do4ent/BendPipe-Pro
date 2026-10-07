@@ -979,6 +979,7 @@
       const previousSources=latestRebind?[...new Set((latestRebind.previous_references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean))]:[];
       const sourceObjects=[...new Set((dimension.references??[]).map(ref=>String(ref?.object_id??"")).filter(Boolean))];
       const geometryClass=dimensionAuditGeometryClass(dimension);
+      const needsReview=dimensionAuditNeedsReview(dimension);
       const fittedStats=dimensionFittedAuditStats(dimension);
       const fittedText=fittedStats
         ?("Fitted refs: "+fittedStats.reference_count+
@@ -987,6 +988,7 @@
         :null;
       const provenanceBits=[
         "Geometry: "+geometryClass,
+        needsReview?"Audit: Needs review":null,
         fittedText,
         stale&&dimension.stale_reason?("Reason: "+String(dimension.stale_reason)):null,
         sourceObjects.length?("Source: "+sourceObjects.join(", ")):null,
@@ -999,7 +1001,7 @@
         '<div class="tb-measure-title">'+esc(dimension.note??dimension.kind)+' · '+esc(dimension.mode??"Reference")+
         (stale?' · ⚠ Stale':' · '+esc(dimension.status??"NeedsUpdate"))+'</div>'+
         '<div class="tb-measure-note">'+esc(valueText)+' · '+(visible?'Visible':'Hidden')+' · '+esc(dimension.id)+'</div>'+
-        (provenanceBits.length?'<div class="tb-measure-note" data-dim-provenance="'+esc(dimension.id)+'">'+esc(provenanceBits.join(' · '))+'</div>':'')+
+        (provenanceBits.length?'<div class="tb-measure-note" data-dim-provenance="'+esc(dimension.id)+'" '+(needsReview?'data-dim-needs-review="1"':'')+'>'+esc(provenanceBits.join(' · '))+'</div>':'')+
         dimensionFittedEvidenceHtml(dimension)+
         dimensionRebindAuditHtml(dimension)+
         '<div class="tb-measure-actions">'+
