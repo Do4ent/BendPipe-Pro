@@ -1711,6 +1711,10 @@
     );
     const reviewProgressDiagnosticsIntegritySignature=
       dimensionReviewProgressDiagnosticsIntegritySignature(reviewProgressDiagnosticsIntegrity);
+    const reviewDiagnosticsIntegrityParity=dimensionReviewProgressDiagnosticsIntegrityParity(
+      standaloneReviewDiagnosticsRuntime,
+      standaloneReviewDiagnosticsConsistent
+    );
     const legacyReviewProgressErrors=[
       !reviewReasonCountConsistent?"REVIEW_REASON_COUNT_MISMATCH":null,
       !reviewReasonListsConsistent?"REVIEW_REASON_LIST_MISMATCH":null,
@@ -1763,6 +1767,7 @@
         review_progress_diagnostics_runtime_valid:standaloneReviewDiagnosticsRuntime.runtime_valid,
         review_progress_diagnostics_integrity:reviewProgressDiagnosticsIntegrity,
         review_progress_diagnostics_integrity_signature:reviewProgressDiagnosticsIntegritySignature,
+        review_progress_diagnostics_integrity_parity:reviewDiagnosticsIntegrityParity,
         review_progress_diagnostics_source:standaloneReviewDiagnosticsRuntime.source,
         review_progress_diagnostics_domain_status:standaloneReviewDiagnosticsRuntime.domain_status,
         review_progress_diagnostics_state_consistent:standaloneReviewDiagnosticsConsistent,
