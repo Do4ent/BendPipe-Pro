@@ -1,7 +1,7 @@
 (()=>{
   const GEOMETRY_URL="__TB_GEOMETRY_MEASUREMENTS_MODULE_URL__";
   const DIMENSIONS_URL="__TB_DIMENSIONS_MODULE_URL__";
-  let geometry=null,dimensions=null,installed=false,panel=null,resultsPanel=null,button=null,lastResult=null,lastSelectionKey="",poll=null,formulaMeasurementValue=null,dimensionManagerFilter="all",dimensionManagerSort="project",dimensionManagerSearch="";
+  let geometry=null,dimensions=null,installed=false,panel=null,resultsPanel=null,button=null,lastResult=null,lastSelectionKey="",poll=null,formulaMeasurementValue=null,dimensionManagerFilter="all",dimensionManagerSort="project",dimensionManagerSearch="",dimensionManagerFocusId="";
   const quick={active:false,points:[],candidates:[],current:null,result:null};
 
   const $=(s,r=document)=>r.querySelector(s);
@@ -541,7 +541,7 @@
   function open(){ensureShell().classList.add("open");render();}
   function focusDimensionAudit(dimensionId){
     const id=String(dimensionId??"").trim();if(!id)return false;
-    dimensionManagerFilter="all";dimensionManagerSort="project";dimensionManagerSearch=id;
+    dimensionManagerFilter="all";dimensionManagerSort="project";dimensionManagerSearch=id;dimensionManagerFocusId=id;
     open();return true;
   }
   function close(){panel?.classList.remove("open");if(!quick.active)resultsPanel?.classList.remove("open");}
@@ -955,6 +955,10 @@
     ].filter(value=>value!=null).join(" ").toLowerCase();
   }
   function filteredDimensionManagerItems(items=savedDimensions()){
+    if(dimensionManagerFocusId){
+      const exact=items.find(dimension=>String(dimension?.id??"")===dimensionManagerFocusId);
+      return exact?[exact]:[];
+    }
     let result=items;
     if(dimensionManagerFilter==="stale")result=items.filter(dimension=>String(dimension?.status??"")==="Stale");
     else if(dimensionManagerFilter==="rebound")result=items.filter(dimension=>dimension?.rebound_from_stale===true);
@@ -1075,21 +1079,21 @@
     body.querySelector("[data-copy-visible-dimension-audits]")?.addEventListener("click",copyVisibleDimensionAudits);
     body.querySelector("[data-copy-all-dimension-audits]")?.addEventListener("click",copyAllDimensionAudits);
     body.querySelectorAll("[data-dimension-filter]").forEach(button=>{
-      button.onclick=()=>{dimensionManagerFilter=button.dataset.dimensionFilter||"all";render();};
+      button.onclick=()=>{dimensionManagerFocusId="";dimensionManagerFilter=button.dataset.dimensionFilter||"all";render();};
     });
     body.querySelectorAll("[data-dimension-sort]").forEach(button=>{
-      button.onclick=()=>{dimensionManagerSort=button.dataset.dimensionSort||"project";render();};
+      button.onclick=()=>{dimensionManagerFocusId="";dimensionManagerSort=button.dataset.dimensionSort||"project";render();};
     });
     const searchInput=body.querySelector("[data-dimension-search]");
     body.querySelector("[data-dimension-search-apply]")?.addEventListener("click",()=>{
-      dimensionManagerSearch=String(searchInput?.value??"");render();
+      dimensionManagerFocusId="";dimensionManagerSearch=String(searchInput?.value??"");render();
     });
     searchInput?.addEventListener("keydown",event=>{
-      if(event.key==="Enter"){event.preventDefault();dimensionManagerSearch=String(searchInput.value??"");render();}
+      if(event.key==="Enter"){event.preventDefault();dimensionManagerFocusId="";dimensionManagerSearch=String(searchInput.value??"");render();}
     });
-    body.querySelector("[data-dimension-search-clear]")?.addEventListener("click",()=>{dimensionManagerSearch="";render();});
+    body.querySelector("[data-dimension-search-clear]")?.addEventListener("click",()=>{dimensionManagerFocusId="";dimensionManagerSearch="";render();});
     body.querySelector("[data-dimension-view-reset]")?.addEventListener("click",()=>{
-      dimensionManagerFilter="all";dimensionManagerSort="project";dimensionManagerSearch="";render();
+      dimensionManagerFilter="all";dimensionManagerSort="project";dimensionManagerSearch="";dimensionManagerFocusId="";render();
     });
   }
 
