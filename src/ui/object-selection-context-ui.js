@@ -1031,6 +1031,7 @@
       '<button type="button" data-object-action="edit-object">✎ <span>Редактировать</span></button>'+
       '<button type="button" data-object-action="transform-object">⌖ <span>Transform / Gizmo</span></button>'+
       '<button type="button" data-object-action="properties">▤ <span>Свойства</span></button>'+
+      '<button type="button" data-object-action="dimension-audit-focus">⌕ <span>Open in Saved Dimensions</span></button>'+
       '<div class="tb-object-context-separator"></div>'+
       '<button type="button" data-object-action="move">↔ <span>Переместить…</span></button>'+
       '<button type="button" data-object-action="hide">◌ <span>Скрыть</span></button>'+
@@ -1062,6 +1063,10 @@
       else if(action==="edit-object")openContextEdit();
       else if(action==="transform-object")openContextTransform();
       else if(action==="properties")openContextProperties();
+      else if(action==="dimension-audit-focus"){
+        const entry=selectionEntries().find(item=>item?.kind==="dimension");
+        if(entry)window.TubeBenderMeasurements?.focusDimensionAudit?.(entry.dimensionId);
+      }
       else if(action==="move")openMovePanel();
       else if(action==="anchor-end")toggleEndConstraint();
       else if(action==="diagnose")openInvalidElementDiagnosis();
@@ -1127,6 +1132,12 @@
         ?String(permission.reason||"Объект заблокирован")
         :contextBlockedReason(action,profile,entries);
       setContextButtonAvailability(menu,action,{allowed,reason,visible:hasSelection});
+    }
+    const dimensionAuditFocus=menu.querySelector('[data-object-action="dimension-audit-focus"]');
+    if(dimensionAuditFocus){
+      const dimensionOnly=entries.length===1&&entries[0]?.kind==="dimension";
+      dimensionAuditFocus.hidden=!dimensionOnly;
+      dimensionAuditFocus.disabled=!dimensionOnly;
     }
     const endSelection=hasSelection?endConstraintSelection(entries):null;
     const anchorEnd=menu.querySelector('[data-object-action="anchor-end"]');
