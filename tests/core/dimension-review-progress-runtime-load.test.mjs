@@ -10,5 +10,6 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 342: Measurements UI loads review progress domain module",()=>{
   assert.match(ui,/const REVIEW_PROGRESS_URL="__TB_REVIEW_PROGRESS_MODULE_URL__"/);
   assert.match(ui,/reviewProgressDomain=null/);
-  assert.match(ui,/\[geometry,dimensions,reviewProgressDomain\]=await Promise\.all\(\[import\(GEOMETRY_URL\),import\(DIMENSIONS_URL\),import\(REVIEW_PROGRESS_URL\)\]\)/);
+  assert.match(ui,/\[geometry,dimensions,reviewProgressDomain\]=await Promise\.all\(\[/);
+  assert.match(ui,/import\(REVIEW_PROGRESS_URL\)\.catch/);
 });
