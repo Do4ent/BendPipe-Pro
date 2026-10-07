@@ -1280,6 +1280,34 @@
     };
   }
 
+  function dimensionReviewProgressDiagnosticsState(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
+    const reviewItems=dimensionReviewProgressItems(items);
+    if(!Array.isArray(selectedIds))throw new TypeError("selected_ids must be an array");
+    const fallback=dimensionReviewProgressFallback(reviewItems,selectedIds);
+    const canonical=canonicalDimensionReviewProgress(items,selectedIds);
+    const runtime=dimensionReviewProgressRuntimeState(items,selectedIds);
+    const countConsistent=fallback.coverage.complete+fallback.pending_count===fallback.reason_count;
+    const listsConsistent=fallback.completed_reasons.length===fallback.coverage.complete
+      &&fallback.pending_reasons.length===fallback.pending_count;
+    const modelConsistent=dimensionReviewProgressSignature(fallback)===canonical.signature;
+    const diagnostics=dimensionReviewProgressDiagnostics({
+      reason_count:fallback.reason_count,
+      count_consistent:countConsistent,
+      lists_consistent:listsConsistent,
+      model_consistent:modelConsistent,
+      domain_status:runtime.domain_status,
+      domain_consistent:runtime.domain_consistent
+    });
+    return {
+      diagnostics,
+      signature:dimensionReviewProgressDiagnosticsSignature(diagnostics),
+      count_consistent:countConsistent,
+      lists_consistent:listsConsistent,
+      model_consistent:modelConsistent,
+      runtime
+    };
+  }
+
   function dimensionReviewProgressDiagnosticsSignature(diagnostics={}){
     if(reviewProgressDomainCompatibility().compatible&&typeof reviewProgressDomain?.reviewProgressDiagnosticsSignature==="function"){
       return reviewProgressDomain.reviewProgressDiagnosticsSignature(diagnostics);
@@ -2349,7 +2377,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,focusDimensionAudit,refresh:render,dimensionAuditViewProjectId,dimensionAuditViewStorageKey,persistDimensionAuditViewState,clearPersistedDimensionAuditViewState,restoreDimensionAuditViewState,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,dimensionAuditFilenamePart,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReviewProgress,domainDimensionReviewProgress,canonicalDimensionReviewProgress,dimensionReviewProgressDiagnostics,dimensionReviewProgressDiagnosticsSignature,dimensionReviewProgressSignature,dimensionReviewProgressSnapshot,currentCanonicalReviewProgress:()=>canonicalDimensionReviewProgress(),currentReviewProgressDiagnostics:()=>reviewQueueDimensionAuditSnapshot().queue.review_progress_diagnostics_model,currentReviewProgressDiagnosticsSignature:()=>reviewQueueDimensionAuditSnapshot().queue.review_progress_diagnostics_signature,currentCanonicalReviewProgressSnapshot:()=>canonicalDimensionReviewProgress().snapshot,currentCanonicalReviewProgressSignature:()=>canonicalDimensionReviewProgress().signature,currentCanonicalReviewProgressSource:()=>canonicalDimensionReviewProgress().source,currentReviewProgressRuntimeState:()=>dimensionReviewProgressRuntimeState(),currentReviewProgressSnapshot:()=>dimensionReviewProgressSnapshot(dimensionReviewProgress()),currentDomainReviewProgressSnapshot:()=>{const progress=domainDimensionReviewProgress();return progress&&reviewProgressDomain?.reviewProgressSnapshot?reviewProgressDomain.reviewProgressSnapshot(progress):null;},currentReviewProgressSignature:()=>dimensionReviewProgressSignature(dimensionReviewProgress()),currentReviewQueueAuditSnapshot:()=>reviewQueueDimensionAuditSnapshot(),currentReviewReasonAuditSnapshot:()=>reviewReasonDimensionAuditSnapshot(),reviewQueueDimensionAuditSnapshot,reviewReasonDimensionAuditSnapshot,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,selectedDimensionAuditIds,dimensionSelectionKindCounts,selectedDimensionAuditSnapshot,copySelectedDimensionAudits,downloadSelectedDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,activeDimensionReviewReason,filteredDimensionManagerItems,clearDimensionSelection,pruneDimensionSelectionToAuditView,invertVisibleDimensionAuditSelection,removeVisibleDimensionAuditResultsFromSelection,addVisibleDimensionAuditResultsToSelection,selectVisibleDimensionAuditResults,selectReviewReasonDimensionResults,addReviewReasonDimensionResultsToSelection,removeReviewReasonDimensionResultsFromSelection,invertReviewReasonDimensionSelection,selectReviewQueueDimensionResults,addReviewQueueDimensionResultsToSelection,removeReviewQueueDimensionResultsFromSelection,invertReviewQueueDimensionSelection,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
+      open,close,focusDimensionAudit,refresh:render,dimensionAuditViewProjectId,dimensionAuditViewStorageKey,persistDimensionAuditViewState,clearPersistedDimensionAuditViewState,restoreDimensionAuditViewState,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,dimensionAuditFilenamePart,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReviewProgress,domainDimensionReviewProgress,canonicalDimensionReviewProgress,dimensionReviewProgressDiagnostics,dimensionReviewProgressDiagnosticsState,dimensionReviewProgressDiagnosticsSignature,dimensionReviewProgressSignature,dimensionReviewProgressSnapshot,currentCanonicalReviewProgress:()=>canonicalDimensionReviewProgress(),currentReviewProgressDiagnostics:()=>dimensionReviewProgressDiagnosticsState().diagnostics,currentReviewProgressDiagnosticsSignature:()=>dimensionReviewProgressDiagnosticsState().signature,currentReviewProgressDiagnosticsState:()=>dimensionReviewProgressDiagnosticsState(),currentCanonicalReviewProgressSnapshot:()=>canonicalDimensionReviewProgress().snapshot,currentCanonicalReviewProgressSignature:()=>canonicalDimensionReviewProgress().signature,currentCanonicalReviewProgressSource:()=>canonicalDimensionReviewProgress().source,currentReviewProgressRuntimeState:()=>dimensionReviewProgressRuntimeState(),currentReviewProgressSnapshot:()=>dimensionReviewProgressSnapshot(dimensionReviewProgress()),currentDomainReviewProgressSnapshot:()=>{const progress=domainDimensionReviewProgress();return progress&&reviewProgressDomain?.reviewProgressSnapshot?reviewProgressDomain.reviewProgressSnapshot(progress):null;},currentReviewProgressSignature:()=>dimensionReviewProgressSignature(dimensionReviewProgress()),currentReviewQueueAuditSnapshot:()=>reviewQueueDimensionAuditSnapshot(),currentReviewReasonAuditSnapshot:()=>reviewReasonDimensionAuditSnapshot(),reviewQueueDimensionAuditSnapshot,reviewReasonDimensionAuditSnapshot,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,selectedDimensionAuditIds,dimensionSelectionKindCounts,selectedDimensionAuditSnapshot,copySelectedDimensionAudits,downloadSelectedDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,activeDimensionReviewReason,filteredDimensionManagerItems,clearDimensionSelection,pruneDimensionSelectionToAuditView,invertVisibleDimensionAuditSelection,removeVisibleDimensionAuditResultsFromSelection,addVisibleDimensionAuditResultsToSelection,selectVisibleDimensionAuditResults,selectReviewReasonDimensionResults,addReviewReasonDimensionResultsToSelection,removeReviewReasonDimensionResultsFromSelection,invertReviewReasonDimensionSelection,selectReviewQueueDimensionResults,addReviewQueueDimensionResultsToSelection,removeReviewQueueDimensionResultsFromSelection,invertReviewQueueDimensionSelection,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
