@@ -261,7 +261,13 @@
     };
   }
   function beginDrag(event,picked){
-    if(readonly()){toast("Проект открыт только для просмотра");return false;}
+    if(readonly()){
+      const id=String(picked?.data?.dimensionId??"");
+      if(id)selectDimension(id);
+      toast("Проект открыт только для просмотра");
+      event?.preventDefault?.();event?.stopPropagation?.();event?.stopImmediatePropagation?.();
+      return false;
+    }
     const data=picked?.data,dimension=dimensionById(data?.dimensionId);if(!dimension||!data?.dimensionGrip)return false;
     if(staleDimension(dimension)&&data.dimensionGrip==="reference"){
       toast("Stale Dimension: reference можно изменить только через явный Rebind");
