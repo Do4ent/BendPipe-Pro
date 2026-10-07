@@ -730,6 +730,10 @@
       min_confidence:confidence.length?Math.min(...confidence):null
     };
   }
+  function auditNumber(value,decimals=3){
+    const n=Number(value);
+    return Number.isFinite(n)?n.toFixed(decimals):"—";
+  }
   function dimensionAuditReviewReasons(dimension){
     const geometryClass=dimensionAuditGeometryClass(dimension),reasons=[];
     if(String(dimension?.status??"")==="Stale")reasons.push("Stale");
@@ -1005,8 +1009,8 @@
       const fittedStats=dimensionFittedAuditStats(dimension);
       const fittedText=fittedStats
         ?("Fitted refs: "+fittedStats.reference_count+
-          " · max error "+(fittedStats.max_error_mm??"—")+" mm / "+(fittedStats.max_error_deg??"—")+"°"+
-          " · min confidence "+(fittedStats.min_confidence??"—"))
+          " · max error "+auditNumber(fittedStats.max_error_mm)+" mm / "+auditNumber(fittedStats.max_error_deg)+"°"+
+          " · min confidence "+auditNumber(fittedStats.min_confidence))
         :null;
       const provenanceBits=[
         "Geometry: "+geometryClass,
@@ -1263,7 +1267,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,focusDimensionAudit,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,dimensionAuditGeometryClass,dimensionFittedAuditStats,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
+      open,close,focusDimensionAudit,refresh:render,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,dimensionAuditGeometryClass,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,filteredDimensionManagerItems,selectVisibleDimensionAuditResults,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
