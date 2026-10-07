@@ -1260,9 +1260,11 @@
     }
     const reviewReasonCount=Object.keys(reviewReasonCounts).length;
     const completedReviewReasons=Object.entries(reviewReasonSelection)
-      .filter(([,entry])=>entry?.selection_coverage==="complete").map(([reason])=>reason);
+      .filter(([,entry])=>entry?.selection_coverage==="complete").map(([reason])=>reason)
+      .sort((a,b)=>String(a).localeCompare(String(b)));
     const pendingReviewReasons=Object.entries(reviewReasonSelection)
-      .filter(([,entry])=>entry?.selection_coverage!=="complete").map(([reason])=>reason);
+      .filter(([,entry])=>entry?.selection_coverage!=="complete").map(([reason])=>reason)
+      .sort((a,b)=>String(a).localeCompare(String(b)));
     const reviewReasonPendingCount=reviewReasonCoverageSummary.partial+reviewReasonCoverageSummary.none;
     const reviewReasonCompletePercent=reviewReasonCount?Math.round(reviewReasonCoverageSummary.complete/reviewReasonCount*100):0;
     const reviewReasonCompletionState=reviewReasonCount===0?"empty":reviewReasonPendingCount===0?"complete":"pending";
