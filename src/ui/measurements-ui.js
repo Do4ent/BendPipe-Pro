@@ -1337,10 +1337,7 @@
     };
   }
 
-  function dimensionReviewProgressDiagnosticsIntegritySignature(integrity={}){
-    if(typeof reviewProgressDomain?.reviewProgressDiagnosticsIntegritySignature==="function"){
-      return reviewProgressDomain.reviewProgressDiagnosticsIntegritySignature(integrity);
-    }
+  function dimensionReviewProgressDiagnosticsIntegritySignatureFallback(integrity={}){
     return JSON.stringify({
       schema:String(integrity?.schema??"TubeBender.DimensionReviewProgressDiagnosticsIntegrity.v1"),
       source:String(integrity?.source??"ui-fallback"),
@@ -1353,6 +1350,13 @@
       runtime_valid:integrity?.runtime_valid===true,
       valid:integrity?.valid===true
     });
+  }
+
+  function dimensionReviewProgressDiagnosticsIntegritySignature(integrity={}){
+    if(typeof reviewProgressDomain?.reviewProgressDiagnosticsIntegritySignature==="function"){
+      return reviewProgressDomain.reviewProgressDiagnosticsIntegritySignature(integrity);
+    }
+    return dimensionReviewProgressDiagnosticsIntegritySignatureFallback(integrity);
   }
 
   function dimensionReviewProgressDiagnosticsSnapshot(diagnostics={}){
@@ -1374,10 +1378,7 @@
     };
   }
 
-  function dimensionReviewProgressDiagnosticsIntegrity(runtime,stateConsistent=true){
-    if(typeof reviewProgressDomain?.reviewProgressDiagnosticsIntegrity==="function"){
-      return reviewProgressDomain.reviewProgressDiagnosticsIntegrity(runtime??{},stateConsistent);
-    }
+  function dimensionReviewProgressDiagnosticsIntegrityFallback(runtime,stateConsistent=true){
     const value=runtime??{};
     return {
       schema:"TubeBender.DimensionReviewProgressDiagnosticsIntegrity.v1",
@@ -1393,6 +1394,13 @@
         &&value.snapshot_signature_consistent===true
         &&value.runtime_valid===true
     };
+  }
+
+  function dimensionReviewProgressDiagnosticsIntegrity(runtime,stateConsistent=true){
+    if(typeof reviewProgressDomain?.reviewProgressDiagnosticsIntegrity==="function"){
+      return reviewProgressDomain.reviewProgressDiagnosticsIntegrity(runtime??{},stateConsistent);
+    }
+    return dimensionReviewProgressDiagnosticsIntegrityFallback(runtime,stateConsistent);
   }
 
   function dimensionReviewProgressDiagnosticsSignature(diagnostics={}){
