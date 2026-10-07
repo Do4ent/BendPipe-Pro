@@ -9,5 +9,5 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 273: review reason chips show selection coverage percent",()=>{
   assert.match(ui,/const selectedPercent=count\?Math\.round\(selectedCount\/count\*100\):0/);
-  assert.match(ui,/selectedPercent\+'%\)\<\/button\>'/);
+  assert.match(ui,/selectedPercent\+'% · '\+selectionCoverage\+'\)\<\/button\>'/);
 });
