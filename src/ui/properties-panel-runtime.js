@@ -235,6 +235,9 @@
     panel.querySelectorAll("[data-dimension-delete]").forEach(button=>{
       button.onclick=()=>{window.TubeBenderDimensionGrips?.deleteDimension?.(button.dataset.dimensionDelete);render(true);};
     });
+    panel.querySelectorAll("[data-dimension-copy-audit]").forEach(button=>{
+      button.onclick=()=>window.TubeBenderMeasurements?.copyDimensionRebindAudit?.(button.dataset.dimensionCopyAudit);
+    });
     panel.querySelector("[data-property-edit-array]")?.addEventListener("click",()=>window.TubeBenderEditing?.open?.("array"));
     panel.querySelector("[data-property-normalize]")?.addEventListener("click",()=>{normalizeApi()?.normalizeSelected?.();render(true);});
     panel.querySelector("[data-property-compare-normalized]")?.addEventListener("click",()=>{
@@ -509,7 +512,7 @@
   }
   function cardHtml(item){
     const dimensionActions=item.kind==="dimension"&&item.dimensionId
-      ?'<div class="tb-prop-group"><strong>Dimension actions</strong><div class="tb-prop-edit-row"><label>Visibility</label><span><button data-dimension-visibility="'+esc(item.dimensionId)+'" data-dimension-visible="'+(item.visible?"1":"0")+'">'+(item.visible?"Hide":"Show")+'</button><button data-dimension-delete="'+esc(item.dimensionId)+'">Delete</button></span></div></div>'
+      ?'<div class="tb-prop-group"><strong>Dimension actions</strong><div class="tb-prop-edit-row"><label>Visibility</label><span><button data-dimension-visibility="'+esc(item.dimensionId)+'" data-dimension-visible="'+(item.visible?"1":"0")+'">'+(item.visible?"Hide":"Show")+'</button><button data-dimension-delete="'+esc(item.dimensionId)+'">Delete</button><button data-dimension-copy-audit="'+esc(item.dimensionId)+'">Copy audit JSON</button></span></div></div>'
       :"";
     return '<div class="tb-prop-card"><div class="tb-prop-title">'+esc(item.title)+' <span class="tb-prop-kind">· '+esc(item.kind)+'</span></div>'+
       item.groups.map(group=>'<div class="tb-prop-group"><strong>'+esc(group.name)+'</strong>'+
