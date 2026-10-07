@@ -10,7 +10,8 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 344: domain divergence participates in all review progress diagnostics",()=>{
   const fn=ui.match(/function reviewQueueDimensionAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(fn,/REVIEW_PROGRESS_DOMAIN_DIVERGENCE/);
-  assert.match(fn,/\+\(!domainReviewProgressConsistent\?1:0\)/);
-  assert.match(fn,/&&!domainReviewProgressDiverged\)\?"ok":"error"/);
+  assert.match(fn,/\+\(domainReviewProgressDiverged\?1:0\)/);
+  assert.match(fn,/&&!domainReviewProgressDiverged/);
+  assert.match(fn,/&&!domainReviewProgressIncompatible/);
   assert.match(fn,/review_progress_domain_consistent:domainReviewProgressConsistent/);
 });
