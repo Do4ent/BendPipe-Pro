@@ -755,7 +755,7 @@
     return dimensionAuditReviewReasons(dimension).length>0;
   }
   function dimensionAuditSummary(items=savedDimensions()){
-    const summary={total:items.length,stale:0,rebound:0,section_derived:0,visible:0,hidden:0,needs_review:0,by_status:{},by_mode:{},by_geometry_status:{}};
+    const summary={total:items.length,stale:0,rebound:0,section_derived:0,visible:0,hidden:0,needs_review:0,by_status:{},by_mode:{},by_geometry_status:{},reference_geometry_counts:{Exact:0,Fitted:0,SectionDerived:0,Unknown:0}};
     for(const dimension of items){
       const status=String(dimension?.status??"Unknown");
       const mode=String(dimension?.mode??"Unknown");
@@ -763,6 +763,10 @@
       summary.by_status[status]=(summary.by_status[status]??0)+1;
       summary.by_mode[mode]=(summary.by_mode[mode]??0)+1;
       summary.by_geometry_status[geometryStatus]=(summary.by_geometry_status[geometryStatus]??0)+1;
+      const referenceCounts=dimensionReferenceStatusCounts(dimension);
+      for(const key of Object.keys(summary.reference_geometry_counts)){
+        summary.reference_geometry_counts[key]+=Number(referenceCounts[key]??0);
+      }
       if(status==="Stale")summary.stale++;
       if(dimension?.rebound_from_stale===true)summary.rebound++;
       if(isSectionDerivedDimension(dimension))summary.section_derived++;
