@@ -163,6 +163,7 @@
     const auditCount=Array.isArray(dimension?.rebound_history)?dimension.rebound_history.length:0;
     const audit=window.TubeBenderMeasurements??null;
     const geometryClass=audit?.dimensionAuditGeometryClass?.(dimension)??null;
+    const referenceCounts=audit?.dimensionReferenceStatusCounts?.(dimension)??null;
     const reviewReasons=audit?.dimensionAuditReviewReasons?.(dimension)??[];
     const fittedStats=audit?.dimensionFittedAuditStats?.(dimension)??null;
     const fittedSummary=fittedStats?[
@@ -173,6 +174,7 @@
     ].filter(Boolean).join(" · "):null;
     const provenance=[
       geometryClass?("Geometry: "+geometryClass):null,
+      referenceCounts?("Refs: "+Object.entries(referenceCounts).map(([status,count])=>status+" "+count).join(" / ")):null,
       reviewReasons.length?("Needs review: "+reviewReasons.join(", ")):null,
       fittedSummary,
       sources.length?("Source: "+sources.join(", ")):null,
