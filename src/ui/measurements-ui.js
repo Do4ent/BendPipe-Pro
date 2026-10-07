@@ -1259,6 +1259,10 @@
       if(Object.prototype.hasOwnProperty.call(reviewReasonCoverageSummary,state))reviewReasonCoverageSummary[state]++;
     }
     const reviewReasonCount=Object.keys(reviewReasonCounts).length;
+    const completedReviewReasons=Object.entries(reviewReasonSelection)
+      .filter(([,entry])=>entry?.selection_coverage==="complete").map(([reason])=>reason);
+    const pendingReviewReasons=Object.entries(reviewReasonSelection)
+      .filter(([,entry])=>entry?.selection_coverage!=="complete").map(([reason])=>reason);
     const reviewReasonPendingCount=reviewReasonCoverageSummary.partial+reviewReasonCoverageSummary.none;
     const reviewReasonCompletePercent=reviewReasonCount?Math.round(reviewReasonCoverageSummary.complete/reviewReasonCount*100):0;
     const reviewReasonCompletionState=reviewReasonCount===0?"empty":reviewReasonPendingCount===0?"complete":"pending";
@@ -1278,6 +1282,8 @@
         review_reason_count:reviewReasonCount,
         review_reason_complete_count:reviewReasonCoverageSummary.complete,
         review_reason_pending_count:reviewReasonPendingCount,
+        completed_review_reasons:completedReviewReasons,
+        pending_review_reasons:pendingReviewReasons,
         review_reason_all_complete:reviewReasonCount>0&&reviewReasonPendingCount===0,
         review_reason_completion_state:reviewReasonCompletionState,
         review_reason_complete_percent:reviewReasonCompletePercent,
