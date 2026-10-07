@@ -9,6 +9,6 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 317: review queue audit validates issue count against emitted errors",()=>{
   const fn=ui.match(/function reviewQueueDimensionAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/review_progress_issue_count_consistent:/);
-  assert.match(fn,/\.filter\(Boolean\)\.length/);
+  assert.match(fn,/review_progress_issue_count_consistent:reviewProgressDiagnosticsModel\.issue_count_consistent/);
+  assert.match(fn,/reviewProgressDiagnosticsModel\.issue_count===legacyReviewProgressErrors\.length/);
 });
