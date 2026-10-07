@@ -8,7 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 391: Saved Dimensions diagnostics are driven by domain model",()=>{
-  assert.match(ui,/const managerReviewDiagnosticsModel=dimensionReviewProgressDiagnostics\(\{/);
+  assert.match(ui,/const managerReviewDiagnosticsModel=standaloneManagerReviewDiagnosticsRuntime\.diagnostics/);
   assert.match(ui,/const reviewReasonProgressErrors=managerReviewDiagnosticsModel\.errors/);
   assert.match(ui,/const reviewReasonProgressIssueCount=managerReviewDiagnosticsModel\.issue_count/);
   assert.match(ui,/const reviewReasonProgressError=managerReviewDiagnosticsModel\.primary_error/);
