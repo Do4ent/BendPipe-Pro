@@ -438,6 +438,10 @@
           ["Geometry class",geometryClass],
           ["Needs review",reviewReasons.length>0],
           ["Review reasons",reviewReasons],
+          ["Fitted reference count",fittedStats?.reference_count],
+          ["Max fit error mm",fittedStats?.max_error_mm],
+          ["Max fit error deg",fittedStats?.max_error_deg],
+          ["Min confidence",fittedStats?.min_confidence],
           ["Fitted stats",fittedStats]
         ]},
         {name:"Rebind audit",rows:[
