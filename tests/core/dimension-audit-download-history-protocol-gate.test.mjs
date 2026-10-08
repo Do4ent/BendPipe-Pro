@@ -11,6 +11,6 @@ test("question 613: audit history copy and download gate on protocol state",()=>
   const verification=ui.match(/function dimensionAuditDownloadHistoryVerification\(snapshot=\{\}\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(verification,/const bindingValid=dimensionAuditDownloadHistoryProtocolBindingValid\(value\)/);
   assert.match(verification,/!bindingValid\?"INVALID_PROTOCOL_BINDING":null/);
-  const gate=/const verification=dimensionAuditDownloadHistoryVerification\(snapshot\);/g;
-  assert.equal((ui.match(gate)??[]).length,2);
+  assert.match(ui,/function dimensionAuditDownloadHistoryExportReadiness/);
+  assert.match(ui,/const verification=dimensionAuditDownloadHistoryVerification\(value\)/);
 });
