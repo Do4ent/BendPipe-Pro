@@ -9,6 +9,6 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 573: audit history snapshot exposes aggregate attempt validity",()=>{
   const fn=ui.match(/function dimensionAuditDownloadAttemptHistoryAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/attempts_valid:attempts\.every\(attempt=>dimensionAuditDownloadAttemptValid\(attempt\)\)/);
+  assert.match(fn,/attempts_valid:integrity\.attempts_valid/);
   assert.match(ui,/currentDimensionAuditDownloadAttemptHistoryAttemptsValid:\(\)=>dimensionAuditDownloadAttemptHistorySnapshot\(\)\.every\(attempt=>dimensionAuditDownloadAttemptValid\(attempt\)\)/);
 });
