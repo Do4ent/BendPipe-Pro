@@ -2315,6 +2315,9 @@
   }
 
   function dimensionAuditDownloadAttemptSignature(attempt){
+    if(auditDownloadDomain?.dimensionAuditDownloadAttemptSignature){
+      return auditDownloadDomain.dimensionAuditDownloadAttemptSignature(attempt??{});
+    }
     const value=attempt??{};
     return JSON.stringify({
       schema:String(value.schema??""),
@@ -2327,6 +2330,19 @@
       protocol_signature:String(value.protocol_signature??""),
       error:value.error==null?null:String(value.error)
     });
+  }
+
+  function dimensionAuditDownloadAttemptValid(attempt){
+    if(auditDownloadDomain?.dimensionAuditDownloadAttemptValid){
+      return auditDownloadDomain.dimensionAuditDownloadAttemptValid(attempt??{});
+    }
+    const value=attempt??{};
+    const status=String(value.status??"");
+    const signature=String(value.signature??"");
+    return String(value.schema??"")==="TubeBender.DimensionAuditDownloadAttempt.v1"
+      &&["blocked","downloaded","failed"].includes(status)
+      &&!!signature
+      &&signature===dimensionAuditDownloadAttemptSignature(value);
   }
 
   function recordDimensionAuditDownloadAttempt(status,preflight,error=null){
@@ -2441,6 +2457,7 @@
     const summary=value.summary??{};
     const baseValid=String(value.schema??"")===dimensionAuditDownloadHistorySchema()
       &&Number(value.attempt_count??-1)===attempts.length
+      &&attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt))
       &&dimensionAuditDownloadAttemptHistorySummaryValid(summary,attempts)
       &&String(value.summary_signature??"")===dimensionAuditDownloadAttemptHistorySummarySignature(summary);
     if(!baseValid)return false;
