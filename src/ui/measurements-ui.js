@@ -2062,9 +2062,18 @@
     return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
   }
 
+  const DIMENSION_AUDIT_FILENAME_POLICY=Object.freeze({
+    part_default_length:80,
+    part_min_length:8,
+    part_max_length:120,
+    json_default_length:220,
+    json_min_length:80,
+    json_max_length:240
+  });
+
   function downloadDimensionAuditJson(filename,snapshot){
     const safeFilename=String(filename??"").trim();
-    if(!safeFilename||safeFilename.length>240||!safeFilename.endsWith(".json")||/[\\/\u0000-\u001f]/u.test(safeFilename)){
+    if(!safeFilename||safeFilename.length>DIMENSION_AUDIT_FILENAME_POLICY.json_max_length||!safeFilename.endsWith(".json")||/[\\/\u0000-\u001f]/u.test(safeFilename)){
       toast("Некорректное имя Dimension audit JSON");
       return false;
     }
@@ -2082,16 +2091,16 @@
   function dimensionAuditFilenameStamp(value=new Date()){
     return value.toISOString().replace(/[:.]/g,"-");
   }
-  function dimensionAuditFilenamePart(value,fallback="item",maxLength=80){
-    const limit=Math.max(8,Math.min(120,Math.trunc(Number(maxLength)||80)));
+  function dimensionAuditFilenamePart(value,fallback="item",maxLength=DIMENSION_AUDIT_FILENAME_POLICY.part_default_length){
+    const limit=Math.max(DIMENSION_AUDIT_FILENAME_POLICY.part_min_length,Math.min(DIMENSION_AUDIT_FILENAME_POLICY.part_max_length,Math.trunc(Number(maxLength)||DIMENSION_AUDIT_FILENAME_POLICY.part_default_length)));
     const safe=String(value??"").trim()
       .replace(/[^\p{L}\p{N}._-]+/gu,"_")
       .replace(/^[_\-.]+|[_\-.]+$/g,"");
     const clipped=safe.slice(0,limit).replace(/[_\-.]+$/g,"");
     return clipped||String(fallback).slice(0,limit);
   }
-  function dimensionAuditJsonFilename(stem,generatedAt,maxLength=220){
-    const limit=Math.max(80,Math.min(240,Math.trunc(Number(maxLength)||220)));
+  function dimensionAuditJsonFilename(stem,generatedAt,maxLength=DIMENSION_AUDIT_FILENAME_POLICY.json_default_length){
+    const limit=Math.max(DIMENSION_AUDIT_FILENAME_POLICY.json_min_length,Math.min(DIMENSION_AUDIT_FILENAME_POLICY.json_max_length,Math.trunc(Number(maxLength)||DIMENSION_AUDIT_FILENAME_POLICY.json_default_length)));
     const stamp=dimensionAuditFilenameStamp(new Date(generatedAt));
     const suffix="-"+stamp+".json";
     const budget=Math.max(16,limit-suffix.length);
