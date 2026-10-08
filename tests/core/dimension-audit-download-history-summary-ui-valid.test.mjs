@@ -14,6 +14,6 @@ test("question 566: UI validates audit history summary against attempts",()=>{
   assert.match(fn,/Number\(value\.downloaded\?\?-1\)===counts\.downloaded/);
   assert.match(fn,/Number\(value\.failed\?\?-1\)===counts\.failed/);
   assert.match(fn,/attempts\.at\(-1\)\?\.signature/);
-  const historyValid=ui.match(/function dimensionAuditDownloadAttemptHistoryAuditValid\(snapshot\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(historyValid,/dimensionAuditDownloadAttemptHistorySummaryValid\(summary,attempts\)/);
+  const integrity=ui.match(/function dimensionAuditDownloadAttemptHistoryIntegrity\(snapshot\)\{([\s\S]*?)\n  \}/)?.[1]??"";
+  assert.match(integrity,/const summaryValid=dimensionAuditDownloadAttemptHistorySummaryValid\(summary,attempts\)/);
 });
