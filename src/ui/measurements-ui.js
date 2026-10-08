@@ -2278,7 +2278,8 @@
     if(!items.length)return '<div class="tb-measure-result" style="margin-top:9px"><div class="tb-measure-title">Saved Dimensions</div><div class="tb-measure-note">Сохранённых размеров пока нет.</div></div>';
     const locked=readonly();
     const auditSummary=dimensionAuditSummary(items);
-    const managerReviewContextSummary=dimensionReviewContextSummary(items);
+    const managerReviewContextState=dimensionReviewContextState(items,selectedDimensionAuditIds());
+    const managerReviewContextSummary=dimensionReviewContextSummary(items,managerReviewContextState);
     const statusSummary=Object.entries(auditSummary.by_status).map(([status,count])=>status+': '+count).join(' · ');
     const modeSummary=Object.entries(auditSummary.by_mode).map(([mode,count])=>mode+': '+count).join(' · ');
     const geometrySummary=Object.entries(auditSummary.by_geometry_status).map(([status,count])=>'Geometry '+status+': '+count).join(' · ');
@@ -2394,6 +2395,7 @@
     const rows=visibleItems.map(dimension=>{
       const stale=String(dimension.status)==="Stale",visible=dimension.visible!==false;
       const selected=selectedIdSet.has(String(dimension?.id??""));
+      const reviewContext=dimensionReviewContext(dimension,managerReviewContextState);
       const unit=/angle/i.test(String(dimension.kind))?"deg":"mm";
       const valueText=Number.isFinite(Number(dimension.value))?formatted(Number(dimension.value),unit):"—";
       const rebindCount=Array.isArray(dimension.rebound_history)?dimension.rebound_history.length:0;
@@ -2421,9 +2423,10 @@
         latestRebind?.previous_stale_reason?("Previous reason: "+String(latestRebind.previous_stale_reason)):null,
         latestRebind&&latestRebind.previous_value!=null?("Previous value: "+String(latestRebind.previous_value)):null
       ].filter(Boolean);
-      return '<div class="tb-measure-result" style="margin-top:7px" data-dim-selected="'+(selected?'1':'0')+'">'+
+      return '<div class="tb-measure-result" style="margin-top:7px" data-dim-selected="'+(selected?'1':'0')+'" data-review-context-health="'+esc(reviewContext.health)+'" data-review-context-state="'+esc(reviewContext.state)+'" data-review-action-required="'+(reviewContext.action_required?'1':'0')+'">'+
         '<div class="tb-measure-title">'+(selected?'✓ Selected · ':'')+esc(dimension.note??dimension.kind)+' · '+esc(dimension.mode??"Reference")+
-        (stale?' · ⚠ Stale':' · '+esc(dimension.status??"NeedsUpdate"))+'</div>'+
+        (stale?' · ⚠ Stale':' · '+esc(dimension.status??"NeedsUpdate"))+
+        (reviewContext.health!=="not-required"?' · Review '+esc(reviewContext.health):'')+'</div>'+
         '<div class="tb-measure-note">'+esc(valueText)+' · '+(visible?'Visible':'Hidden')+' · '+esc(dimension.id)+'</div>'+
         (provenanceBits.length?'<div class="tb-measure-note" data-dim-provenance="'+esc(dimension.id)+'" '+(needsReview?'data-dim-needs-review="1"':'')+'>'+esc(provenanceBits.join(' · '))+'</div>':'')+
         dimensionFittedEvidenceHtml(dimension)+
