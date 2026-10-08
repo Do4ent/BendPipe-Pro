@@ -11,7 +11,8 @@ test("question 731: copy and download history use canonical export gate",()=>{
   assert.match(ui,/function dimensionAuditDownloadHistoryExportGate\(/);
   assert.match(ui,/auditDownloadDomain\?\.dimensionAuditDownloadHistoryExportGate/);
   assert.match(ui,/const exportGate=dimensionAuditDownloadHistoryExportGate\(exportState,snapshot\)/);
-  assert.match(ui,/if\(!exportGate\.allowed\)/);
-  assert.match(ui,/Audit download history export blocked: "\+exportGate\.code/);
+  assert.match(ui,/const exportGateSnapshot=dimensionAuditDownloadHistoryExportGateSnapshot\(exportGate\)/);
+  assert.match(ui,/const exportDecision=dimensionAuditDownloadHistoryExportDecision\(exportGateSnapshot\)/);
+  assert.match(ui,/const exportAuthorization=dimensionAuditDownloadHistoryExportAuthorization\(exportDecisionSnapshot\)/);
   assert.match(ui,/currentDimensionAuditDownloadHistoryExportGate:\(\)=>dimensionAuditDownloadHistoryExportGate\(\)/);
 });
