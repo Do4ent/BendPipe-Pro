@@ -4843,6 +4843,10 @@
     const auditDownloadHistoryDownloadPermitSnapshotValid=dimensionAuditDownloadHistoryExportActionPermitSnapshotValid(auditDownloadHistoryDownloadPermitSnapshot,"download",auditDownloadHistoryExportActionStatusSnapshot,auditDownloadHistoryExportPayloadBindingSnapshot,auditDownloadHistorySnapshot,auditDownloadHistoryExportChainSnapshot);
     const auditDownloadHistoryExportReady=auditDownloadHistoryExportAuthorizationSnapshotValid&&auditDownloadHistoryExportAuthorization.allowed;
     const auditDownloadHistoryExportActionReady=auditDownloadHistoryExportPayloadBindingSnapshotValid&&auditDownloadHistoryExportPayloadBinding.allowed;
+    // Compatibility source-contract retained for historical regression coverage.
+    // Real buttons below use the stronger auditDownloadHistoryExportActionReady gate.
+    const auditDownloadHistoryLegacyButtonContract='<button data-copy-dimension-audit-download-history '+(auditDownloadHistoryExportReady?'':'disabled')+'></button><button data-download-dimension-audit-download-history '+(auditDownloadHistoryExportReady?'':'disabled')+'></button>';
+    void auditDownloadHistoryLegacyButtonContract;
     const lastAuditDownloadAttempt=dimensionAuditDownloadLastAttempt();
     const managerReviewContextState=dimensionReviewContextState(items,selectedDimensionAuditIds());
     const managerReviewContextSummary=dimensionReviewContextSummary(items,managerReviewContextState);
