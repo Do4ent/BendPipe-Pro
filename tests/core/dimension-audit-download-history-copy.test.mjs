@@ -11,7 +11,9 @@ test("question 549: audit download history can be copied as JSON",()=>{
   const fn=ui.match(/async function copyDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(fn,/const snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot\(\)/);
   assert.match(fn,/const exportState=dimensionAuditDownloadHistoryExportReadinessSnapshot\(snapshot\)/);
-  assert.match(fn,/dimensionAuditDownloadHistoryExportReadinessSnapshotValid\(exportState,snapshot\)/);
+  assert.match(fn,/const exportGate=dimensionAuditDownloadHistoryExportGate\(exportState,snapshot\)/);
+  assert.match(fn,/const exportAuthorization=dimensionAuditDownloadHistoryExportAuthorization\(exportDecisionSnapshot\)/);
+  assert.match(fn,/const exportAuthorizationSnapshot=dimensionAuditDownloadHistoryExportAuthorizationSnapshot\(exportAuthorization\)/);
   assert.match(fn,/JSON\.stringify\(snapshot,null,2\)/);
   assert.match(fn,/navigator\?\.clipboard\?\.writeText/);
 });
