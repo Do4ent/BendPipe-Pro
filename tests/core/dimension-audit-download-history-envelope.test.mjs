@@ -8,6 +8,7 @@ import {
   dimensionAuditDownloadHistorySummarySignature,
   dimensionAuditDownloadHistoryProtocolState,
   dimensionAuditDownloadHistoryProtocolStateSignature,
+  dimensionAuditDownloadHistoryProtocolBindingValid,
   dimensionAuditDownloadHistorySignature,
   dimensionAuditDownloadHistoryIntegrity,
   dimensionAuditDownloadHistoryIntegritySignature,
@@ -54,6 +55,7 @@ function snapshot(){
     ...signed,
     attempts_valid:integrity.attempts_valid,
     summary_valid:integrity.summary_valid,
+    protocol_binding_valid:dimensionAuditDownloadHistoryProtocolBindingValid(signed),
     integrity,
     integrity_signature:dimensionAuditDownloadHistoryIntegritySignature(integrity),
     valid:integrity.valid
