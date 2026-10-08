@@ -417,6 +417,7 @@
       const fittedStats=audit?.dimensionFittedAuditStats?.(dimension)??null;
       const reviewProgressSnapshot=audit?.currentCanonicalReviewProgressSnapshot?.()??null;
       const canonicalReviewContext=audit?.dimensionReviewContext?.(dimension)??null;
+      const reviewContextSummary=audit?.currentDimensionReviewContextSummary?.()??null;
       const selectedDimensionAuditIds=audit?.selectedDimensionAuditIds?.()??[];
       const selectedInAudit=selectedDimensionAuditIds.map(id=>String(id)).includes(String(dimension?.id??""));
       const reviewDiagnosticsRuntime=audit?.currentReviewProgressDiagnosticsRuntimeState?.()??null;
@@ -513,6 +514,11 @@
           ["Review context signature",canonicalReviewContext?.signature??null],
           ["Review context API consistent",reviewContextConsistent],
           ["Review action required",reviewDisplay.action_required],
+          ["Queue review action required count",reviewContextSummary?.action_required],
+          ["Queue review state counts",reviewContextSummary?.by_state],
+          ["Queue review health counts",reviewContextSummary?.by_health],
+          ["Queue review blocker counts",reviewContextSummary?.blocker_counts],
+          ["Queue review summary signature",reviewContextSummary?.signature],
           ["Review blockers",reviewDisplay.blockers],
           ["Progress status",reviewProgressSnapshot?.status],
           ["Progress complete %",reviewProgressSnapshot?.complete_percent],
