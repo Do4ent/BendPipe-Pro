@@ -437,6 +437,8 @@
       const completedReviewReasons=reviewReasons.filter(reason=>reviewReasonCoverage[String(reason)]==="complete");
       const pendingReviewReasons=reviewReasons.filter(reason=>reviewReasonCoverage[String(reason)]!=="complete");
       const dimensionReviewState=reviewReasons.length===0?"not-required":pendingReviewReasons.length===0?"complete":"pending";
+      const dimensionReviewCompletePercent=reviewReasons.length
+        ?Math.round(completedReviewReasons.length/reviewReasons.length*100):100;
       const reviewContextHealth=dimensionReviewState==="not-required"
         ?"not-required"
         :reviewDiagnosticsIntegrityState?.integrity?.valid!==true
@@ -479,6 +481,7 @@
           ["Progress signature",reviewProgressSnapshot?.signature],
           ["Selected in audit",selectedInAudit],
           ["Dimension review state",dimensionReviewState],
+          ["Dimension review complete %",dimensionReviewCompletePercent],
           ["Review context health",reviewContextHealth],
           ["Progress status",reviewProgressSnapshot?.status],
           ["Progress complete %",reviewProgressSnapshot?.complete_percent],
