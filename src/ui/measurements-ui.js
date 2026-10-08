@@ -2903,7 +2903,10 @@
       return auditDownloadDomain.dimensionAuditDownloadAttemptSignature(attempt??{});
     }
     const value=attempt??{};
-    const signed={
+    const hasPermitEvidence=value.export_action!=null
+      ||value.action_permit_signature!=null
+      ||value.action_permit_snapshot_signature!=null;
+    return JSON.stringify({
       schema:String(value.schema??""),
       status:String(value.status??""),
       filename:String(value.filename??""),
@@ -2913,17 +2916,13 @@
       runtime_signature:String(value.runtime_signature??""),
       protocol_signature:String(value.protocol_signature??""),
       error:value.error==null?null:String(value.error),
-      generated_at:String(value.generated_at??"")
-    };
-    const hasPermitEvidence=value.export_action!=null
-      ||value.action_permit_signature!=null
-      ||value.action_permit_snapshot_signature!=null;
-    if(hasPermitEvidence){
-      signed.export_action=String(value.export_action??"");
-      signed.action_permit_signature=String(value.action_permit_signature??"");
-      signed.action_permit_snapshot_signature=String(value.action_permit_snapshot_signature??"");
-    }
-    return JSON.stringify(signed);
+      generated_at:String(value.generated_at??""),
+      ...(hasPermitEvidence?{
+        export_action:String(value.export_action??""),
+        action_permit_signature:String(value.action_permit_signature??""),
+        action_permit_snapshot_signature:String(value.action_permit_snapshot_signature??"")
+      }:{})
+    });
   }
 
   function dimensionAuditDownloadAttemptValid(attempt){
@@ -2954,7 +2953,33 @@
       &&signature===dimensionAuditDownloadAttemptSignature(value);
   }
 
-  function recordDimensionAuditDownloadAttempt(status,preflight,error=null,permitEvidence=null){
+  function recordDimensionAuditDownloadAttempt(status,preflight,error=null){
+    const validation=preflight?.validation??null;
+    const input={
+      status:String(status??""),
+      filename:String(validation?.filename??""),
+      snapshot_schema:validation?.schema==null?null:String(validation.schema),
+      code:String(preflight?.code??""),
+      preflight_signature:String(preflight?.signature??""),
+      runtime_signature:String(preflight?.runtime_validation?.runtime_signature??""),
+      protocol_signature:String(preflight?.runtime_validation?.protocol_signature??""),
+      error:error==null?null:String(error?.message??error),
+      generated_at:new Date().toISOString()
+    };
+    const attempt=auditDownloadDomain?.buildDimensionAuditDownloadAttempt
+      ?clone(auditDownloadDomain.buildDimensionAuditDownloadAttempt(input))
+      :(()=>{
+        const base={schema:"TubeBender.DimensionAuditDownloadAttempt.v1",...input};
+        return {...base,signature:dimensionAuditDownloadAttemptSignature(base)};
+      })();
+    lastDimensionAuditDownloadAttempt=attempt;
+    dimensionAuditDownloadAttemptHistory.push(attempt);
+    while(dimensionAuditDownloadAttemptHistory.length>DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_HISTORY_LIMIT)dimensionAuditDownloadAttemptHistory.shift();
+    try{window.dispatchEvent(new CustomEvent("tubebender-dimension-audit-download",{detail:clone(attempt)}));}catch{}
+    return clone(attempt);
+  }
+
+  function recordDimensionAuditDownloadAttemptWithPermitEvidence(status,preflight,error=null,permitEvidence=null){
     const validation=preflight?.validation??null;
     const evidence=permitEvidence??null;
     const input={
@@ -2985,6 +3010,7 @@
     try{window.dispatchEvent(new CustomEvent("tubebender-dimension-audit-download",{detail:clone(attempt)}));}catch{}
     return clone(attempt);
   }
+
   function dimensionAuditDownloadLastAttempt(){
     return clone(lastDimensionAuditDownloadAttempt);
   }
@@ -4584,7 +4610,11 @@
     }
     const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
     const stem=name+"-dimension-audit-download-history-"+snapshot.attempt_count;
-    return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
+    return downloadDimensionAuditJsonWithPermitEvidence(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot,{
+      export_action:"download",
+      action_permit_signature:exportActionPermitSignature,
+      action_permit_snapshot_signature:exportActionPermitSnapshot.snapshot_signature
+    });
   }
   function clearDimensionAuditDownloadAttemptHistory(){
     const count=dimensionAuditDownloadAttemptHistory.length;
@@ -4592,17 +4622,17 @@
     return count;
   }
 
-  function downloadDimensionAuditJson(filename,snapshot,permitEvidence=null){
+  function downloadDimensionAuditJson(filename,snapshot){
     const preflight=dimensionAuditDownloadPreflight(filename,snapshot);
     if(!preflight.runtime_validation.valid){
-      recordDimensionAuditDownloadAttempt("blocked",preflight,null,permitEvidence);
+      recordDimensionAuditDownloadAttempt("blocked",preflight);
       toast("Dimension audit download protocol invalid");
       return false;
     }
     const validation=preflight.validation;
     const safeFilename=validation?.filename;
     if(!preflight.valid){
-      recordDimensionAuditDownloadAttempt("blocked",preflight,null,permitEvidence);
+      recordDimensionAuditDownloadAttempt("blocked",preflight);
       if(validation.code==="INVALID_FILENAME")toast("Некорректное имя Dimension audit JSON");
       else if(validation.code==="INVALID_SNAPSHOT")toast("Некорректный Dimension audit snapshot");
       else if(validation.code==="UNSUPPORTED_SCHEMA")toast("Неподдерживаемая schema Dimension audit snapshot");
@@ -4615,15 +4645,49 @@
       link.href=url;link.download=safeFilename;
       document.body.appendChild(link);link.click();link.remove();
       setTimeout(()=>URL.revokeObjectURL(url),0);
-      recordDimensionAuditDownloadAttempt("downloaded",preflight,null,permitEvidence);
+      recordDimensionAuditDownloadAttempt("downloaded",preflight);
       toast("Dimension audit JSON сохранён");
       return true;
     }catch(error){
-      recordDimensionAuditDownloadAttempt("failed",preflight,error,permitEvidence);
+      recordDimensionAuditDownloadAttempt("failed",preflight,error);
       toast("Не удалось сохранить Dimension audit JSON");
       return false;
     }
   }
+
+  function downloadDimensionAuditJsonWithPermitEvidence(filename,snapshot,permitEvidence){
+    const preflight=dimensionAuditDownloadPreflight(filename,snapshot);
+    if(!preflight.runtime_validation.valid){
+      recordDimensionAuditDownloadAttemptWithPermitEvidence("blocked",preflight,null,permitEvidence);
+      toast("Dimension audit download protocol invalid");
+      return false;
+    }
+    const validation=preflight.validation;
+    const safeFilename=validation?.filename;
+    if(!preflight.valid){
+      recordDimensionAuditDownloadAttemptWithPermitEvidence("blocked",preflight,null,permitEvidence);
+      if(validation.code==="INVALID_FILENAME")toast("Некорректное имя Dimension audit JSON");
+      else if(validation.code==="INVALID_SNAPSHOT")toast("Некорректный Dimension audit snapshot");
+      else if(validation.code==="UNSUPPORTED_SCHEMA")toast("Неподдерживаемая schema Dimension audit snapshot");
+      return false;
+    }
+    try{
+      const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:"application/json"});
+      const url=URL.createObjectURL(blob);
+      const link=document.createElement("a");
+      link.href=url;link.download=safeFilename;
+      document.body.appendChild(link);link.click();link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),0);
+      recordDimensionAuditDownloadAttemptWithPermitEvidence("downloaded",preflight,null,permitEvidence);
+      toast("Dimension audit JSON сохранён");
+      return true;
+    }catch(error){
+      recordDimensionAuditDownloadAttemptWithPermitEvidence("failed",preflight,error,permitEvidence);
+      toast("Не удалось сохранить Dimension audit JSON");
+      return false;
+    }
+  }
+
   function dimensionAuditFilenameStamp(value=new Date()){
     if(auditDownloadDomain?.dimensionAuditFilenameStamp)return auditDownloadDomain.dimensionAuditFilenameStamp(value);
     return value.toISOString().replace(/[:.]/g,"-");
