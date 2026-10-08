@@ -2838,9 +2838,15 @@
       ...full,
       envelope_signature:dimensionAuditDownloadAttemptHistoryEnvelopeSignature(full)
     };
-    return {
+    const checked={
       ...enveloped,
       envelope_valid:dimensionAuditDownloadAttemptHistoryEnvelopeValid(enveloped)
+    };
+    const health=dimensionAuditDownloadHistoryHealth(checked);
+    return {
+      ...checked,
+      health,
+      health_signature:dimensionAuditDownloadHistoryHealthSignature(health)
     };
   }
 
