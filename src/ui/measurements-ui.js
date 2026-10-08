@@ -2379,7 +2379,7 @@
       blocked:counts.blocked,
       downloaded:counts.downloaded,
       failed:counts.failed,
-      latest_signature:String(lastDimensionAuditDownloadAttempt?.signature??"")
+      latest_signature:String(dimensionAuditDownloadAttemptHistory.at(-1)?.signature??"")
     };
   }
   function dimensionAuditDownloadAttemptHistorySummarySignature(summary=dimensionAuditDownloadAttemptHistorySummary()){
