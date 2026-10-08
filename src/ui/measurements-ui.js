@@ -2111,7 +2111,9 @@
     const sortName=dimensionAuditFilenamePart(snapshot?.view?.sort,"project");
     const searchValue=String(snapshot?.view?.search??"").trim();
     const searchName=searchValue?"-search-"+dimensionAuditFilenamePart(searchValue,"query",40):"";
-    return downloadDimensionAuditJson(name+"-dimension-audit-view-"+filterName+"-"+sortName+searchName+"-"+snapshot.dimension_count+"-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
+    const focusValue=String(snapshot?.view?.focus_id??"").trim();
+    const focusName=focusValue?"-focus-"+dimensionAuditFilenamePart(focusValue,"dimension",40):"";
+    return downloadDimensionAuditJson(name+"-dimension-audit-view-"+filterName+"-"+sortName+searchName+focusName+"-"+snapshot.dimension_count+"-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
   }
   function downloadAllDimensionAudits(){
     const snapshot=allDimensionAuditSnapshot();
