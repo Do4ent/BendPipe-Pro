@@ -1656,6 +1656,17 @@
     };
   }
 
+  function dimensionReviewContextState(items=savedDimensions(),selectedIds=selectedDimensionAuditIds()){
+    if(!Array.isArray(selectedIds))throw new TypeError("selected_ids must be an array");
+    return {
+      items,
+      selected_ids:selectedIds.map(value=>String(value)),
+      progress:canonicalDimensionReviewProgress(items,selectedIds),
+      diagnostics_runtime:dimensionReviewProgressDiagnosticsRuntimeState(items,selectedIds),
+      diagnostics_integrity:dimensionReviewProgressDiagnosticsIntegrityState(items,selectedIds)
+    };
+  }
+
   function dimensionReviewContextSignature(context={}){
     const value=context??{};
     return JSON.stringify({
@@ -1683,12 +1694,14 @@
     });
   }
 
-  function dimensionReviewContext(dimension){
+  function dimensionReviewContext(dimension,contextState=dimensionReviewContextState()){
     const id=String(dimension?.id??"");
     const reasons=dimensionAuditReviewReasons(dimension).map(reason=>String(reason));
-    const progress=canonicalDimensionReviewProgress();
+    const progress=contextState?.progress??canonicalDimensionReviewProgress();
     const snapshot=progress.snapshot??null;
-    const selectedIds=selectedDimensionAuditIds().map(value=>String(value));
+    const selectedIds=Array.isArray(contextState?.selected_ids)
+      ?contextState.selected_ids.map(value=>String(value))
+      :selectedDimensionAuditIds().map(value=>String(value));
     const selectedInAudit=selectedIds.includes(id);
     const reasonCoverage=Object.fromEntries(reasons.map(reason=>[
       reason,
@@ -1708,8 +1721,8 @@
     const pendingReasons=reasons.filter(reason=>reasonCoverage[reason]!=="complete");
     const state=reasons.length===0?"not-required":pendingReasons.length===0?"complete":"pending";
     const completePercent=reasons.length?Math.round(completedReasons.length/reasons.length*100):100;
-    const diagnosticsRuntime=dimensionReviewProgressDiagnosticsRuntimeState();
-    const diagnosticsIntegrityState=dimensionReviewProgressDiagnosticsIntegrityState();
+    const diagnosticsRuntime=contextState?.diagnostics_runtime??dimensionReviewProgressDiagnosticsRuntimeState();
+    const diagnosticsIntegrityState=contextState?.diagnostics_integrity??dimensionReviewProgressDiagnosticsIntegrityState();
     const health=state==="not-required"
       ?"not-required"
       :diagnosticsIntegrityState?.integrity?.valid!==true
