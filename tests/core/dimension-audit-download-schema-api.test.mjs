@@ -8,5 +8,6 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 487: Dimension audit download schema whitelist is exposed for QA",()=>{
-  assert.match(ui,/dimensionAuditDownloadSchemas:\(\)=>\[\.\.\.DIMENSION_AUDIT_DOWNLOAD_SCHEMAS\]/);
+  assert.match(ui,/function dimensionAuditDownloadSchemas\(\)/);
+  assert.match(ui,/dimensionAuditDownloadSchemas,dimensionAuditDownloadSnapshotShapeSupported/);
 });
