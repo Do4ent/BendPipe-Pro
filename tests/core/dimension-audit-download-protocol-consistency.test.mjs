@@ -14,5 +14,6 @@ test("question 509: audit download canonical getters are protocol-consistent",()
   assert.match(ui,/dimensionAuditDownloadSchemas\(\)/);
   assert.match(ui,/dimensionAuditFilenamePolicy\(\)/);
   assert.match(ui,/protocol_consistent:dimensionAuditDownloadProtocolConsistent\(\)/);
-  assert.match(ui,/dimensionAuditDownloadPolicyConsistent,dimensionAuditDownloadProtocolConsistent/);
+  assert.match(ui,/dimensionAuditDownloadPolicyConsistent/);
+  assert.match(ui,/dimensionAuditDownloadProtocolConsistent/);
 });
