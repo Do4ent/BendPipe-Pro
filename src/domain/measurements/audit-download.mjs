@@ -1146,6 +1146,49 @@ export function dimensionAuditDownloadHistoryExportReadinessSnapshot(state=dimen
   });
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_GATE_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportGate.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_GATE_CODES=freeze([
+  "READY",
+  "EMPTY",
+  "VERIFICATION_FAILED",
+  "UNTRUSTED",
+  "INVALID_PROVENANCE",
+  "INVALID_PROTOCOL",
+  "INVALID_PROTOCOL_SIGNATURE",
+  "INVALID_STATE",
+  "INVALID_STATE_SIGNATURE",
+  "INVALID_SNAPSHOT_SIGNATURE",
+  "INVALID_SNAPSHOT"
+]);
+
+export function dimensionAuditDownloadHistoryExportGate(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
+  const value=snapshot??{};
+  const readinessCode=String(value.code??"");
+  let code="READY";
+  if(!dimensionAuditDownloadHistoryExportReadinessProtocolValid(value.protocol)||value.protocol_valid!==true){
+    code="INVALID_PROTOCOL";
+  }else if(!dimensionAuditDownloadHistoryExportReadinessProtocolSignatureValid(value.protocol_signature,value.protocol)||value.protocol_signature_valid!==true){
+    code="INVALID_PROTOCOL_SIGNATURE";
+  }else if(value.state_valid!==true){
+    code="INVALID_STATE";
+  }else if(value.signature_valid!==true||!dimensionAuditDownloadHistoryExportReadinessStateSignatureValid(value.signature,state)){
+    code="INVALID_STATE_SIGNATURE";
+  }else if(value.snapshot_signature_valid!==true||!dimensionAuditDownloadHistoryExportReadinessSnapshotSignatureValid(value.snapshot_signature,value)){
+    code="INVALID_SNAPSHOT_SIGNATURE";
+  }else if(!dimensionAuditDownloadHistoryExportReadinessSnapshotValid(value,state)){
+    code="INVALID_SNAPSHOT";
+  }else if(value.ready!==true){
+    code=DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_CODES.includes(readinessCode)?readinessCode:"INVALID_SNAPSHOT";
+  }
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_GATE_SCHEMA,
+    allowed:code==="READY",
+    code,
+    readiness_code:readinessCode,
+    snapshot_valid:dimensionAuditDownloadHistoryExportReadinessSnapshotValid(value,state)
+  });
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
