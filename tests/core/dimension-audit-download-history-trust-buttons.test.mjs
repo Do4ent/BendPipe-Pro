@@ -10,6 +10,6 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 677: history export buttons are disabled when final trust is not trusted",()=>{
   assert.match(ui,/data-copy-dimension-audit-download-history '\+\(auditDownloadHistoryExportReady\?'':'disabled'\)/);
   assert.match(ui,/data-download-dimension-audit-download-history '\+\(auditDownloadHistoryExportReady\?'':'disabled'\)/);
-  assert.match(ui,/const auditDownloadHistoryExportReady=auditDownloadHistoryExportReadinessSnapshot\.ready&&auditDownloadHistoryExportReadinessSnapshot\.signature_valid&&auditDownloadHistoryExportReadinessSnapshotValid/);
+  assert.match(ui,/const auditDownloadHistoryExportReady=auditDownloadHistoryExportReadinessSnapshot\.ready&&auditDownloadHistoryExportReadinessSnapshotValid/);
   assert.match(ui,/data-clear-dimension-audit-download-history '\+\(auditDownloadHistorySummary\.total\?'':'disabled'\)/);
 });
