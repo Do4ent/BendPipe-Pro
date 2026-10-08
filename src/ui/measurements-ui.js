@@ -50,7 +50,7 @@
       const state=JSON.parse(raw);
       const filters=["all","selected","unselected","needs-review","review-ready","review-pending","review-diagnostics-error","stale","rebound","section-derived","exact","fitted","unknown-geometry","reference","driving","visible","hidden"];
       if(filters.includes(String(state?.filter)))dimensionManagerFilter=String(state.filter);
-      if(["project","audit"].includes(String(state?.sort)))dimensionManagerSort=String(state.sort);
+      if(["project","audit","review-context"].includes(String(state?.sort)))dimensionManagerSort=String(state.sort);
       dimensionManagerSearch=String(state?.search??"");
       return true;
     }catch{return false;}
@@ -2247,6 +2247,16 @@
     }
     const search=String(dimensionManagerSearch??"").trim().toLowerCase();
     if(search)result=result.filter(dimension=>dimensionSearchText(dimension).includes(search));
+    if(dimensionManagerSort==="review-context"){
+      const reviewContextState=dimensionReviewContextState(items,selectedDimensionAuditIds());
+      const healthRank={ "diagnostics-error":0,pending:1,ready:2,"not-required":3 };
+      return result.map((dimension,index)=>({
+        dimension,index,
+        rank:healthRank[dimensionReviewContext(dimension,reviewContextState).health]??4
+      }))
+        .sort((a,b)=>a.rank-b.rank||a.index-b.index)
+        .map(item=>item.dimension);
+    }
     if(dimensionManagerSort!=="audit")return result;
     const rank=dimension=>String(dimension?.status??"")==="Stale"
       ?0
@@ -2426,6 +2436,7 @@
       '<div class="tb-measure-actions" data-dimension-audit-sort>'+
       '<button data-dimension-sort="project" '+(dimensionManagerSort==="project"?'disabled':'')+'>Project order</button>'+
       '<button data-dimension-sort="audit" '+(dimensionManagerSort==="audit"?'disabled':'')+'>Audit priority</button>'+
+      '<button data-dimension-sort="review-context" '+(dimensionManagerSort==="review-context"?'disabled':'')+'>Review context</button>'+
       '<button data-dimension-review-queue data-selection-coverage="'+selectedReviewQueueCoverage+'" '+(auditSummary.needs_review===0||dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?'disabled':'')+'>Review queue ('+auditSummary.needs_review+' · selected '+selectedReviewQueueCount+' · unselected '+unselectedReviewQueueCount+' · '+selectedReviewQueuePercent+'% · '+selectedReviewQueueCoverage+')'+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?' · Active':'')+'</button>'+(auditSummary.needs_review?'<button data-select-dimension-review-queue '+(selectedReviewQueueCount===auditSummary.needs_review?'disabled':'')+'>Select review queue</button>':'')+(auditSummary.needs_review?'<button data-add-dimension-review-queue>Add review queue</button>':'')+(selectedReviewQueueCount?'<button data-remove-dimension-review-queue>Remove review queue</button>':'')+(auditSummary.needs_review?'<button data-invert-dimension-review-queue>Invert review queue</button>':'')+(auditSummary.needs_review?'<button data-copy-dimension-review-queue-audit>Copy review queue audit JSON</button>':'')+(auditSummary.needs_review?'<button data-download-dimension-review-queue-audit>Download review queue audit JSON</button>':'')+(activeReviewReason?'<button data-select-dimension-review-reason '+(selectedReviewReasonCount===activeReviewReasonIds.length?'disabled':'')+'>Select reason queue ('+activeReviewReasonIds.length+')</button><button data-add-dimension-review-reason '+(selectedReviewReasonCount===activeReviewReasonIds.length?'disabled':'')+'>Add reason queue</button><button data-remove-dimension-review-reason '+(selectedReviewReasonCount?'':'disabled')+'>Remove reason queue ('+selectedReviewReasonCount+')</button><button data-invert-dimension-review-reason>Invert reason queue</button><button data-copy-dimension-review-reason-audit>Copy reason audit JSON</button><button data-download-dimension-review-reason-audit>Download reason audit JSON</button>':'')+(dimensionManagerFilter==="needs-review"&&dimensionManagerSort==="audit"&&!dimensionManagerSearch?'<button data-dimension-review-queue-exit>Exit review queue</button>':'')+'</div>'+
       '<div class="tb-measure-actions" data-dimension-audit-search>'+
       '<input data-dimension-search value="'+esc(dimensionManagerSearch)+'" placeholder="Search ID, kind, source, stale reason">'+
