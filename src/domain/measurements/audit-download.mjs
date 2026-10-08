@@ -618,6 +618,17 @@ export function dimensionAuditDownloadHistoryHealthSignature(health=dimensionAud
   });
 }
 
+export function dimensionAuditDownloadHistoryEmbeddedHealthValid(snapshot={}){
+  const value=snapshot??{};
+  const embedded=value.health??null;
+  const signature=String(value.health_signature??"");
+  if(!embedded||!signature)return false;
+  const embeddedValid=dimensionAuditDownloadHistoryHealthSignature(embedded)===signature;
+  const current=dimensionAuditDownloadHistoryHealth(value);
+  const currentValid=dimensionAuditDownloadHistoryHealthSignature(current)===signature;
+  return embeddedValid&&currentValid;
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
