@@ -9,6 +9,7 @@ function freeze(value){
 
 export const DIMENSION_AUDIT_DOWNLOAD_POLICY_SCHEMA="TubeBender.DimensionAuditDownloadPolicy.v1";
 export const DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA="TubeBender.DimensionAuditDownloadValidation.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA="TubeBender.DimensionAuditDownloadHistory.v1";
 export const DIMENSION_AUDIT_DOWNLOAD_VALIDATION_CODES=freeze([
   "OK",
   "INVALID_FILENAME",
@@ -21,7 +22,7 @@ export const DIMENSION_AUDIT_DOWNLOAD_SCHEMAS=freeze([
   "TubeBender.DimensionAuditView.v1",
   "TubeBender.DimensionReviewQueueAudit.v1",
   "TubeBender.DimensionReviewReasonAudit.v1",
-  "TubeBender.DimensionAuditDownloadHistory.v1"
+  DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA
 ]);
 export const DIMENSION_AUDIT_FILENAME_POLICY=freeze({
   part_default_length:80,
@@ -190,7 +191,7 @@ export function dimensionAuditDownloadHistoryValid(snapshot={}){
   const value=snapshot??{};
   const attempts=Array.isArray(value.attempts)?value.attempts:[];
   const summary=value.summary??{};
-  return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistory.v1"
+  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA
     &&Number(value.attempt_count??-1)===attempts.length
     &&Number(summary.total??-1)===attempts.length
     &&String(value.summary_signature??"")===dimensionAuditDownloadHistorySummarySignature(summary);
