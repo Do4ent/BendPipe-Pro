@@ -2111,6 +2111,9 @@
     return JSON.stringify(auditDownloadDomain.dimensionAuditDownloadPolicy())===JSON.stringify(dimensionAuditDownloadFallbackPolicy());
   }
   function dimensionAuditDownloadProtocolConsistent(){
+    if(auditDownloadDomain?.dimensionAuditDownloadProtocolState){
+      return auditDownloadDomain.dimensionAuditDownloadProtocolState().protocol_consistent===true;
+    }
     const policy=dimensionAuditDownloadPolicy();
     return String(policy?.validation_schema??"")===dimensionAuditDownloadValidationSchema()
       &&JSON.stringify(policy?.validation_codes??[])===JSON.stringify(dimensionAuditDownloadValidationCodes())
@@ -2121,12 +2124,16 @@
   function dimensionAuditDownloadRuntimeState(){
     const policy=dimensionAuditDownloadPolicy();
     const policyConsistent=dimensionAuditDownloadPolicyConsistent();
-    const protocolConsistent=dimensionAuditDownloadProtocolConsistent();
+    const protocolState=auditDownloadDomain?.dimensionAuditDownloadProtocolState
+      ?auditDownloadDomain.dimensionAuditDownloadProtocolState()
+      :null;
+    const protocolConsistent=protocolState?.protocol_consistent===true||(!protocolState&&dimensionAuditDownloadProtocolConsistent());
     return {
       source:dimensionAuditDownloadPolicySource(),
       valid:policyConsistent&&protocolConsistent,
       consistent:policyConsistent,
       protocol_consistent:protocolConsistent,
+      protocol_state_schema:String(protocolState?.schema??""),
       policy_schema:String(policy?.schema??""),
       validation_schema:String(policy?.validation_schema??""),
       validation_codes:[...(policy?.validation_codes??[])],
