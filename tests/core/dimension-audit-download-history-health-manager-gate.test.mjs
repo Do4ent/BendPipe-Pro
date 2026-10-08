@@ -16,6 +16,6 @@ test("question 632: Saved Dimensions and history export use aggregate health",()
   const verification=ui.match(/function dimensionAuditDownloadHistoryVerification\(snapshot=\{\}\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(verification,/const health=dimensionAuditDownloadHistoryHealth\(value\)/);
   assert.match(verification,/!health\.valid\?"INVALID_HEALTH":null/);
-  const gate=/const verification=dimensionAuditDownloadHistoryVerification\(snapshot\);/g;
-  assert.equal((ui.match(gate)??[]).length,2);
+  assert.match(ui,/function dimensionAuditDownloadHistoryExportReadiness/);
+  assert.match(ui,/const verification=dimensionAuditDownloadHistoryVerification\(value\)/);
 });
