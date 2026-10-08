@@ -799,10 +799,16 @@ export function dimensionAuditDownloadHistorySnapshot({
     health_signature:dimensionAuditDownloadHistoryHealthSignature(health)
   };
   const healthEmbedding=dimensionAuditDownloadHistoryHealthEmbedding(withHealth);
-  return freeze({
+  const complete={
     ...withHealth,
     health_embedding:healthEmbedding,
     health_embedding_signature:dimensionAuditDownloadHistoryHealthEmbeddingSignature(healthEmbedding)
+  };
+  const verification=dimensionAuditDownloadHistoryVerification(complete);
+  return freeze({
+    ...complete,
+    verification,
+    verification_signature:dimensionAuditDownloadHistoryVerificationSignature(verification)
   });
 }
 
