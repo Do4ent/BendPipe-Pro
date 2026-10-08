@@ -3303,13 +3303,25 @@
   function dimensionAuditDownloadHistoryExportReadiness(snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot()){
     const value=snapshot??{};
     const attemptCount=Math.max(0,Number(value.attempt_count)||0);
-    if(!attemptCount)return {ready:false,code:"EMPTY"};
     const verification=dimensionAuditDownloadHistoryVerification(value);
-    if(!verification.valid)return {ready:false,code:"VERIFICATION_FAILED"};
     const trust=dimensionAuditDownloadHistoryTrust(value);
-    if(!trust.trusted)return {ready:false,code:"UNTRUSTED"};
     const provenance=dimensionAuditDownloadAttemptHistorySnapshotProvenance(value);
-    if(!dimensionAuditDownloadAttemptHistorySnapshotProvenanceValid(provenance,value))return {ready:false,code:"INVALID_PROVENANCE"};
+    const provenanceValid=dimensionAuditDownloadAttemptHistorySnapshotProvenanceValid(provenance,value);
+    const provenanceSignature=dimensionAuditDownloadAttemptHistorySnapshotProvenanceSignature(provenance);
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportReadinessState){
+      return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessState({
+        attempt_count:attemptCount,
+        verification_valid:verification.valid,
+        trusted:trust.trusted,
+        provenance_valid:provenanceValid,
+        history_snapshot_signature:String(value.snapshot_signature??""),
+        provenance_signature:provenanceSignature
+      });
+    }
+    if(!attemptCount)return {ready:false,code:"EMPTY"};
+    if(!verification.valid)return {ready:false,code:"VERIFICATION_FAILED"};
+    if(!trust.trusted)return {ready:false,code:"UNTRUSTED"};
+    if(!provenanceValid)return {ready:false,code:"INVALID_PROVENANCE"};
     return {ready:true,code:"READY"};
   }
 
