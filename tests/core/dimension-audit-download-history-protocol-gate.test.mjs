@@ -8,7 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 613: audit history copy and download gate on protocol state",()=>{
-  const gate=/if\(snapshot\.protocol_state\?\.valid!==true\)\{toast\("Audit download history protocol invalid"\);return false;\}/g;
+  const gate=/if\(!dimensionAuditDownloadHistoryProtocolBindingValid\(snapshot\)\)\{toast\("Audit download history protocol invalid"\);return false;\}/g;
   const matches=ui.match(gate)??[];
   assert.equal(matches.length,2);
 });
