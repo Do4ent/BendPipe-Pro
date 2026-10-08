@@ -8,11 +8,11 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 217: Dimension audit JSON can be downloaded as files",()=>{
-  assert.match(ui,/function downloadDimensionAuditJson\(filename,snapshot\)/);
-  assert.match(ui,/new Blob\(\[JSON\.stringify\(snapshot,null,2\)\],\{type:"application\/json"\}\)/);
-  assert.match(ui,/URL\.createObjectURL\(blob\)/);
-  assert.match(ui,/link\.download=String\(filename\|\|"dimension-audit\.json"\)/);
-  assert.match(ui,/URL\.revokeObjectURL\(url\)/);
+  const fn=ui.match(/function downloadDimensionAuditJson\(filename,snapshot\)\{([\s\S]*?)\n  \}/)?.[1]??"";
+  assert.match(fn,/new Blob\(\[JSON\.stringify\(snapshot,null,2\)\],\{type:"application\/json"\}\)/);
+  assert.match(fn,/URL\.createObjectURL\(blob\)/);
+  assert.match(fn,/link\.download=safeFilename/);
+  assert.match(fn,/URL\.revokeObjectURL\(url\)/);
 });
 
 test("question 217: Saved Dimensions exposes visible and full audit downloads",()=>{
