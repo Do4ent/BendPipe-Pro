@@ -965,6 +965,20 @@ export function dimensionAuditDownloadHistoryTrust(snapshot={}){
   });
 }
 
+export function dimensionAuditDownloadHistoryTrustSignature(trust=dimensionAuditDownloadHistoryTrust()){
+  const value=trust??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    trusted:value.trusted===true,
+    code:String(value.code??""),
+    errors:[...(value.errors??[])].map(code=>String(code)),
+    attestation_valid:value.attestation_valid===true,
+    embedded_attestation_valid:value.embedded_attestation_valid===true,
+    attestation_embedding_valid:value.attestation_embedding_valid===true,
+    embedded_attestation_embedding_valid:value.embedded_attestation_embedding_valid===true
+  });
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
