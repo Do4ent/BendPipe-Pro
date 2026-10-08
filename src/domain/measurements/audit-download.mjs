@@ -629,6 +629,40 @@ export function dimensionAuditDownloadHistoryEmbeddedHealthValid(snapshot={}){
   return embeddedValid&&currentValid;
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_HEALTH_EMBEDDING_SCHEMA="TubeBender.DimensionAuditDownloadHistoryHealthEmbedding.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_HEALTH_EMBEDDING_CODES=freeze([
+  "OK",
+  "MISSING_HEALTH",
+  "INVALID_HEALTH_SIGNATURE",
+  "STALE_HEALTH"
+]);
+
+export function dimensionAuditDownloadHistoryHealthEmbedding(snapshot={}){
+  const value=snapshot??{};
+  const embedded=value.health??null;
+  const signature=String(value.health_signature??"");
+  const present=!!embedded&&!!signature;
+  const signatureValid=present&&dimensionAuditDownloadHistoryHealthSignature(embedded)===signature;
+  const current=dimensionAuditDownloadHistoryHealth(value);
+  const currentSignature=dimensionAuditDownloadHistoryHealthSignature(current);
+  const currentValid=present&&currentSignature===signature;
+  const errors=[
+    !present?"MISSING_HEALTH":null,
+    present&&!signatureValid?"INVALID_HEALTH_SIGNATURE":null,
+    present&&signatureValid&&!currentValid?"STALE_HEALTH":null
+  ].filter(Boolean);
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_HEALTH_EMBEDDING_SCHEMA,
+    valid:errors.length===0,
+    code:errors[0]??"OK",
+    errors,
+    present,
+    signature_valid:signatureValid,
+    current_valid:currentValid,
+    current_signature:currentSignature
+  });
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
