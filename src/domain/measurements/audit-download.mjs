@@ -1233,6 +1233,15 @@ export function dimensionAuditDownloadHistoryExportGateSnapshot(gate=dimensionAu
   });
 }
 
+export function dimensionAuditDownloadHistoryExportGateSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportGateSnapshot()){
+  const value=snapshot??{};
+  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_GATE_SNAPSHOT_SCHEMA)return false;
+  if(!dimensionAuditDownloadHistoryExportGateValid(value.gate))return false;
+  if(value.gate_valid!==true)return false;
+  if(value.gate_signature_valid!==true)return false;
+  return dimensionAuditDownloadHistoryExportGateSignatureValid(value.gate_signature,value.gate);
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
