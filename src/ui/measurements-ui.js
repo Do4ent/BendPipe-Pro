@@ -3740,8 +3740,11 @@
     const exportGate=dimensionAuditDownloadHistoryExportGate(exportState,snapshot);
     const exportGateSnapshot=dimensionAuditDownloadHistoryExportGateSnapshot(exportGate);
     const exportDecision=dimensionAuditDownloadHistoryExportDecision(exportGateSnapshot);
-    if(!exportDecision.allowed){
-      toast(exportDecision.code==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+exportDecision.code);
+    const exportDecisionSnapshot=dimensionAuditDownloadHistoryExportDecisionSnapshot(exportDecision);
+    const exportDecisionSnapshotValid=dimensionAuditDownloadHistoryExportDecisionSnapshotValid(exportDecisionSnapshot);
+    if(!exportDecisionSnapshotValid||!exportDecision.allowed){
+      const blockCode=!exportDecisionSnapshotValid?"INVALID_DECISION_SNAPSHOT":exportDecision.code;
+      toast(blockCode==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+blockCode);
       return false;
     }
     const text=JSON.stringify(snapshot,null,2);
@@ -3761,8 +3764,11 @@
     const exportGate=dimensionAuditDownloadHistoryExportGate(exportState,snapshot);
     const exportGateSnapshot=dimensionAuditDownloadHistoryExportGateSnapshot(exportGate);
     const exportDecision=dimensionAuditDownloadHistoryExportDecision(exportGateSnapshot);
-    if(!exportDecision.allowed){
-      toast(exportDecision.code==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+exportDecision.code);
+    const exportDecisionSnapshot=dimensionAuditDownloadHistoryExportDecisionSnapshot(exportDecision);
+    const exportDecisionSnapshotValid=dimensionAuditDownloadHistoryExportDecisionSnapshotValid(exportDecisionSnapshot);
+    if(!exportDecisionSnapshotValid||!exportDecision.allowed){
+      const blockCode=!exportDecisionSnapshotValid?"INVALID_DECISION_SNAPSHOT":exportDecision.code;
+      toast(blockCode==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+blockCode);
       return false;
     }
     const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
