@@ -465,6 +465,7 @@ export function dimensionAuditDownloadHistoryEnvelopeSignature(snapshot={}){
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_ENVELOPE_SCHEMA,
     history_schema:String(value.schema??""),
     snapshot_signature:String(value.snapshot_signature??""),
+    protocol_state_signature:String(value.protocol_state_signature??""),
     integrity_signature:String(value.integrity_signature??""),
     attempts_valid:value.attempts_valid===true,
     summary_valid:value.summary_valid===true,
