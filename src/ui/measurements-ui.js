@@ -2111,18 +2111,12 @@
   }
 
   function downloadDimensionAuditJson(filename,snapshot){
-    const safeFilename=String(filename??"").trim();
-    if(!dimensionAuditDownloadFilenameSupported(safeFilename)){
-      toast("Некорректное имя Dimension audit JSON");
-      return false;
-    }
-    if(!dimensionAuditDownloadSnapshotShapeSupported(snapshot)){
-      toast("Некорректный Dimension audit snapshot");
-      return false;
-    }
-    const snapshotSchema=String(snapshot?.schema??"").trim();
-    if(!dimensionAuditDownloadSchemaSupported(snapshotSchema)){
-      toast("Неподдерживаемая schema Dimension audit snapshot");
+    const validation=dimensionAuditDownloadValidation(filename,snapshot);
+    const safeFilename=validation.filename;
+    if(!validation.valid){
+      if(validation.code==="INVALID_FILENAME")toast("Некорректное имя Dimension audit JSON");
+      else if(validation.code==="INVALID_SNAPSHOT")toast("Некорректный Dimension audit snapshot");
+      else if(validation.code==="UNSUPPORTED_SCHEMA")toast("Неподдерживаемая schema Dimension audit snapshot");
       return false;
     }
     try{
