@@ -9,5 +9,7 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 484: Dimension audit filename policy is exposed for QA",()=>{
   assert.match(ui,/function dimensionAuditFilenamePolicy\(\)/);
-  assert.match(ui,/dimensionAuditFilenamePolicy,dimensionAuditDownloadPolicy/);
+  assert.match(ui,/dimensionAuditFilenamePolicy/);
+  assert.match(ui,/dimensionAuditDownloadPolicy/);
+  assert.match(ui,/dimensionAuditJsonFilename,dimensionAuditFilenamePolicy,dimensionAuditDownloadFallbackPolicy/);
 });
