@@ -2946,8 +2946,7 @@
       ?clone(auditDownloadDomain.buildDimensionAuditDownloadAttempt(input))
       :(()=>{
         const base={schema:"TubeBender.DimensionAuditDownloadAttempt.v1",...input};
-        delete base.generated_at;
-        return {...base,signature:dimensionAuditDownloadAttemptSignature(base),generated_at:input.generated_at};
+        return {...base,signature:dimensionAuditDownloadAttemptSignature(base)};
       })();
     lastDimensionAuditDownloadAttempt=attempt;
     dimensionAuditDownloadAttemptHistory.push(attempt);
