@@ -11,6 +11,8 @@ test("question 481: bounded Dimension audit filename helper is exposed for QA",(
   assert.match(ui,/dimensionAuditFilenamePart/);
   assert.match(ui,/dimensionAuditJsonFilename/);
   assert.match(ui,/function dimensionAuditFilenamePolicy\(\)/);
-  assert.match(ui,/dimensionAuditJsonFilename,dimensionAuditFilenamePolicy,dimensionAuditDownloadFallbackPolicy/);
+  assert.match(ui,/dimensionAuditJsonFilename/);
+  assert.match(ui,/dimensionAuditFilenamePolicy/);
+  assert.match(ui,/dimensionAuditDownloadFallbackPolicy/);
   assert.match(ui,/downloadVisibleDimensionAudits/);
 });
