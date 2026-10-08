@@ -16,7 +16,8 @@ function signed(status,error){
     preflight_signature:"preflight",
     runtime_signature:"runtime",
     protocol_signature:"protocol",
-    error
+    error,
+    generated_at:"2099-01-01T00:00:00Z"
   };
   return {...base,signature:dimensionAuditDownloadAttemptSignature(base)};
 }
