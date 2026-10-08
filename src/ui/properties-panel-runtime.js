@@ -495,8 +495,12 @@
           ["Diagnostics snapshot signature consistent",reviewDiagnosticsRuntime?.snapshot_signature_consistent],
           ["Diagnostics integrity schema",reviewDiagnosticsIntegrityState?.integrity?.schema],
           ["Diagnostics integrity signature",reviewDiagnosticsIntegrityState?.signature],
-          ["Diagnostics integrity valid",reviewDiagnosticsIntegrityState?.integrity?.valid],
-          ["Diagnostics parity",reviewDiagnosticsIntegrityState?.parity?.available===true?reviewDiagnosticsIntegrityState?.parity?.consistent:null]
+          ["Diagnostics state consistent",reviewDiagnosticsIntegrityState?.integrity?.state_consistent],
+          ["Diagnostics snapshot signature consistent",reviewDiagnosticsIntegrityState?.integrity?.snapshot_signature_consistent],
+          ["Diagnostics integrity runtime valid",reviewDiagnosticsIntegrityState?.integrity?.runtime_valid],
+          ["Diagnostics parity available",reviewDiagnosticsIntegrityState?.parity?.available],
+          ["Diagnostics parity",reviewDiagnosticsIntegrityState?.parity?.available===true?reviewDiagnosticsIntegrityState?.parity?.consistent:null],
+          ["Diagnostics integrity valid",reviewDiagnosticsIntegrityState?.integrity?.valid]
         ]},
         {name:"Rebind audit",rows:[
           ["Rebound from stale",dimension?.rebound_from_stale===true],
