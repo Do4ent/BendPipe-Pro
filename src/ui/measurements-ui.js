@@ -2040,7 +2040,11 @@
     const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
     const reason=dimensionAuditFilenamePart(snapshot?.queue?.review_reason,"reason");
     const stem=name+"-dimension-review-reason-"+reason+"-"+snapshot.dimension_count;
-    return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
+    return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot,{
+      export_action:"download",
+      action_permit_signature:exportActionPermitSignature,
+      action_permit_snapshot_signature:exportActionPermitSnapshot.snapshot_signature
+    });
   }
 
   async function copyReviewQueueDimensionAudits(){
@@ -2899,7 +2903,7 @@
       return auditDownloadDomain.dimensionAuditDownloadAttemptSignature(attempt??{});
     }
     const value=attempt??{};
-    return JSON.stringify({
+    const signed={
       schema:String(value.schema??""),
       status:String(value.status??""),
       filename:String(value.filename??""),
@@ -2910,7 +2914,16 @@
       protocol_signature:String(value.protocol_signature??""),
       error:value.error==null?null:String(value.error),
       generated_at:String(value.generated_at??"")
-    });
+    };
+    const hasPermitEvidence=value.export_action!=null
+      ||value.action_permit_signature!=null
+      ||value.action_permit_snapshot_signature!=null;
+    if(hasPermitEvidence){
+      signed.export_action=String(value.export_action??"");
+      signed.action_permit_signature=String(value.action_permit_signature??"");
+      signed.action_permit_snapshot_signature=String(value.action_permit_snapshot_signature??"");
+    }
+    return JSON.stringify(signed);
   }
 
   function dimensionAuditDownloadAttemptValid(attempt){
@@ -2924,16 +2937,26 @@
     const outcomeValid=status==="failed"?!!error:error===null;
     const timestamp=new Date(String(value.generated_at??""));
     const generatedAtValid=!Number.isNaN(timestamp.getTime());
+    const hasPermitEvidence=value.export_action!=null
+      ||value.action_permit_signature!=null
+      ||value.action_permit_snapshot_signature!=null;
+    const permitEvidenceValid=!hasPermitEvidence||(
+      ["copy","download"].includes(String(value.export_action??""))
+      &&!!String(value.action_permit_signature??"")
+      &&!!String(value.action_permit_snapshot_signature??"")
+    );
     return String(value.schema??"")==="TubeBender.DimensionAuditDownloadAttempt.v1"
       &&["blocked","downloaded","failed"].includes(status)
       &&outcomeValid
       &&generatedAtValid
+      &&permitEvidenceValid
       &&!!signature
       &&signature===dimensionAuditDownloadAttemptSignature(value);
   }
 
-  function recordDimensionAuditDownloadAttempt(status,preflight,error=null){
+  function recordDimensionAuditDownloadAttempt(status,preflight,error=null,permitEvidence=null){
     const validation=preflight?.validation??null;
+    const evidence=permitEvidence??null;
     const input={
       status:String(status??""),
       filename:String(validation?.filename??""),
@@ -2942,6 +2965,11 @@
       preflight_signature:String(preflight?.signature??""),
       runtime_signature:String(preflight?.runtime_validation?.runtime_signature??""),
       protocol_signature:String(preflight?.runtime_validation?.protocol_signature??""),
+      ...(evidence?{
+        export_action:String(evidence.export_action??""),
+        action_permit_signature:String(evidence.action_permit_signature??""),
+        action_permit_snapshot_signature:String(evidence.action_permit_snapshot_signature??"")
+      }:{}),
       error:error==null?null:String(error?.message??error),
       generated_at:new Date().toISOString()
     };
@@ -4501,17 +4529,17 @@
     return count;
   }
 
-  function downloadDimensionAuditJson(filename,snapshot){
+  function downloadDimensionAuditJson(filename,snapshot,permitEvidence=null){
     const preflight=dimensionAuditDownloadPreflight(filename,snapshot);
     if(!preflight.runtime_validation.valid){
-      recordDimensionAuditDownloadAttempt("blocked",preflight);
+      recordDimensionAuditDownloadAttempt("blocked",preflight,null,permitEvidence);
       toast("Dimension audit download protocol invalid");
       return false;
     }
     const validation=preflight.validation;
     const safeFilename=validation?.filename;
     if(!preflight.valid){
-      recordDimensionAuditDownloadAttempt("blocked",preflight);
+      recordDimensionAuditDownloadAttempt("blocked",preflight,null,permitEvidence);
       if(validation.code==="INVALID_FILENAME")toast("Некорректное имя Dimension audit JSON");
       else if(validation.code==="INVALID_SNAPSHOT")toast("Некорректный Dimension audit snapshot");
       else if(validation.code==="UNSUPPORTED_SCHEMA")toast("Неподдерживаемая schema Dimension audit snapshot");
@@ -4524,11 +4552,11 @@
       link.href=url;link.download=safeFilename;
       document.body.appendChild(link);link.click();link.remove();
       setTimeout(()=>URL.revokeObjectURL(url),0);
-      recordDimensionAuditDownloadAttempt("downloaded",preflight);
+      recordDimensionAuditDownloadAttempt("downloaded",preflight,null,permitEvidence);
       toast("Dimension audit JSON сохранён");
       return true;
     }catch(error){
-      recordDimensionAuditDownloadAttempt("failed",preflight,error);
+      recordDimensionAuditDownloadAttempt("failed",preflight,error,permitEvidence);
       toast("Не удалось сохранить Dimension audit JSON");
       return false;
     }
