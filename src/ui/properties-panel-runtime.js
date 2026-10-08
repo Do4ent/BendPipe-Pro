@@ -418,6 +418,10 @@
       const reviewProgressSnapshot=audit?.currentCanonicalReviewProgressSnapshot?.()??null;
       const reviewDiagnosticsRuntime=audit?.currentReviewProgressDiagnosticsRuntimeState?.()??null;
       const reviewDiagnosticsIntegrityState=audit?.currentReviewProgressDiagnosticsIntegrityState?.()??null;
+      const reviewReasonCoverage=Object.fromEntries(reviewReasons.map(reason=>[
+        String(reason),
+        reviewProgressSnapshot?.reason_selection?.[String(reason)]?.selection_coverage??null
+      ]));
       const refs=(dimension?.references??[]).map((ref,index)=>({
         index,
         object_id:ref?.object_id,
@@ -453,6 +457,7 @@
           ["Progress source",audit?.currentCanonicalReviewProgressSource?.()??null],
           ["Progress status",reviewProgressSnapshot?.status],
           ["Progress complete %",reviewProgressSnapshot?.complete_percent],
+          ["Dimension reason coverage",reviewReasonCoverage],
           ["Diagnostics source",reviewDiagnosticsRuntime?.source],
           ["Diagnostics domain status",reviewDiagnosticsRuntime?.domain_status],
           ["Diagnostics runtime valid",reviewDiagnosticsRuntime?.runtime_valid],
