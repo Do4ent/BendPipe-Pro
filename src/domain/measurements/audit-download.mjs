@@ -290,6 +290,39 @@ export function dimensionAuditDownloadHistoryIntegritySignature(integrity={}){
   });
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_ENVELOPE_SCHEMA="TubeBender.DimensionAuditDownloadHistoryEnvelope.v1";
+
+export function dimensionAuditDownloadHistoryEnvelopeSignature(snapshot={}){
+  const value=snapshot??{};
+  return JSON.stringify({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_ENVELOPE_SCHEMA,
+    history_schema:String(value.schema??""),
+    snapshot_signature:String(value.snapshot_signature??""),
+    integrity_signature:String(value.integrity_signature??""),
+    attempts_valid:value.attempts_valid===true,
+    summary_valid:value.summary_valid===true,
+    valid:value.valid===true
+  });
+}
+
+export function dimensionAuditDownloadHistoryEnvelopeValid(snapshot={}){
+  const value=snapshot??{};
+  const coreIntegrity=dimensionAuditDownloadHistoryIntegrity(value);
+  const embeddedIntegrity=value.integrity??null;
+  const embeddedIntegritySignature=String(value.integrity_signature??"");
+  const embeddedIntegrityValid=!!embeddedIntegrity
+    &&dimensionAuditDownloadHistoryIntegritySignature(embeddedIntegrity)===embeddedIntegritySignature
+    &&dimensionAuditDownloadHistoryIntegritySignature(coreIntegrity)===embeddedIntegritySignature;
+  const envelopeSignature=String(value.envelope_signature??"");
+  const envelopeSignatureValid=!envelopeSignature||envelopeSignature===dimensionAuditDownloadHistoryEnvelopeSignature(value);
+  return coreIntegrity.valid
+    &&embeddedIntegrityValid
+    &&value.attempts_valid===coreIntegrity.attempts_valid
+    &&value.summary_valid===coreIntegrity.summary_valid
+    &&value.valid===coreIntegrity.valid
+    &&envelopeSignatureValid;
+}
+
 export function dimensionAuditDownloadHistoryValid(snapshot={}){
   return dimensionAuditDownloadHistoryIntegrity(snapshot).valid;
 }
