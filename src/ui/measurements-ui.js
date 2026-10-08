@@ -3177,9 +3177,12 @@
     }
     const summary=dimensionAuditDownloadAttemptHistorySummary();
     const protocolState=dimensionAuditDownloadHistoryProtocolState();
+    const context=dimensionAuditProjectContext();
     const base={
       schema:dimensionAuditDownloadHistorySchema(),
-      ...dimensionAuditProjectContext(),
+      project_id:context.project_id,
+      project_name:context.project_name,
+      generated_at:context.generated_at,
       summary,
       summary_signature:dimensionAuditDownloadAttemptHistorySummarySignature(summary),
       protocol_state:protocolState,
