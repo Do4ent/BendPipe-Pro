@@ -2702,6 +2702,7 @@
       history_schema:String(value.schema??""),
       snapshot_signature:String(value.snapshot_signature??""),
       protocol_state_signature:String(value.protocol_state_signature??""),
+      protocol_binding_signature:String(value.protocol_binding_signature??""),
       integrity_signature:String(value.integrity_signature??""),
       protocol_binding_valid:value.protocol_binding_valid===true,
       attempts_valid:value.attempts_valid===true,
@@ -2766,11 +2767,14 @@
       snapshot_signature:dimensionAuditDownloadAttemptHistoryAuditSignature(base)
     };
     const integrity=dimensionAuditDownloadAttemptHistoryIntegrity(signed);
+    const protocolBinding=dimensionAuditDownloadHistoryProtocolBinding(signed);
     const full={
       ...signed,
       attempts_valid:integrity.attempts_valid,
       summary_valid:integrity.summary_valid,
-      protocol_binding_valid:dimensionAuditDownloadHistoryProtocolBindingValid(signed),
+      protocol_binding:protocolBinding,
+      protocol_binding_signature:dimensionAuditDownloadHistoryProtocolBindingSignature(protocolBinding),
+      protocol_binding_valid:protocolBinding.valid===true,
       integrity,
       integrity_signature:dimensionAuditDownloadAttemptHistoryIntegritySignature(integrity),
       valid:integrity.valid
