@@ -1321,15 +1321,35 @@ export function dimensionAuditDownloadHistoryExportDecisionSignatureValid(signat
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_SNAPSHOT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportDecisionSnapshot.v1";
 
+export function dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(snapshot={}){
+  const value=snapshot??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    decision_signature:String(value.decision_signature??""),
+    decision_valid:value.decision_valid===true,
+    decision_signature_valid:value.decision_signature_valid===true
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid(signature,snapshot={}){
+  return String(signature??"")===dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(snapshot);
+}
+
 export function dimensionAuditDownloadHistoryExportDecisionSnapshot(decision=dimensionAuditDownloadHistoryExportDecision()){
   const value=decision??{};
   const signature=dimensionAuditDownloadHistoryExportDecisionSignature(value);
-  return freeze({
+  const base={
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_SNAPSHOT_SCHEMA,
     decision:value,
     decision_signature:signature,
     decision_valid:dimensionAuditDownloadHistoryExportDecisionValid(value),
     decision_signature_valid:dimensionAuditDownloadHistoryExportDecisionSignatureValid(signature,value)
+  };
+  const snapshotSignature=dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(base);
+  return freeze({
+    ...base,
+    snapshot_signature:snapshotSignature,
+    snapshot_signature_valid:true
   });
 }
 
@@ -1338,7 +1358,9 @@ export function dimensionAuditDownloadHistoryExportDecisionSnapshotValid(snapsho
   if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_SNAPSHOT_SCHEMA)return false;
   if(!dimensionAuditDownloadHistoryExportDecisionValid(value.decision))return false;
   if(value.decision_valid!==true||value.decision_signature_valid!==true)return false;
-  return dimensionAuditDownloadHistoryExportDecisionSignatureValid(value.decision_signature,value.decision);
+  if(!dimensionAuditDownloadHistoryExportDecisionSignatureValid(value.decision_signature,value.decision))return false;
+  if(value.snapshot_signature_valid!==true)return false;
+  return dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid(value.snapshot_signature,value);
 }
 
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
