@@ -574,6 +574,34 @@ export function dimensionAuditDownloadHistoryEnvelopeValid(snapshot={}){
     &&envelopeSignatureValid;
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_HEALTH_SCHEMA="TubeBender.DimensionAuditDownloadHistoryHealth.v1";
+
+export function dimensionAuditDownloadHistoryHealth(snapshot={}){
+  const value=snapshot??{};
+  const protocolStateValid=dimensionAuditDownloadHistoryProtocolStateValid(value.protocol_state??{});
+  const binding=dimensionAuditDownloadHistoryProtocolBinding(value);
+  const integrity=dimensionAuditDownloadHistoryIntegrity(value);
+  const envelopeValid=dimensionAuditDownloadHistoryEnvelopeValid(value);
+  const errors=[
+    !protocolStateValid?"INVALID_PROTOCOL_STATE":null,
+    !binding.valid?"INVALID_PROTOCOL_BINDING":null,
+    !integrity.valid?"INVALID_INTEGRITY":null,
+    !envelopeValid?"INVALID_ENVELOPE":null
+  ].filter(Boolean);
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_HEALTH_SCHEMA,
+    valid:errors.length===0,
+    code:errors[0]??"OK",
+    errors,
+    protocol_state_valid:protocolStateValid,
+    protocol_binding_valid:binding.valid===true,
+    protocol_binding_code:String(binding.code??""),
+    integrity_valid:integrity.valid===true,
+    integrity_code:String(integrity.code??""),
+    envelope_valid:envelopeValid
+  });
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
