@@ -470,6 +470,8 @@
         ]},
         {name:"Review queue context",rows:[
           ["Progress source",audit?.currentCanonicalReviewProgressSource?.()??null],
+          ["Progress schema",reviewProgressSnapshot?.schema],
+          ["Progress signature",reviewProgressSnapshot?.signature],
           ["Selected in audit",selectedInAudit],
           ["Dimension review state",dimensionReviewState],
           ["Progress status",reviewProgressSnapshot?.status],
@@ -479,6 +481,8 @@
           ["Completed review reasons",completedReviewReasons],
           ["Pending review reasons",pendingReviewReasons],
           ["Diagnostics source",reviewDiagnosticsRuntime?.source],
+          ["Diagnostics schema",reviewDiagnosticsRuntime?.snapshot?.schema],
+          ["Diagnostics signature",reviewDiagnosticsRuntime?.signature],
           ["Diagnostics domain status",reviewDiagnosticsRuntime?.domain_status],
           ["Diagnostics runtime valid",reviewDiagnosticsRuntime?.runtime_valid],
           ["Diagnostics status",reviewDiagnosticsRuntime?.diagnostics?.status],
@@ -486,6 +490,8 @@
           ["Diagnostics primary error",reviewDiagnosticsRuntime?.diagnostics?.primary_error],
           ["Diagnostics errors",reviewDiagnosticsRuntime?.diagnostics?.errors??[]],
           ["Diagnostics snapshot signature consistent",reviewDiagnosticsRuntime?.snapshot_signature_consistent],
+          ["Diagnostics integrity schema",reviewDiagnosticsIntegrityState?.integrity?.schema],
+          ["Diagnostics integrity signature",reviewDiagnosticsIntegrityState?.signature],
           ["Diagnostics integrity valid",reviewDiagnosticsIntegrityState?.integrity?.valid],
           ["Diagnostics parity",reviewDiagnosticsIntegrityState?.parity?.available===true?reviewDiagnosticsIntegrityState?.parity?.consistent:null]
         ]},
