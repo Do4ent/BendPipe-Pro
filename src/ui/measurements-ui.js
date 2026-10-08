@@ -2080,7 +2080,8 @@
     "TubeBender.DimensionSelectionAudit.v1",
     "TubeBender.DimensionAuditView.v1",
     "TubeBender.DimensionReviewQueueAudit.v1",
-    "TubeBender.DimensionReviewReasonAudit.v1"
+    "TubeBender.DimensionReviewReasonAudit.v1",
+    "TubeBender.DimensionAuditDownloadHistory.v1"
   ]);
 
   function dimensionAuditFilenamePolicy(){
