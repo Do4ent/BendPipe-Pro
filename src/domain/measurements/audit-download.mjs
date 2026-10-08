@@ -921,6 +921,17 @@ export function dimensionAuditDownloadHistoryAttestationEmbeddingSignature(embed
   });
 }
 
+export function dimensionAuditDownloadHistoryEmbeddedAttestationEmbeddingValid(snapshot={}){
+  const value=snapshot??{};
+  const embedded=value.attestation_embedding??null;
+  const signature=String(value.attestation_embedding_signature??"");
+  if(!embedded||!signature)return false;
+  const embeddedValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignature(embedded)===signature;
+  const current=dimensionAuditDownloadHistoryAttestationEmbedding(value);
+  const currentValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignature(current)===signature;
+  return embeddedValid&&currentValid;
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
