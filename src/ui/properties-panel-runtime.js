@@ -456,6 +456,14 @@
         &&canonicalReviewContext.health===reviewContextHealth
         &&canonicalReviewContext.complete_percent===dimensionReviewCompletePercent
         &&JSON.stringify(canonicalReviewContext.blockers??[])===JSON.stringify(reviewBlockers);
+      const reviewDisplay={
+        selected_in_audit:canonicalReviewContext?.selected_in_audit??selectedInAudit,
+        state:canonicalReviewContext?.state??dimensionReviewState,
+        health:canonicalReviewContext?.health??reviewContextHealth,
+        action_required:canonicalReviewContext?.action_required??reviewActionRequired,
+        complete_percent:canonicalReviewContext?.complete_percent??dimensionReviewCompletePercent,
+        blockers:canonicalReviewContext?.blockers??reviewBlockers
+      };
       const refs=(dimension?.references??[]).map((ref,index)=>({
         index,
         object_id:ref?.object_id,
@@ -491,16 +499,16 @@
           ["Progress source",audit?.currentCanonicalReviewProgressSource?.()??null],
           ["Progress schema",reviewProgressSnapshot?.schema],
           ["Progress signature",reviewProgressSnapshot?.signature],
-          ["Selected in audit",selectedInAudit],
-          ["Dimension review state",dimensionReviewState],
+          ["Selected in audit",reviewDisplay.selected_in_audit],
+          ["Dimension review state",reviewDisplay.state],
           ["Dimension review reason count",reviewReasons.length],
           ["Dimension completed reason count",completedReviewReasons.length],
           ["Dimension pending reason count",pendingReviewReasons.length],
-          ["Dimension review complete %",dimensionReviewCompletePercent],
-          ["Review context health",reviewContextHealth],
+          ["Dimension review complete %",reviewDisplay.complete_percent],
+          ["Review context health",reviewDisplay.health],
           ["Review context API consistent",reviewContextConsistent],
-          ["Review action required",reviewActionRequired],
-          ["Review blockers",reviewBlockers],
+          ["Review action required",reviewDisplay.action_required],
+          ["Review blockers",reviewDisplay.blockers],
           ["Progress status",reviewProgressSnapshot?.status],
           ["Progress complete %",reviewProgressSnapshot?.complete_percent],
           ["Dimension reason coverage",reviewReasonCoverage],
