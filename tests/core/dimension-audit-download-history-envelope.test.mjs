@@ -9,6 +9,8 @@ import {
   dimensionAuditDownloadHistoryProtocolState,
   dimensionAuditDownloadHistoryProtocolStateSignature,
   dimensionAuditDownloadHistoryProtocolBindingValid,
+  dimensionAuditDownloadHistoryProtocolBinding,
+  dimensionAuditDownloadHistoryProtocolBindingSignature,
   dimensionAuditDownloadHistorySignature,
   dimensionAuditDownloadHistoryIntegrity,
   dimensionAuditDownloadHistoryIntegritySignature,
@@ -51,10 +53,13 @@ function snapshot(){
   };
   const signed={...base,snapshot_signature:dimensionAuditDownloadHistorySignature(base)};
   const integrity=dimensionAuditDownloadHistoryIntegrity(signed);
+  const protocolBinding=dimensionAuditDownloadHistoryProtocolBinding(signed);
   const full={
     ...signed,
     attempts_valid:integrity.attempts_valid,
     summary_valid:integrity.summary_valid,
+    protocol_binding:protocolBinding,
+    protocol_binding_signature:dimensionAuditDownloadHistoryProtocolBindingSignature(protocolBinding),
     protocol_binding_valid:dimensionAuditDownloadHistoryProtocolBindingValid(signed),
     integrity,
     integrity_signature:dimensionAuditDownloadHistoryIntegritySignature(integrity),
