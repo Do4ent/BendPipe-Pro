@@ -602,6 +602,22 @@ export function dimensionAuditDownloadHistoryHealth(snapshot={}){
   });
 }
 
+export function dimensionAuditDownloadHistoryHealthSignature(health=dimensionAuditDownloadHistoryHealth()){
+  const value=health??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    valid:value.valid===true,
+    code:String(value.code??""),
+    errors:[...(value.errors??[])].map(code=>String(code)),
+    protocol_state_valid:value.protocol_state_valid===true,
+    protocol_binding_valid:value.protocol_binding_valid===true,
+    protocol_binding_code:String(value.protocol_binding_code??""),
+    integrity_valid:value.integrity_valid===true,
+    integrity_code:String(value.integrity_code??""),
+    envelope_valid:value.envelope_valid===true
+  });
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
