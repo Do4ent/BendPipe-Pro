@@ -8,6 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 495: Dimension audit download policy snapshot is versioned",()=>{
-  const fn=ui.match(/function dimensionAuditDownloadPolicy\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
+  const fn=ui.match(/function dimensionAuditDownloadFallbackPolicy\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(fn,/schema:"TubeBender\.DimensionAuditDownloadPolicy\.v1"/);
+  assert.match(ui,/function dimensionAuditDownloadPolicy\(\)/);
 });
