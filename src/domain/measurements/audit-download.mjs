@@ -996,6 +996,8 @@ export function dimensionAuditDownloadHistorySnapshot({
   attempts=[]
 }={}){
   if(!Array.isArray(attempts))throw new TypeError("audit download history attempts must be an array");
+  const historyTimestamp=generated_at==null?null:new Date(generated_at);
+  if(historyTimestamp&&Number.isNaN(historyTimestamp.getTime()))throw new TypeError("audit download history generated_at must be a valid timestamp");
   const safeAttempts=attempts.map(attempt=>structuredClone(attempt));
   const summary=dimensionAuditDownloadHistorySummary(safeAttempts);
   const protocolState=dimensionAuditDownloadHistoryProtocolState();
@@ -1003,7 +1005,7 @@ export function dimensionAuditDownloadHistorySnapshot({
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA,
     project_id:String(project_id??""),
     project_name:String(project_name??""),
-    ...(generated_at==null?{}:{generated_at:String(generated_at)}),
+    ...(historyTimestamp==null?{}:{generated_at:historyTimestamp.toISOString()}),
     summary,
     summary_signature:dimensionAuditDownloadHistorySummarySignature(summary),
     protocol_state:protocolState,
