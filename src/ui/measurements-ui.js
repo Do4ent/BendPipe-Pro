@@ -2298,7 +2298,12 @@
           validation
         };
       })();
-    return {...result,signature:dimensionAuditDownloadPreflightSignature(result)};
+    const signature=dimensionAuditDownloadPreflightSignature(result);
+    return {
+      ...result,
+      signature,
+      signature_valid:signature===dimensionAuditDownloadPreflightSignature(result)
+    };
   }
 
   function downloadDimensionAuditJson(filename,snapshot){
