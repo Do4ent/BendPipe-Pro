@@ -2384,6 +2384,9 @@
     return clone(dimensionAuditDownloadAttemptHistory);
   }
   function dimensionAuditDownloadAttemptHistorySummary(){
+    if(auditDownloadDomain?.dimensionAuditDownloadHistorySummary){
+      return auditDownloadDomain.dimensionAuditDownloadHistorySummary(dimensionAuditDownloadAttemptHistorySnapshot());
+    }
     const counts={blocked:0,downloaded:0,failed:0};
     for(const attempt of dimensionAuditDownloadAttemptHistory){
       const status=String(attempt?.status??"");
