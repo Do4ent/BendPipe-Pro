@@ -815,6 +815,53 @@ export function dimensionAuditDownloadHistoryEmbeddedVerificationEmbeddingValid(
   return embeddedValid&&currentValid;
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_ATTESTATION_SCHEMA="TubeBender.DimensionAuditDownloadHistoryAttestation.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_ATTESTATION_CODES=freeze([
+  "OK",
+  "INVALID_VERIFICATION",
+  "INVALID_EMBEDDED_VERIFICATION",
+  "INVALID_VERIFICATION_EMBEDDING",
+  "INVALID_EMBEDDED_VERIFICATION_EMBEDDING"
+]);
+
+export function dimensionAuditDownloadHistoryAttestation(snapshot={}){
+  const value=snapshot??{};
+  const verification=dimensionAuditDownloadHistoryVerification(value);
+  const embeddedVerificationValid=dimensionAuditDownloadHistoryEmbeddedVerificationValid(value);
+  const verificationEmbedding=dimensionAuditDownloadHistoryVerificationEmbedding(value);
+  const embeddedVerificationEmbeddingValid=dimensionAuditDownloadHistoryEmbeddedVerificationEmbeddingValid(value);
+  const errors=[
+    !verification.valid?"INVALID_VERIFICATION":null,
+    !embeddedVerificationValid?"INVALID_EMBEDDED_VERIFICATION":null,
+    !verificationEmbedding.valid?"INVALID_VERIFICATION_EMBEDDING":null,
+    !embeddedVerificationEmbeddingValid?"INVALID_EMBEDDED_VERIFICATION_EMBEDDING":null
+  ].filter(Boolean);
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_ATTESTATION_SCHEMA,
+    valid:errors.length===0,
+    code:errors[0]??"OK",
+    errors,
+    verification_valid:verification.valid===true,
+    embedded_verification_valid:embeddedVerificationValid,
+    verification_embedding_valid:verificationEmbedding.valid===true,
+    embedded_verification_embedding_valid:embeddedVerificationEmbeddingValid
+  });
+}
+
+export function dimensionAuditDownloadHistoryAttestationSignature(attestation=dimensionAuditDownloadHistoryAttestation()){
+  const value=attestation??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    valid:value.valid===true,
+    code:String(value.code??""),
+    errors:[...(value.errors??[])].map(code=>String(code)),
+    verification_valid:value.verification_valid===true,
+    embedded_verification_valid:value.embedded_verification_valid===true,
+    verification_embedding_valid:value.verification_embedding_valid===true,
+    embedded_verification_embedding_valid:value.embedded_verification_embedding_valid===true
+  });
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
@@ -881,10 +928,16 @@ export function dimensionAuditDownloadHistorySnapshot({
     verification_signature:dimensionAuditDownloadHistoryVerificationSignature(verification)
   };
   const verificationEmbedding=dimensionAuditDownloadHistoryVerificationEmbedding(verified);
-  return freeze({
+  const verifiedEmbedding={
     ...verified,
     verification_embedding:verificationEmbedding,
     verification_embedding_signature:dimensionAuditDownloadHistoryVerificationEmbeddingSignature(verificationEmbedding)
+  };
+  const attestation=dimensionAuditDownloadHistoryAttestation(verifiedEmbedding);
+  return freeze({
+    ...verifiedEmbedding,
+    attestation,
+    attestation_signature:dimensionAuditDownloadHistoryAttestationSignature(attestation)
   });
 }
 
