@@ -1091,8 +1091,14 @@ export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA="
 export function dimensionAuditDownloadHistoryExportReadinessSnapshot(state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=state??{};
   const signature=dimensionAuditDownloadHistoryExportReadinessStateSignature(value);
+  const protocol=dimensionAuditDownloadHistoryExportReadinessProtocol();
+  const protocolSignature=dimensionAuditDownloadHistoryExportReadinessProtocolSignature(protocol);
   return freeze({
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA,
+    protocol,
+    protocol_signature:protocolSignature,
+    protocol_valid:dimensionAuditDownloadHistoryExportReadinessProtocolValid(protocol),
+    protocol_signature_valid:dimensionAuditDownloadHistoryExportReadinessProtocolSignatureValid(protocolSignature,protocol),
     state_schema:String(value.schema??""),
     state_valid:dimensionAuditDownloadHistoryExportReadinessStateValid(value),
     ready:value.ready===true,
