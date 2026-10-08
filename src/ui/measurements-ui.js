@@ -1656,6 +1656,67 @@
     };
   }
 
+  function dimensionReviewContext(dimension){
+    const id=String(dimension?.id??"");
+    const reasons=dimensionAuditReviewReasons(dimension).map(reason=>String(reason));
+    const progress=canonicalDimensionReviewProgress();
+    const snapshot=progress.snapshot??null;
+    const selectedIds=selectedDimensionAuditIds().map(value=>String(value));
+    const selectedInAudit=selectedIds.includes(id);
+    const reasonCoverage=Object.fromEntries(reasons.map(reason=>[
+      reason,
+      snapshot?.reason_selection?.[reason]?.selection_coverage??null
+    ]));
+    const reasonProgress=Object.fromEntries(reasons.map(reason=>{
+      const state=snapshot?.reason_selection?.[reason]??null;
+      return [reason,state?{
+        dimension_count:state.dimension_count,
+        selected_dimension_count:state.selected_dimension_count,
+        unselected_dimension_count:state.unselected_dimension_count,
+        selected_percent:state.selected_percent,
+        selection_coverage:state.selection_coverage
+      }:null];
+    }));
+    const completedReasons=reasons.filter(reason=>reasonCoverage[reason]==="complete");
+    const pendingReasons=reasons.filter(reason=>reasonCoverage[reason]!=="complete");
+    const state=reasons.length===0?"not-required":pendingReasons.length===0?"complete":"pending";
+    const completePercent=reasons.length?Math.round(completedReasons.length/reasons.length*100):100;
+    const diagnosticsRuntime=dimensionReviewProgressDiagnosticsRuntimeState();
+    const diagnosticsIntegrityState=dimensionReviewProgressDiagnosticsIntegrityState();
+    const health=state==="not-required"
+      ?"not-required"
+      :diagnosticsIntegrityState?.integrity?.valid!==true
+        ?"diagnostics-error"
+        :state==="complete"?"ready":"pending";
+    const blockers=[
+      ...pendingReasons.map(reason=>"REVIEW:"+reason),
+      ...(diagnosticsRuntime?.diagnostics?.errors??[]).map(code=>"DIAGNOSTIC:"+String(code))
+    ];
+    return {
+      schema:"TubeBender.DimensionReviewContext.v1",
+      dimension_id:id,
+      selected_in_audit:selectedInAudit,
+      state,
+      health,
+      action_required:health==="pending"||health==="diagnostics-error",
+      complete_percent:completePercent,
+      reason_count:reasons.length,
+      completed_reason_count:completedReasons.length,
+      pending_reason_count:pendingReasons.length,
+      reasons,
+      completed_reasons:completedReasons,
+      pending_reasons:pendingReasons,
+      reason_coverage:reasonCoverage,
+      reason_progress:reasonProgress,
+      blockers,
+      progress_source:progress.source,
+      progress_status:snapshot?.status??null,
+      progress_signature:snapshot?.signature??progress.signature??null,
+      diagnostics_runtime:clone(diagnosticsRuntime),
+      diagnostics_integrity:clone(diagnosticsIntegrityState)
+    };
+  }
+
   function reviewQueueDimensionAuditSnapshot(){
     const items=savedDimensions().filter(dimension=>dimensionAuditNeedsReview(dimension));
     const reviewReasonCounts={};
