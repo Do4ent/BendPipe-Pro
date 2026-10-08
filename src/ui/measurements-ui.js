@@ -766,6 +766,12 @@
       rebound_history:clone(Array.isArray(dimension?.rebound_history)?dimension.rebound_history:[])
     };
   }
+  function dimensionAuditSnapshots(items){
+    const list=Array.isArray(items)?items:[];
+    const reviewContextState=dimensionReviewContextState(savedDimensions(),selectedDimensionAuditIds());
+    return list.map(dimension=>dimensionRebindAuditSnapshot(dimension,reviewContextState));
+  }
+
   function dimensionAuditGeometryClass(dimension){
     const statuses=(dimension?.references??[]).map(ref=>String(ref?.geometry_status??"").trim()).filter(Boolean);
     if(statuses.includes("Fitted"))return "Fitted";
@@ -839,7 +845,7 @@
       ...dimensionAuditProjectContext(),
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
-      dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
+      dimensions:dimensionAuditSnapshots(items)
     };
   }
   function hideDimensionAuditResults(){
@@ -1196,7 +1202,7 @@
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
-      dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
+      dimensions:dimensionAuditSnapshots(items)
     };
   }
   function visibleDimensionAuditSnapshot(){
@@ -1223,7 +1229,7 @@
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
-      dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
+      dimensions:dimensionAuditSnapshots(items)
     };
   }
   function reviewProgressDomainCompatibility(){
@@ -1929,7 +1935,7 @@
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
-      dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
+      dimensions:dimensionAuditSnapshots(items)
     };
   }
   function reviewReasonDimensionAuditSnapshot(reason=activeDimensionReviewReason()){
@@ -1959,7 +1965,7 @@
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
-      dimensions:items.map(dimension=>dimensionRebindAuditSnapshot(dimension))
+      dimensions:dimensionAuditSnapshots(items)
     };
   }
 
