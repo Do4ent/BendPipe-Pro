@@ -8,7 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 827: runtime keeps an independent bounded history export event log",()=>{
-  assert.match(ui,/const dimensionAuditDownloadHistoryExportEventHistory=[]/);
+  assert.match(ui,/const dimensionAuditDownloadHistoryExportEventHistory=\[\]/);
   assert.match(ui,/const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LIMIT=20/);
   assert.match(ui,/function recordDimensionAuditDownloadHistoryExportEvent\(/);
   assert.match(ui,/buildDimensionAuditDownloadHistoryExportEvent/);
