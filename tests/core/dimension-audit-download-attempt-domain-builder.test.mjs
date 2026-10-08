@@ -15,7 +15,7 @@ test("question 593: domain builds canonical signed audit download attempts",()=>
     preflight_signature:"preflight",
     runtime_signature:"runtime",
     protocol_signature:"protocol",
-    generated_at:"2099-01-01T00:00:00Z"
+    generated_at:"2099-01-01T00:00:00.000Z"
   });
   assert.equal(attempt.schema,DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA);
   assert.equal(attempt.status,"downloaded");
