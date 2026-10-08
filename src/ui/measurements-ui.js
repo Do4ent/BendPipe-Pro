@@ -2419,10 +2419,13 @@
     const value=snapshot??{};
     const attempts=Array.isArray(value.attempts)?value.attempts:[];
     const summary=value.summary??{};
-    return String(value.schema??"")===dimensionAuditDownloadHistorySchema()
+    const baseValid=String(value.schema??"")===dimensionAuditDownloadHistorySchema()
       &&Number(value.attempt_count??-1)===attempts.length
       &&Number(summary.total??-1)===attempts.length
       &&String(value.summary_signature??"")===dimensionAuditDownloadAttemptHistorySummarySignature(summary);
+    if(!baseValid)return false;
+    const signature=String(value.snapshot_signature??"");
+    return !signature||signature===dimensionAuditDownloadAttemptHistoryAuditSignature(value);
   }
 
   function dimensionAuditDownloadAttemptHistoryAuditSnapshot(){
