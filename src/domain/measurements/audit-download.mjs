@@ -1058,6 +1058,7 @@ export function dimensionAuditDownloadHistoryExportReadinessSnapshot(state=dimen
   return freeze({
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA,
     state_schema:String(value.schema??""),
+    state_valid:dimensionAuditDownloadHistoryExportReadinessStateValid(value),
     ready:value.ready===true,
     code:String(value.code??""),
     attempt_count:Math.max(0,Math.trunc(Number(value.attempt_count)||0)),
@@ -1076,6 +1077,7 @@ export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapsh
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
   return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA
     &&String(value.state_schema??"")===String(expected.state_schema??"")
+    &&value.state_valid===true
     &&value.ready===expected.ready
     &&String(value.code??"")===String(expected.code??"")
     &&Number(value.attempt_count)===expected.attempt_count
