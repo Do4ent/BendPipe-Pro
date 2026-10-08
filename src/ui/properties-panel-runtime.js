@@ -445,6 +445,10 @@
           ?"diagnostics-error"
           :dimensionReviewState==="complete"?"ready":"pending";
       const reviewActionRequired=reviewContextHealth==="pending"||reviewContextHealth==="diagnostics-error";
+      const reviewBlockers=[
+        ...pendingReviewReasons.map(reason=>"REVIEW:"+String(reason)),
+        ...(reviewDiagnosticsRuntime?.diagnostics?.errors??[]).map(code=>"DIAGNOSTIC:"+String(code))
+      ];
       const refs=(dimension?.references??[]).map((ref,index)=>({
         index,
         object_id:ref?.object_id,
@@ -488,6 +492,7 @@
           ["Dimension review complete %",dimensionReviewCompletePercent],
           ["Review context health",reviewContextHealth],
           ["Review action required",reviewActionRequired],
+          ["Review blockers",reviewBlockers],
           ["Progress status",reviewProgressSnapshot?.status],
           ["Progress complete %",reviewProgressSnapshot?.complete_percent],
           ["Dimension reason coverage",reviewReasonCoverage],
