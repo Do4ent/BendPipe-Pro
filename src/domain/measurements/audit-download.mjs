@@ -20,6 +20,8 @@ export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_CODES=freeze([
   "INVALID_ATTEMPTS",
   "INVALID_SUMMARY",
   "INVALID_SUMMARY_SIGNATURE",
+  "INVALID_PROTOCOL_STATE",
+  "INVALID_PROTOCOL_STATE_SIGNATURE",
   "INVALID_SNAPSHOT_SIGNATURE"
 ]);
 export const DIMENSION_AUDIT_DOWNLOAD_VALIDATION_CODES=freeze([
@@ -297,6 +299,7 @@ export function dimensionAuditDownloadHistorySignature(snapshot={}){
     project_id:String(value.project_id??""),
     project_name:String(value.project_name??""),
     summary_signature:String(value.summary_signature??""),
+    protocol_state_signature:String(value.protocol_state_signature??""),
     attempt_count:Number(value.attempt_count??0),
     attempt_signatures:attempts.map(attempt=>String(attempt?.signature??""))
   });
@@ -311,6 +314,12 @@ export function dimensionAuditDownloadHistoryIntegrity(snapshot={}){
   const attemptsValid=attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt));
   const summaryValid=dimensionAuditDownloadHistorySummaryValid(summary,attempts);
   const summarySignatureValid=String(value.summary_signature??"")===dimensionAuditDownloadHistorySummarySignature(summary);
+  const protocolState=value.protocol_state??null;
+  const protocolStateValid=!!protocolState
+    &&protocolState.valid===true
+    &&dimensionAuditDownloadHistoryProtocolStateSignature(protocolState)===String(value.protocol_state_signature??"");
+  const protocolStateSignatureValid=!!protocolState
+    &&String(value.protocol_state_signature??"")===dimensionAuditDownloadHistoryProtocolStateSignature(protocolState);
   const signature=String(value.snapshot_signature??"");
   const snapshotSignatureValid=!signature||signature===dimensionAuditDownloadHistorySignature(value);
   const errors=[
@@ -319,6 +328,8 @@ export function dimensionAuditDownloadHistoryIntegrity(snapshot={}){
     !attemptsValid?"INVALID_ATTEMPTS":null,
     !summaryValid?"INVALID_SUMMARY":null,
     !summarySignatureValid?"INVALID_SUMMARY_SIGNATURE":null,
+    !protocolStateValid?"INVALID_PROTOCOL_STATE":null,
+    !protocolStateSignatureValid?"INVALID_PROTOCOL_STATE_SIGNATURE":null,
     !snapshotSignatureValid?"INVALID_SNAPSHOT_SIGNATURE":null
   ].filter(Boolean);
   return freeze({
@@ -331,6 +342,8 @@ export function dimensionAuditDownloadHistoryIntegrity(snapshot={}){
     attempts_valid:attemptsValid,
     summary_valid:summaryValid,
     summary_signature_valid:summarySignatureValid,
+    protocol_state_valid:protocolStateValid,
+    protocol_state_signature_valid:protocolStateSignatureValid,
     snapshot_signature_valid:snapshotSignatureValid
   });
 }
@@ -347,6 +360,8 @@ export function dimensionAuditDownloadHistoryIntegritySignature(integrity={}){
     attempts_valid:value.attempts_valid===true,
     summary_valid:value.summary_valid===true,
     summary_signature_valid:value.summary_signature_valid===true,
+    protocol_state_valid:value.protocol_state_valid===true,
+    protocol_state_signature_valid:value.protocol_state_signature_valid===true,
     snapshot_signature_valid:value.snapshot_signature_valid===true
   });
 }
@@ -484,6 +499,7 @@ export function dimensionAuditDownloadHistorySnapshot({
   if(!Array.isArray(attempts))throw new TypeError("audit download history attempts must be an array");
   const safeAttempts=attempts.map(attempt=>structuredClone(attempt));
   const summary=dimensionAuditDownloadHistorySummary(safeAttempts);
+  const protocolState=dimensionAuditDownloadHistoryProtocolState();
   const base={
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA,
     project_id:String(project_id??""),
@@ -491,6 +507,8 @@ export function dimensionAuditDownloadHistorySnapshot({
     ...(generated_at==null?{}:{generated_at:String(generated_at)}),
     summary,
     summary_signature:dimensionAuditDownloadHistorySummarySignature(summary),
+    protocol_state:protocolState,
+    protocol_state_signature:dimensionAuditDownloadHistoryProtocolStateSignature(protocolState),
     attempt_count:safeAttempts.length,
     attempts:safeAttempts
   };
