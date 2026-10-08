@@ -11,6 +11,6 @@ test("question 693: audit history export readiness signature is validated",()=>{
   assert.match(ui,/function dimensionAuditDownloadHistoryExportReadinessSignatureValid/);
   assert.match(ui,/return String\(signature\?\?""\)===dimensionAuditDownloadHistoryExportReadinessSignature\(readiness,snapshot\)/);
   assert.match(ui,/data-history-export-signature-valid="'\+\(auditDownloadHistoryExportReadinessSignatureValid\?'1':'0'\)\+'"/);
-  assert.match(ui,/const auditDownloadHistoryExportReady=auditDownloadHistoryExportReadiness\.ready&&auditDownloadHistoryExportReadinessSignatureValid/);
+  assert.match(ui,/const auditDownloadHistoryExportReady=auditDownloadHistoryExportReadiness\.ready&&auditDownloadHistoryExportReadinessSignatureValid&&auditDownloadHistoryExportReadinessSnapshotValid/);
   assert.match(ui,/currentDimensionAuditDownloadHistoryExportReadinessSignatureValid:\(\)=>dimensionAuditDownloadHistoryExportReadinessSignatureValid\(\)/);
 });
