@@ -179,7 +179,7 @@ export function dimensionAuditDownloadProtocolSignature(state=dimensionAuditDown
 
 export function dimensionAuditDownloadAttemptSignature(attempt={}){
   const value=attempt??{};
-  return JSON.stringify({
+  const signed={
     schema:String(value.schema??""),
     status:String(value.status??""),
     filename:String(value.filename??""),
@@ -190,7 +190,16 @@ export function dimensionAuditDownloadAttemptSignature(attempt={}){
     protocol_signature:String(value.protocol_signature??""),
     error:value.error==null?null:String(value.error),
     generated_at:String(value.generated_at??"")
-  });
+  };
+  const hasPermitEvidence=value.export_action!=null
+    ||value.action_permit_signature!=null
+    ||value.action_permit_snapshot_signature!=null;
+  if(hasPermitEvidence){
+    signed.export_action=String(value.export_action??"");
+    signed.action_permit_signature=String(value.action_permit_signature??"");
+    signed.action_permit_snapshot_signature=String(value.action_permit_snapshot_signature??"");
+  }
+  return JSON.stringify(signed);
 }
 
 export function buildDimensionAuditDownloadAttempt({
@@ -201,6 +210,9 @@ export function buildDimensionAuditDownloadAttempt({
   preflight_signature="",
   runtime_signature="",
   protocol_signature="",
+  export_action=null,
+  action_permit_signature=null,
+  action_permit_snapshot_signature=null,
   error=null,
   generated_at=new Date().toISOString()
 }={}){
@@ -225,6 +237,17 @@ export function buildDimensionAuditDownloadAttempt({
     error:safeError,
     generated_at:timestamp.toISOString()
   };
+  const hasPermitEvidence=export_action!=null||action_permit_signature!=null||action_permit_snapshot_signature!=null;
+  if(hasPermitEvidence){
+    const action=String(export_action??"");
+    const permitSignature=String(action_permit_signature??"");
+    const permitSnapshotSignature=String(action_permit_snapshot_signature??"");
+    if(!["copy","download"].includes(action))throw new TypeError("audit download attempt export_action must be copy or download");
+    if(!permitSignature||!permitSnapshotSignature)throw new TypeError("audit download attempt permit evidence must be complete");
+    base.export_action=action;
+    base.action_permit_signature=permitSignature;
+    base.action_permit_snapshot_signature=permitSnapshotSignature;
+  }
   return freeze({
     ...base,
     signature:dimensionAuditDownloadAttemptSignature(base)
@@ -239,10 +262,19 @@ export function dimensionAuditDownloadAttemptValid(attempt={}){
   const outcomeValid=status==="failed"?!!error:error===null;
   const timestamp=new Date(String(value.generated_at??""));
   const generatedAtValid=!Number.isNaN(timestamp.getTime());
+  const hasPermitEvidence=value.export_action!=null
+    ||value.action_permit_signature!=null
+    ||value.action_permit_snapshot_signature!=null;
+  const permitEvidenceValid=!hasPermitEvidence||(
+    ["copy","download"].includes(String(value.export_action??""))
+    &&!!String(value.action_permit_signature??"")
+    &&!!String(value.action_permit_snapshot_signature??"")
+  );
   return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA
     &&["blocked","downloaded","failed"].includes(status)
     &&outcomeValid
     &&generatedAtValid
+    &&permitEvidenceValid
     &&!!signature
     &&signature===dimensionAuditDownloadAttemptSignature(value);
 }
