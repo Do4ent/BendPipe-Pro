@@ -191,8 +191,11 @@ export function dimensionAuditDownloadHistoryValid(snapshot={}){
   const value=snapshot??{};
   const attempts=Array.isArray(value.attempts)?value.attempts:[];
   const summary=value.summary??{};
-  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA
+  const baseValid=String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA
     &&Number(value.attempt_count??-1)===attempts.length
     &&Number(summary.total??-1)===attempts.length
     &&String(value.summary_signature??"")===dimensionAuditDownloadHistorySummarySignature(summary);
+  if(!baseValid)return false;
+  const signature=String(value.snapshot_signature??"");
+  return !signature||signature===dimensionAuditDownloadHistorySignature(value);
 }
