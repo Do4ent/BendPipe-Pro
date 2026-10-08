@@ -11,6 +11,6 @@ test("question 555: audit download history export fails closed on invalid integr
   const verification=ui.match(/function dimensionAuditDownloadHistoryVerification\(snapshot=\{\}\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(verification,/const integrity=dimensionAuditDownloadAttemptHistoryIntegrity\(value\)/);
   assert.match(verification,/!integrity\.valid\?"INVALID_INTEGRITY":null/);
-  const gate=/if\(!verification\.valid\)\{toast\("Audit download history verification failed: "\+verification\.code\);return false;\}/g;
-  assert.equal((ui.match(gate)??[]).length,2);
+  assert.match(ui,/function dimensionAuditDownloadHistoryExportReadiness/);
+  assert.match(ui,/if\(!verification\.valid\)return \{ready:false,code:"VERIFICATION_FAILED"\}/);
 });
