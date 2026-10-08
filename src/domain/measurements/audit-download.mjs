@@ -1034,6 +1034,44 @@ export function dimensionAuditDownloadHistoryExportReadinessStateSignatureValid(
   return String(signature??"")===dimensionAuditDownloadHistoryExportReadinessStateSignature(state);
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportReadinessSnapshot.v1";
+
+export function dimensionAuditDownloadHistoryExportReadinessSnapshot(state=dimensionAuditDownloadHistoryExportReadinessState()){
+  const value=state??{};
+  const signature=dimensionAuditDownloadHistoryExportReadinessStateSignature(value);
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA,
+    state_schema:String(value.schema??""),
+    ready:value.ready===true,
+    code:String(value.code??""),
+    attempt_count:Math.max(0,Math.trunc(Number(value.attempt_count)||0)),
+    verification_valid:value.verification_valid===true,
+    trusted:value.trusted===true,
+    provenance_valid:value.provenance_valid===true,
+    history_snapshot_signature:String(value.history_snapshot_signature??""),
+    provenance_signature:String(value.provenance_signature??""),
+    signature,
+    signature_valid:dimensionAuditDownloadHistoryExportReadinessStateSignatureValid(signature,value)
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
+  const value=snapshot??{};
+  const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
+  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA
+    &&String(value.state_schema??"")===String(expected.state_schema??"")
+    &&value.ready===expected.ready
+    &&String(value.code??"")===String(expected.code??"")
+    &&Number(value.attempt_count)===expected.attempt_count
+    &&value.verification_valid===expected.verification_valid
+    &&value.trusted===expected.trusted
+    &&value.provenance_valid===expected.provenance_valid
+    &&String(value.history_snapshot_signature??"")===String(expected.history_snapshot_signature??"")
+    &&String(value.provenance_signature??"")===String(expected.provenance_signature??"")
+    &&String(value.signature??"")===String(expected.signature??"")
+    &&value.signature_valid===true;
+}
+
 export function dimensionAuditDownloadHistoryTrustSignature(trust=dimensionAuditDownloadHistoryTrust()){
   const value=trust??{};
   return JSON.stringify({
