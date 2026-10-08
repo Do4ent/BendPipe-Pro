@@ -1288,6 +1288,37 @@ export function dimensionAuditDownloadHistoryExportDecision(gateSnapshot=dimensi
   });
 }
 
+export function dimensionAuditDownloadHistoryExportDecisionValid(decision=dimensionAuditDownloadHistoryExportDecision()){
+  const value=decision??{};
+  const code=String(value.code??"");
+  const gateCode=String(value.gate_code??"");
+  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_SCHEMA)return false;
+  if(!DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_CODES.includes(code))return false;
+  if((value.allowed===true)!==(code==="READY"))return false;
+  if(code==="INVALID_GATE_SNAPSHOT"){
+    return value.gate_snapshot_valid===false&&value.allowed!==true;
+  }
+  if(!DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_GATE_CODES.includes(gateCode))return false;
+  return value.gate_snapshot_valid===true&&gateCode===code&&(value.gate_allowed===true)===(code==="READY");
+}
+
+export function dimensionAuditDownloadHistoryExportDecisionSignature(decision=dimensionAuditDownloadHistoryExportDecision()){
+  const value=decision??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    allowed:value.allowed===true,
+    code:String(value.code??""),
+    gate_snapshot_valid:value.gate_snapshot_valid===true,
+    gate_code:String(value.gate_code??""),
+    gate_allowed:value.gate_allowed===true
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportDecisionSignatureValid(signature,decision=dimensionAuditDownloadHistoryExportDecision()){
+  return dimensionAuditDownloadHistoryExportDecisionValid(decision)
+    &&String(signature??"")===dimensionAuditDownloadHistoryExportDecisionSignature(decision);
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
