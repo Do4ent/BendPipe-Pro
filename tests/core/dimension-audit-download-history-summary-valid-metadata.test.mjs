@@ -9,6 +9,6 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 567: audit history snapshot exposes summary validity separately",()=>{
   const fn=ui.match(/function dimensionAuditDownloadAttemptHistoryAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/summary_valid:dimensionAuditDownloadAttemptHistorySummaryValid\(summary,attempts\)/);
+  assert.match(fn,/summary_valid:integrity\.summary_valid/);
   assert.match(fn,/valid:dimensionAuditDownloadAttemptHistoryAuditValid\(signed\)/);
 });
