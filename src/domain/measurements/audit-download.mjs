@@ -1363,6 +1363,30 @@ export function dimensionAuditDownloadHistoryExportDecisionSnapshotValid(snapsho
   return dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid(value.snapshot_signature,value);
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_AUTHORIZATION_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportAuthorization.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_AUTHORIZATION_CODES=freeze([
+  ...DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_CODES,
+  "INVALID_DECISION_SNAPSHOT"
+]);
+
+export function dimensionAuditDownloadHistoryExportAuthorization(decisionSnapshot=dimensionAuditDownloadHistoryExportDecisionSnapshot()){
+  const value=decisionSnapshot??{};
+  const decision=value.decision??{};
+  const decisionSnapshotValid=dimensionAuditDownloadHistoryExportDecisionSnapshotValid(value);
+  const decisionCode=String(decision.code??"");
+  const code=decisionSnapshotValid&&DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_CODES.includes(decisionCode)
+    ?decisionCode
+    :"INVALID_DECISION_SNAPSHOT";
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_AUTHORIZATION_SCHEMA,
+    allowed:decisionSnapshotValid&&decision.allowed===true&&code==="READY",
+    code,
+    decision_snapshot_valid:decisionSnapshotValid,
+    decision_code:decisionCode,
+    decision_allowed:decision.allowed===true
+  });
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
