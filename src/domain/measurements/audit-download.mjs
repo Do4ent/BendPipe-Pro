@@ -729,6 +729,22 @@ export function dimensionAuditDownloadHistoryVerification(snapshot={}){
   });
 }
 
+export function dimensionAuditDownloadHistoryVerificationSignature(verification=dimensionAuditDownloadHistoryVerification()){
+  const value=verification??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    valid:value.valid===true,
+    code:String(value.code??""),
+    errors:[...(value.errors??[])].map(code=>String(code)),
+    protocol_binding_valid:value.protocol_binding_valid===true,
+    integrity_valid:value.integrity_valid===true,
+    envelope_valid:value.envelope_valid===true,
+    health_valid:value.health_valid===true,
+    embedded_health_valid:value.embedded_health_valid===true,
+    health_embedding_valid:value.health_embedding_valid===true
+  });
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
