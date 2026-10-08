@@ -2551,6 +2551,15 @@
 
   function dimensionAuditDownloadAttemptHistoryAuditSnapshot(){
     const attempts=dimensionAuditDownloadAttemptHistorySnapshot();
+    if(auditDownloadDomain?.dimensionAuditDownloadHistorySnapshot){
+      const context=dimensionAuditProjectContext();
+      return clone(auditDownloadDomain.dimensionAuditDownloadHistorySnapshot({
+        project_id:context.project_id,
+        project_name:context.project_name,
+        generated_at:context.generated_at,
+        attempts
+      }));
+    }
     const summary=dimensionAuditDownloadAttemptHistorySummary();
     const base={
       schema:dimensionAuditDownloadHistorySchema(),
