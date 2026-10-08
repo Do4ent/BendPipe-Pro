@@ -189,6 +189,39 @@ export function dimensionAuditDownloadAttemptSignature(attempt={}){
   });
 }
 
+export function buildDimensionAuditDownloadAttempt({
+  status,
+  filename="",
+  snapshot_schema=null,
+  code="",
+  preflight_signature="",
+  runtime_signature="",
+  protocol_signature="",
+  error=null,
+  generated_at=new Date().toISOString()
+}={}){
+  const safeStatus=String(status??"");
+  if(!["blocked","downloaded","failed"].includes(safeStatus)){
+    throw new RangeError("unsupported audit download attempt status: "+safeStatus);
+  }
+  const base={
+    schema:DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA,
+    status:safeStatus,
+    filename:String(filename??""),
+    snapshot_schema:snapshot_schema==null?null:String(snapshot_schema),
+    code:String(code??""),
+    preflight_signature:String(preflight_signature??""),
+    runtime_signature:String(runtime_signature??""),
+    protocol_signature:String(protocol_signature??""),
+    error:error==null?null:String(error)
+  };
+  return freeze({
+    ...base,
+    signature:dimensionAuditDownloadAttemptSignature(base),
+    generated_at:String(generated_at??"")
+  });
+}
+
 export function dimensionAuditDownloadAttemptValid(attempt={}){
   const value=attempt??{};
   const status=String(value.status??"");
