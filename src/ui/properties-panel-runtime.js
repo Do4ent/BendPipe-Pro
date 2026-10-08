@@ -416,6 +416,8 @@
       const reviewReasons=audit?.dimensionAuditReviewReasons?.(dimension)??[];
       const fittedStats=audit?.dimensionFittedAuditStats?.(dimension)??null;
       const reviewProgressSnapshot=audit?.currentCanonicalReviewProgressSnapshot?.()??null;
+      const selectedDimensionAuditIds=audit?.selectedDimensionAuditIds?.()??[];
+      const selectedInAudit=selectedDimensionAuditIds.map(id=>String(id)).includes(String(dimension?.id??""));
       const reviewDiagnosticsRuntime=audit?.currentReviewProgressDiagnosticsRuntimeState?.()??null;
       const reviewDiagnosticsIntegrityState=audit?.currentReviewProgressDiagnosticsIntegrityState?.()??null;
       const reviewReasonCoverage=Object.fromEntries(reviewReasons.map(reason=>[
@@ -465,6 +467,7 @@
         ]},
         {name:"Review queue context",rows:[
           ["Progress source",audit?.currentCanonicalReviewProgressSource?.()??null],
+          ["Selected in audit",selectedInAudit],
           ["Progress status",reviewProgressSnapshot?.status],
           ["Progress complete %",reviewProgressSnapshot?.complete_percent],
           ["Dimension reason coverage",reviewReasonCoverage],
