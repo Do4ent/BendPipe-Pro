@@ -2439,10 +2439,13 @@
       attempt_count:attempts.length,
       attempts
     };
-    return {
+    const signed={
       ...base,
-      snapshot_signature:dimensionAuditDownloadAttemptHistoryAuditSignature(base),
-      valid:dimensionAuditDownloadAttemptHistoryAuditValid(base)
+      snapshot_signature:dimensionAuditDownloadAttemptHistoryAuditSignature(base)
+    };
+    return {
+      ...signed,
+      valid:dimensionAuditDownloadAttemptHistoryAuditValid(signed)
     };
   }
 
