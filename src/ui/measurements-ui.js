@@ -2379,6 +2379,9 @@
     };
   }
   function dimensionAuditDownloadAttemptHistorySummarySignature(summary=dimensionAuditDownloadAttemptHistorySummary()){
+    if(auditDownloadDomain?.dimensionAuditDownloadHistorySummarySignature){
+      return auditDownloadDomain.dimensionAuditDownloadHistorySummarySignature(summary??{});
+    }
     const value=summary??{};
     return JSON.stringify({
       schema:String(value.schema??""),
@@ -2391,6 +2394,9 @@
   }
 
   function dimensionAuditDownloadAttemptHistoryAuditSignature(snapshot){
+    if(auditDownloadDomain?.dimensionAuditDownloadHistorySignature){
+      return auditDownloadDomain.dimensionAuditDownloadHistorySignature(snapshot??{});
+    }
     const value=snapshot??{};
     const attempts=Array.isArray(value.attempts)?value.attempts:[];
     return JSON.stringify({
@@ -2403,6 +2409,9 @@
     });
   }
   function dimensionAuditDownloadAttemptHistoryAuditValid(snapshot){
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryValid){
+      return auditDownloadDomain.dimensionAuditDownloadHistoryValid(snapshot??{});
+    }
     const value=snapshot??{};
     const attempts=Array.isArray(value.attempts)?value.attempts:[];
     const summary=value.summary??{};
