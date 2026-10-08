@@ -1005,6 +1005,16 @@ export function dimensionAuditDownloadHistoryExportReadinessProtocolSignature(pr
   });
 }
 
+export function dimensionAuditDownloadHistoryExportReadinessProtocolValid(protocol=dimensionAuditDownloadHistoryExportReadinessProtocol()){
+  const value=protocol??{};
+  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_PROTOCOL_SCHEMA)return false;
+  if(String(value.state_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SCHEMA)return false;
+  if(String(value.snapshot_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA)return false;
+  if(!Array.isArray(value.codes))return false;
+  if(value.codes.length!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_CODES.length)return false;
+  return value.codes.every((code,index)=>String(code)===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_CODES[index]);
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessState({
   attempt_count=0,
   verification_valid=false,
