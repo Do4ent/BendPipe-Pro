@@ -1462,6 +1462,30 @@ export function dimensionAuditDownloadHistoryExportAuthorizationSnapshotValid(sn
   return dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignatureValid(value.snapshot_signature,value);
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_CHAIN_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportChain.v1";
+
+export function dimensionAuditDownloadHistoryExportChain(state=dimensionAuditDownloadHistoryExportReadinessState()){
+  const readiness_state=state??{};
+  const readiness_snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(readiness_state);
+  const gate=dimensionAuditDownloadHistoryExportGate(readiness_snapshot,readiness_state);
+  const gate_snapshot=dimensionAuditDownloadHistoryExportGateSnapshot(gate);
+  const decision=dimensionAuditDownloadHistoryExportDecision(gate_snapshot);
+  const decision_snapshot=dimensionAuditDownloadHistoryExportDecisionSnapshot(decision);
+  const authorization=dimensionAuditDownloadHistoryExportAuthorization(decision_snapshot);
+  const authorization_snapshot=dimensionAuditDownloadHistoryExportAuthorizationSnapshot(authorization);
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_CHAIN_SCHEMA,
+    readiness_state,
+    readiness_snapshot,
+    gate_snapshot,
+    decision_snapshot,
+    authorization_snapshot,
+    allowed:authorization_snapshot.authorization?.allowed===true
+      &&dimensionAuditDownloadHistoryExportAuthorizationSnapshotValid(authorization_snapshot),
+    code:String(authorization_snapshot.authorization?.code??"INVALID_AUTHORIZATION_SNAPSHOT")
+  });
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
