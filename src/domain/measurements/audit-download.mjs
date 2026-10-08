@@ -1387,6 +1387,37 @@ export function dimensionAuditDownloadHistoryExportAuthorization(decisionSnapsho
   });
 }
 
+export function dimensionAuditDownloadHistoryExportAuthorizationValid(authorization=dimensionAuditDownloadHistoryExportAuthorization()){
+  const value=authorization??{};
+  const code=String(value.code??"");
+  const decisionCode=String(value.decision_code??"");
+  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_AUTHORIZATION_SCHEMA)return false;
+  if(!DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_AUTHORIZATION_CODES.includes(code))return false;
+  if((value.allowed===true)!==(code==="READY"))return false;
+  if(code==="INVALID_DECISION_SNAPSHOT"){
+    return value.decision_snapshot_valid===false&&value.allowed!==true;
+  }
+  if(!DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_CODES.includes(decisionCode))return false;
+  return value.decision_snapshot_valid===true&&decisionCode===code&&(value.decision_allowed===true)===(code==="READY");
+}
+
+export function dimensionAuditDownloadHistoryExportAuthorizationSignature(authorization=dimensionAuditDownloadHistoryExportAuthorization()){
+  const value=authorization??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    allowed:value.allowed===true,
+    code:String(value.code??""),
+    decision_snapshot_valid:value.decision_snapshot_valid===true,
+    decision_code:String(value.decision_code??""),
+    decision_allowed:value.decision_allowed===true
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportAuthorizationSignatureValid(signature,authorization=dimensionAuditDownloadHistoryExportAuthorization()){
+  return dimensionAuditDownloadHistoryExportAuthorizationValid(authorization)
+    &&String(signature??"")===dimensionAuditDownloadHistoryExportAuthorizationSignature(authorization);
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
