@@ -3307,6 +3307,8 @@
     if(!verification.valid){toast("Audit download history verification failed: "+verification.code);return false;}
     const trust=dimensionAuditDownloadHistoryTrust(snapshot);
     if(!trust.trusted){toast("Audit download history trust failed: "+trust.code);return false;}
+    const provenance=dimensionAuditDownloadAttemptHistorySnapshotProvenance(snapshot);
+    if(!dimensionAuditDownloadAttemptHistorySnapshotProvenanceValid(provenance,snapshot)){toast("Audit download history provenance invalid");return false;}
     const text=JSON.stringify(snapshot,null,2);
     try{
       if(navigator?.clipboard?.writeText)await navigator.clipboard.writeText(text);
@@ -3325,6 +3327,8 @@
     if(!verification.valid){toast("Audit download history verification failed: "+verification.code);return false;}
     const trust=dimensionAuditDownloadHistoryTrust(snapshot);
     if(!trust.trusted){toast("Audit download history trust failed: "+trust.code);return false;}
+    const provenance=dimensionAuditDownloadAttemptHistorySnapshotProvenance(snapshot);
+    if(!dimensionAuditDownloadAttemptHistorySnapshotProvenanceValid(provenance,snapshot)){toast("Audit download history provenance invalid");return false;}
     const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
     const stem=name+"-dimension-audit-download-history-"+snapshot.attempt_count;
     return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
