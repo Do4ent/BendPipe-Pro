@@ -2129,6 +2129,7 @@
       :null;
     const protocolConsistent=protocolState?.protocol_consistent===true||(!protocolState&&dimensionAuditDownloadProtocolConsistent());
     return {
+      schema:"TubeBender.DimensionAuditDownloadRuntimeState.v1",
       source:dimensionAuditDownloadPolicySource(),
       valid:policyConsistent&&protocolConsistent,
       consistent:policyConsistent,
