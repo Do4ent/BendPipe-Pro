@@ -416,6 +416,7 @@
       const reviewReasons=audit?.dimensionAuditReviewReasons?.(dimension)??[];
       const fittedStats=audit?.dimensionFittedAuditStats?.(dimension)??null;
       const reviewProgressSnapshot=audit?.currentCanonicalReviewProgressSnapshot?.()??null;
+      const canonicalReviewContext=audit?.dimensionReviewContext?.(dimension)??null;
       const selectedDimensionAuditIds=audit?.selectedDimensionAuditIds?.()??[];
       const selectedInAudit=selectedDimensionAuditIds.map(id=>String(id)).includes(String(dimension?.id??""));
       const reviewDiagnosticsRuntime=audit?.currentReviewProgressDiagnosticsRuntimeState?.()??null;
@@ -449,6 +450,12 @@
         ...pendingReviewReasons.map(reason=>"REVIEW:"+String(reason)),
         ...(reviewDiagnosticsRuntime?.diagnostics?.errors??[]).map(code=>"DIAGNOSTIC:"+String(code))
       ];
+      const reviewContextConsistent=canonicalReviewContext==null?null:
+        canonicalReviewContext.selected_in_audit===selectedInAudit
+        &&canonicalReviewContext.state===dimensionReviewState
+        &&canonicalReviewContext.health===reviewContextHealth
+        &&canonicalReviewContext.complete_percent===dimensionReviewCompletePercent
+        &&JSON.stringify(canonicalReviewContext.blockers??[])===JSON.stringify(reviewBlockers);
       const refs=(dimension?.references??[]).map((ref,index)=>({
         index,
         object_id:ref?.object_id,
@@ -491,6 +498,7 @@
           ["Dimension pending reason count",pendingReviewReasons.length],
           ["Dimension review complete %",dimensionReviewCompletePercent],
           ["Review context health",reviewContextHealth],
+          ["Review context API consistent",reviewContextConsistent],
           ["Review action required",reviewActionRequired],
           ["Review blockers",reviewBlockers],
           ["Progress status",reviewProgressSnapshot?.status],
