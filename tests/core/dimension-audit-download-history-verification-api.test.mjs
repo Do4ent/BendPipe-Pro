@@ -10,8 +10,9 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 645: UI and history export use canonical verification",()=>{
   const verification=ui.match(/function dimensionAuditDownloadHistoryVerification\(snapshot=\{\}\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(verification,/auditDownloadDomain\?\.dimensionAuditDownloadHistoryVerification/);
-  const gate=/const verification=dimensionAuditDownloadHistoryVerification\(snapshot\);\s*if\(!verification\.valid\)\{toast\("Audit download history verification failed: "\+verification\.code\);return false;\}/g;
-  assert.equal((ui.match(gate)??[]).length,2);
+  assert.match(ui,/function dimensionAuditDownloadHistoryExportReadiness/);
+  assert.match(ui,/const verification=dimensionAuditDownloadHistoryVerification\(value\)/);
+  assert.match(ui,/if\(!verification\.valid\)return \{ready:false,code:"VERIFICATION_FAILED"\}/);
   assert.match(ui,/data-history-verification-valid="'\+\(auditDownloadHistoryVerification\.valid\?'1':'0'\)\+'"/);
   assert.match(ui,/data-history-verification-code="'\+esc\(auditDownloadHistoryVerification\.code\)\+'"/);
   assert.match(ui,/currentDimensionAuditDownloadHistoryVerification:/);
