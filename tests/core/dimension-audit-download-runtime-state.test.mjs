@@ -13,5 +13,6 @@ test("question 505: Dimension audit download runtime state is exposed",()=>{
   assert.match(ui,/consistent:dimensionAuditDownloadPolicyConsistent\(\)/);
   assert.match(ui,/policy_schema:String\(policy\?\.schema\?\?""\)/);
   assert.match(ui,/validation_schema:String\(policy\?\.validation_schema\?\?""\)/);
-  assert.match(ui,/dimensionAuditDownloadRuntimeState,dimensionAuditDownloadValidationSchema/);
+  assert.match(ui,/dimensionAuditDownloadRuntimeState/);
+  assert.match(ui,/dimensionAuditDownloadValidationSchema/);
 });
