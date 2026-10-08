@@ -11,5 +11,6 @@ test("question 563: history builder validates the signed snapshot",()=>{
   const fn=ui.match(/function dimensionAuditDownloadAttemptHistoryAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(fn,/const signed=\{/);
   assert.match(fn,/snapshot_signature:dimensionAuditDownloadAttemptHistoryAuditSignature\(base\)/);
-  assert.match(fn,/valid:dimensionAuditDownloadAttemptHistoryAuditValid\(signed\)/);
+  assert.match(fn,/const integrity=dimensionAuditDownloadAttemptHistoryIntegrity\(signed\)/);
+  assert.match(fn,/valid:integrity\.valid/);
 });
