@@ -204,6 +204,8 @@ export function buildDimensionAuditDownloadAttempt({
   if(!["blocked","downloaded","failed"].includes(safeStatus)){
     throw new RangeError("unsupported audit download attempt status: "+safeStatus);
   }
+  const timestamp=new Date(generated_at);
+  if(Number.isNaN(timestamp.getTime()))throw new TypeError("audit download attempt generated_at must be a valid timestamp");
   const base={
     schema:DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA,
     status:safeStatus,
@@ -218,7 +220,7 @@ export function buildDimensionAuditDownloadAttempt({
   return freeze({
     ...base,
     signature:dimensionAuditDownloadAttemptSignature(base),
-    generated_at:String(generated_at??"")
+    generated_at:timestamp.toISOString()
   });
 }
 
