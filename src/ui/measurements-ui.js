@@ -2202,13 +2202,15 @@
       '<div class="tb-measure-actions"><button data-copy-rebind-audit="'+esc(dimension.id)+'">Copy audit JSON</button><button data-download-rebind-audit="'+esc(dimension.id)+'">Download audit JSON</button></div>'+rows+'</details>';
   }
 
-  function dimensionSearchText(dimension){
+  function dimensionSearchText(dimension,reviewContextState=null){
     const refs=dimension?.references??[];
     const sources=refs.map(ref=>String(ref?.object_id??"")).filter(Boolean);
     const geometryStatuses=refs.map(ref=>String(ref?.geometry_status??"")).filter(Boolean);
+    const reviewContext=reviewContextState?dimensionReviewContext(dimension,reviewContextState):null;
     return [
       dimension?.id,dimension?.note,dimension?.kind,dimension?.mode,dimension?.status,dimension?.stale_reason,
-      dimensionAuditGeometryClass(dimension),...dimensionAuditReviewReasons(dimension),...geometryStatuses,...sources
+      dimensionAuditGeometryClass(dimension),...dimensionAuditReviewReasons(dimension),...geometryStatuses,...sources,
+      reviewContext?.state,reviewContext?.health,...(reviewContext?.blockers??[])
     ].filter(value=>value!=null).join(" ").toLowerCase();
   }
   function filteredDimensionManagerItems(items=savedDimensions()){
@@ -2246,7 +2248,10 @@
       result=items.filter(dimension=>dimensionReviewContext(dimension,reviewContextState).health===targetHealth);
     }
     const search=String(dimensionManagerSearch??"").trim().toLowerCase();
-    if(search)result=result.filter(dimension=>dimensionSearchText(dimension).includes(search));
+    if(search){
+      const reviewContextState=dimensionReviewContextState(items,selectedDimensionAuditIds());
+      result=result.filter(dimension=>dimensionSearchText(dimension,reviewContextState).includes(search));
+    }
     if(dimensionManagerSort==="review-context"){
       const reviewContextState=dimensionReviewContextState(items,selectedDimensionAuditIds());
       const healthRank={ "diagnostics-error":0,pending:1,ready:2,"not-required":3 };
