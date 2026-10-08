@@ -2382,6 +2382,26 @@
       latest_signature:String(dimensionAuditDownloadAttemptHistory.at(-1)?.signature??"")
     };
   }
+  function dimensionAuditDownloadAttemptHistorySummaryValid(summary=dimensionAuditDownloadAttemptHistorySummary(),attempts=dimensionAuditDownloadAttemptHistorySnapshot()){
+    if(auditDownloadDomain?.dimensionAuditDownloadHistorySummaryValid){
+      return auditDownloadDomain.dimensionAuditDownloadHistorySummaryValid(summary??{},attempts??[]);
+    }
+    if(!Array.isArray(attempts))return false;
+    const value=summary??{};
+    const counts={blocked:0,downloaded:0,failed:0};
+    for(const attempt of attempts){
+      const status=String(attempt?.status??"");
+      if(!Object.prototype.hasOwnProperty.call(counts,status))return false;
+      counts[status]++;
+    }
+    return String(value.schema??"")==="TubeBender.DimensionAuditDownloadAttemptHistorySummary.v1"
+      &&Number(value.total??-1)===attempts.length
+      &&Number(value.blocked??-1)===counts.blocked
+      &&Number(value.downloaded??-1)===counts.downloaded
+      &&Number(value.failed??-1)===counts.failed
+      &&String(value.latest_signature??"")===String(attempts.at(-1)?.signature??"");
+  }
+
   function dimensionAuditDownloadAttemptHistorySummarySignature(summary=dimensionAuditDownloadAttemptHistorySummary()){
     if(auditDownloadDomain?.dimensionAuditDownloadHistorySummarySignature){
       return auditDownloadDomain.dimensionAuditDownloadHistorySummarySignature(summary??{});
@@ -2421,7 +2441,7 @@
     const summary=value.summary??{};
     const baseValid=String(value.schema??"")===dimensionAuditDownloadHistorySchema()
       &&Number(value.attempt_count??-1)===attempts.length
-      &&Number(summary.total??-1)===attempts.length
+      &&dimensionAuditDownloadAttemptHistorySummaryValid(summary,attempts)
       &&String(value.summary_signature??"")===dimensionAuditDownloadAttemptHistorySummarySignature(summary);
     if(!baseValid)return false;
     const signature=String(value.snapshot_signature??"");
