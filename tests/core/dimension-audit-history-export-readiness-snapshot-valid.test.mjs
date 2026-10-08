@@ -9,7 +9,8 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 695: audit history export readiness snapshot is validated",()=>{
   assert.match(ui,/function dimensionAuditDownloadHistoryExportReadinessSnapshotValid/);
-  assert.match(ui,/TubeBender\.DimensionAuditDownloadHistoryExportReadiness\.v1/);
+  assert.match(ui,/TubeBender\.DimensionAuditDownloadHistoryExportReadinessSnapshot\.v1/);
+  assert.match(ui,/dimensionAuditDownloadHistoryExportReadinessSnapshotValid\(current,readiness\)/);
   assert.match(ui,/current\.ready===expected\.ready/);
   assert.match(ui,/current\.signature_valid===true/);
   assert.match(ui,/data-history-export-state-valid="'\+\(auditDownloadHistoryExportReadinessSnapshotValid\?'1':'0'\)\+'"/);
