@@ -3801,10 +3801,9 @@
     const exportGateSnapshot=dimensionAuditDownloadHistoryExportGateSnapshot(exportGate);
     const exportDecision=dimensionAuditDownloadHistoryExportDecision(exportGateSnapshot);
     const exportDecisionSnapshot=dimensionAuditDownloadHistoryExportDecisionSnapshot(exportDecision);
-    const exportDecisionSnapshotValid=dimensionAuditDownloadHistoryExportDecisionSnapshotValid(exportDecisionSnapshot);
-    if(!exportDecisionSnapshotValid||!exportDecision.allowed){
-      const blockCode=!exportDecisionSnapshotValid?"INVALID_DECISION_SNAPSHOT":exportDecision.code;
-      toast(blockCode==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+blockCode);
+    const exportAuthorization=dimensionAuditDownloadHistoryExportAuthorization(exportDecisionSnapshot);
+    if(!exportAuthorization.allowed){
+      toast(exportAuthorization.code==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+exportAuthorization.code);
       return false;
     }
     const text=JSON.stringify(snapshot,null,2);
@@ -3825,10 +3824,9 @@
     const exportGateSnapshot=dimensionAuditDownloadHistoryExportGateSnapshot(exportGate);
     const exportDecision=dimensionAuditDownloadHistoryExportDecision(exportGateSnapshot);
     const exportDecisionSnapshot=dimensionAuditDownloadHistoryExportDecisionSnapshot(exportDecision);
-    const exportDecisionSnapshotValid=dimensionAuditDownloadHistoryExportDecisionSnapshotValid(exportDecisionSnapshot);
-    if(!exportDecisionSnapshotValid||!exportDecision.allowed){
-      const blockCode=!exportDecisionSnapshotValid?"INVALID_DECISION_SNAPSHOT":exportDecision.code;
-      toast(blockCode==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+blockCode);
+    const exportAuthorization=dimensionAuditDownloadHistoryExportAuthorization(exportDecisionSnapshot);
+    if(!exportAuthorization.allowed){
+      toast(exportAuthorization.code==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+exportAuthorization.code);
       return false;
     }
     const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
