@@ -274,6 +274,22 @@ export function dimensionAuditDownloadHistoryIntegrity(snapshot={}){
   });
 }
 
+export function dimensionAuditDownloadHistoryIntegritySignature(integrity={}){
+  const value=integrity??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    valid:value.valid===true,
+    code:String(value.code??""),
+    errors:[...(value.errors??[])].map(code=>String(code)),
+    history_schema_valid:value.history_schema_valid===true,
+    attempt_count_valid:value.attempt_count_valid===true,
+    attempts_valid:value.attempts_valid===true,
+    summary_valid:value.summary_valid===true,
+    summary_signature_valid:value.summary_signature_valid===true,
+    snapshot_signature_valid:value.snapshot_signature_valid===true
+  });
+}
+
 export function dimensionAuditDownloadHistoryValid(snapshot={}){
   return dimensionAuditDownloadHistoryIntegrity(snapshot).valid;
 }
