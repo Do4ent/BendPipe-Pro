@@ -317,8 +317,7 @@ export function dimensionAuditDownloadHistoryIntegrity(snapshot={}){
   const protocolState=value.protocol_state??null;
   const protocolStateSignatureValid=!!protocolState
     &&String(value.protocol_state_signature??"")===dimensionAuditDownloadHistoryProtocolStateSignature(protocolState);
-  const protocolStateValid=protocolStateSignatureValid
-    &&dimensionAuditDownloadHistoryProtocolStateValid(protocolState);
+  const protocolStateValid=dimensionAuditDownloadHistoryProtocolBindingValid(value);
   const signature=String(value.snapshot_signature??"");
   const snapshotSignatureValid=!signature||signature===dimensionAuditDownloadHistorySignature(value);
   const errors=[
@@ -479,6 +478,14 @@ export function dimensionAuditDownloadHistoryProtocolStateValid(state=dimensionA
     &&dimensionAuditDownloadHistoryProtocolValidationSignature(expectedValidation)===validationSignature
     &&value.valid===validation.valid
     &&value.valid===expectedValidation.valid;
+}
+
+export function dimensionAuditDownloadHistoryProtocolBindingValid(snapshot={}){
+  const value=snapshot??{};
+  const state=value.protocol_state??null;
+  return !!state
+    &&dimensionAuditDownloadHistoryProtocolStateValid(state)
+    &&String(value.protocol_state_signature??"")===dimensionAuditDownloadHistoryProtocolStateSignature(state);
 }
 
 export function dimensionAuditDownloadHistoryEnvelopeSignature(snapshot={}){
