@@ -766,10 +766,18 @@
       rebound_history:clone(Array.isArray(dimension?.rebound_history)?dimension.rebound_history:[])
     };
   }
-  function dimensionAuditSnapshots(items){
+  function dimensionAuditSnapshots(items,reviewContextState=null){
+    const list=Array.isArray(items)?items:[];
+    const sharedState=reviewContextState??dimensionReviewContextState(savedDimensions(),selectedDimensionAuditIds());
+    return list.map(dimension=>dimensionRebindAuditSnapshot(dimension,sharedState));
+  }
+  function dimensionAuditReviewBundle(items){
     const list=Array.isArray(items)?items:[];
     const reviewContextState=dimensionReviewContextState(savedDimensions(),selectedDimensionAuditIds());
-    return list.map(dimension=>dimensionRebindAuditSnapshot(dimension,reviewContextState));
+    return {
+      review_context_summary:dimensionReviewContextSummary(list,reviewContextState),
+      dimensions:dimensionAuditSnapshots(list,reviewContextState)
+    };
   }
 
   function dimensionAuditGeometryClass(dimension){
@@ -845,7 +853,7 @@
       ...dimensionAuditProjectContext(),
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
-      dimensions:dimensionAuditSnapshots(items)
+      ...dimensionAuditReviewBundle(items)
     };
   }
   function hideDimensionAuditResults(){
@@ -1202,7 +1210,7 @@
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
-      dimensions:dimensionAuditSnapshots(items)
+      ...dimensionAuditReviewBundle(items)
     };
   }
   function visibleDimensionAuditSnapshot(){
@@ -1229,7 +1237,7 @@
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
-      dimensions:dimensionAuditSnapshots(items)
+      ...dimensionAuditReviewBundle(items)
     };
   }
   function reviewProgressDomainCompatibility(){
@@ -1958,7 +1966,7 @@
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
-      dimensions:dimensionAuditSnapshots(items)
+      ...dimensionAuditReviewBundle(items)
     };
   }
   function reviewReasonDimensionAuditSnapshot(reason=activeDimensionReviewReason()){
@@ -1988,7 +1996,7 @@
       },
       dimension_count:items.length,
       summary:dimensionAuditSummary(items),
-      dimensions:dimensionAuditSnapshots(items)
+      ...dimensionAuditReviewBundle(items)
     };
   }
 
