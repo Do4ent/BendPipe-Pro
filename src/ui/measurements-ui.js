@@ -2035,7 +2035,8 @@
     if(!snapshot?.dimension_count){toast("Подочередь Review reason пуста");return false;}
     const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
     const reason=dimensionAuditFilenamePart(snapshot?.queue?.review_reason,"reason");
-    return downloadDimensionAuditJson(name+"-dimension-review-reason-"+reason+"-"+snapshot.dimension_count+"-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
+    const stem=name+"-dimension-review-reason-"+reason+"-"+snapshot.dimension_count;
+    return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
   }
 
   async function copyReviewQueueDimensionAudits(){
@@ -2057,7 +2058,8 @@
     const snapshot=reviewQueueDimensionAuditSnapshot();
     if(!snapshot.dimension_count){toast("Review queue пуст");return false;}
     const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
-    return downloadDimensionAuditJson(name+"-dimension-review-queue-audit-"+snapshot.dimension_count+"-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
+    const stem=name+"-dimension-review-queue-audit-"+snapshot.dimension_count;
+    return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
   }
 
   function downloadDimensionAuditJson(filename,snapshot){
@@ -2096,7 +2098,8 @@
     const snapshot=selectedDimensionAuditSnapshot();
     if(!snapshot.dimension_count){toast("Нет выбранных Dimension для audit-export");return false;}
     const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
-    return downloadDimensionAuditJson(name+"-dimension-selection-audit-"+snapshot.dimension_count+"-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
+    const stem=name+"-dimension-selection-audit-"+snapshot.dimension_count;
+    return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
   }
   async function copySelectedDimensionAudits(){
     const snapshot=selectedDimensionAuditSnapshot();
@@ -2128,7 +2131,8 @@
   function downloadAllDimensionAudits(){
     const snapshot=allDimensionAuditSnapshot();
     const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
-    return downloadDimensionAuditJson(name+"-dimension-audit-"+snapshot.dimension_count+"-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
+    const stem=name+"-dimension-audit-"+snapshot.dimension_count;
+    return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
   }
 
   async function copyVisibleDimensionAudits(){
@@ -2161,7 +2165,8 @@
     const snapshot=dimensionRebindAuditSnapshot(dimension);
     const projectName=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
     const dimensionName=dimensionAuditFilenamePart(dimension?.id,"dimension");
-    return downloadDimensionAuditJson(projectName+"-"+dimensionName+"-dimension-audit-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
+    const stem=projectName+"-"+dimensionName+"-dimension-audit";
+    return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
   }
   async function copyDimensionRebindAudit(dimensionId){
     const dimension=savedDimensions().find(item=>String(item?.id)===String(dimensionId));
