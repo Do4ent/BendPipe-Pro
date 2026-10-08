@@ -862,6 +862,17 @@ export function dimensionAuditDownloadHistoryAttestationSignature(attestation=di
   });
 }
 
+export function dimensionAuditDownloadHistoryEmbeddedAttestationValid(snapshot={}){
+  const value=snapshot??{};
+  const embedded=value.attestation??null;
+  const signature=String(value.attestation_signature??"");
+  if(!embedded||!signature)return false;
+  const embeddedValid=dimensionAuditDownloadHistoryAttestationSignature(embedded)===signature;
+  const current=dimensionAuditDownloadHistoryAttestation(value);
+  const currentValid=dimensionAuditDownloadHistoryAttestationSignature(current)===signature;
+  return embeddedValid&&currentValid;
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
