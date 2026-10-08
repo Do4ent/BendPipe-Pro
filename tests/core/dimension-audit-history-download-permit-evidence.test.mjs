@@ -9,8 +9,9 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 821: history download records final download permit evidence",()=>{
   const fn=ui.match(/function downloadDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
+  assert.match(fn,/const permitEvidence=\{/);
   assert.match(fn,/export_action:"download"/);
   assert.match(fn,/action_permit_signature:exportActionPermitSignature/);
   assert.match(fn,/action_permit_snapshot_signature:exportActionPermitSnapshot\.snapshot_signature/);
-  assert.match(fn,/downloadDimensionAuditJsonWithPermitEvidence\(dimensionAuditJsonFilename\(stem,snapshot\.generated_at\),snapshot,\{/);
+  assert.match(fn,/downloadDimensionAuditJsonWithPermitEvidence\(dimensionAuditJsonFilename\(stem,snapshot\.generated_at\),snapshot,permitEvidence\)/);
 });
