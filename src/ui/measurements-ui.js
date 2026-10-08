@@ -3419,8 +3419,14 @@
     const trust=dimensionAuditDownloadHistoryTrust(current);
     const provenanceValid=dimensionAuditDownloadAttemptHistorySnapshotProvenanceValid(provenance,current);
     const signature=dimensionAuditDownloadHistoryExportReadinessSignature(readiness,current);
+    const protocol=dimensionAuditDownloadHistoryExportReadinessProtocol();
+    const protocolSignature=dimensionAuditDownloadHistoryExportReadinessProtocolSignature(protocol);
     return Object.freeze({
       schema:"TubeBender.DimensionAuditDownloadHistoryExportReadinessSnapshot.v1",
+      protocol,
+      protocol_signature:protocolSignature,
+      protocol_valid:dimensionAuditDownloadHistoryExportReadinessProtocolValid(protocol),
+      protocol_signature_valid:dimensionAuditDownloadHistoryExportReadinessProtocolSignatureValid(protocolSignature,protocol),
       state_schema:"TubeBender.DimensionAuditDownloadHistoryExportReadiness.v1",
       state_valid:dimensionAuditDownloadHistoryExportReadinessStateValid(readiness,current),
       ready:readiness.ready===true,
@@ -3444,6 +3450,12 @@
     }
     const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(snapshot);
     return String(current.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportReadinessSnapshot.v1"
+      &&dimensionAuditDownloadHistoryExportReadinessProtocolValid(current.protocol)
+      &&dimensionAuditDownloadHistoryExportReadinessProtocolSignatureValid(current.protocol_signature,current.protocol)
+      &&current.protocol_valid===true
+      &&current.protocol_signature_valid===true
+      &&dimensionAuditDownloadHistoryExportReadinessProtocolSignature(current.protocol)===dimensionAuditDownloadHistoryExportReadinessProtocolSignature(expected.protocol)
+      &&String(current.protocol_signature??"")===String(expected.protocol_signature??"")
       &&String(current.state_schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportReadiness.v1"
       &&current.ready===expected.ready
       &&String(current.code??"")===String(expected.code??"")
