@@ -2159,9 +2159,11 @@
     }catch(error){toast("Не удалось сохранить Dimension audit JSON");return false;}
   }
   function dimensionAuditFilenameStamp(value=new Date()){
+    if(auditDownloadDomain?.dimensionAuditFilenameStamp)return auditDownloadDomain.dimensionAuditFilenameStamp(value);
     return value.toISOString().replace(/[:.]/g,"-");
   }
   function dimensionAuditFilenamePart(value,fallback="item",maxLength=DIMENSION_AUDIT_FILENAME_POLICY.part_default_length){
+    if(auditDownloadDomain?.dimensionAuditFilenamePart)return auditDownloadDomain.dimensionAuditFilenamePart(value,fallback,maxLength);
     const limit=Math.max(DIMENSION_AUDIT_FILENAME_POLICY.part_min_length,Math.min(DIMENSION_AUDIT_FILENAME_POLICY.part_max_length,Math.trunc(Number(maxLength)||DIMENSION_AUDIT_FILENAME_POLICY.part_default_length)));
     const safe=String(value??"").trim()
       .replace(/[^\p{L}\p{N}._-]+/gu,"_")
@@ -2170,6 +2172,7 @@
     return clipped||String(fallback).slice(0,limit);
   }
   function dimensionAuditJsonFilename(stem,generatedAt,maxLength=DIMENSION_AUDIT_FILENAME_POLICY.json_default_length){
+    if(auditDownloadDomain?.dimensionAuditJsonFilename)return auditDownloadDomain.dimensionAuditJsonFilename(stem,generatedAt,maxLength);
     const limit=Math.max(DIMENSION_AUDIT_FILENAME_POLICY.json_min_length,Math.min(DIMENSION_AUDIT_FILENAME_POLICY.json_max_length,Math.trunc(Number(maxLength)||DIMENSION_AUDIT_FILENAME_POLICY.json_default_length)));
     const stamp=dimensionAuditFilenameStamp(new Date(generatedAt));
     const suffix="-"+stamp+".json";
