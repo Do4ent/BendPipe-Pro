@@ -3341,6 +3341,9 @@
   }
 
   function dimensionAuditDownloadHistoryExportReadinessSignatureValid(signature=dimensionAuditDownloadHistoryExportReadinessSignature(),readiness=dimensionAuditDownloadHistoryExportReadiness(),snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot()){
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportReadinessStateSignatureValid){
+      return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessStateSignatureValid(signature,readiness);
+    }
     return String(signature??"")===dimensionAuditDownloadHistoryExportReadinessSignature(readiness,snapshot);
   }
 
