@@ -1015,6 +1015,22 @@ export function dimensionAuditDownloadHistoryExportReadinessState({
   });
 }
 
+export function dimensionAuditDownloadHistoryExportReadinessStateValid(state=dimensionAuditDownloadHistoryExportReadinessState()){
+  const value=state??{};
+  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SCHEMA)return false;
+  if(!DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_CODES.includes(String(value.code??"")))return false;
+  const expected=dimensionAuditDownloadHistoryExportReadinessState({
+    attempt_count:value.attempt_count,
+    verification_valid:value.verification_valid,
+    trusted:value.trusted,
+    provenance_valid:value.provenance_valid,
+    history_snapshot_signature:value.history_snapshot_signature,
+    provenance_signature:value.provenance_signature
+  });
+  return dimensionAuditDownloadHistoryExportReadinessStateSignature(value)
+    ===dimensionAuditDownloadHistoryExportReadinessStateSignature(expected);
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessStateSignature(state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=state??{};
   return JSON.stringify({
