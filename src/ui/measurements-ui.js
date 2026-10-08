@@ -3304,6 +3304,8 @@
     const value=snapshot??{};
     const attemptCount=Math.max(0,Number(value.attempt_count)||0);
     if(!attemptCount)return {ready:false,code:"EMPTY"};
+    const verification=dimensionAuditDownloadHistoryVerification(value);
+    if(!verification.valid)return {ready:false,code:"VERIFICATION_FAILED"};
     const trust=dimensionAuditDownloadHistoryTrust(value);
     if(!trust.trusted)return {ready:false,code:"UNTRUSTED"};
     const provenance=dimensionAuditDownloadAttemptHistorySnapshotProvenance(value);
@@ -3313,13 +3315,11 @@
 
   async function copyDimensionAuditDownloadHistory(){
     const snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot();
-    if(!snapshot.attempt_count){toast("Audit download history пуст");return false;}
-    const verification=dimensionAuditDownloadHistoryVerification(snapshot);
-    if(!verification.valid){toast("Audit download history verification failed: "+verification.code);return false;}
-    const trust=dimensionAuditDownloadHistoryTrust(snapshot);
-    if(!trust.trusted){toast("Audit download history trust failed: "+trust.code);return false;}
-    const provenance=dimensionAuditDownloadAttemptHistorySnapshotProvenance(snapshot);
-    if(!dimensionAuditDownloadAttemptHistorySnapshotProvenanceValid(provenance,snapshot)){toast("Audit download history provenance invalid");return false;}
+    const readiness=dimensionAuditDownloadHistoryExportReadiness(snapshot);
+    if(!readiness.ready){
+      toast(readiness.code==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+readiness.code);
+      return false;
+    }
     const text=JSON.stringify(snapshot,null,2);
     try{
       if(navigator?.clipboard?.writeText)await navigator.clipboard.writeText(text);
@@ -3333,13 +3333,11 @@
   }
   function downloadDimensionAuditDownloadHistory(){
     const snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot();
-    if(!snapshot.attempt_count){toast("Audit download history пуст");return false;}
-    const verification=dimensionAuditDownloadHistoryVerification(snapshot);
-    if(!verification.valid){toast("Audit download history verification failed: "+verification.code);return false;}
-    const trust=dimensionAuditDownloadHistoryTrust(snapshot);
-    if(!trust.trusted){toast("Audit download history trust failed: "+trust.code);return false;}
-    const provenance=dimensionAuditDownloadAttemptHistorySnapshotProvenance(snapshot);
-    if(!dimensionAuditDownloadAttemptHistorySnapshotProvenanceValid(provenance,snapshot)){toast("Audit download history provenance invalid");return false;}
+    const readiness=dimensionAuditDownloadHistoryExportReadiness(snapshot);
+    if(!readiness.ready){
+      toast(readiness.code==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+readiness.code);
+      return false;
+    }
     const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
     const stem=name+"-dimension-audit-download-history-"+snapshot.attempt_count;
     return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
