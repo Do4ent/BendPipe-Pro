@@ -2120,10 +2120,13 @@
 
   function dimensionAuditDownloadRuntimeState(){
     const policy=dimensionAuditDownloadPolicy();
+    const policyConsistent=dimensionAuditDownloadPolicyConsistent();
+    const protocolConsistent=dimensionAuditDownloadProtocolConsistent();
     return {
       source:dimensionAuditDownloadPolicySource(),
-      consistent:dimensionAuditDownloadPolicyConsistent(),
-      protocol_consistent:dimensionAuditDownloadProtocolConsistent(),
+      valid:policyConsistent&&protocolConsistent,
+      consistent:policyConsistent,
+      protocol_consistent:protocolConsistent,
       policy_schema:String(policy?.schema??""),
       validation_schema:String(policy?.validation_schema??""),
       validation_codes:[...(policy?.validation_codes??[])],
