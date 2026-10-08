@@ -7,6 +7,8 @@ import {
   DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_SCHEMA,
   dimensionAuditDownloadAttemptSignature,
   dimensionAuditDownloadHistorySummarySignature,
+  dimensionAuditDownloadHistoryProtocolState,
+  dimensionAuditDownloadHistoryProtocolStateSignature,
   dimensionAuditDownloadHistorySignature,
   dimensionAuditDownloadHistoryIntegrity
 } from "../../src/domain/measurements/audit-download.mjs";
@@ -33,12 +35,15 @@ function validSnapshot(){
     total:2,blocked:1,downloaded:1,failed:0,
     latest_signature:attempts.at(-1).signature
   };
+  const protocolState=dimensionAuditDownloadHistoryProtocolState();
   const base={
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA,
     project_id:"p1",
     project_name:"Project",
     summary,
     summary_signature:dimensionAuditDownloadHistorySummarySignature(summary),
+    protocol_state:protocolState,
+    protocol_state_signature:dimensionAuditDownloadHistoryProtocolStateSignature(protocolState),
     attempt_count:attempts.length,
     attempts
   };
