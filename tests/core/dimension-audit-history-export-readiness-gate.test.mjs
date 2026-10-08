@@ -12,8 +12,8 @@ test("question 690: history copy and download share one export readiness gate",(
   assert.match(ui,/code:"VERIFICATION_FAILED"/);
   const copy=ui.match(/async function copyDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   const download=ui.match(/function downloadDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(copy,/const readiness=dimensionAuditDownloadHistoryExportReadiness\(snapshot\)/);
-  assert.match(download,/const readiness=dimensionAuditDownloadHistoryExportReadiness\(snapshot\)/);
+  assert.match(copy,/const exportState=dimensionAuditDownloadHistoryExportReadinessSnapshot\(snapshot\)/);
+  assert.match(download,/const exportState=dimensionAuditDownloadHistoryExportReadinessSnapshot\(snapshot\)/);
   assert.doesNotMatch(copy,/dimensionAuditDownloadHistoryTrust\(snapshot\)/);
   assert.doesNotMatch(download,/dimensionAuditDownloadHistoryTrust\(snapshot\)/);
 });
