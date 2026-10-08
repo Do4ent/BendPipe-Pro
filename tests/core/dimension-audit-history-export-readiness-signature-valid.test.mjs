@@ -10,7 +10,7 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 693: audit history export readiness signature is validated",()=>{
   assert.match(ui,/function dimensionAuditDownloadHistoryExportReadinessSignatureValid/);
   assert.match(ui,/return String\(signature\?\?""\)===dimensionAuditDownloadHistoryExportReadinessSignature\(readiness,snapshot\)/);
-  assert.match(ui,/data-history-export-signature-valid="'\+\(auditDownloadHistoryExportReadinessSignatureValid\?'1':'0'\)\+'"/);
-  assert.match(ui,/const auditDownloadHistoryExportReady=auditDownloadHistoryExportReadiness\.ready&&auditDownloadHistoryExportReadinessSignatureValid&&auditDownloadHistoryExportReadinessSnapshotValid/);
+  assert.match(ui,/data-history-export-signature-valid="'\+\(auditDownloadHistoryExportReadinessSnapshot\.signature_valid\?'1':'0'\)\+'"/);
+  assert.match(ui,/const auditDownloadHistoryExportReady=auditDownloadHistoryExportReadinessSnapshot\.ready&&auditDownloadHistoryExportReadinessSnapshot\.signature_valid&&auditDownloadHistoryExportReadinessSnapshotValid/);
   assert.match(ui,/currentDimensionAuditDownloadHistoryExportReadinessSignatureValid:\(\)=>dimensionAuditDownloadHistoryExportReadinessSignatureValid\(\)/);
 });
