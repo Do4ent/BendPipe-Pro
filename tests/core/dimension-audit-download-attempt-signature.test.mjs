@@ -13,5 +13,6 @@ test("question 532: audit download attempt signature is deterministic",()=>{
   assert.match(fn,/preflight_signature:String\(value\.preflight_signature\?\?""\)/);
   assert.match(fn,/runtime_signature:String\(value\.runtime_signature\?\?""\)/);
   assert.match(fn,/protocol_signature:String\(value\.protocol_signature\?\?""\)/);
-  assert.doesNotMatch(fn,/generated_at|Date\(/);
+  assert.match(fn,/generated_at:String\(value\.generated_at\?\?""\)/);
+  assert.doesNotMatch(fn,/Date\(/);
 });
