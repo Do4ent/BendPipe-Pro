@@ -2062,6 +2062,14 @@
     return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
   }
 
+  const DIMENSION_AUDIT_DOWNLOAD_SCHEMAS=Object.freeze([
+    "TubeBender.DimensionAudit.v1",
+    "TubeBender.DimensionSelectionAudit.v1",
+    "TubeBender.DimensionAuditView.v1",
+    "TubeBender.DimensionReviewQueueAudit.v1",
+    "TubeBender.DimensionReviewReasonAudit.v1"
+  ]);
+
   const DIMENSION_AUDIT_FILENAME_POLICY=Object.freeze({
     part_default_length:80,
     part_min_length:8,
@@ -2082,8 +2090,8 @@
       return false;
     }
     const snapshotSchema=String(snapshot?.schema??"").trim();
-    if(!snapshotSchema.startsWith("TubeBender.")){
-      toast("Некорректная schema Dimension audit snapshot");
+    if(!DIMENSION_AUDIT_DOWNLOAD_SCHEMAS.includes(snapshotSchema)){
+      toast("Неподдерживаемая schema Dimension audit snapshot");
       return false;
     }
     try{
