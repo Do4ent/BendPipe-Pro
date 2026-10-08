@@ -3350,12 +3350,23 @@
   function dimensionAuditDownloadHistoryExportReadinessSnapshot(snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot()){
     const current=snapshot??{};
     const readiness=dimensionAuditDownloadHistoryExportReadiness(current);
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportReadinessSnapshot){
+      return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessSnapshot(readiness);
+    }
     const provenance=dimensionAuditDownloadAttemptHistorySnapshotProvenance(current);
+    const verification=dimensionAuditDownloadHistoryVerification(current);
+    const trust=dimensionAuditDownloadHistoryTrust(current);
+    const provenanceValid=dimensionAuditDownloadAttemptHistorySnapshotProvenanceValid(provenance,current);
     const signature=dimensionAuditDownloadHistoryExportReadinessSignature(readiness,current);
     return Object.freeze({
-      schema:"TubeBender.DimensionAuditDownloadHistoryExportReadiness.v1",
+      schema:"TubeBender.DimensionAuditDownloadHistoryExportReadinessSnapshot.v1",
+      state_schema:"TubeBender.DimensionAuditDownloadHistoryExportReadiness.v1",
       ready:readiness.ready===true,
       code:String(readiness.code??""),
+      attempt_count:Math.max(0,Math.trunc(Number(current.attempt_count)||0)),
+      verification_valid:verification.valid===true,
+      trusted:trust.trusted===true,
+      provenance_valid:provenanceValid,
       history_snapshot_signature:String(current.snapshot_signature??""),
       provenance_signature:dimensionAuditDownloadAttemptHistorySnapshotProvenanceSignature(provenance),
       signature,
