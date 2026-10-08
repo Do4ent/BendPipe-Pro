@@ -159,3 +159,39 @@ export function dimensionAuditDownloadProtocolSignature(state=dimensionAuditDown
     filename:{...(value.filename??{})}
   });
 }
+
+
+export function dimensionAuditDownloadHistorySummarySignature(summary={}){
+  const value=summary??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    total:Number(value.total??0),
+    blocked:Number(value.blocked??0),
+    downloaded:Number(value.downloaded??0),
+    failed:Number(value.failed??0),
+    latest_signature:String(value.latest_signature??"")
+  });
+}
+
+export function dimensionAuditDownloadHistorySignature(snapshot={}){
+  const value=snapshot??{};
+  const attempts=Array.isArray(value.attempts)?value.attempts:[];
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    project_id:String(value.project_id??""),
+    project_name:String(value.project_name??""),
+    summary_signature:String(value.summary_signature??""),
+    attempt_count:Number(value.attempt_count??0),
+    attempt_signatures:attempts.map(attempt=>String(attempt?.signature??""))
+  });
+}
+
+export function dimensionAuditDownloadHistoryValid(snapshot={}){
+  const value=snapshot??{};
+  const attempts=Array.isArray(value.attempts)?value.attempts:[];
+  const summary=value.summary??{};
+  return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistory.v1"
+    &&Number(value.attempt_count??-1)===attempts.length
+    &&Number(summary.total??-1)===attempts.length
+    &&String(value.summary_signature??"")===dimensionAuditDownloadHistorySummarySignature(summary);
+}
