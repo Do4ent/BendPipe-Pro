@@ -2183,6 +2183,7 @@
       consistent:value.consistent===true,
       protocol_consistent:value.protocol_consistent===true,
       protocol_state_schema:String(value.protocol_state_schema??""),
+      protocol_signature:String(value.protocol_signature??""),
       policy_schema:String(value.policy_schema??""),
       validation_schema:String(value.validation_schema??""),
       validation_codes:[...(value.validation_codes??[])],
