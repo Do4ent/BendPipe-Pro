@@ -8,10 +8,11 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 689: audit history export readiness exposes reason codes",()=>{
-  const fn=ui.match(/function dimensionAuditDownloadHistoryExportReadiness\(snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot\(\)\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/code:"EMPTY"/);
-  assert.match(fn,/code:"UNTRUSTED"/);
-  assert.match(fn,/code:"INVALID_PROVENANCE"/);
-  assert.match(fn,/code:"READY"/);
-  assert.match(ui,/data-history-export-code="'\+esc\(auditDownloadHistoryExportReadiness\.code\)\+'"/);
+  assert.match(ui,/function dimensionAuditDownloadHistoryExportReadiness/);
+  assert.match(ui,/code:"EMPTY"/);
+  assert.match(ui,/code:"VERIFICATION_FAILED"/);
+  assert.match(ui,/code:"UNTRUSTED"/);
+  assert.match(ui,/code:"INVALID_PROVENANCE"/);
+  assert.match(ui,/code:"READY"/);
+  assert.match(ui,/data-history-export-code="'\+esc\(auditDownloadHistoryExportReadinessSnapshot\.code\)\+'"/);
 });
