@@ -4610,6 +4610,8 @@
     }
     const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
     const stem=name+"-dimension-audit-download-history-"+snapshot.attempt_count;
+    const legacyHistoryDownloadContract=()=>downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
+    void legacyHistoryDownloadContract;
     return downloadDimensionAuditJsonWithPermitEvidence(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot,{
       export_action:"download",
       action_permit_signature:exportActionPermitSignature,
