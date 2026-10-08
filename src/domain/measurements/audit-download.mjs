@@ -804,6 +804,17 @@ export function dimensionAuditDownloadHistoryVerificationEmbeddingSignature(embe
   });
 }
 
+export function dimensionAuditDownloadHistoryEmbeddedVerificationEmbeddingValid(snapshot={}){
+  const value=snapshot??{};
+  const embedded=value.verification_embedding??null;
+  const signature=String(value.verification_embedding_signature??"");
+  if(!embedded||!signature)return false;
+  const embeddedValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignature(embedded)===signature;
+  const current=dimensionAuditDownloadHistoryVerificationEmbedding(value);
+  const currentValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignature(current)===signature;
+  return embeddedValid&&currentValid;
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
