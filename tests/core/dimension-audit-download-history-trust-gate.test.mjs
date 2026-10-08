@@ -10,8 +10,8 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 676: copy and download history fail closed on final trust",()=>{
   const copy=ui.match(/async function copyDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   const download=ui.match(/function downloadDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(copy,/const trust=dimensionAuditDownloadHistoryTrust\(snapshot\)/);
-  assert.match(copy,/if\(!trust\.trusted\)\{toast\("Audit download history trust failed: "\+trust\.code\);return false;\}/);
-  assert.match(download,/const trust=dimensionAuditDownloadHistoryTrust\(snapshot\)/);
-  assert.match(download,/if\(!trust\.trusted\)\{toast\("Audit download history trust failed: "\+trust\.code\);return false;\}/);
+  assert.match(copy,/const readiness=dimensionAuditDownloadHistoryExportReadiness\(snapshot\)/);
+  assert.match(download,/const readiness=dimensionAuditDownloadHistoryExportReadiness\(snapshot\)/);
+  assert.match(ui,/const trust=dimensionAuditDownloadHistoryTrust\(value\)/);
+  assert.match(ui,/if\(!trust\.trusted\)return \{ready:false,code:"UNTRUSTED"\}/);
 });
