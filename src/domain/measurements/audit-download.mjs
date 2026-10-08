@@ -1189,6 +1189,17 @@ export function dimensionAuditDownloadHistoryExportGate(snapshot=dimensionAuditD
   });
 }
 
+export function dimensionAuditDownloadHistoryExportGateSignature(gate=dimensionAuditDownloadHistoryExportGate()){
+  const value=gate??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    allowed:value.allowed===true,
+    code:String(value.code??""),
+    readiness_code:String(value.readiness_code??""),
+    snapshot_valid:value.snapshot_valid===true
+  });
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
