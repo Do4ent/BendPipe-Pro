@@ -3327,6 +3327,9 @@
 
   function dimensionAuditDownloadHistoryExportReadinessSignature(readiness=dimensionAuditDownloadHistoryExportReadiness(),snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot()){
     const value=readiness??{};
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportReadinessStateSignature){
+      return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessStateSignature(value);
+    }
     const current=snapshot??{};
     const provenance=dimensionAuditDownloadAttemptHistorySnapshotProvenance(current);
     return JSON.stringify({
