@@ -12,5 +12,6 @@ test("question 552: audit download history snapshot has deterministic signature"
   assert.match(fn,/return JSON\.stringify\(\{/);
   assert.match(fn,/summary_signature:String\(value\.summary_signature\?\?""\)/);
   assert.match(fn,/attempt_signatures:attempts\.map\(attempt=>String\(attempt\?\.signature\?\?""\)\)/);
-  assert.doesNotMatch(fn,/generated_at|Date\(/);
+  assert.match(fn,/generated_at:String\(value\.generated_at\?\?""\)/);
+  assert.doesNotMatch(fn,/Date\(/);
 });
