@@ -377,7 +377,9 @@ export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_CODES=freeze([
   "INVALID_SUMMARY_SCHEMA",
   "INVALID_INTEGRITY_SCHEMA",
   "INVALID_INTEGRITY_CODES",
-  "INVALID_ENVELOPE_SCHEMA"
+  "INVALID_ENVELOPE_SCHEMA",
+  "INVALID_PROTOCOL_VALIDATION_SCHEMA",
+  "INVALID_PROTOCOL_VALIDATION_CODES"
 ]);
 
 export function dimensionAuditDownloadHistoryProtocol(){
@@ -388,7 +390,9 @@ export function dimensionAuditDownloadHistoryProtocol(){
     summary_schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_SUMMARY_SCHEMA,
     integrity_schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_SCHEMA,
     integrity_codes:[...DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_CODES],
-    envelope_schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_ENVELOPE_SCHEMA
+    envelope_schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_ENVELOPE_SCHEMA,
+    validation_schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_SCHEMA,
+    validation_codes:[...DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_CODES]
   });
 }
 
@@ -401,7 +405,9 @@ export function dimensionAuditDownloadHistoryProtocolSignature(protocol=dimensio
     summary_schema:String(value.summary_schema??""),
     integrity_schema:String(value.integrity_schema??""),
     integrity_codes:[...(value.integrity_codes??[])].map(code=>String(code)),
-    envelope_schema:String(value.envelope_schema??"")
+    envelope_schema:String(value.envelope_schema??""),
+    validation_schema:String(value.validation_schema??""),
+    validation_codes:[...(value.validation_codes??[])].map(code=>String(code))
   });
 }
 
@@ -414,7 +420,9 @@ export function dimensionAuditDownloadHistoryProtocolValidation(protocol=dimensi
     String(value.summary_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_SUMMARY_SCHEMA?"INVALID_SUMMARY_SCHEMA":null,
     String(value.integrity_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_SCHEMA?"INVALID_INTEGRITY_SCHEMA":null,
     JSON.stringify([...(value.integrity_codes??[])].map(code=>String(code)))!==JSON.stringify([...DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_CODES])?"INVALID_INTEGRITY_CODES":null,
-    String(value.envelope_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_ENVELOPE_SCHEMA?"INVALID_ENVELOPE_SCHEMA":null
+    String(value.envelope_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_ENVELOPE_SCHEMA?"INVALID_ENVELOPE_SCHEMA":null,
+    String(value.validation_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_SCHEMA?"INVALID_PROTOCOL_VALIDATION_SCHEMA":null,
+    JSON.stringify([...(value.validation_codes??[])].map(code=>String(code)))!==JSON.stringify([...DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_CODES])?"INVALID_PROTOCOL_VALIDATION_CODES":null
   ].filter(Boolean);
   return freeze({
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_SCHEMA,
