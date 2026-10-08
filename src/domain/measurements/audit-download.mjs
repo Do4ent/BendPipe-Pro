@@ -688,6 +688,47 @@ export function dimensionAuditDownloadHistoryEmbeddedHealthEmbeddingValid(snapsh
   return embeddedValid&&currentValid;
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_VERIFICATION_SCHEMA="TubeBender.DimensionAuditDownloadHistoryVerification.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_VERIFICATION_CODES=freeze([
+  "OK",
+  "INVALID_PROTOCOL_BINDING",
+  "INVALID_INTEGRITY",
+  "INVALID_ENVELOPE",
+  "INVALID_HEALTH",
+  "INVALID_EMBEDDED_HEALTH",
+  "INVALID_HEALTH_EMBEDDING"
+]);
+
+export function dimensionAuditDownloadHistoryVerification(snapshot={}){
+  const value=snapshot??{};
+  const bindingValid=dimensionAuditDownloadHistoryProtocolBindingValid(value);
+  const integrity=dimensionAuditDownloadHistoryIntegrity(value);
+  const envelopeValid=dimensionAuditDownloadHistoryEnvelopeValid(value);
+  const health=dimensionAuditDownloadHistoryHealth(value);
+  const embeddedHealthValid=dimensionAuditDownloadHistoryEmbeddedHealthValid(value);
+  const healthEmbeddingValid=dimensionAuditDownloadHistoryEmbeddedHealthEmbeddingValid(value);
+  const errors=[
+    !bindingValid?"INVALID_PROTOCOL_BINDING":null,
+    !integrity.valid?"INVALID_INTEGRITY":null,
+    !envelopeValid?"INVALID_ENVELOPE":null,
+    !health.valid?"INVALID_HEALTH":null,
+    !embeddedHealthValid?"INVALID_EMBEDDED_HEALTH":null,
+    !healthEmbeddingValid?"INVALID_HEALTH_EMBEDDING":null
+  ].filter(Boolean);
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_VERIFICATION_SCHEMA,
+    valid:errors.length===0,
+    code:errors[0]??"OK",
+    errors,
+    protocol_binding_valid:bindingValid,
+    integrity_valid:integrity.valid===true,
+    envelope_valid:envelopeValid,
+    health_valid:health.valid===true,
+    embedded_health_valid:embeddedHealthValid,
+    health_embedding_valid:healthEmbeddingValid
+  });
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
