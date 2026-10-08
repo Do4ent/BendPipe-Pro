@@ -1264,6 +1264,30 @@ export function dimensionAuditDownloadHistoryExportGateSnapshotValid(snapshot=di
   return dimensionAuditDownloadHistoryExportGateSnapshotSignatureValid(value.snapshot_signature,value);
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportDecision.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_CODES=freeze([
+  ...DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_GATE_CODES,
+  "INVALID_GATE_SNAPSHOT"
+]);
+
+export function dimensionAuditDownloadHistoryExportDecision(gateSnapshot=dimensionAuditDownloadHistoryExportGateSnapshot()){
+  const value=gateSnapshot??{};
+  const gate=value.gate??{};
+  const gateSnapshotValid=dimensionAuditDownloadHistoryExportGateSnapshotValid(value);
+  const gateCode=String(gate.code??"");
+  const code=gateSnapshotValid&&DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_GATE_CODES.includes(gateCode)
+    ?gateCode
+    :"INVALID_GATE_SNAPSHOT";
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_SCHEMA,
+    allowed:gateSnapshotValid&&gate.allowed===true&&code==="READY",
+    code,
+    gate_snapshot_valid:gateSnapshotValid,
+    gate_code:gateCode,
+    gate_allowed:gate.allowed===true
+  });
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
