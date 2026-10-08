@@ -2661,6 +2661,7 @@
       snapshot_signature:String(value.snapshot_signature??""),
       protocol_state_signature:String(value.protocol_state_signature??""),
       integrity_signature:String(value.integrity_signature??""),
+      protocol_binding_valid:value.protocol_binding_valid===true,
       attempts_valid:value.attempts_valid===true,
       summary_valid:value.summary_valid===true,
       valid:value.valid===true
@@ -2683,6 +2684,7 @@
       &&embeddedIntegrityValid
       &&value.attempts_valid===coreIntegrity.attempts_valid
       &&value.summary_valid===coreIntegrity.summary_valid
+      &&value.protocol_binding_valid===dimensionAuditDownloadHistoryProtocolBindingValid(value)
       &&value.valid===coreIntegrity.valid
       &&envelopeSignatureValid;
   }
@@ -2726,6 +2728,7 @@
       ...signed,
       attempts_valid:integrity.attempts_valid,
       summary_valid:integrity.summary_valid,
+      protocol_binding_valid:dimensionAuditDownloadHistoryProtocolBindingValid(signed),
       integrity,
       integrity_signature:dimensionAuditDownloadAttemptHistoryIntegritySignature(integrity),
       valid:integrity.valid
