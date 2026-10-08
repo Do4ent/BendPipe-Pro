@@ -975,6 +975,61 @@ export function dimensionAuditDownloadHistoryTrust(snapshot={}){
   });
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportReadiness.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_CODES=freeze([
+  "READY",
+  "EMPTY",
+  "VERIFICATION_FAILED",
+  "UNTRUSTED",
+  "INVALID_PROVENANCE"
+]);
+
+export function dimensionAuditDownloadHistoryExportReadinessState({
+  attempt_count=0,
+  verification_valid=false,
+  trusted=false,
+  provenance_valid=false,
+  history_snapshot_signature="",
+  provenance_signature=""
+}={}){
+  const attempts=Math.max(0,Math.trunc(Number(attempt_count)||0));
+  const code=!attempts
+    ?"EMPTY"
+    :verification_valid!==true
+      ?"VERIFICATION_FAILED"
+      :trusted!==true
+        ?"UNTRUSTED"
+        :provenance_valid!==true
+          ?"INVALID_PROVENANCE"
+          :"READY";
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SCHEMA,
+    ready:code==="READY",
+    code,
+    attempt_count:attempts,
+    verification_valid:verification_valid===true,
+    trusted:trusted===true,
+    provenance_valid:provenance_valid===true,
+    history_snapshot_signature:String(history_snapshot_signature??""),
+    provenance_signature:String(provenance_signature??"")
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportReadinessStateSignature(state=dimensionAuditDownloadHistoryExportReadinessState()){
+  const value=state??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    ready:value.ready===true,
+    code:String(value.code??""),
+    attempt_count:Math.max(0,Math.trunc(Number(value.attempt_count)||0)),
+    verification_valid:value.verification_valid===true,
+    trusted:value.trusted===true,
+    provenance_valid:value.provenance_valid===true,
+    history_snapshot_signature:String(value.history_snapshot_signature??""),
+    provenance_signature:String(value.provenance_signature??"")
+  });
+}
+
 export function dimensionAuditDownloadHistoryTrustSignature(trust=dimensionAuditDownloadHistoryTrust()){
   const value=trust??{};
   return JSON.stringify({
