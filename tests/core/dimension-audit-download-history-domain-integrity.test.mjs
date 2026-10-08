@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA,
+  dimensionAuditDownloadAttemptSignature,
   dimensionAuditDownloadHistorySummarySignature,
   dimensionAuditDownloadHistorySignature,
   dimensionAuditDownloadHistoryValid
@@ -11,15 +13,33 @@ test("question 558: audit download history integrity is validated by pure domain
     schema:"TubeBender.DimensionAuditDownloadAttemptHistorySummary.v1",
     total:2,blocked:1,downloaded:1,failed:0,latest_signature:"attempt-2"
   };
-  const summarySignature=dimensionAuditDownloadHistorySummarySignature(summary);
+    const attemptBase=(status,filename)=>({
+    schema:DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA,
+    status,
+    filename,
+    snapshot_schema:"TubeBender.DimensionAudit.v1",
+    code:"OK",
+    preflight_signature:"preflight",
+    runtime_signature:"runtime",
+    protocol_signature:"protocol",
+    error:null
+  });
+  const a1=attemptBase("blocked","a1.json");
+  const a2=attemptBase("downloaded","a2.json");
+  const attempts=[
+    {...a1,signature:dimensionAuditDownloadAttemptSignature(a1)},
+    {...a2,signature:dimensionAuditDownloadAttemptSignature(a2)}
+  ];
+  summary.latest_signature=attempts[1].signature;
+  const normalizedSummarySignature=dimensionAuditDownloadHistorySummarySignature(summary);
   const snapshot={
     schema:"TubeBender.DimensionAuditDownloadHistory.v1",
     project_id:"p1",
     project_name:"Project",
     summary,
-    summary_signature:summarySignature,
+    summary_signature:normalizedSummarySignature,
     attempt_count:2,
-    attempts:[{signature:"attempt-1"},{signature:"attempt-2"}]
+    attempts
   };
   assert.equal(dimensionAuditDownloadHistoryValid(snapshot),true);
   assert.equal(
