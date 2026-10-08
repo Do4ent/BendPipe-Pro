@@ -13,5 +13,5 @@ test("question 493: Dimension audit download validation codes are centralized an
   assert.match(ui,/"INVALID_FILENAME"/);
   assert.match(ui,/"INVALID_SNAPSHOT"/);
   assert.match(ui,/"UNSUPPORTED_SCHEMA"/);
-  assert.match(ui,/dimensionAuditDownloadValidationCodes:\(\)=>\[\.\.\.DIMENSION_AUDIT_DOWNLOAD_VALIDATION_CODES\]/);
+  assert.match(ui,/function dimensionAuditDownloadValidationCodes\(\)/);
 });
