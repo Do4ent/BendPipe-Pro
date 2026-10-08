@@ -984,6 +984,27 @@ export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_CODES=freeze([
   "INVALID_PROVENANCE"
 ]);
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_PROTOCOL_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportReadinessProtocol.v1";
+
+export function dimensionAuditDownloadHistoryExportReadinessProtocol(){
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_PROTOCOL_SCHEMA,
+    state_schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SCHEMA,
+    snapshot_schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA,
+    codes:[...DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_CODES]
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportReadinessProtocolSignature(protocol=dimensionAuditDownloadHistoryExportReadinessProtocol()){
+  const value=protocol??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    state_schema:String(value.state_schema??""),
+    snapshot_schema:String(value.snapshot_schema??""),
+    codes:[...(value.codes??[])].map(code=>String(code))
+  });
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessState({
   attempt_count=0,
   verification_valid=false,
