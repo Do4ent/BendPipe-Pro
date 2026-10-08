@@ -1561,6 +1561,66 @@ export function dimensionAuditDownloadHistoryExportChainSnapshotValid(snapshot=d
   return dimensionAuditDownloadHistoryExportChainSnapshotSignatureValid(value.snapshot_signature,value);
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_PAYLOAD_BINDING_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportPayloadBinding.v1";
+
+export function dimensionAuditDownloadHistoryExportPayloadBinding(historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
+  const history=historySnapshot??{};
+  const chain_snapshot=chainSnapshot??{};
+  const chain=chain_snapshot.chain??{};
+  const readiness=chain.readiness_state??{};
+  const historySignature=String(history.snapshot_signature??"");
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_PAYLOAD_BINDING_SCHEMA,
+    history_snapshot_signature:historySignature,
+    chain_snapshot_signature:String(chain_snapshot.snapshot_signature??""),
+    attempt_count:Math.max(0,Number(history.attempt_count)||0),
+    chain_attempt_count:Math.max(0,Number(readiness.attempt_count)||0),
+    allowed:chain.allowed===true,
+    code:String(chain.code??"INVALID_EXPORT_CHAIN_SNAPSHOT"),
+    history_signature_matches_chain:historySignature===String(readiness.history_snapshot_signature??"")
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportPayloadBindingValid(binding=dimensionAuditDownloadHistoryExportPayloadBinding(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
+  const value=binding??{};
+  const history=historySnapshot??{};
+  const chain_snapshot=chainSnapshot??{};
+  const chain=chain_snapshot.chain??{};
+  const readiness=chain.readiness_state??{};
+  const historySignature=String(history.snapshot_signature??"");
+  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_PAYLOAD_BINDING_SCHEMA)return false;
+  if(!dimensionAuditDownloadHistoryExportChainSnapshotValid(chain_snapshot))return false;
+  if(!historySignature)return false;
+  if(String(value.history_snapshot_signature??"")!==historySignature)return false;
+  if(String(value.chain_snapshot_signature??"")!==String(chain_snapshot.snapshot_signature??""))return false;
+  if(String(readiness.history_snapshot_signature??"")!==historySignature)return false;
+  if(value.history_signature_matches_chain!==true)return false;
+  if(Number(value.attempt_count)!==Math.max(0,Number(history.attempt_count)||0))return false;
+  if(Number(value.chain_attempt_count)!==Math.max(0,Number(readiness.attempt_count)||0))return false;
+  if(Number(value.attempt_count)!==Number(value.chain_attempt_count))return false;
+  if((value.allowed===true)!==(chain.allowed===true))return false;
+  return String(value.code??"")===String(chain.code??"");
+}
+
+export function dimensionAuditDownloadHistoryExportPayloadBindingSignature(binding=dimensionAuditDownloadHistoryExportPayloadBinding()){
+  const value=binding??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    history_snapshot_signature:String(value.history_snapshot_signature??""),
+    chain_snapshot_signature:String(value.chain_snapshot_signature??""),
+    attempt_count:Number(value.attempt_count)||0,
+    chain_attempt_count:Number(value.chain_attempt_count)||0,
+    allowed:value.allowed===true,
+    code:String(value.code??""),
+    history_signature_matches_chain:value.history_signature_matches_chain===true
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportPayloadBindingSignatureValid(signature,binding=dimensionAuditDownloadHistoryExportPayloadBinding(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
+  return dimensionAuditDownloadHistoryExportPayloadBindingValid(binding,historySnapshot,chainSnapshot)
+    &&String(signature??"")===dimensionAuditDownloadHistoryExportPayloadBindingSignature(binding);
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
