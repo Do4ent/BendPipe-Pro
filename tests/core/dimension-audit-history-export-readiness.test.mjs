@@ -9,7 +9,7 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 688: audit history export readiness is machine-readable",()=>{
   assert.match(ui,/const auditDownloadHistoryExportReadiness=dimensionAuditDownloadHistoryExportReadiness\(auditDownloadHistorySnapshot\)/);
-  assert.match(ui,/const auditDownloadHistoryExportReady=auditDownloadHistoryExportReadiness\.ready&&auditDownloadHistoryExportReadinessSignatureValid&&auditDownloadHistoryExportReadinessSnapshotValid/);
+  assert.match(ui,/const auditDownloadHistoryExportReady=auditDownloadHistoryExportReadinessSnapshot\.ready&&auditDownloadHistoryExportReadinessSnapshot\.signature_valid&&auditDownloadHistoryExportReadinessSnapshotValid/);
   assert.match(ui,/data-history-export-ready="'\+\(auditDownloadHistoryExportReady\?'1':'0'\)\+'"/);
   assert.match(ui,/data-copy-dimension-audit-download-history '\+\(auditDownloadHistoryExportReady\?'':'disabled'\)/);
   assert.match(ui,/data-download-dimension-audit-download-history '\+\(auditDownloadHistoryExportReady\?'':'disabled'\)/);
