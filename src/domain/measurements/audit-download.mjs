@@ -1749,6 +1749,64 @@ export function dimensionAuditDownloadHistoryExportActionStatusSnapshotValid(sna
   return dimensionAuditDownloadHistoryExportActionStatusSnapshotSignatureValid(value.snapshot_signature,value);
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_PERMIT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportActionPermit.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTIONS=freeze(["copy","download"]);
+
+export function dimensionAuditDownloadHistoryExportActionPermit(action="copy",statusSnapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
+  const normalizedAction=String(action??"").toLowerCase();
+  const snapshot=statusSnapshot??{};
+  const status=snapshot.status??{};
+  const actionValid=DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTIONS.includes(normalizedAction);
+  const statusSnapshotValid=dimensionAuditDownloadHistoryExportActionStatusSnapshotValid(snapshot,bindingSnapshot,historySnapshot,chainSnapshot);
+  const code=!actionValid
+    ?"INVALID_EXPORT_ACTION"
+    :!statusSnapshotValid
+      ?"INVALID_EXPORT_ACTION_STATUS_SNAPSHOT"
+      :String(status.code??"INVALID_EXPORT_ACTION_STATUS");
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_PERMIT_SCHEMA,
+    action:normalizedAction,
+    ready:actionValid&&statusSnapshotValid&&status.ready===true&&code==="READY",
+    code,
+    action_valid:actionValid,
+    action_status_snapshot_valid:statusSnapshotValid,
+    action_status_ready:status.ready===true,
+    action_status_snapshot_signature:String(snapshot.snapshot_signature??"")
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportActionPermitValid(permit=dimensionAuditDownloadHistoryExportActionPermit(),action="copy",statusSnapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
+  const value=permit??{};
+  const expected=dimensionAuditDownloadHistoryExportActionPermit(action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot);
+  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_PERMIT_SCHEMA
+    &&String(value.action??"")===expected.action
+    &&value.ready===expected.ready
+    &&String(value.code??"")===String(expected.code??"")
+    &&value.action_valid===expected.action_valid
+    &&value.action_status_snapshot_valid===expected.action_status_snapshot_valid
+    &&value.action_status_ready===expected.action_status_ready
+    &&String(value.action_status_snapshot_signature??"")===String(expected.action_status_snapshot_signature??"");
+}
+
+export function dimensionAuditDownloadHistoryExportActionPermitSignature(permit=dimensionAuditDownloadHistoryExportActionPermit()){
+  const value=permit??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    action:String(value.action??""),
+    ready:value.ready===true,
+    code:String(value.code??""),
+    action_valid:value.action_valid===true,
+    action_status_snapshot_valid:value.action_status_snapshot_valid===true,
+    action_status_ready:value.action_status_ready===true,
+    action_status_snapshot_signature:String(value.action_status_snapshot_signature??"")
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportActionPermitSignatureValid(signature,permit=dimensionAuditDownloadHistoryExportActionPermit(),action="copy",statusSnapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
+  return dimensionAuditDownloadHistoryExportActionPermitValid(permit,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot)
+    &&String(signature??"")===dimensionAuditDownloadHistoryExportActionPermitSignature(permit);
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
