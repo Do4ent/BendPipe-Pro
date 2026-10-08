@@ -20,7 +20,8 @@ export const DIMENSION_AUDIT_DOWNLOAD_SCHEMAS=freeze([
   "TubeBender.DimensionSelectionAudit.v1",
   "TubeBender.DimensionAuditView.v1",
   "TubeBender.DimensionReviewQueueAudit.v1",
-  "TubeBender.DimensionReviewReasonAudit.v1"
+  "TubeBender.DimensionReviewReasonAudit.v1",
+  "TubeBender.DimensionAuditDownloadHistory.v1"
 ]);
 export const DIMENSION_AUDIT_FILENAME_POLICY=freeze({
   part_default_length:80,
