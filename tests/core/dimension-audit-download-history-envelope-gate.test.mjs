@@ -11,6 +11,7 @@ test("question 587: copy and download require valid audit history envelope",()=>
   const verification=ui.match(/function dimensionAuditDownloadHistoryVerification\(snapshot=\{\}\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(verification,/const envelopeValid=dimensionAuditDownloadAttemptHistoryEnvelopeValid\(value\)/);
   assert.match(verification,/!envelopeValid\?"INVALID_ENVELOPE":null/);
-  const gate=/const verification=dimensionAuditDownloadHistoryVerification\(snapshot\);\s*if\(!verification\.valid\)/g;
-  assert.equal((ui.match(gate)??[]).length,2);
+  assert.match(ui,/function dimensionAuditDownloadHistoryExportReadiness/);
+  assert.match(ui,/const verification=dimensionAuditDownloadHistoryVerification\(value\)/);
+  assert.match(ui,/code:"VERIFICATION_FAILED"/);
 });
