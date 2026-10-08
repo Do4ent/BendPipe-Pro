@@ -3359,9 +3359,9 @@
 
   async function copyDimensionAuditDownloadHistory(){
     const snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot();
-    const readiness=dimensionAuditDownloadHistoryExportReadiness(snapshot);
-    if(!readiness.ready){
-      toast(readiness.code==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+readiness.code);
+    const exportState=dimensionAuditDownloadHistoryExportReadinessSnapshot(snapshot);
+    if(!exportState.ready||!dimensionAuditDownloadHistoryExportReadinessSnapshotValid(exportState,snapshot)){
+      toast(exportState.code==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+exportState.code);
       return false;
     }
     const text=JSON.stringify(snapshot,null,2);
@@ -3377,9 +3377,9 @@
   }
   function downloadDimensionAuditDownloadHistory(){
     const snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot();
-    const readiness=dimensionAuditDownloadHistoryExportReadiness(snapshot);
-    if(!readiness.ready){
-      toast(readiness.code==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+readiness.code);
+    const exportState=dimensionAuditDownloadHistoryExportReadinessSnapshot(snapshot);
+    if(!exportState.ready||!dimensionAuditDownloadHistoryExportReadinessSnapshotValid(exportState,snapshot)){
+      toast(exportState.code==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+exportState.code);
       return false;
     }
     const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
