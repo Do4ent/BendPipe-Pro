@@ -2,7 +2,8 @@
   const GEOMETRY_URL="__TB_GEOMETRY_MEASUREMENTS_MODULE_URL__";
   const DIMENSIONS_URL="__TB_DIMENSIONS_MODULE_URL__";
   const REVIEW_PROGRESS_URL="__TB_REVIEW_PROGRESS_MODULE_URL__";
-  let geometry=null,dimensions=null,reviewProgressDomain=null,installed=false,panel=null,resultsPanel=null,button=null,lastResult=null,lastSelectionKey="",poll=null,formulaMeasurementValue=null,dimensionManagerFilter="all",dimensionManagerSort="project",dimensionManagerSearch="",dimensionManagerFocusId="",dimensionManagerStateProjectId=null;
+  const AUDIT_DOWNLOAD_URL="__TB_AUDIT_DOWNLOAD_MODULE_URL__";
+  let geometry=null,dimensions=null,reviewProgressDomain=null,auditDownloadDomain=null,installed=false,panel=null,resultsPanel=null,button=null,lastResult=null,lastSelectionKey="",poll=null,formulaMeasurementValue=null,dimensionManagerFilter="all",dimensionManagerSort="project",dimensionManagerSearch="",dimensionManagerFocusId="",dimensionManagerStateProjectId=null;
   const quick={active:false,points:[],candidates:[],current:null,result:null};
 
   const $=(s,r=document)=>r.querySelector(s);
@@ -2818,10 +2819,11 @@
   async function install(){
     if(installed)return;installed=true;
     try{
-      [geometry,dimensions,reviewProgressDomain]=await Promise.all([
+      [geometry,dimensions,reviewProgressDomain,auditDownloadDomain]=await Promise.all([
         import(GEOMETRY_URL),
         import(DIMENSIONS_URL),
-        import(REVIEW_PROGRESS_URL).catch(error=>{console.warn("Review progress domain failed to load; using UI fallback",error);return null;})
+        import(REVIEW_PROGRESS_URL).catch(error=>{console.warn("Review progress domain failed to load; using UI fallback",error);return null;}),
+        import(AUDIT_DOWNLOAD_URL).catch(error=>{console.warn("Audit download domain failed to load; using UI fallback",error);return null;})
       ]);
     }catch(error){console.error("Measurements UI failed to load",error);return;}
     ensureShell();
