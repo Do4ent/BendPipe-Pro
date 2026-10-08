@@ -1088,12 +1088,34 @@ export function dimensionAuditDownloadHistoryExportReadinessStateSignatureValid(
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportReadinessSnapshot.v1";
 
+export function dimensionAuditDownloadHistoryExportReadinessSnapshotSignature(snapshot={}){
+  const value=snapshot??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    protocol_signature:String(value.protocol_signature??""),
+    protocol_valid:value.protocol_valid===true,
+    protocol_signature_valid:value.protocol_signature_valid===true,
+    state_schema:String(value.state_schema??""),
+    state_valid:value.state_valid===true,
+    ready:value.ready===true,
+    code:String(value.code??""),
+    attempt_count:Math.max(0,Math.trunc(Number(value.attempt_count)||0)),
+    verification_valid:value.verification_valid===true,
+    trusted:value.trusted===true,
+    provenance_valid:value.provenance_valid===true,
+    history_snapshot_signature:String(value.history_snapshot_signature??""),
+    provenance_signature:String(value.provenance_signature??""),
+    signature:String(value.signature??""),
+    signature_valid:value.signature_valid===true
+  });
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshot(state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=state??{};
   const signature=dimensionAuditDownloadHistoryExportReadinessStateSignature(value);
   const protocol=dimensionAuditDownloadHistoryExportReadinessProtocol();
   const protocolSignature=dimensionAuditDownloadHistoryExportReadinessProtocolSignature(protocol);
-  return freeze({
+  const base={
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA,
     protocol,
     protocol_signature:protocolSignature,
@@ -1111,6 +1133,12 @@ export function dimensionAuditDownloadHistoryExportReadinessSnapshot(state=dimen
     provenance_signature:String(value.provenance_signature??""),
     signature,
     signature_valid:dimensionAuditDownloadHistoryExportReadinessStateSignatureValid(signature,value)
+  };
+  const snapshotSignature=dimensionAuditDownloadHistoryExportReadinessSnapshotSignature(base);
+  return freeze({
+    ...base,
+    snapshot_signature:snapshotSignature,
+    snapshot_signature_valid:true
   });
 }
 
