@@ -11,5 +11,7 @@ test("question 484: Dimension audit filename policy is exposed for QA",()=>{
   assert.match(ui,/function dimensionAuditFilenamePolicy\(\)/);
   assert.match(ui,/dimensionAuditFilenamePolicy/);
   assert.match(ui,/dimensionAuditDownloadPolicy/);
-  assert.match(ui,/dimensionAuditJsonFilename,dimensionAuditFilenamePolicy,dimensionAuditDownloadFallbackPolicy/);
+  assert.match(ui,/dimensionAuditJsonFilename/);
+  assert.match(ui,/dimensionAuditFilenamePolicy/);
+  assert.match(ui,/dimensionAuditDownloadFallbackPolicy/);
 });
