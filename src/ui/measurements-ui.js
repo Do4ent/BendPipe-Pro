@@ -2908,7 +2908,8 @@
       preflight_signature:String(value.preflight_signature??""),
       runtime_signature:String(value.runtime_signature??""),
       protocol_signature:String(value.protocol_signature??""),
-      error:value.error==null?null:String(value.error)
+      error:value.error==null?null:String(value.error),
+      generated_at:String(value.generated_at??"")
     });
   }
 
@@ -3031,6 +3032,7 @@
       schema:String(value.schema??""),
       project_id:String(value.project_id??""),
       project_name:String(value.project_name??""),
+      generated_at:String(value.generated_at??""),
       summary_signature:String(value.summary_signature??""),
       protocol_state_signature:String(value.protocol_state_signature??""),
       attempt_count:Number(value.attempt_count??0),
