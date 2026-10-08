@@ -510,6 +510,7 @@
           ["Dimension pending reason count",pendingReviewReasons.length],
           ["Dimension review complete %",reviewDisplay.complete_percent],
           ["Review context health",reviewDisplay.health],
+          ["Review context signature",canonicalReviewContext?.signature??null],
           ["Review context API consistent",reviewContextConsistent],
           ["Review action required",reviewDisplay.action_required],
           ["Review blockers",reviewDisplay.blockers],
