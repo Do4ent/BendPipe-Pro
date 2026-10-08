@@ -10,5 +10,6 @@ const properties=fs.readFileSync(path.join(root,"src","ui","properties-panel-run
 test("question 435: Dimension Properties shows current audit selection state",()=>{
   assert.match(properties,/const selectedDimensionAuditIds=audit\?\.selectedDimensionAuditIds\?\.\(\)\?\?\[\]/);
   assert.match(properties,/const selectedInAudit=selectedDimensionAuditIds\.map\(id=>String\(id\)\)\.includes\(String\(dimension\?\.id\?\?""\)\)/);
-  assert.match(properties,/\["Selected in audit",selectedInAudit\]/);
+  assert.match(properties,/selected_in_audit:canonicalReviewContext\?\.selected_in_audit\?\?selectedInAudit/);
+  assert.match(properties,/\["Selected in audit",reviewDisplay\.selected_in_audit\]/);
 });
