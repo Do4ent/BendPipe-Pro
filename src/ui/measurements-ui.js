@@ -2063,11 +2063,16 @@
   }
 
   function downloadDimensionAuditJson(filename,snapshot){
+    const safeFilename=String(filename??"").trim();
+    if(!safeFilename||safeFilename.length>240||!safeFilename.endsWith(".json")||/[\\/\u0000-\u001f]/u.test(safeFilename)){
+      toast("Некорректное имя Dimension audit JSON");
+      return false;
+    }
     try{
       const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:"application/json"});
       const url=URL.createObjectURL(blob);
       const link=document.createElement("a");
-      link.href=url;link.download=String(filename||"dimension-audit.json");
+      link.href=url;link.download=safeFilename;
       document.body.appendChild(link);link.click();link.remove();
       setTimeout(()=>URL.revokeObjectURL(url),0);
       toast("Dimension audit JSON сохранён");
