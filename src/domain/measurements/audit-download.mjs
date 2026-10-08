@@ -315,11 +315,10 @@ export function dimensionAuditDownloadHistoryIntegrity(snapshot={}){
   const summaryValid=dimensionAuditDownloadHistorySummaryValid(summary,attempts);
   const summarySignatureValid=String(value.summary_signature??"")===dimensionAuditDownloadHistorySummarySignature(summary);
   const protocolState=value.protocol_state??null;
-  const protocolStateValid=!!protocolState
-    &&protocolState.valid===true
-    &&dimensionAuditDownloadHistoryProtocolStateSignature(protocolState)===String(value.protocol_state_signature??"");
   const protocolStateSignatureValid=!!protocolState
     &&String(value.protocol_state_signature??"")===dimensionAuditDownloadHistoryProtocolStateSignature(protocolState);
+  const protocolStateValid=protocolStateSignatureValid
+    &&dimensionAuditDownloadHistoryProtocolStateValid(protocolState);
   const signature=String(value.snapshot_signature??"");
   const snapshotSignatureValid=!signature||signature===dimensionAuditDownloadHistorySignature(value);
   const errors=[
