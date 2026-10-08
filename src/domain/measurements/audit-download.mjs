@@ -353,6 +353,17 @@ export function dimensionAuditDownloadHistoryIntegritySignature(integrity={}){
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_ENVELOPE_SCHEMA="TubeBender.DimensionAuditDownloadHistoryEnvelope.v1";
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_SCHEMA="TubeBender.DimensionAuditDownloadHistoryProtocol.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_SCHEMA="TubeBender.DimensionAuditDownloadHistoryProtocolValidation.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_CODES=freeze([
+  "OK",
+  "INVALID_PROTOCOL_SCHEMA",
+  "INVALID_ATTEMPT_SCHEMA",
+  "INVALID_HISTORY_SCHEMA",
+  "INVALID_SUMMARY_SCHEMA",
+  "INVALID_INTEGRITY_SCHEMA",
+  "INVALID_INTEGRITY_CODES",
+  "INVALID_ENVELOPE_SCHEMA"
+]);
 
 export function dimensionAuditDownloadHistoryProtocol(){
   return freeze({
@@ -376,6 +387,25 @@ export function dimensionAuditDownloadHistoryProtocolSignature(protocol=dimensio
     integrity_schema:String(value.integrity_schema??""),
     integrity_codes:[...(value.integrity_codes??[])].map(code=>String(code)),
     envelope_schema:String(value.envelope_schema??"")
+  });
+}
+
+export function dimensionAuditDownloadHistoryProtocolValidation(protocol=dimensionAuditDownloadHistoryProtocol()){
+  const value=protocol??{};
+  const errors=[
+    String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_SCHEMA?"INVALID_PROTOCOL_SCHEMA":null,
+    String(value.attempt_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA?"INVALID_ATTEMPT_SCHEMA":null,
+    String(value.history_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA?"INVALID_HISTORY_SCHEMA":null,
+    String(value.summary_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_SUMMARY_SCHEMA?"INVALID_SUMMARY_SCHEMA":null,
+    String(value.integrity_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_SCHEMA?"INVALID_INTEGRITY_SCHEMA":null,
+    JSON.stringify([...(value.integrity_codes??[])].map(code=>String(code)))!==JSON.stringify([...DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_CODES])?"INVALID_INTEGRITY_CODES":null,
+    String(value.envelope_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_ENVELOPE_SCHEMA?"INVALID_ENVELOPE_SCHEMA":null
+  ].filter(Boolean);
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_SCHEMA,
+    valid:errors.length===0,
+    code:errors[0]??"OK",
+    errors
   });
 }
 
