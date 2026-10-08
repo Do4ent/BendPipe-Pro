@@ -556,10 +556,17 @@ export function dimensionAuditDownloadHistoryEnvelopeValid(snapshot={}){
   const embeddedIntegrityValid=!!embeddedIntegrity
     &&dimensionAuditDownloadHistoryIntegritySignature(embeddedIntegrity)===embeddedIntegritySignature
     &&dimensionAuditDownloadHistoryIntegritySignature(coreIntegrity)===embeddedIntegritySignature;
+  const embeddedBinding=value.protocol_binding??null;
+  const embeddedBindingSignature=String(value.protocol_binding_signature??"");
+  const coreBinding=dimensionAuditDownloadHistoryProtocolBinding(value);
+  const embeddedBindingValid=!!embeddedBinding
+    &&dimensionAuditDownloadHistoryProtocolBindingSignature(embeddedBinding)===embeddedBindingSignature
+    &&dimensionAuditDownloadHistoryProtocolBindingSignature(coreBinding)===embeddedBindingSignature;
   const envelopeSignature=String(value.envelope_signature??"");
   const envelopeSignatureValid=!envelopeSignature||envelopeSignature===dimensionAuditDownloadHistoryEnvelopeSignature(value);
   return coreIntegrity.valid
     &&embeddedIntegrityValid
+    &&embeddedBindingValid
     &&value.attempts_valid===coreIntegrity.attempts_valid
     &&value.summary_valid===coreIntegrity.summary_valid
     &&value.protocol_binding_valid===dimensionAuditDownloadHistoryProtocolBindingValid(value)
