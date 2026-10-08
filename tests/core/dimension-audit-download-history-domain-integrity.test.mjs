@@ -28,4 +28,7 @@ test("question 558: audit download history integrity is validated by pure domain
   );
   assert.equal(dimensionAuditDownloadHistoryValid({...snapshot,attempt_count:1}),false);
   assert.equal(dimensionAuditDownloadHistoryValid({...snapshot,summary_signature:"bad"}),false);
+  const signed={...snapshot,snapshot_signature:dimensionAuditDownloadHistorySignature(snapshot)};
+  assert.equal(dimensionAuditDownloadHistoryValid(signed),true);
+  assert.equal(dimensionAuditDownloadHistoryValid({...signed,snapshot_signature:"bad"}),false);
 });
