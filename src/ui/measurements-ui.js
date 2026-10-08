@@ -2347,8 +2347,7 @@
 
   function recordDimensionAuditDownloadAttempt(status,preflight,error=null){
     const validation=preflight?.validation??null;
-    const base={
-      schema:"TubeBender.DimensionAuditDownloadAttempt.v1",
+    const input={
       status:String(status??""),
       filename:String(validation?.filename??""),
       snapshot_schema:validation?.schema==null?null:String(validation.schema),
@@ -2356,13 +2355,16 @@
       preflight_signature:String(preflight?.signature??""),
       runtime_signature:String(preflight?.runtime_validation?.runtime_signature??""),
       protocol_signature:String(preflight?.runtime_validation?.protocol_signature??""),
-      error:error==null?null:String(error?.message??error)
-    };
-    const attempt={
-      ...base,
-      signature:dimensionAuditDownloadAttemptSignature(base),
+      error:error==null?null:String(error?.message??error),
       generated_at:new Date().toISOString()
     };
+    const attempt=auditDownloadDomain?.buildDimensionAuditDownloadAttempt
+      ?clone(auditDownloadDomain.buildDimensionAuditDownloadAttempt(input))
+      :(()=>{
+        const base={schema:"TubeBender.DimensionAuditDownloadAttempt.v1",...input};
+        delete base.generated_at;
+        return {...base,signature:dimensionAuditDownloadAttemptSignature(base),generated_at:input.generated_at};
+      })();
     lastDimensionAuditDownloadAttempt=attempt;
     dimensionAuditDownloadAttemptHistory.push(attempt);
     while(dimensionAuditDownloadAttemptHistory.length>DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_HISTORY_LIMIT)dimensionAuditDownloadAttemptHistory.shift();
