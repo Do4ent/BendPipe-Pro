@@ -11,7 +11,9 @@ test("question 696: history copy and download gate on versioned readiness snapsh
   const copy=ui.match(/async function copyDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   const download=ui.match(/function downloadDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(copy,/const exportState=dimensionAuditDownloadHistoryExportReadinessSnapshot\(snapshot\)/);
-  assert.match(copy,/dimensionAuditDownloadHistoryExportReadinessSnapshotValid\(exportState,snapshot\)/);
+  assert.match(copy,/const exportGate=dimensionAuditDownloadHistoryExportGate\(exportState,snapshot\)/);
+  assert.match(copy,/const exportAuthorizationSnapshot=dimensionAuditDownloadHistoryExportAuthorizationSnapshot\(exportAuthorization\)/);
   assert.match(download,/const exportState=dimensionAuditDownloadHistoryExportReadinessSnapshot\(snapshot\)/);
-  assert.match(download,/dimensionAuditDownloadHistoryExportReadinessSnapshotValid\(exportState,snapshot\)/);
+  assert.match(download,/const exportGate=dimensionAuditDownloadHistoryExportGate\(exportState,snapshot\)/);
+  assert.match(download,/const exportAuthorizationSnapshot=dimensionAuditDownloadHistoryExportAuthorizationSnapshot\(exportAuthorization\)/);
 });
