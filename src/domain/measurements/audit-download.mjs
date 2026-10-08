@@ -340,6 +340,133 @@ export function dimensionAuditDownloadHistoryPermitEvidenceSummaryValid(summary=
     &&String(value.latest_action??"")===String(expected.latest_action??"");
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportEvent.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SUMMARY_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportEventSummary.v1";
+
+export function dimensionAuditDownloadHistoryExportEventSignature(event={}){
+  const value=event??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    action:String(value.action??""),
+    outcome:String(value.outcome??""),
+    code:String(value.code??""),
+    history_snapshot_signature:String(value.history_snapshot_signature??""),
+    action_permit_signature:String(value.action_permit_signature??""),
+    action_permit_snapshot_signature:String(value.action_permit_snapshot_signature??""),
+    error:value.error==null?null:String(value.error),
+    generated_at:String(value.generated_at??"")
+  });
+}
+
+export function buildDimensionAuditDownloadHistoryExportEvent({
+  action,
+  outcome,
+  code="",
+  history_snapshot_signature="",
+  action_permit_signature="",
+  action_permit_snapshot_signature="",
+  error=null,
+  generated_at=new Date().toISOString()
+}={}){
+  const safeAction=String(action??"");
+  const safeOutcome=String(outcome??"");
+  if(!["copy","download"].includes(safeAction))throw new RangeError("unsupported history export action: "+safeAction);
+  if(!["blocked","copied","downloaded","failed"].includes(safeOutcome))throw new RangeError("unsupported history export outcome: "+safeOutcome);
+  if(safeAction==="copy"&&safeOutcome==="downloaded")throw new TypeError("copy history export cannot have downloaded outcome");
+  if(safeAction==="download"&&safeOutcome==="copied")throw new TypeError("download history export cannot have copied outcome");
+  const timestamp=new Date(generated_at);
+  if(Number.isNaN(timestamp.getTime()))throw new TypeError("history export event generated_at must be a valid timestamp");
+  const safeError=error==null?null:String(error);
+  if(safeOutcome==="failed"&&!safeError)throw new TypeError("failed history export event must include error");
+  if(safeOutcome!=="failed"&&safeError!==null)throw new TypeError("non-failed history export event cannot include error");
+  const permitSignature=String(action_permit_signature??"");
+  const permitSnapshotSignature=String(action_permit_snapshot_signature??"");
+  const permitEvidenceComplete=!!permitSignature&&!!permitSnapshotSignature;
+  const permitEvidenceAbsent=!permitSignature&&!permitSnapshotSignature;
+  if(!permitEvidenceComplete&&!permitEvidenceAbsent)throw new TypeError("history export permit evidence must be complete or absent");
+  if(["copied","downloaded"].includes(safeOutcome)&&!permitEvidenceComplete){
+    throw new TypeError("successful history export event requires permit evidence");
+  }
+  const base={
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SCHEMA,
+    action:safeAction,
+    outcome:safeOutcome,
+    code:String(code??""),
+    history_snapshot_signature:String(history_snapshot_signature??""),
+    action_permit_signature:permitSignature,
+    action_permit_snapshot_signature:permitSnapshotSignature,
+    error:safeError,
+    generated_at:timestamp.toISOString()
+  };
+  return freeze({...base,signature:dimensionAuditDownloadHistoryExportEventSignature(base)});
+}
+
+export function dimensionAuditDownloadHistoryExportEventValid(event={}){
+  const value=event??{};
+  const action=String(value.action??"");
+  const outcome=String(value.outcome??"");
+  const timestamp=new Date(String(value.generated_at??""));
+  const permitSignature=String(value.action_permit_signature??"");
+  const permitSnapshotSignature=String(value.action_permit_snapshot_signature??"");
+  const permitEvidenceComplete=!!permitSignature&&!!permitSnapshotSignature;
+  const permitEvidenceAbsent=!permitSignature&&!permitSnapshotSignature;
+  const actionOutcomeValid=(action==="copy"&&outcome!=="downloaded")||(action==="download"&&outcome!=="copied");
+  const error=value.error==null?null:String(value.error);
+  const errorValid=outcome==="failed"?!!error:error===null;
+  const successPermitValid=!["copied","downloaded"].includes(outcome)||permitEvidenceComplete;
+  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SCHEMA
+    &&["copy","download"].includes(action)
+    &&["blocked","copied","downloaded","failed"].includes(outcome)
+    &&actionOutcomeValid
+    &&errorValid
+    &&(permitEvidenceComplete||permitEvidenceAbsent)
+    &&successPermitValid
+    &&!Number.isNaN(timestamp.getTime())
+    &&!!String(value.signature??"")
+    &&String(value.signature)===dimensionAuditDownloadHistoryExportEventSignature(value);
+}
+
+export function dimensionAuditDownloadHistoryExportEventSummary(events=[]){
+  if(!Array.isArray(events))throw new TypeError("history export events must be an array");
+  let blocked=0,copied=0,downloaded=0,failed=0,copy=0,download=0,valid=0,invalid=0;
+  for(const event of events){
+    const outcome=String(event?.outcome??"");
+    if(outcome==="blocked")blocked++;
+    if(outcome==="copied")copied++;
+    if(outcome==="downloaded")downloaded++;
+    if(outcome==="failed")failed++;
+    if(String(event?.action??"")==="copy")copy++;
+    if(String(event?.action??"")==="download")download++;
+    if(dimensionAuditDownloadHistoryExportEventValid(event))valid++;else invalid++;
+  }
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SUMMARY_SCHEMA,
+    total:events.length,blocked,copied,downloaded,failed,copy,download,valid,invalid,
+    latest_signature:String(events.at(-1)?.signature??""),
+    latest_outcome:String(events.at(-1)?.outcome??""),
+    latest_action:String(events.at(-1)?.action??"")
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportEventSummaryValid(summary={},events=[]){
+  if(!Array.isArray(events))return false;
+  const expected=dimensionAuditDownloadHistoryExportEventSummary(events);
+  const value=summary??{};
+  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SUMMARY_SCHEMA
+    &&Number(value.total)===expected.total
+    &&Number(value.blocked)===expected.blocked
+    &&Number(value.copied)===expected.copied
+    &&Number(value.downloaded)===expected.downloaded
+    &&Number(value.failed)===expected.failed
+    &&Number(value.copy)===expected.copy
+    &&Number(value.download)===expected.download
+    &&Number(value.valid)===expected.valid
+    &&Number(value.invalid)===expected.invalid
+    &&String(value.latest_signature??"")===expected.latest_signature
+    &&String(value.latest_outcome??"")===expected.latest_outcome
+    &&String(value.latest_action??"")===expected.latest_action;
+}
+
 export function dimensionAuditDownloadHistorySummary(attempts=[]){
   if(!Array.isArray(attempts))throw new TypeError("audit download history attempts must be an array");
   const counts={blocked:0,downloaded:0,failed:0};
