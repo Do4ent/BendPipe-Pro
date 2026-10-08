@@ -1656,6 +1656,33 @@
     };
   }
 
+  function dimensionReviewContextSignature(context={}){
+    const value=context??{};
+    return JSON.stringify({
+      schema:String(value.schema??"TubeBender.DimensionReviewContext.v1"),
+      dimension_id:String(value.dimension_id??""),
+      selected_in_audit:value.selected_in_audit===true,
+      state:String(value.state??"not-required"),
+      health:String(value.health??"not-required"),
+      action_required:value.action_required===true,
+      complete_percent:Number(value.complete_percent??0),
+      reason_count:Number(value.reason_count??0),
+      completed_reason_count:Number(value.completed_reason_count??0),
+      pending_reason_count:Number(value.pending_reason_count??0),
+      reasons:value.reasons??[],
+      completed_reasons:value.completed_reasons??[],
+      pending_reasons:value.pending_reasons??[],
+      reason_coverage:value.reason_coverage??{},
+      reason_progress:value.reason_progress??{},
+      blockers:value.blockers??[],
+      progress_source:String(value.progress_source??"ui-fallback"),
+      progress_status:String(value.progress_status??"empty"),
+      progress_signature:String(value.progress_signature??""),
+      diagnostics_signature:String(value.diagnostics_runtime?.signature??""),
+      diagnostics_integrity_signature:String(value.diagnostics_integrity?.signature??"")
+    });
+  }
+
   function dimensionReviewContext(dimension){
     const id=String(dimension?.id??"");
     const reasons=dimensionAuditReviewReasons(dimension).map(reason=>String(reason));
@@ -1692,7 +1719,7 @@
       ...pendingReasons.map(reason=>"REVIEW:"+reason),
       ...(diagnosticsRuntime?.diagnostics?.errors??[]).map(code=>"DIAGNOSTIC:"+String(code))
     ];
-    return {
+    const context={
       schema:"TubeBender.DimensionReviewContext.v1",
       dimension_id:id,
       selected_in_audit:selectedInAudit,
@@ -1715,6 +1742,7 @@
       diagnostics_runtime:clone(diagnosticsRuntime),
       diagnostics_integrity:clone(diagnosticsIntegrityState)
     };
+    return {...context,signature:dimensionReviewContextSignature(context)};
   }
 
   function reviewQueueDimensionAuditSnapshot(){
