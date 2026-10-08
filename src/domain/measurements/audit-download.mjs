@@ -488,6 +488,37 @@ export function dimensionAuditDownloadHistoryProtocolBindingValid(snapshot={}){
     &&String(value.protocol_state_signature??"")===dimensionAuditDownloadHistoryProtocolStateSignature(state);
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_BINDING_SCHEMA="TubeBender.DimensionAuditDownloadHistoryProtocolBinding.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_BINDING_CODES=freeze([
+  "OK",
+  "MISSING_PROTOCOL_STATE",
+  "INVALID_PROTOCOL_STATE",
+  "INVALID_PROTOCOL_STATE_SIGNATURE"
+]);
+
+export function dimensionAuditDownloadHistoryProtocolBinding(snapshot={}){
+  const value=snapshot??{};
+  const state=value.protocol_state??null;
+  const statePresent=!!state;
+  const stateValid=statePresent&&dimensionAuditDownloadHistoryProtocolStateValid(state);
+  const signatureValid=statePresent
+    &&String(value.protocol_state_signature??"")===dimensionAuditDownloadHistoryProtocolStateSignature(state);
+  const errors=[
+    !statePresent?"MISSING_PROTOCOL_STATE":null,
+    statePresent&&!stateValid?"INVALID_PROTOCOL_STATE":null,
+    statePresent&&!signatureValid?"INVALID_PROTOCOL_STATE_SIGNATURE":null
+  ].filter(Boolean);
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_BINDING_SCHEMA,
+    valid:errors.length===0,
+    code:errors[0]??"OK",
+    errors,
+    state_present:statePresent,
+    state_valid:stateValid,
+    signature_valid:signatureValid
+  });
+}
+
 export function dimensionAuditDownloadHistoryEnvelopeSignature(snapshot={}){
   const value=snapshot??{};
   return JSON.stringify({
