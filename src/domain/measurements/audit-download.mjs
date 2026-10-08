@@ -199,6 +199,26 @@ export function dimensionAuditDownloadAttemptValid(attempt={}){
     &&signature===dimensionAuditDownloadAttemptSignature(value);
 }
 
+export function dimensionAuditDownloadHistorySummary(attempts=[]){
+  if(!Array.isArray(attempts))throw new TypeError("audit download history attempts must be an array");
+  const counts={blocked:0,downloaded:0,failed:0};
+  for(const [index,attempt] of attempts.entries()){
+    const status=String(attempt?.status??"");
+    if(!Object.prototype.hasOwnProperty.call(counts,status)){
+      throw new RangeError("unsupported audit download attempt status at index "+index+": "+status);
+    }
+    counts[status]++;
+  }
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_SUMMARY_SCHEMA,
+    total:attempts.length,
+    blocked:counts.blocked,
+    downloaded:counts.downloaded,
+    failed:counts.failed,
+    latest_signature:String(attempts.at(-1)?.signature??"")
+  });
+}
+
 export function dimensionAuditDownloadHistorySummaryValid(summary={},attempts=[]){
   if(!Array.isArray(attempts))return false;
   const value=summary??{};
