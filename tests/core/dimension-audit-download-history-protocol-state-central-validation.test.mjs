@@ -9,6 +9,6 @@ const domain=fs.readFileSync(path.join(root,"src","domain","measurements","audit
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 617: audit history integrity centralizes protocol state validation",()=>{
-  assert.match(domain,/const protocolStateValid=protocolStateSignatureValid\s*&&dimensionAuditDownloadHistoryProtocolStateValid\(protocolState\)/);
-  assert.match(ui,/const protocolStateValid=protocolStateSignatureValid\s*&&dimensionAuditDownloadHistoryProtocolStateValid\(protocolState\)/);
+  assert.match(domain,/const protocolStateValid=dimensionAuditDownloadHistoryProtocolBindingValid\(value\)/);
+  assert.match(ui,/const protocolStateValid=dimensionAuditDownloadHistoryProtocolBindingValid\(value\)/);
 });
