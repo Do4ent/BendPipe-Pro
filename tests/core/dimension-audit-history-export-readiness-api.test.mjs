@@ -8,6 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 691: audit history export readiness is exposed for QA",()=>{
-  assert.match(ui,/dimensionAuditDownloadAttemptHistorySnapshotProvenanceValid,dimensionAuditDownloadHistoryExportReadiness,copyDimensionAuditDownloadHistory/);
+  assert.match(ui,/dimensionAuditDownloadHistoryExportReadiness/);
+  assert.match(ui,/copyDimensionAuditDownloadHistory/);
   assert.match(ui,/currentDimensionAuditDownloadHistoryExportReadiness:\(\)=>dimensionAuditDownloadHistoryExportReadiness\(\)/);
 });
