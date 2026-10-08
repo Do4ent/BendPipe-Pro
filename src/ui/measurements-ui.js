@@ -2241,6 +2241,11 @@
   }
 
   function downloadDimensionAuditJson(filename,snapshot){
+    const runtimeState=dimensionAuditDownloadRuntimeState();
+    if(!runtimeState.valid){
+      toast("Dimension audit download protocol invalid");
+      return false;
+    }
     const validation=dimensionAuditDownloadValidation(filename,snapshot);
     const safeFilename=validation.filename;
     if(!validation.valid){
