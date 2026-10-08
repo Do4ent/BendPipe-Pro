@@ -2252,25 +2252,53 @@
     return {validation_schema:DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA,valid:true,code:"OK",filename:safeFilename,schema};
   }
 
+  function dimensionAuditDownloadPreflightSignature(preflight){
+    const value=preflight??{};
+    const validation=value.validation??null;
+    const runtime=value.runtime_validation??null;
+    return JSON.stringify({
+      schema:String(value.schema??""),
+      valid:value.valid===true,
+      code:String(value.code??""),
+      runtime_validation:runtime?{
+        schema:String(runtime.schema??""),
+        valid:runtime.valid===true,
+        code:String(runtime.code??""),
+        source:String(runtime.source??""),
+        runtime_signature:String(runtime.runtime_signature??""),
+        protocol_signature:String(runtime.protocol_signature??"")
+      }:null,
+      validation:validation?{
+        validation_schema:String(validation.validation_schema??""),
+        valid:validation.valid===true,
+        code:String(validation.code??""),
+        filename:String(validation.filename??""),
+        schema:validation.schema==null?null:String(validation.schema)
+      }:null
+    });
+  }
+
   function dimensionAuditDownloadPreflight(filename,snapshot){
     const runtimeValidation=dimensionAuditDownloadRuntimeValidation();
-    if(!runtimeValidation.valid){
-      return {
+    const result=!runtimeValidation.valid
+      ?{
         schema:"TubeBender.DimensionAuditDownloadPreflight.v1",
         valid:false,
         code:runtimeValidation.code,
         runtime_validation:runtimeValidation,
         validation:null
-      };
-    }
-    const validation=dimensionAuditDownloadValidation(filename,snapshot);
-    return {
-      schema:"TubeBender.DimensionAuditDownloadPreflight.v1",
-      valid:validation.valid===true,
-      code:String(validation.code??""),
-      runtime_validation:runtimeValidation,
-      validation
-    };
+      }
+      :(()=>{
+        const validation=dimensionAuditDownloadValidation(filename,snapshot);
+        return {
+          schema:"TubeBender.DimensionAuditDownloadPreflight.v1",
+          valid:validation.valid===true,
+          code:String(validation.code??""),
+          runtime_validation:runtimeValidation,
+          validation
+        };
+      })();
+    return {...result,signature:dimensionAuditDownloadPreflightSignature(result)};
   }
 
   function downloadDimensionAuditJson(filename,snapshot){
@@ -2991,7 +3019,7 @@
     window.addEventListener("keydown",onQuickKeyDown,true);
     poll=setInterval(update,500);
     window.TubeBenderMeasurements=Object.freeze({
-      open,close,focusDimensionAudit,refresh:render,dimensionAuditViewProjectId,dimensionAuditViewStorageKey,persistDimensionAuditViewState,clearPersistedDimensionAuditViewState,restoreDimensionAuditViewState,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,dimensionAuditFilenamePart,dimensionAuditJsonFilename,dimensionAuditFilenamePolicy,dimensionAuditDownloadFallbackPolicy,dimensionAuditDownloadPolicy,dimensionAuditDownloadPolicyConsistent,dimensionAuditDownloadProtocolConsistent,dimensionAuditDownloadProtocolSignature,dimensionAuditDownloadPolicySource,dimensionAuditDownloadRuntimeState,dimensionAuditDownloadRuntimeSignature,dimensionAuditDownloadRuntimeValidation,dimensionAuditDownloadPreflight,currentDimensionAuditDownloadProtocolSignature:()=>dimensionAuditDownloadProtocolSignature(),currentDimensionAuditDownloadRuntimeState:()=>dimensionAuditDownloadRuntimeState(),currentDimensionAuditDownloadRuntimeSignature:()=>dimensionAuditDownloadRuntimeSignature(),currentDimensionAuditDownloadRuntimeValidation:()=>dimensionAuditDownloadRuntimeValidation(),dimensionAuditDownloadValidationSchema,dimensionAuditDownloadValidationCodes,dimensionAuditDownloadSchemas,dimensionAuditDownloadSnapshotShapeSupported,dimensionAuditDownloadFilenameSupported,dimensionAuditDownloadSchemaSupported,dimensionAuditDownloadValidation,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReviewProgress,domainDimensionReviewProgress,canonicalDimensionReviewProgress,dimensionReviewContextState,dimensionReviewContext,dimensionReviewContextSignature,dimensionReviewContextSummary,dimensionReviewContextSummarySignature,currentDimensionReviewContextSummary:()=>dimensionReviewContextSummary(),dimensionReviewProgressDiagnostics,dimensionReviewProgressDiagnosticsState,dimensionReviewProgressDiagnosticsRuntimeState,dimensionReviewProgressDiagnosticsIntegrity,dimensionReviewProgressDiagnosticsIntegritySignature,dimensionReviewProgressDiagnosticsIntegrityParity,dimensionReviewProgressDiagnosticsIntegrityState,dimensionReviewProgressDiagnosticsSnapshot,dimensionReviewProgressDiagnosticsSignature,dimensionReviewProgressSignature,dimensionReviewProgressSnapshot,currentCanonicalReviewProgress:()=>canonicalDimensionReviewProgress(),currentReviewProgressDiagnostics:()=>dimensionReviewProgressDiagnosticsState().diagnostics,currentReviewProgressDiagnosticsSnapshot:()=>dimensionReviewProgressDiagnosticsSnapshot(dimensionReviewProgressDiagnosticsState().diagnostics),currentReviewProgressDiagnosticsSignature:()=>dimensionReviewProgressDiagnosticsState().signature,currentReviewProgressDiagnosticsState:()=>dimensionReviewProgressDiagnosticsState(),currentReviewProgressDiagnosticsRuntimeState:()=>dimensionReviewProgressDiagnosticsRuntimeState(),currentReviewProgressDiagnosticsIntegrity:()=>dimensionReviewProgressDiagnosticsIntegrityState().integrity,currentReviewProgressDiagnosticsIntegritySignature:()=>dimensionReviewProgressDiagnosticsIntegrityState().signature,currentReviewProgressDiagnosticsIntegrityParity:()=>dimensionReviewProgressDiagnosticsIntegrityState().parity,currentReviewProgressDiagnosticsIntegrityState:()=>dimensionReviewProgressDiagnosticsIntegrityState(),currentCanonicalReviewProgressSnapshot:()=>canonicalDimensionReviewProgress().snapshot,currentCanonicalReviewProgressSignature:()=>canonicalDimensionReviewProgress().signature,currentCanonicalReviewProgressSource:()=>canonicalDimensionReviewProgress().source,currentReviewProgressRuntimeState:()=>dimensionReviewProgressRuntimeState(),currentReviewProgressSnapshot:()=>dimensionReviewProgressSnapshot(dimensionReviewProgress()),currentDomainReviewProgressSnapshot:()=>{const progress=domainDimensionReviewProgress();return progress&&reviewProgressDomain?.reviewProgressSnapshot?reviewProgressDomain.reviewProgressSnapshot(progress):null;},currentReviewProgressSignature:()=>dimensionReviewProgressSignature(dimensionReviewProgress()),currentReviewQueueAuditSnapshot:()=>reviewQueueDimensionAuditSnapshot(),currentReviewReasonAuditSnapshot:()=>reviewReasonDimensionAuditSnapshot(),reviewQueueDimensionAuditSnapshot,reviewReasonDimensionAuditSnapshot,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,selectedDimensionAuditIds,dimensionSelectionKindCounts,selectedDimensionAuditSnapshot,copySelectedDimensionAudits,downloadSelectedDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,activeDimensionReviewReason,filteredDimensionManagerItems,clearDimensionSelection,pruneDimensionSelectionToAuditView,invertVisibleDimensionAuditSelection,removeVisibleDimensionAuditResultsFromSelection,addVisibleDimensionAuditResultsToSelection,selectVisibleDimensionAuditResults,selectReviewReasonDimensionResults,addReviewReasonDimensionResultsToSelection,removeReviewReasonDimensionResultsFromSelection,invertReviewReasonDimensionSelection,selectReviewQueueDimensionResults,addReviewQueueDimensionResultsToSelection,removeReviewQueueDimensionResultsFromSelection,invertReviewQueueDimensionSelection,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
+      open,close,focusDimensionAudit,refresh:render,dimensionAuditViewProjectId,dimensionAuditViewStorageKey,persistDimensionAuditViewState,clearPersistedDimensionAuditViewState,restoreDimensionAuditViewState,buildMeasurement,savedDimensions,saveCurrentDimension,saveCurrentDrivingDimension,invalidateSectionDerivedDimensions,rebindSectionDerivedDimension,sectionRebindCompatibility,dimensionAuditProjectContext,dimensionRebindAuditSnapshot,copyDimensionRebindAudit,downloadDimensionRebindAudit,downloadDimensionAuditJson,dimensionAuditFilenameStamp,dimensionAuditFilenamePart,dimensionAuditJsonFilename,dimensionAuditFilenamePolicy,dimensionAuditDownloadFallbackPolicy,dimensionAuditDownloadPolicy,dimensionAuditDownloadPolicyConsistent,dimensionAuditDownloadProtocolConsistent,dimensionAuditDownloadProtocolSignature,dimensionAuditDownloadPolicySource,dimensionAuditDownloadRuntimeState,dimensionAuditDownloadRuntimeSignature,dimensionAuditDownloadRuntimeValidation,dimensionAuditDownloadPreflight,dimensionAuditDownloadPreflightSignature,currentDimensionAuditDownloadProtocolSignature:()=>dimensionAuditDownloadProtocolSignature(),currentDimensionAuditDownloadRuntimeState:()=>dimensionAuditDownloadRuntimeState(),currentDimensionAuditDownloadRuntimeSignature:()=>dimensionAuditDownloadRuntimeSignature(),currentDimensionAuditDownloadRuntimeValidation:()=>dimensionAuditDownloadRuntimeValidation(),dimensionAuditDownloadValidationSchema,dimensionAuditDownloadValidationCodes,dimensionAuditDownloadSchemas,dimensionAuditDownloadSnapshotShapeSupported,dimensionAuditDownloadFilenameSupported,dimensionAuditDownloadSchemaSupported,dimensionAuditDownloadValidation,downloadVisibleDimensionAudits,downloadAllDimensionAudits,dimensionAuditGeometryClass,dimensionReviewProgress,domainDimensionReviewProgress,canonicalDimensionReviewProgress,dimensionReviewContextState,dimensionReviewContext,dimensionReviewContextSignature,dimensionReviewContextSummary,dimensionReviewContextSummarySignature,currentDimensionReviewContextSummary:()=>dimensionReviewContextSummary(),dimensionReviewProgressDiagnostics,dimensionReviewProgressDiagnosticsState,dimensionReviewProgressDiagnosticsRuntimeState,dimensionReviewProgressDiagnosticsIntegrity,dimensionReviewProgressDiagnosticsIntegritySignature,dimensionReviewProgressDiagnosticsIntegrityParity,dimensionReviewProgressDiagnosticsIntegrityState,dimensionReviewProgressDiagnosticsSnapshot,dimensionReviewProgressDiagnosticsSignature,dimensionReviewProgressSignature,dimensionReviewProgressSnapshot,currentCanonicalReviewProgress:()=>canonicalDimensionReviewProgress(),currentReviewProgressDiagnostics:()=>dimensionReviewProgressDiagnosticsState().diagnostics,currentReviewProgressDiagnosticsSnapshot:()=>dimensionReviewProgressDiagnosticsSnapshot(dimensionReviewProgressDiagnosticsState().diagnostics),currentReviewProgressDiagnosticsSignature:()=>dimensionReviewProgressDiagnosticsState().signature,currentReviewProgressDiagnosticsState:()=>dimensionReviewProgressDiagnosticsState(),currentReviewProgressDiagnosticsRuntimeState:()=>dimensionReviewProgressDiagnosticsRuntimeState(),currentReviewProgressDiagnosticsIntegrity:()=>dimensionReviewProgressDiagnosticsIntegrityState().integrity,currentReviewProgressDiagnosticsIntegritySignature:()=>dimensionReviewProgressDiagnosticsIntegrityState().signature,currentReviewProgressDiagnosticsIntegrityParity:()=>dimensionReviewProgressDiagnosticsIntegrityState().parity,currentReviewProgressDiagnosticsIntegrityState:()=>dimensionReviewProgressDiagnosticsIntegrityState(),currentCanonicalReviewProgressSnapshot:()=>canonicalDimensionReviewProgress().snapshot,currentCanonicalReviewProgressSignature:()=>canonicalDimensionReviewProgress().signature,currentCanonicalReviewProgressSource:()=>canonicalDimensionReviewProgress().source,currentReviewProgressRuntimeState:()=>dimensionReviewProgressRuntimeState(),currentReviewProgressSnapshot:()=>dimensionReviewProgressSnapshot(dimensionReviewProgress()),currentDomainReviewProgressSnapshot:()=>{const progress=domainDimensionReviewProgress();return progress&&reviewProgressDomain?.reviewProgressSnapshot?reviewProgressDomain.reviewProgressSnapshot(progress):null;},currentReviewProgressSignature:()=>dimensionReviewProgressSignature(dimensionReviewProgress()),currentReviewQueueAuditSnapshot:()=>reviewQueueDimensionAuditSnapshot(),currentReviewReasonAuditSnapshot:()=>reviewReasonDimensionAuditSnapshot(),reviewQueueDimensionAuditSnapshot,reviewReasonDimensionAuditSnapshot,dimensionReferenceStatusCounts,dimensionFittedAuditStats,auditNumber,dimensionAuditReviewReasons,dimensionAuditNeedsReview,dimensionAuditSummary,allDimensionAuditSnapshot,copyAllDimensionAudits,selectedDimensionAuditIds,dimensionSelectionKindCounts,selectedDimensionAuditSnapshot,copySelectedDimensionAudits,downloadSelectedDimensionAudits,visibleDimensionAuditSnapshot,copyVisibleDimensionAudits,activeDimensionReviewReason,filteredDimensionManagerItems,clearDimensionSelection,pruneDimensionSelectionToAuditView,invertVisibleDimensionAuditSelection,removeVisibleDimensionAuditResultsFromSelection,addVisibleDimensionAuditResultsToSelection,selectVisibleDimensionAuditResults,selectReviewReasonDimensionResults,addReviewReasonDimensionResultsToSelection,removeReviewReasonDimensionResultsFromSelection,invertReviewReasonDimensionSelection,selectReviewQueueDimensionResults,addReviewQueueDimensionResultsToSelection,removeReviewQueueDimensionResultsFromSelection,invertReviewQueueDimensionSelection,showDimensionAuditResults,showAndSelectDimensionAuditResults,hideDimensionAuditResults,
       startQuickMeasure,stopQuickMeasure,clearQuickMeasure,captureQuickCandidate,
       copyMeasurementResult,useMeasurementInFormula,
       formulaValue:()=>formulaMeasurementValue,
