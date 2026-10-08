@@ -3967,10 +3967,33 @@
 
   async function copyDimensionAuditDownloadHistory(){
     const snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot();
+    const exportState=dimensionAuditDownloadHistoryExportReadinessSnapshot(snapshot);
+    const exportGate=dimensionAuditDownloadHistoryExportGate(exportState,snapshot);
+    const exportGateSnapshot=dimensionAuditDownloadHistoryExportGateSnapshot(exportGate);
+    const exportDecision=dimensionAuditDownloadHistoryExportDecision(exportGateSnapshot);
+    const exportDecisionSnapshot=dimensionAuditDownloadHistoryExportDecisionSnapshot(exportDecision);
+    const exportAuthorization=dimensionAuditDownloadHistoryExportAuthorization(exportDecisionSnapshot);
+    const exportAuthorizationSnapshot=dimensionAuditDownloadHistoryExportAuthorizationSnapshot(exportAuthorization);
+    const exportAuthorizationSnapshotValid=dimensionAuditDownloadHistoryExportAuthorizationSnapshotValid(exportAuthorizationSnapshot);
+    if(!exportAuthorizationSnapshotValid||!exportAuthorization.allowed){
+      const blockCode=!exportAuthorizationSnapshotValid?"INVALID_AUTHORIZATION_SNAPSHOT":exportAuthorization.code;
+      toast(blockCode==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+blockCode);
+      return false;
+    }
     const exportChain=dimensionAuditDownloadHistoryExportChain(snapshot);
     const exportChainValid=dimensionAuditDownloadHistoryExportChainValid(exportChain);
+    if(!exportChainValid||!exportChain.allowed){
+      const blockCode=!exportChainValid?"INVALID_EXPORT_CHAIN":exportChain.code;
+      toast(blockCode==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+blockCode);
+      return false;
+    }
     const exportChainSignature=dimensionAuditDownloadHistoryExportChainSignature(exportChain);
     const exportChainSignatureValid=dimensionAuditDownloadHistoryExportChainSignatureValid(exportChainSignature,exportChain);
+    if(!exportChainValid||!exportChainSignatureValid||!exportChain.allowed){
+      const blockCode=!exportChainValid?"INVALID_EXPORT_CHAIN":!exportChainSignatureValid?"INVALID_EXPORT_CHAIN_SIGNATURE":exportChain.code;
+      toast(blockCode==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+blockCode);
+      return false;
+    }
     const exportChainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot(exportChain);
     const exportChainSnapshotValid=dimensionAuditDownloadHistoryExportChainSnapshotValid(exportChainSnapshot);
     if(!exportChainSnapshotValid||!exportChain.allowed){
@@ -3991,10 +4014,33 @@
   }
   function downloadDimensionAuditDownloadHistory(){
     const snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot();
+    const exportState=dimensionAuditDownloadHistoryExportReadinessSnapshot(snapshot);
+    const exportGate=dimensionAuditDownloadHistoryExportGate(exportState,snapshot);
+    const exportGateSnapshot=dimensionAuditDownloadHistoryExportGateSnapshot(exportGate);
+    const exportDecision=dimensionAuditDownloadHistoryExportDecision(exportGateSnapshot);
+    const exportDecisionSnapshot=dimensionAuditDownloadHistoryExportDecisionSnapshot(exportDecision);
+    const exportAuthorization=dimensionAuditDownloadHistoryExportAuthorization(exportDecisionSnapshot);
+    const exportAuthorizationSnapshot=dimensionAuditDownloadHistoryExportAuthorizationSnapshot(exportAuthorization);
+    const exportAuthorizationSnapshotValid=dimensionAuditDownloadHistoryExportAuthorizationSnapshotValid(exportAuthorizationSnapshot);
+    if(!exportAuthorizationSnapshotValid||!exportAuthorization.allowed){
+      const blockCode=!exportAuthorizationSnapshotValid?"INVALID_AUTHORIZATION_SNAPSHOT":exportAuthorization.code;
+      toast(blockCode==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+blockCode);
+      return false;
+    }
     const exportChain=dimensionAuditDownloadHistoryExportChain(snapshot);
     const exportChainValid=dimensionAuditDownloadHistoryExportChainValid(exportChain);
+    if(!exportChainValid||!exportChain.allowed){
+      const blockCode=!exportChainValid?"INVALID_EXPORT_CHAIN":exportChain.code;
+      toast(blockCode==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+blockCode);
+      return false;
+    }
     const exportChainSignature=dimensionAuditDownloadHistoryExportChainSignature(exportChain);
     const exportChainSignatureValid=dimensionAuditDownloadHistoryExportChainSignatureValid(exportChainSignature,exportChain);
+    if(!exportChainValid||!exportChainSignatureValid||!exportChain.allowed){
+      const blockCode=!exportChainValid?"INVALID_EXPORT_CHAIN":!exportChainSignatureValid?"INVALID_EXPORT_CHAIN_SIGNATURE":exportChain.code;
+      toast(blockCode==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+blockCode);
+      return false;
+    }
     const exportChainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot(exportChain);
     const exportChainSnapshotValid=dimensionAuditDownloadHistoryExportChainSnapshotValid(exportChainSnapshot);
     if(!exportChainSnapshotValid||!exportChain.allowed){
@@ -4006,7 +4052,6 @@
     const stem=name+"-dimension-audit-download-history-"+snapshot.attempt_count;
     return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
   }
-
   function clearDimensionAuditDownloadAttemptHistory(){
     const count=dimensionAuditDownloadAttemptHistory.length;
     dimensionAuditDownloadAttemptHistory.splice(0,dimensionAuditDownloadAttemptHistory.length);
