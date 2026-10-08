@@ -3917,8 +3917,10 @@
     const snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot();
     const exportChain=dimensionAuditDownloadHistoryExportChain(snapshot);
     const exportChainValid=dimensionAuditDownloadHistoryExportChainValid(exportChain);
-    if(!exportChainValid||!exportChain.allowed){
-      const blockCode=!exportChainValid?"INVALID_EXPORT_CHAIN":exportChain.code;
+    const exportChainSignature=dimensionAuditDownloadHistoryExportChainSignature(exportChain);
+    const exportChainSignatureValid=dimensionAuditDownloadHistoryExportChainSignatureValid(exportChainSignature,exportChain);
+    if(!exportChainValid||!exportChainSignatureValid||!exportChain.allowed){
+      const blockCode=!exportChainValid?"INVALID_EXPORT_CHAIN":!exportChainSignatureValid?"INVALID_EXPORT_CHAIN_SIGNATURE":exportChain.code;
       toast(blockCode==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+blockCode);
       return false;
     }
@@ -3937,8 +3939,10 @@
     const snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot();
     const exportChain=dimensionAuditDownloadHistoryExportChain(snapshot);
     const exportChainValid=dimensionAuditDownloadHistoryExportChainValid(exportChain);
-    if(!exportChainValid||!exportChain.allowed){
-      const blockCode=!exportChainValid?"INVALID_EXPORT_CHAIN":exportChain.code;
+    const exportChainSignature=dimensionAuditDownloadHistoryExportChainSignature(exportChain);
+    const exportChainSignatureValid=dimensionAuditDownloadHistoryExportChainSignatureValid(exportChainSignature,exportChain);
+    if(!exportChainValid||!exportChainSignatureValid||!exportChain.allowed){
+      const blockCode=!exportChainValid?"INVALID_EXPORT_CHAIN":!exportChainSignatureValid?"INVALID_EXPORT_CHAIN_SIGNATURE":exportChain.code;
       toast(blockCode==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+blockCode);
       return false;
     }
