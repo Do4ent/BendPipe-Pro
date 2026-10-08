@@ -3219,10 +3219,34 @@
       health_signature:dimensionAuditDownloadHistoryHealthSignature(health)
     };
     const healthEmbedding=dimensionAuditDownloadHistoryHealthEmbedding(withHealth);
-    return {
+    const complete={
       ...withHealth,
       health_embedding:healthEmbedding,
       health_embedding_signature:dimensionAuditDownloadHistoryHealthEmbeddingSignature(healthEmbedding)
+    };
+    const verification=dimensionAuditDownloadHistoryVerification(complete);
+    const verified={
+      ...complete,
+      verification,
+      verification_signature:dimensionAuditDownloadHistoryVerificationSignature(verification)
+    };
+    const verificationEmbedding=dimensionAuditDownloadHistoryVerificationEmbedding(verified);
+    const verifiedEmbedding={
+      ...verified,
+      verification_embedding:verificationEmbedding,
+      verification_embedding_signature:dimensionAuditDownloadHistoryVerificationEmbeddingSignature(verificationEmbedding)
+    };
+    const attestation=dimensionAuditDownloadHistoryAttestation(verifiedEmbedding);
+    const attested={
+      ...verifiedEmbedding,
+      attestation,
+      attestation_signature:dimensionAuditDownloadHistoryAttestationSignature(attestation)
+    };
+    const attestationEmbedding=dimensionAuditDownloadHistoryAttestationEmbedding(attested);
+    return {
+      ...attested,
+      attestation_embedding:attestationEmbedding,
+      attestation_embedding_signature:dimensionAuditDownloadHistoryAttestationEmbeddingSignature(attestationEmbedding)
     };
   }
 
