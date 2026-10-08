@@ -143,3 +143,18 @@ export function dimensionAuditDownloadProtocolState(){
     filename
   });
 }
+
+
+export function dimensionAuditDownloadProtocolSignature(state=dimensionAuditDownloadProtocolState()){
+  const value=state??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    valid:value.valid===true,
+    protocol_consistent:value.protocol_consistent===true,
+    policy_schema:String(value.policy_schema??""),
+    validation_schema:String(value.validation_schema??""),
+    validation_codes:[...(value.validation_codes??[])],
+    schemas:[...(value.schemas??[])],
+    filename:{...(value.filename??{})}
+  });
+}
