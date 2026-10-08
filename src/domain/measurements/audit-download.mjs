@@ -231,8 +231,11 @@ export function dimensionAuditDownloadAttemptValid(attempt={}){
   const value=attempt??{};
   const status=String(value.status??"");
   const signature=String(value.signature??"");
+  const error=value.error==null?null:String(value.error);
+  const outcomeValid=status==="failed"?!!error:error===null;
   return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA
     &&["blocked","downloaded","failed"].includes(status)
+    &&outcomeValid
     &&!!signature
     &&signature===dimensionAuditDownloadAttemptSignature(value);
 }
