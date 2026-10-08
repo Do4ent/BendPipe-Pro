@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
-test("question 748: manager export-ready follows canonical gate snapshot",()=>{
-  assert.match(ui,/const auditDownloadHistoryExportReady=auditDownloadHistoryExportGateSnapshotValid&&auditDownloadHistoryExportGate\.allowed/);
+test("question 748: manager export-ready remains fail-closed through the canonical export chain",()=>{
+  assert.match(ui,/const auditDownloadHistoryExportGateSnapshotValid=dimensionAuditDownloadHistoryExportGateSnapshotValid/);
+  assert.match(ui,/const auditDownloadHistoryExportReady=auditDownloadHistoryExportDecision\.allowed&&auditDownloadHistoryExportDecisionValid&&auditDownloadHistoryExportDecisionSignatureValid/);
 });
