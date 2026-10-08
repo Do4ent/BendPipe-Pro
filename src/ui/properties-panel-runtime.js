@@ -434,6 +434,8 @@
           selection_coverage:state.selection_coverage
         }:null];
       }));
+      const completedReviewReasons=reviewReasons.filter(reason=>reviewReasonCoverage[String(reason)]==="complete");
+      const pendingReviewReasons=reviewReasons.filter(reason=>reviewReasonCoverage[String(reason)]!=="complete");
       const refs=(dimension?.references??[]).map((ref,index)=>({
         index,
         object_id:ref?.object_id,
@@ -472,6 +474,8 @@
           ["Progress complete %",reviewProgressSnapshot?.complete_percent],
           ["Dimension reason coverage",reviewReasonCoverage],
           ["Dimension reason progress",reviewReasonProgress],
+          ["Completed review reasons",completedReviewReasons],
+          ["Pending review reasons",pendingReviewReasons],
           ["Diagnostics source",reviewDiagnosticsRuntime?.source],
           ["Diagnostics domain status",reviewDiagnosticsRuntime?.domain_status],
           ["Diagnostics runtime valid",reviewDiagnosticsRuntime?.runtime_valid],
