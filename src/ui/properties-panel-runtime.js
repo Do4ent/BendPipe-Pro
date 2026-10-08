@@ -436,6 +436,7 @@
       }));
       const completedReviewReasons=reviewReasons.filter(reason=>reviewReasonCoverage[String(reason)]==="complete");
       const pendingReviewReasons=reviewReasons.filter(reason=>reviewReasonCoverage[String(reason)]!=="complete");
+      const dimensionReviewState=reviewReasons.length===0?"not-required":pendingReviewReasons.length===0?"complete":"pending";
       const refs=(dimension?.references??[]).map((ref,index)=>({
         index,
         object_id:ref?.object_id,
@@ -470,6 +471,7 @@
         {name:"Review queue context",rows:[
           ["Progress source",audit?.currentCanonicalReviewProgressSource?.()??null],
           ["Selected in audit",selectedInAudit],
+          ["Dimension review state",dimensionReviewState],
           ["Progress status",reviewProgressSnapshot?.status],
           ["Progress complete %",reviewProgressSnapshot?.complete_percent],
           ["Dimension reason coverage",reviewReasonCoverage],
