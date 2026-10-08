@@ -1768,6 +1768,29 @@
     return {...context,signature:dimensionReviewContextSignature(context)};
   }
 
+  function dimensionReviewContextSummary(items=savedDimensions(),contextState=null){
+    const list=Array.isArray(items)?items:[];
+    const sharedState=contextState??dimensionReviewContextState(savedDimensions(),selectedDimensionAuditIds());
+    const summary={
+      total:list.length,
+      action_required:0,
+      by_state:{},
+      by_health:{},
+      blocker_counts:{}
+    };
+    for(const dimension of list){
+      const context=dimensionReviewContext(dimension,sharedState);
+      summary.by_state[context.state]=(summary.by_state[context.state]??0)+1;
+      summary.by_health[context.health]=(summary.by_health[context.health]??0)+1;
+      if(context.action_required)summary.action_required++;
+      for(const blocker of context.blockers??[]){
+        const key=String(blocker);
+        summary.blocker_counts[key]=(summary.blocker_counts[key]??0)+1;
+      }
+    }
+    return summary;
+  }
+
   function reviewQueueDimensionAuditSnapshot(){
     const items=savedDimensions().filter(dimension=>dimensionAuditNeedsReview(dimension));
     const reviewReasonCounts={};
