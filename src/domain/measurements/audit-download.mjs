@@ -352,6 +352,32 @@ export function dimensionAuditDownloadHistoryIntegritySignature(integrity={}){
 }
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_ENVELOPE_SCHEMA="TubeBender.DimensionAuditDownloadHistoryEnvelope.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_SCHEMA="TubeBender.DimensionAuditDownloadHistoryProtocol.v1";
+
+export function dimensionAuditDownloadHistoryProtocol(){
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_SCHEMA,
+    attempt_schema:DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA,
+    history_schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA,
+    summary_schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_SUMMARY_SCHEMA,
+    integrity_schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_SCHEMA,
+    integrity_codes:[...DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_CODES],
+    envelope_schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_ENVELOPE_SCHEMA
+  });
+}
+
+export function dimensionAuditDownloadHistoryProtocolSignature(protocol=dimensionAuditDownloadHistoryProtocol()){
+  const value=protocol??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    attempt_schema:String(value.attempt_schema??""),
+    history_schema:String(value.history_schema??""),
+    summary_schema:String(value.summary_schema??""),
+    integrity_schema:String(value.integrity_schema??""),
+    integrity_codes:[...(value.integrity_codes??[])].map(code=>String(code)),
+    envelope_schema:String(value.envelope_schema??"")
+  });
+}
 
 export function dimensionAuditDownloadHistoryEnvelopeSignature(snapshot={}){
   const value=snapshot??{};
