@@ -1219,6 +1219,20 @@ export function dimensionAuditDownloadHistoryExportGateSignatureValid(signature,
     &&String(signature??"")===dimensionAuditDownloadHistoryExportGateSignature(gate);
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_GATE_SNAPSHOT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportGateSnapshot.v1";
+
+export function dimensionAuditDownloadHistoryExportGateSnapshot(gate=dimensionAuditDownloadHistoryExportGate()){
+  const value=gate??{};
+  const signature=dimensionAuditDownloadHistoryExportGateSignature(value);
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_GATE_SNAPSHOT_SCHEMA,
+    gate:value,
+    gate_signature:signature,
+    gate_valid:dimensionAuditDownloadHistoryExportGateValid(value),
+    gate_signature_valid:dimensionAuditDownloadHistoryExportGateSignatureValid(signature,value)
+  });
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
