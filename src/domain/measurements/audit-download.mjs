@@ -873,6 +873,54 @@ export function dimensionAuditDownloadHistoryEmbeddedAttestationValid(snapshot={
   return embeddedValid&&currentValid;
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_ATTESTATION_EMBEDDING_SCHEMA="TubeBender.DimensionAuditDownloadHistoryAttestationEmbedding.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_ATTESTATION_EMBEDDING_CODES=freeze([
+  "OK",
+  "MISSING_ATTESTATION",
+  "INVALID_ATTESTATION_SIGNATURE",
+  "STALE_ATTESTATION"
+]);
+
+export function dimensionAuditDownloadHistoryAttestationEmbedding(snapshot={}){
+  const value=snapshot??{};
+  const embedded=value.attestation??null;
+  const signature=String(value.attestation_signature??"");
+  const present=!!embedded&&!!signature;
+  const signatureValid=present&&dimensionAuditDownloadHistoryAttestationSignature(embedded)===signature;
+  const current=dimensionAuditDownloadHistoryAttestation(value);
+  const currentSignature=dimensionAuditDownloadHistoryAttestationSignature(current);
+  const currentValid=present&&currentSignature===signature;
+  const errors=[
+    !present?"MISSING_ATTESTATION":null,
+    present&&!signatureValid?"INVALID_ATTESTATION_SIGNATURE":null,
+    present&&signatureValid&&!currentValid?"STALE_ATTESTATION":null
+  ].filter(Boolean);
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_ATTESTATION_EMBEDDING_SCHEMA,
+    valid:errors.length===0,
+    code:errors[0]??"OK",
+    errors,
+    present,
+    signature_valid:signatureValid,
+    current_valid:currentValid,
+    current_signature:currentSignature
+  });
+}
+
+export function dimensionAuditDownloadHistoryAttestationEmbeddingSignature(embedding=dimensionAuditDownloadHistoryAttestationEmbedding()){
+  const value=embedding??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    valid:value.valid===true,
+    code:String(value.code??""),
+    errors:[...(value.errors??[])].map(code=>String(code)),
+    present:value.present===true,
+    signature_valid:value.signature_valid===true,
+    current_valid:value.current_valid===true,
+    current_signature:String(value.current_signature??"")
+  });
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
@@ -945,10 +993,16 @@ export function dimensionAuditDownloadHistorySnapshot({
     verification_embedding_signature:dimensionAuditDownloadHistoryVerificationEmbeddingSignature(verificationEmbedding)
   };
   const attestation=dimensionAuditDownloadHistoryAttestation(verifiedEmbedding);
-  return freeze({
+  const attested={
     ...verifiedEmbedding,
     attestation,
     attestation_signature:dimensionAuditDownloadHistoryAttestationSignature(attestation)
+  };
+  const attestationEmbedding=dimensionAuditDownloadHistoryAttestationEmbedding(attested);
+  return freeze({
+    ...attested,
+    attestation_embedding:attestationEmbedding,
+    attestation_embedding_signature:dimensionAuditDownloadHistoryAttestationEmbeddingSignature(attestationEmbedding)
   });
 }
 
