@@ -663,6 +663,20 @@ export function dimensionAuditDownloadHistoryHealthEmbedding(snapshot={}){
   });
 }
 
+export function dimensionAuditDownloadHistoryHealthEmbeddingSignature(embedding=dimensionAuditDownloadHistoryHealthEmbedding()){
+  const value=embedding??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    valid:value.valid===true,
+    code:String(value.code??""),
+    errors:[...(value.errors??[])].map(code=>String(code)),
+    present:value.present===true,
+    signature_valid:value.signature_valid===true,
+    current_valid:value.current_valid===true,
+    current_signature:String(value.current_signature??"")
+  });
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
