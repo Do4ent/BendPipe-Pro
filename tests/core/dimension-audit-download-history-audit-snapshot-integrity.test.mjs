@@ -10,5 +10,5 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 554: audit download history snapshot exposes signature and validity",()=>{
   const fn=ui.match(/function dimensionAuditDownloadAttemptHistoryAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(fn,/snapshot_signature:dimensionAuditDownloadAttemptHistoryAuditSignature\(base\)/);
-  assert.match(fn,/valid:dimensionAuditDownloadAttemptHistoryAuditValid\(base\)/);
+  assert.match(fn,/valid:dimensionAuditDownloadAttemptHistoryAuditValid\(signed\)/);
 });
