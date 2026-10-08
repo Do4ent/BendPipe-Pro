@@ -11,5 +11,6 @@ test("question 445: Dimension Properties shows combined review blockers",()=>{
   assert.match(properties,/const reviewBlockers=\[/);
   assert.match(properties,/pendingReviewReasons\.map\(reason=>"REVIEW:"\+String\(reason\)\)/);
   assert.match(properties,/reviewDiagnosticsRuntime\?\.diagnostics\?\.errors\?\?\[\]\)\.map\(code=>"DIAGNOSTIC:"\+String\(code\)\)/);
-  assert.match(properties,/\["Review blockers",reviewBlockers\]/);
+  assert.match(properties,/blockers:canonicalReviewContext\?\.blockers\?\?reviewBlockers/);
+  assert.match(properties,/\["Review blockers",reviewDisplay\.blockers\]/);
 });
