@@ -11,6 +11,6 @@ test("question 692: audit history export readiness is signed and exposed",()=>{
   assert.match(ui,/function dimensionAuditDownloadHistoryExportReadinessSignature/);
   assert.match(ui,/snapshot_signature:String\(current\.snapshot_signature\?\?""\)/);
   assert.match(ui,/provenance_signature:dimensionAuditDownloadAttemptHistorySnapshotProvenanceSignature\(provenance\)/);
-  assert.match(ui,/data-history-export-signature="'\+esc\(auditDownloadHistoryExportReadinessSignature\)\+'"/);
+  assert.match(ui,/data-history-export-signature="'\+esc\(auditDownloadHistoryExportReadinessSnapshot\.signature\)\+'"/);
   assert.match(ui,/currentDimensionAuditDownloadHistoryExportReadinessSignature:\(\)=>dimensionAuditDownloadHistoryExportReadinessSignature\(\)/);
 });
