@@ -10,6 +10,7 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 486: Dimension audit download API validates snapshot schema",()=>{
   const fn=ui.match(/function downloadDimensionAuditJson\(filename,snapshot\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(fn,/const snapshotSchema=String\(snapshot\?\.schema\?\?""\)\.trim\(\)/);
-  assert.match(fn,/snapshotSchema\.startsWith\("TubeBender\."\)/);
+  assert.match(fn,/DIMENSION_AUDIT_DOWNLOAD_SCHEMAS\.includes\(snapshotSchema\)/);
+  assert.match(fn,/toast\("Неподдерживаемая schema Dimension audit snapshot"\)/);
   assert.match(fn,/return false/);
 });
