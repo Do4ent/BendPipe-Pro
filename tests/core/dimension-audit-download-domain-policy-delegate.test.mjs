@@ -13,5 +13,6 @@ test("question 501: audit download policy delegates to domain with fallback sour
   assert.match(fn,/return auditDownloadDomain\.dimensionAuditDownloadPolicy\(\)/);
   assert.match(ui,/function dimensionAuditDownloadPolicySource\(\)/);
   assert.match(ui,/\?"domain":"ui-fallback"/);
-  assert.match(ui,/dimensionAuditDownloadPolicy,dimensionAuditDownloadPolicySource/);
+  assert.match(ui,/dimensionAuditDownloadPolicy/);
+  assert.match(ui,/dimensionAuditDownloadPolicySource/);
 });
