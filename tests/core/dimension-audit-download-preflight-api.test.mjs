@@ -8,5 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 524: audit download preflight is exposed for QA",()=>{
-  assert.match(ui,/dimensionAuditDownloadRuntimeValidation,dimensionAuditDownloadPreflight,currentDimensionAuditDownloadProtocolSignature/);
+  assert.match(ui,/dimensionAuditDownloadRuntimeValidation/);
+  assert.match(ui,/dimensionAuditDownloadPreflight/);
+  assert.match(ui,/currentDimensionAuditDownloadProtocolSignature/);
 });
