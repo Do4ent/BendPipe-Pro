@@ -1110,6 +1110,10 @@ export function dimensionAuditDownloadHistoryExportReadinessSnapshotSignature(sn
   });
 }
 
+export function dimensionAuditDownloadHistoryExportReadinessSnapshotSignatureValid(signature,snapshot={}){
+  return String(signature??"")===dimensionAuditDownloadHistoryExportReadinessSnapshotSignature(snapshot);
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshot(state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=state??{};
   const signature=dimensionAuditDownloadHistoryExportReadinessStateSignature(value);
@@ -1163,7 +1167,10 @@ export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapsh
     &&String(value.history_snapshot_signature??"")===String(expected.history_snapshot_signature??"")
     &&String(value.provenance_signature??"")===String(expected.provenance_signature??"")
     &&String(value.signature??"")===String(expected.signature??"")
-    &&value.signature_valid===true;
+    &&value.signature_valid===true
+    &&String(value.snapshot_signature??"")===String(expected.snapshot_signature??"")
+    &&value.snapshot_signature_valid===true
+    &&dimensionAuditDownloadHistoryExportReadinessSnapshotSignatureValid(value.snapshot_signature,value);
 }
 
 export function dimensionAuditDownloadHistoryTrustSignature(trust=dimensionAuditDownloadHistoryTrust()){
