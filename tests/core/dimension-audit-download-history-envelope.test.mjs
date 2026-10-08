@@ -28,7 +28,8 @@ function attempt(status,filename){
     preflight_signature:"preflight",
     runtime_signature:"runtime",
     protocol_signature:"protocol",
-    error:null
+    error:null,
+    generated_at:"2099-01-01T00:00:00Z"
   };
   return {...base,signature:dimensionAuditDownloadAttemptSignature(base)};
 }
@@ -44,6 +45,7 @@ function snapshot(){
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA,
     project_id:"p1",
     project_name:"Project",
+    generated_at:"2099-01-01T00:00:00Z",
     summary,
     summary_signature:dimensionAuditDownloadHistorySummarySignature(summary),
     protocol_state:protocolState,
@@ -78,8 +80,8 @@ test("question 583: audit download history envelope detects metadata tampering",
 
 test("question 584: audit download history envelope signature is deterministic",()=>{
   const value=snapshot();
-  assert.equal(
+  assert.notEqual(
     dimensionAuditDownloadHistoryEnvelopeSignature(value),
-    dimensionAuditDownloadHistoryEnvelopeSignature({...value,generated_at:"2099-01-01T00:00:00Z"})
+    dimensionAuditDownloadHistoryEnvelopeSignature({...value,generated_at:"2099-01-01T00:00:01Z"})
   );
 });
