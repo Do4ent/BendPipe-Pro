@@ -422,6 +422,16 @@
         String(reason),
         reviewProgressSnapshot?.reason_selection?.[String(reason)]?.selection_coverage??null
       ]));
+      const reviewReasonProgress=Object.fromEntries(reviewReasons.map(reason=>{
+        const state=reviewProgressSnapshot?.reason_selection?.[String(reason)]??null;
+        return [String(reason),state?{
+          dimension_count:state.dimension_count,
+          selected_dimension_count:state.selected_dimension_count,
+          unselected_dimension_count:state.unselected_dimension_count,
+          selected_percent:state.selected_percent,
+          selection_coverage:state.selection_coverage
+        }:null];
+      }));
       const refs=(dimension?.references??[]).map((ref,index)=>({
         index,
         object_id:ref?.object_id,
@@ -458,6 +468,7 @@
           ["Progress status",reviewProgressSnapshot?.status],
           ["Progress complete %",reviewProgressSnapshot?.complete_percent],
           ["Dimension reason coverage",reviewReasonCoverage],
+          ["Dimension reason progress",reviewReasonProgress],
           ["Diagnostics source",reviewDiagnosticsRuntime?.source],
           ["Diagnostics domain status",reviewDiagnosticsRuntime?.domain_status],
           ["Diagnostics runtime valid",reviewDiagnosticsRuntime?.runtime_valid],
