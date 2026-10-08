@@ -16,6 +16,7 @@ export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_SCHEMA="TubeBender.Dimen
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_CODES=freeze([
   "OK",
   "INVALID_HISTORY_SCHEMA",
+  "INVALID_GENERATED_AT",
   "INVALID_ATTEMPT_COUNT",
   "INVALID_ATTEMPTS",
   "INVALID_SUMMARY",
@@ -315,6 +316,7 @@ export function dimensionAuditDownloadHistoryIntegrity(snapshot={}){
   const attempts=Array.isArray(value.attempts)?value.attempts:[];
   const summary=value.summary??{};
   const historySchemaValid=String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA;
+  const generatedAtValid=value.generated_at==null||!Number.isNaN(new Date(String(value.generated_at)).getTime());
   const attemptCountValid=Number(value.attempt_count??-1)===attempts.length;
   const attemptsValid=attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt));
   const summaryValid=dimensionAuditDownloadHistorySummaryValid(summary,attempts);
@@ -327,6 +329,7 @@ export function dimensionAuditDownloadHistoryIntegrity(snapshot={}){
   const snapshotSignatureValid=!signature||signature===dimensionAuditDownloadHistorySignature(value);
   const errors=[
     !historySchemaValid?"INVALID_HISTORY_SCHEMA":null,
+    !generatedAtValid?"INVALID_GENERATED_AT":null,
     !attemptCountValid?"INVALID_ATTEMPT_COUNT":null,
     !attemptsValid?"INVALID_ATTEMPTS":null,
     !summaryValid?"INVALID_SUMMARY":null,
@@ -341,6 +344,7 @@ export function dimensionAuditDownloadHistoryIntegrity(snapshot={}){
     code:errors[0]??"OK",
     errors,
     history_schema_valid:historySchemaValid,
+    generated_at_valid:generatedAtValid,
     attempt_count_valid:attemptCountValid,
     attempts_valid:attemptsValid,
     summary_valid:summaryValid,
@@ -359,6 +363,7 @@ export function dimensionAuditDownloadHistoryIntegritySignature(integrity={}){
     code:String(value.code??""),
     errors:[...(value.errors??[])].map(code=>String(code)),
     history_schema_valid:value.history_schema_valid===true,
+    generated_at_valid:value.generated_at_valid===true,
     attempt_count_valid:value.attempt_count_valid===true,
     attempts_valid:value.attempts_valid===true,
     summary_valid:value.summary_valid===true,
