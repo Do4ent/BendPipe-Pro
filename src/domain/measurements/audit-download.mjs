@@ -745,6 +745,17 @@ export function dimensionAuditDownloadHistoryVerificationSignature(verification=
   });
 }
 
+export function dimensionAuditDownloadHistoryEmbeddedVerificationValid(snapshot={}){
+  const value=snapshot??{};
+  const embedded=value.verification??null;
+  const signature=String(value.verification_signature??"");
+  if(!embedded||!signature)return false;
+  const embeddedValid=dimensionAuditDownloadHistoryVerificationSignature(embedded)===signature;
+  const current=dimensionAuditDownloadHistoryVerification(value);
+  const currentValid=dimensionAuditDownloadHistoryVerificationSignature(current)===signature;
+  return embeddedValid&&currentValid;
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
