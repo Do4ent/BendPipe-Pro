@@ -2712,6 +2712,7 @@
   async function copyDimensionAuditDownloadHistory(){
     const snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot();
     if(!snapshot.attempt_count){toast("Audit download history пуст");return false;}
+    if(snapshot.protocol_state?.valid!==true){toast("Audit download history protocol invalid");return false;}
     if(!snapshot.envelope_valid){toast("Audit download history integrity invalid");return false;}
     const text=JSON.stringify(snapshot,null,2);
     try{
@@ -2727,6 +2728,7 @@
   function downloadDimensionAuditDownloadHistory(){
     const snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot();
     if(!snapshot.attempt_count){toast("Audit download history пуст");return false;}
+    if(snapshot.protocol_state?.valid!==true){toast("Audit download history protocol invalid");return false;}
     if(!snapshot.envelope_valid){toast("Audit download history integrity invalid");return false;}
     const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
     const stem=name+"-dimension-audit-download-history-"+snapshot.attempt_count;
