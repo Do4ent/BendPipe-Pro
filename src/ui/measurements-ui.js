@@ -2081,6 +2081,11 @@
       toast("Некорректный Dimension audit snapshot");
       return false;
     }
+    const snapshotSchema=String(snapshot?.schema??"").trim();
+    if(!snapshotSchema.startsWith("TubeBender.")){
+      toast("Некорректная schema Dimension audit snapshot");
+      return false;
+    }
     try{
       const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:"application/json"});
       const url=URL.createObjectURL(blob);
