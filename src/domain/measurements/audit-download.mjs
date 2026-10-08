@@ -434,6 +434,16 @@ export function dimensionAuditDownloadHistoryProtocolState(){
   });
 }
 
+export function dimensionAuditDownloadHistoryProtocolStateSignature(state=dimensionAuditDownloadHistoryProtocolState()){
+  const value=state??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    valid:value.valid===true,
+    protocol_signature:String(value.protocol_signature??""),
+    validation_signature:String(value.validation_signature??"")
+  });
+}
+
 export function dimensionAuditDownloadHistoryEnvelopeSignature(snapshot={}){
   const value=snapshot??{};
   return JSON.stringify({
