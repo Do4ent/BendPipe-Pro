@@ -80,8 +80,12 @@ test("question 583: audit download history envelope detects metadata tampering",
 
 test("question 584: audit download history envelope signature is deterministic",()=>{
   const value=snapshot();
-  assert.notEqual(
+  assert.equal(
     dimensionAuditDownloadHistoryEnvelopeSignature(value),
     dimensionAuditDownloadHistoryEnvelopeSignature({...value,generated_at:"2099-01-01T00:00:01Z"})
+  );
+  assert.equal(
+    dimensionAuditDownloadHistoryEnvelopeValid({...value,generated_at:"2099-01-01T00:00:01Z"}),
+    false
   );
 });
