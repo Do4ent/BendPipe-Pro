@@ -343,6 +343,48 @@ export function dimensionAuditDownloadHistoryEnvelopeValid(snapshot={}){
     &&envelopeSignatureValid;
 }
 
+export function dimensionAuditDownloadHistorySnapshot({
+  project_id="",
+  project_name="",
+  generated_at=null,
+  attempts=[]
+}={}){
+  if(!Array.isArray(attempts))throw new TypeError("audit download history attempts must be an array");
+  const safeAttempts=attempts.map(attempt=>structuredClone(attempt));
+  const summary=dimensionAuditDownloadHistorySummary(safeAttempts);
+  const base={
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA,
+    project_id:String(project_id??""),
+    project_name:String(project_name??""),
+    ...(generated_at==null?{}:{generated_at:String(generated_at)}),
+    summary,
+    summary_signature:dimensionAuditDownloadHistorySummarySignature(summary),
+    attempt_count:safeAttempts.length,
+    attempts:safeAttempts
+  };
+  const signed={
+    ...base,
+    snapshot_signature:dimensionAuditDownloadHistorySignature(base)
+  };
+  const integrity=dimensionAuditDownloadHistoryIntegrity(signed);
+  const full={
+    ...signed,
+    attempts_valid:integrity.attempts_valid,
+    summary_valid:integrity.summary_valid,
+    integrity,
+    integrity_signature:dimensionAuditDownloadHistoryIntegritySignature(integrity),
+    valid:integrity.valid
+  };
+  const enveloped={
+    ...full,
+    envelope_signature:dimensionAuditDownloadHistoryEnvelopeSignature(full)
+  };
+  return freeze({
+    ...enveloped,
+    envelope_valid:dimensionAuditDownloadHistoryEnvelopeValid(enveloped)
+  });
+}
+
 export function dimensionAuditDownloadHistoryValid(snapshot={}){
   return dimensionAuditDownloadHistoryIntegrity(snapshot).valid;
 }
