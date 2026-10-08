@@ -409,6 +409,16 @@ export function dimensionAuditDownloadHistoryProtocolValidation(protocol=dimensi
   });
 }
 
+export function dimensionAuditDownloadHistoryProtocolValidationSignature(validation=dimensionAuditDownloadHistoryProtocolValidation()){
+  const value=validation??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    valid:value.valid===true,
+    code:String(value.code??""),
+    errors:[...(value.errors??[])].map(code=>String(code))
+  });
+}
+
 export function dimensionAuditDownloadHistoryEnvelopeSignature(snapshot={}){
   const value=snapshot??{};
   return JSON.stringify({
