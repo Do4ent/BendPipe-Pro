@@ -15,7 +15,7 @@ test("question 483: Dimension audit filename limits use one immutable policy",()
   assert.match(ui,/json_default_length:220/);
   assert.match(ui,/json_min_length:80/);
   assert.match(ui,/json_max_length:240/);
-  assert.match(ui,/safeFilename\.length>DIMENSION_AUDIT_FILENAME_POLICY\.json_max_length/);
+  assert.match(ui,/value\.length<=DIMENSION_AUDIT_FILENAME_POLICY\.json_max_length/);
   assert.match(ui,/maxLength=DIMENSION_AUDIT_FILENAME_POLICY\.part_default_length/);
   assert.match(ui,/maxLength=DIMENSION_AUDIT_FILENAME_POLICY\.json_default_length/);
 });
