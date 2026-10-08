@@ -12,5 +12,5 @@ test("question 821: history download records final download permit evidence",()=
   assert.match(fn,/export_action:"download"/);
   assert.match(fn,/action_permit_signature:exportActionPermitSignature/);
   assert.match(fn,/action_permit_snapshot_signature:exportActionPermitSnapshot\.snapshot_signature/);
-  assert.match(fn,/downloadDimensionAuditJson\(dimensionAuditJsonFilename\(stem,snapshot\.generated_at\),snapshot,\{/);
+  assert.match(fn,/downloadDimensionAuditJsonWithPermitEvidence\(dimensionAuditJsonFilename\(stem,snapshot\.generated_at\),snapshot,\{/);
 });
