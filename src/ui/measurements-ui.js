@@ -2098,8 +2098,10 @@
       history_schema:dimensionAuditDownloadHistorySchema(),
       summary_schema:"TubeBender.DimensionAuditDownloadAttemptHistorySummary.v1",
       integrity_schema:"TubeBender.DimensionAuditDownloadHistoryIntegrity.v1",
-      integrity_codes:["OK","INVALID_HISTORY_SCHEMA","INVALID_ATTEMPT_COUNT","INVALID_ATTEMPTS","INVALID_SUMMARY","INVALID_SUMMARY_SIGNATURE","INVALID_SNAPSHOT_SIGNATURE"],
-      envelope_schema:"TubeBender.DimensionAuditDownloadHistoryEnvelope.v1"
+      integrity_codes:["OK","INVALID_HISTORY_SCHEMA","INVALID_ATTEMPT_COUNT","INVALID_ATTEMPTS","INVALID_SUMMARY","INVALID_SUMMARY_SIGNATURE","INVALID_PROTOCOL_STATE","INVALID_PROTOCOL_STATE_SIGNATURE","INVALID_SNAPSHOT_SIGNATURE"],
+      envelope_schema:"TubeBender.DimensionAuditDownloadHistoryEnvelope.v1",
+      validation_schema:"TubeBender.DimensionAuditDownloadHistoryProtocolValidation.v1",
+      validation_codes:["OK","INVALID_PROTOCOL_SCHEMA","INVALID_ATTEMPT_SCHEMA","INVALID_HISTORY_SCHEMA","INVALID_SUMMARY_SCHEMA","INVALID_INTEGRITY_SCHEMA","INVALID_INTEGRITY_CODES","INVALID_ENVELOPE_SCHEMA","INVALID_PROTOCOL_VALIDATION_SCHEMA","INVALID_PROTOCOL_VALIDATION_CODES"]
     };
   }
   function dimensionAuditDownloadHistoryProtocolSignature(protocol=dimensionAuditDownloadHistoryProtocol()){
@@ -2114,7 +2116,9 @@
       summary_schema:String(value.summary_schema??""),
       integrity_schema:String(value.integrity_schema??""),
       integrity_codes:[...(value.integrity_codes??[])].map(code=>String(code)),
-      envelope_schema:String(value.envelope_schema??"")
+      envelope_schema:String(value.envelope_schema??""),
+      validation_schema:String(value.validation_schema??""),
+      validation_codes:[...(value.validation_codes??[])].map(code=>String(code))
     });
   }
 
@@ -2131,7 +2135,9 @@
       String(value.summary_schema??"")!==String(expected.summary_schema??"")?"INVALID_SUMMARY_SCHEMA":null,
       String(value.integrity_schema??"")!==String(expected.integrity_schema??"")?"INVALID_INTEGRITY_SCHEMA":null,
       JSON.stringify([...(value.integrity_codes??[])])!==JSON.stringify([...(expected.integrity_codes??[])])?"INVALID_INTEGRITY_CODES":null,
-      String(value.envelope_schema??"")!==String(expected.envelope_schema??"")?"INVALID_ENVELOPE_SCHEMA":null
+      String(value.envelope_schema??"")!==String(expected.envelope_schema??"")?"INVALID_ENVELOPE_SCHEMA":null,
+      String(value.validation_schema??"")!==String(expected.validation_schema??"")?"INVALID_PROTOCOL_VALIDATION_SCHEMA":null,
+      JSON.stringify([...(value.validation_codes??[])])!==JSON.stringify([...(expected.validation_codes??[])])?"INVALID_PROTOCOL_VALIDATION_CODES":null
     ].filter(Boolean);
     return {
       schema:"TubeBender.DimensionAuditDownloadHistoryProtocolValidation.v1",
