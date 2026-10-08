@@ -2062,6 +2062,8 @@
     return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
   }
 
+  const DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA="TubeBender.DimensionAuditDownloadValidation.v1";
+
   const DIMENSION_AUDIT_DOWNLOAD_VALIDATION_CODES=Object.freeze([
     "OK",
     "INVALID_FILENAME",
@@ -2114,16 +2116,16 @@
   function dimensionAuditDownloadValidation(filename,snapshot){
     const safeFilename=String(filename??"").trim();
     if(!dimensionAuditDownloadFilenameSupported(safeFilename)){
-      return {valid:false,code:"INVALID_FILENAME",filename:safeFilename,schema:null};
+      return {validation_schema:DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA,valid:false,code:"INVALID_FILENAME",filename:safeFilename,schema:null};
     }
     if(!dimensionAuditDownloadSnapshotShapeSupported(snapshot)){
-      return {valid:false,code:"INVALID_SNAPSHOT",filename:safeFilename,schema:null};
+      return {validation_schema:DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA,valid:false,code:"INVALID_SNAPSHOT",filename:safeFilename,schema:null};
     }
     const schema=String(snapshot?.schema??"").trim();
     if(!dimensionAuditDownloadSchemaSupported(schema)){
-      return {valid:false,code:"UNSUPPORTED_SCHEMA",filename:safeFilename,schema};
+      return {validation_schema:DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA,valid:false,code:"UNSUPPORTED_SCHEMA",filename:safeFilename,schema};
     }
-    return {valid:true,code:"OK",filename:safeFilename,schema};
+    return {validation_schema:DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA,valid:true,code:"OK",filename:safeFilename,schema};
   }
 
   function downloadDimensionAuditJson(filename,snapshot){
