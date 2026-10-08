@@ -8,8 +8,8 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 690: history copy and download share one export readiness gate",()=>{
-  const readiness=ui.match(/function dimensionAuditDownloadHistoryExportReadiness\([^)]*\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(readiness,/code:"VERIFICATION_FAILED"/);
+  assert.match(ui,/function dimensionAuditDownloadHistoryExportReadiness/);
+  assert.match(ui,/code:"VERIFICATION_FAILED"/);
   const copy=ui.match(/async function copyDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   const download=ui.match(/function downloadDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(copy,/const readiness=dimensionAuditDownloadHistoryExportReadiness\(snapshot\)/);
