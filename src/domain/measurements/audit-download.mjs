@@ -12,6 +12,16 @@ export const DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA="TubeBender.DimensionAud
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA="TubeBender.DimensionAuditDownloadHistory.v1";
 export const DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA="TubeBender.DimensionAuditDownloadAttempt.v1";
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_SUMMARY_SCHEMA="TubeBender.DimensionAuditDownloadAttemptHistorySummary.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_SCHEMA="TubeBender.DimensionAuditDownloadHistoryIntegrity.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_CODES=freeze([
+  "OK",
+  "INVALID_HISTORY_SCHEMA",
+  "INVALID_ATTEMPT_COUNT",
+  "INVALID_ATTEMPTS",
+  "INVALID_SUMMARY",
+  "INVALID_SUMMARY_SIGNATURE",
+  "INVALID_SNAPSHOT_SIGNATURE"
+]);
 export const DIMENSION_AUDIT_DOWNLOAD_VALIDATION_CODES=freeze([
   "OK",
   "INVALID_FILENAME",
@@ -231,16 +241,39 @@ export function dimensionAuditDownloadHistorySignature(snapshot={}){
   });
 }
 
-export function dimensionAuditDownloadHistoryValid(snapshot={}){
+export function dimensionAuditDownloadHistoryIntegrity(snapshot={}){
   const value=snapshot??{};
   const attempts=Array.isArray(value.attempts)?value.attempts:[];
   const summary=value.summary??{};
-  const baseValid=String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA
-    &&Number(value.attempt_count??-1)===attempts.length
-    &&attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt))
-    &&dimensionAuditDownloadHistorySummaryValid(summary,attempts)
-    &&String(value.summary_signature??"")===dimensionAuditDownloadHistorySummarySignature(summary);
-  if(!baseValid)return false;
+  const historySchemaValid=String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA;
+  const attemptCountValid=Number(value.attempt_count??-1)===attempts.length;
+  const attemptsValid=attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt));
+  const summaryValid=dimensionAuditDownloadHistorySummaryValid(summary,attempts);
+  const summarySignatureValid=String(value.summary_signature??"")===dimensionAuditDownloadHistorySummarySignature(summary);
   const signature=String(value.snapshot_signature??"");
-  return !signature||signature===dimensionAuditDownloadHistorySignature(value);
+  const snapshotSignatureValid=!signature||signature===dimensionAuditDownloadHistorySignature(value);
+  const errors=[
+    !historySchemaValid?"INVALID_HISTORY_SCHEMA":null,
+    !attemptCountValid?"INVALID_ATTEMPT_COUNT":null,
+    !attemptsValid?"INVALID_ATTEMPTS":null,
+    !summaryValid?"INVALID_SUMMARY":null,
+    !summarySignatureValid?"INVALID_SUMMARY_SIGNATURE":null,
+    !snapshotSignatureValid?"INVALID_SNAPSHOT_SIGNATURE":null
+  ].filter(Boolean);
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_SCHEMA,
+    valid:errors.length===0,
+    code:errors[0]??"OK",
+    errors,
+    history_schema_valid:historySchemaValid,
+    attempt_count_valid:attemptCountValid,
+    attempts_valid:attemptsValid,
+    summary_valid:summaryValid,
+    summary_signature_valid:summarySignatureValid,
+    snapshot_signature_valid:snapshotSignatureValid
+  });
+}
+
+export function dimensionAuditDownloadHistoryValid(snapshot={}){
+  return dimensionAuditDownloadHistoryIntegrity(snapshot).valid;
 }
