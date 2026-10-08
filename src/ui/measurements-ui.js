@@ -48,7 +48,7 @@
     try{
       const raw=sessionStorage.getItem(dimensionAuditViewStorageKey(projectId));if(!raw)return false;
       const state=JSON.parse(raw);
-      const filters=["all","selected","unselected","needs-review","stale","rebound","section-derived","exact","fitted","unknown-geometry","reference","driving","visible","hidden"];
+      const filters=["all","selected","unselected","needs-review","review-ready","review-pending","review-diagnostics-error","stale","rebound","section-derived","exact","fitted","unknown-geometry","reference","driving","visible","hidden"];
       if(filters.includes(String(state?.filter)))dimensionManagerFilter=String(state.filter);
       if(["project","audit"].includes(String(state?.sort)))dimensionManagerSort=String(state.sort);
       dimensionManagerSearch=String(state?.search??"");
@@ -2236,6 +2236,15 @@
     else if(dimensionManagerFilter==="fitted")result=items.filter(dimension=>dimensionAuditGeometryClass(dimension)==="Fitted");
     else if(dimensionManagerFilter==="unknown-geometry")result=items.filter(dimension=>dimensionAuditGeometryClass(dimension)==="Unknown");
     else if(dimensionManagerFilter==="needs-review")result=items.filter(dimensionAuditNeedsReview);
+    else if(["review-ready","review-pending","review-diagnostics-error"].includes(dimensionManagerFilter)){
+      const reviewContextState=dimensionReviewContextState(items,selectedDimensionAuditIds());
+      const targetHealth={
+        "review-ready":"ready",
+        "review-pending":"pending",
+        "review-diagnostics-error":"diagnostics-error"
+      }[dimensionManagerFilter];
+      result=items.filter(dimension=>dimensionReviewContext(dimension,reviewContextState).health===targetHealth);
+    }
     const search=String(dimensionManagerSearch??"").trim().toLowerCase();
     if(search)result=result.filter(dimension=>dimensionSearchText(dimension).includes(search));
     if(dimensionManagerSort!=="audit")return result;
@@ -2412,7 +2421,7 @@
         '</div></div>';
     }).join("")||'<div class="tb-measure-result" style="margin-top:7px"><div class="tb-measure-note">Нет размеров для выбранного audit-фильтра.</div></div>';
     const filters='<div class="tb-measure-actions" data-dimension-audit-filters>'+
-      ['all','selected','unselected','needs-review','stale','rebound','section-derived','exact','fitted','unknown-geometry','reference','driving','visible','hidden'].map(name=>'<button data-dimension-filter="'+name+'" '+(dimensionManagerFilter===name?'disabled':'')+'>'+({all:'All',selected:'Selected',unselected:'Unselected','needs-review':'Needs review',stale:'Stale',rebound:'Rebound','section-derived':'Section-derived',exact:'Exact',fitted:'Fitted','unknown-geometry':'Unknown geometry',reference:'Reference',driving:'Driving',visible:'Visible',hidden:'Hidden'}[name])+'</button>').join('')+
+      ['all','selected','unselected','needs-review','review-ready','review-pending','review-diagnostics-error','stale','rebound','section-derived','exact','fitted','unknown-geometry','reference','driving','visible','hidden'].map(name=>'<button data-dimension-filter="'+name+'" '+(dimensionManagerFilter===name?'disabled':'')+'>'+({all:'All',selected:'Selected',unselected:'Unselected','needs-review':'Needs review','review-ready':'Review ready','review-pending':'Review pending','review-diagnostics-error':'Review diagnostics error',stale:'Stale',rebound:'Rebound','section-derived':'Section-derived',exact:'Exact',fitted:'Fitted','unknown-geometry':'Unknown geometry',reference:'Reference',driving:'Driving',visible:'Visible',hidden:'Hidden'}[name])+'</button>').join('')+
       '</div>'+
       '<div class="tb-measure-actions" data-dimension-audit-sort>'+
       '<button data-dimension-sort="project" '+(dimensionManagerSort==="project"?'disabled':'')+'>Project order</button>'+
