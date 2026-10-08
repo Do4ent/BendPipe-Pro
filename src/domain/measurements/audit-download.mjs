@@ -1015,6 +1015,11 @@ export function dimensionAuditDownloadHistoryExportReadinessProtocolValid(protoc
   return value.codes.every((code,index)=>String(code)===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_CODES[index]);
 }
 
+export function dimensionAuditDownloadHistoryExportReadinessProtocolSignatureValid(signature,protocol=dimensionAuditDownloadHistoryExportReadinessProtocol()){
+  return dimensionAuditDownloadHistoryExportReadinessProtocolValid(protocol)
+    &&String(signature??"")===dimensionAuditDownloadHistoryExportReadinessProtocolSignature(protocol);
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessState({
   attempt_count=0,
   verification_valid=false,
