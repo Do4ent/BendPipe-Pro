@@ -3687,10 +3687,9 @@
     const exportState=dimensionAuditDownloadHistoryExportReadinessSnapshot(snapshot);
     const exportGate=dimensionAuditDownloadHistoryExportGate(exportState,snapshot);
     const exportGateSnapshot=dimensionAuditDownloadHistoryExportGateSnapshot(exportGate);
-    const exportGateSnapshotValid=dimensionAuditDownloadHistoryExportGateSnapshotValid(exportGateSnapshot);
-    if(!exportGateSnapshotValid||!exportGate.allowed){
-      const blockCode=!exportGateSnapshotValid?"INVALID_GATE_SNAPSHOT":exportGate.code;
-      toast(blockCode==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+blockCode);
+    const exportDecision=dimensionAuditDownloadHistoryExportDecision(exportGateSnapshot);
+    if(!exportDecision.allowed){
+      toast(exportDecision.code==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+exportDecision.code);
       return false;
     }
     const text=JSON.stringify(snapshot,null,2);
@@ -3709,10 +3708,9 @@
     const exportState=dimensionAuditDownloadHistoryExportReadinessSnapshot(snapshot);
     const exportGate=dimensionAuditDownloadHistoryExportGate(exportState,snapshot);
     const exportGateSnapshot=dimensionAuditDownloadHistoryExportGateSnapshot(exportGate);
-    const exportGateSnapshotValid=dimensionAuditDownloadHistoryExportGateSnapshotValid(exportGateSnapshot);
-    if(!exportGateSnapshotValid||!exportGate.allowed){
-      const blockCode=!exportGateSnapshotValid?"INVALID_GATE_SNAPSHOT":exportGate.code;
-      toast(blockCode==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+blockCode);
+    const exportDecision=dimensionAuditDownloadHistoryExportDecision(exportGateSnapshot);
+    if(!exportDecision.allowed){
+      toast(exportDecision.code==="EMPTY"?"Audit download history пуст":"Audit download history export blocked: "+exportDecision.code);
       return false;
     }
     const name=dimensionAuditFilenamePart(snapshot.project_name||snapshot.project_id,"project");
