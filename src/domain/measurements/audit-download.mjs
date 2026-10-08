@@ -419,6 +419,21 @@ export function dimensionAuditDownloadHistoryProtocolValidationSignature(validat
   });
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_STATE_SCHEMA="TubeBender.DimensionAuditDownloadHistoryProtocolState.v1";
+
+export function dimensionAuditDownloadHistoryProtocolState(){
+  const protocol=dimensionAuditDownloadHistoryProtocol();
+  const validation=dimensionAuditDownloadHistoryProtocolValidation(protocol);
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_STATE_SCHEMA,
+    valid:validation.valid===true,
+    protocol,
+    protocol_signature:dimensionAuditDownloadHistoryProtocolSignature(protocol),
+    validation,
+    validation_signature:dimensionAuditDownloadHistoryProtocolValidationSignature(validation)
+  });
+}
+
 export function dimensionAuditDownloadHistoryEnvelopeSignature(snapshot={}){
   const value=snapshot??{};
   return JSON.stringify({
