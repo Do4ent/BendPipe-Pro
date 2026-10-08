@@ -2547,6 +2547,7 @@
       project_id:String(value.project_id??""),
       project_name:String(value.project_name??""),
       summary_signature:String(value.summary_signature??""),
+      protocol_state_signature:String(value.protocol_state_signature??""),
       attempt_count:Number(value.attempt_count??0),
       attempt_signatures:attempts.map(attempt=>String(attempt?.signature??""))
     });
@@ -2563,6 +2564,12 @@
     const attemptsValid=attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt));
     const summaryValid=dimensionAuditDownloadAttemptHistorySummaryValid(summary,attempts);
     const summarySignatureValid=String(value.summary_signature??"")===dimensionAuditDownloadAttemptHistorySummarySignature(summary);
+    const protocolState=value.protocol_state??null;
+    const protocolStateValid=!!protocolState
+      &&protocolState.valid===true
+      &&dimensionAuditDownloadHistoryProtocolStateSignature(protocolState)===String(value.protocol_state_signature??"");
+    const protocolStateSignatureValid=!!protocolState
+      &&String(value.protocol_state_signature??"")===dimensionAuditDownloadHistoryProtocolStateSignature(protocolState);
     const signature=String(value.snapshot_signature??"");
     const snapshotSignatureValid=!signature||signature===dimensionAuditDownloadAttemptHistoryAuditSignature(value);
     const errors=[
@@ -2571,6 +2578,8 @@
       !attemptsValid?"INVALID_ATTEMPTS":null,
       !summaryValid?"INVALID_SUMMARY":null,
       !summarySignatureValid?"INVALID_SUMMARY_SIGNATURE":null,
+      !protocolStateValid?"INVALID_PROTOCOL_STATE":null,
+      !protocolStateSignatureValid?"INVALID_PROTOCOL_STATE_SIGNATURE":null,
       !snapshotSignatureValid?"INVALID_SNAPSHOT_SIGNATURE":null
     ].filter(Boolean);
     return {
@@ -2583,6 +2592,8 @@
       attempts_valid:attemptsValid,
       summary_valid:summaryValid,
       summary_signature_valid:summarySignatureValid,
+      protocol_state_valid:protocolStateValid,
+      protocol_state_signature_valid:protocolStateSignatureValid,
       snapshot_signature_valid:snapshotSignatureValid
     };
   }
@@ -2602,6 +2613,8 @@
       attempts_valid:value.attempts_valid===true,
       summary_valid:value.summary_valid===true,
       summary_signature_valid:value.summary_signature_valid===true,
+      protocol_state_valid:value.protocol_state_valid===true,
+      protocol_state_signature_valid:value.protocol_state_signature_valid===true,
       snapshot_signature_valid:value.snapshot_signature_valid===true
     });
   }
@@ -2661,11 +2674,14 @@
       }));
     }
     const summary=dimensionAuditDownloadAttemptHistorySummary();
+    const protocolState=dimensionAuditDownloadHistoryProtocolState();
     const base={
       schema:dimensionAuditDownloadHistorySchema(),
       ...dimensionAuditProjectContext(),
       summary,
       summary_signature:dimensionAuditDownloadAttemptHistorySummarySignature(summary),
+      protocol_state:protocolState,
+      protocol_state_signature:dimensionAuditDownloadHistoryProtocolStateSignature(protocolState),
       attempt_count:attempts.length,
       attempts
     };
