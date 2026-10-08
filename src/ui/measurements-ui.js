@@ -2083,6 +2083,15 @@
     const clipped=safe.slice(0,limit).replace(/[_\-.]+$/g,"");
     return clipped||String(fallback).slice(0,limit);
   }
+  function dimensionAuditJsonFilename(stem,generatedAt,maxLength=220){
+    const limit=Math.max(80,Math.min(240,Math.trunc(Number(maxLength)||220)));
+    const stamp=dimensionAuditFilenameStamp(new Date(generatedAt));
+    const suffix="-"+stamp+".json";
+    const budget=Math.max(16,limit-suffix.length);
+    const safeStem=String(stem??"dimension-audit").slice(0,budget).replace(/[_\-.]+$/g,"")||"dimension-audit";
+    return safeStem+suffix;
+  }
+
   function downloadSelectedDimensionAudits(){
     const snapshot=selectedDimensionAuditSnapshot();
     if(!snapshot.dimension_count){toast("Нет выбранных Dimension для audit-export");return false;}
@@ -2113,7 +2122,8 @@
     const searchName=searchValue?"-search-"+dimensionAuditFilenamePart(searchValue,"query",40):"";
     const focusValue=String(snapshot?.view?.focus_id??"").trim();
     const focusName=focusValue?"-focus-"+dimensionAuditFilenamePart(focusValue,"dimension",40):"";
-    return downloadDimensionAuditJson(name+"-dimension-audit-view-"+filterName+"-"+sortName+searchName+focusName+"-"+snapshot.dimension_count+"-"+dimensionAuditFilenameStamp(new Date(snapshot.generated_at))+".json",snapshot);
+    const stem=name+"-dimension-audit-view-"+filterName+"-"+sortName+searchName+focusName+"-"+snapshot.dimension_count;
+    return downloadDimensionAuditJson(dimensionAuditJsonFilename(stem,snapshot.generated_at),snapshot);
   }
   function downloadAllDimensionAudits(){
     const snapshot=allDimensionAuditSnapshot();
