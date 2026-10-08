@@ -10,7 +10,7 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 505: Dimension audit download runtime state is exposed",()=>{
   assert.match(ui,/function dimensionAuditDownloadRuntimeState\(\)/);
   assert.match(ui,/source:dimensionAuditDownloadPolicySource\(\)/);
-  assert.match(ui,/consistent:dimensionAuditDownloadPolicyConsistent\(\)/);
+  assert.match(ui,/consistent:policyConsistent/);
   assert.match(ui,/policy_schema:String\(policy\?\.schema\?\?""\)/);
   assert.match(ui,/validation_schema:String\(policy\?\.validation_schema\?\?""\)/);
   assert.match(ui,/dimensionAuditDownloadRuntimeState/);
