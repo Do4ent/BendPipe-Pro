@@ -1030,6 +1030,10 @@ export function dimensionAuditDownloadHistoryExportReadinessStateSignature(state
   });
 }
 
+export function dimensionAuditDownloadHistoryExportReadinessStateSignatureValid(signature,state=dimensionAuditDownloadHistoryExportReadinessState()){
+  return String(signature??"")===dimensionAuditDownloadHistoryExportReadinessStateSignature(state);
+}
+
 export function dimensionAuditDownloadHistoryTrustSignature(trust=dimensionAuditDownloadHistoryTrust()){
   const value=trust??{};
   return JSON.stringify({
