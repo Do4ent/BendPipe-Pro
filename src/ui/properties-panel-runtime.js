@@ -462,6 +462,10 @@
         health:canonicalReviewContext?.health??reviewContextHealth,
         action_required:canonicalReviewContext?.action_required??reviewActionRequired,
         complete_percent:canonicalReviewContext?.complete_percent??dimensionReviewCompletePercent,
+        reason_coverage:canonicalReviewContext?.reason_coverage??reviewReasonCoverage,
+        reason_progress:canonicalReviewContext?.reason_progress??reviewReasonProgress,
+        completed_reasons:canonicalReviewContext?.completed_reasons??completedReviewReasons,
+        pending_reasons:canonicalReviewContext?.pending_reasons??pendingReviewReasons,
         blockers:canonicalReviewContext?.blockers??reviewBlockers
       };
       const refs=(dimension?.references??[]).map((ref,index)=>({
@@ -511,10 +515,10 @@
           ["Review blockers",reviewDisplay.blockers],
           ["Progress status",reviewProgressSnapshot?.status],
           ["Progress complete %",reviewProgressSnapshot?.complete_percent],
-          ["Dimension reason coverage",reviewReasonCoverage],
-          ["Dimension reason progress",reviewReasonProgress],
-          ["Completed review reasons",completedReviewReasons],
-          ["Pending review reasons",pendingReviewReasons],
+          ["Dimension reason coverage",reviewDisplay.reason_coverage],
+          ["Dimension reason progress",reviewDisplay.reason_progress],
+          ["Completed review reasons",reviewDisplay.completed_reasons],
+          ["Pending review reasons",reviewDisplay.pending_reasons],
           ["Diagnostics source",reviewDiagnosticsRuntime?.source],
           ["Diagnostics schema",reviewDiagnosticsRuntime?.snapshot?.schema],
           ["Diagnostics signature",reviewDiagnosticsRuntime?.signature],
