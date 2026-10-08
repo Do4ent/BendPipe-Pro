@@ -456,6 +456,11 @@
           ["Diagnostics source",reviewDiagnosticsRuntime?.source],
           ["Diagnostics domain status",reviewDiagnosticsRuntime?.domain_status],
           ["Diagnostics runtime valid",reviewDiagnosticsRuntime?.runtime_valid],
+          ["Diagnostics status",reviewDiagnosticsRuntime?.diagnostics?.status],
+          ["Diagnostics issue count",reviewDiagnosticsRuntime?.diagnostics?.issue_count],
+          ["Diagnostics primary error",reviewDiagnosticsRuntime?.diagnostics?.primary_error],
+          ["Diagnostics errors",reviewDiagnosticsRuntime?.diagnostics?.errors??[]],
+          ["Diagnostics snapshot signature consistent",reviewDiagnosticsRuntime?.snapshot_signature_consistent],
           ["Diagnostics integrity valid",reviewDiagnosticsIntegrityState?.integrity?.valid],
           ["Diagnostics parity",reviewDiagnosticsIntegrityState?.parity?.available===true?reviewDiagnosticsIntegrityState?.parity?.consistent:null]
         ]},
