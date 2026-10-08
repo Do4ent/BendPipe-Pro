@@ -10,6 +10,7 @@ function freeze(value){
 export const DIMENSION_AUDIT_DOWNLOAD_POLICY_SCHEMA="TubeBender.DimensionAuditDownloadPolicy.v1";
 export const DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA="TubeBender.DimensionAuditDownloadValidation.v1";
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA="TubeBender.DimensionAuditDownloadHistory.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA="TubeBender.DimensionAuditDownloadAttempt.v1";
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_SUMMARY_SCHEMA="TubeBender.DimensionAuditDownloadAttemptHistorySummary.v1";
 export const DIMENSION_AUDIT_DOWNLOAD_VALIDATION_CODES=freeze([
   "OK",
@@ -163,6 +164,31 @@ export function dimensionAuditDownloadProtocolSignature(state=dimensionAuditDown
 }
 
 
+export function dimensionAuditDownloadAttemptSignature(attempt={}){
+  const value=attempt??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    status:String(value.status??""),
+    filename:String(value.filename??""),
+    snapshot_schema:value.snapshot_schema==null?null:String(value.snapshot_schema),
+    code:String(value.code??""),
+    preflight_signature:String(value.preflight_signature??""),
+    runtime_signature:String(value.runtime_signature??""),
+    protocol_signature:String(value.protocol_signature??""),
+    error:value.error==null?null:String(value.error)
+  });
+}
+
+export function dimensionAuditDownloadAttemptValid(attempt={}){
+  const value=attempt??{};
+  const status=String(value.status??"");
+  const signature=String(value.signature??"");
+  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA
+    &&["blocked","downloaded","failed"].includes(status)
+    &&!!signature
+    &&signature===dimensionAuditDownloadAttemptSignature(value);
+}
+
 export function dimensionAuditDownloadHistorySummaryValid(summary={},attempts=[]){
   if(!Array.isArray(attempts))return false;
   const value=summary??{};
@@ -211,6 +237,7 @@ export function dimensionAuditDownloadHistoryValid(snapshot={}){
   const summary=value.summary??{};
   const baseValid=String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA
     &&Number(value.attempt_count??-1)===attempts.length
+    &&attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt))
     &&dimensionAuditDownloadHistorySummaryValid(summary,attempts)
     &&String(value.summary_signature??"")===dimensionAuditDownloadHistorySummarySignature(summary);
   if(!baseValid)return false;
