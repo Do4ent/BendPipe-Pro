@@ -519,6 +519,19 @@ export function dimensionAuditDownloadHistoryProtocolBinding(snapshot={}){
   });
 }
 
+export function dimensionAuditDownloadHistoryProtocolBindingSignature(binding=dimensionAuditDownloadHistoryProtocolBinding()){
+  const value=binding??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    valid:value.valid===true,
+    code:String(value.code??""),
+    errors:[...(value.errors??[])].map(code=>String(code)),
+    state_present:value.state_present===true,
+    state_valid:value.state_valid===true,
+    signature_valid:value.signature_valid===true
+  });
+}
+
 export function dimensionAuditDownloadHistoryEnvelopeSignature(snapshot={}){
   const value=snapshot??{};
   return JSON.stringify({
