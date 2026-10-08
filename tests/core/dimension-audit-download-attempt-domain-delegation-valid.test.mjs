@@ -11,6 +11,6 @@ test("question 572: audit download attempt validity delegates to domain and gate
   const fn=ui.match(/function dimensionAuditDownloadAttemptValid\(attempt\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(fn,/auditDownloadDomain\?\.dimensionAuditDownloadAttemptValid/);
   assert.match(fn,/signature===dimensionAuditDownloadAttemptSignature\(value\)/);
-  const history=ui.match(/function dimensionAuditDownloadAttemptHistoryAuditValid\(snapshot\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(history,/attempts\.every\(attempt=>dimensionAuditDownloadAttemptValid\(attempt\)\)/);
+  const integrity=ui.match(/function dimensionAuditDownloadAttemptHistoryIntegrity\(snapshot\)\{([\s\S]*?)\n  \}/)?.[1]??"";
+  assert.match(integrity,/const attemptsValid=attempts\.every\(attempt=>dimensionAuditDownloadAttemptValid\(attempt\)\)/);
 });
