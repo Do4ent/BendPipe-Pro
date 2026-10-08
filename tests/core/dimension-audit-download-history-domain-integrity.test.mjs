@@ -4,6 +4,8 @@ import {
   DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA,
   dimensionAuditDownloadAttemptSignature,
   dimensionAuditDownloadHistorySummarySignature,
+  dimensionAuditDownloadHistoryProtocolState,
+  dimensionAuditDownloadHistoryProtocolStateSignature,
   dimensionAuditDownloadHistorySignature,
   dimensionAuditDownloadHistoryValid
 } from "../../src/domain/measurements/audit-download.mjs";
@@ -32,12 +34,15 @@ test("question 558: audit download history integrity is validated by pure domain
   ];
   summary.latest_signature=attempts[1].signature;
   const normalizedSummarySignature=dimensionAuditDownloadHistorySummarySignature(summary);
+  const protocolState=dimensionAuditDownloadHistoryProtocolState();
   const snapshot={
     schema:"TubeBender.DimensionAuditDownloadHistory.v1",
     project_id:"p1",
     project_name:"Project",
     summary,
     summary_signature:normalizedSummarySignature,
+    protocol_state:protocolState,
+    protocol_state_signature:dimensionAuditDownloadHistoryProtocolStateSignature(protocolState),
     attempt_count:2,
     attempts
   };
