@@ -1486,6 +1486,37 @@ export function dimensionAuditDownloadHistoryExportChain(state=dimensionAuditDow
   });
 }
 
+export function dimensionAuditDownloadHistoryExportChainValid(chain=dimensionAuditDownloadHistoryExportChain()){
+  const value=chain??{};
+  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_CHAIN_SCHEMA)return false;
+  if(!dimensionAuditDownloadHistoryExportReadinessStateValid(value.readiness_state))return false;
+  if(!dimensionAuditDownloadHistoryExportReadinessSnapshotValid(value.readiness_snapshot,value.readiness_state))return false;
+  if(!dimensionAuditDownloadHistoryExportGateSnapshotValid(value.gate_snapshot))return false;
+  if(!dimensionAuditDownloadHistoryExportDecisionSnapshotValid(value.decision_snapshot))return false;
+  if(!dimensionAuditDownloadHistoryExportAuthorizationSnapshotValid(value.authorization_snapshot))return false;
+  const authorization=value.authorization_snapshot?.authorization??{};
+  if((value.allowed===true)!==(authorization.allowed===true))return false;
+  return String(value.code??"")===String(authorization.code??"");
+}
+
+export function dimensionAuditDownloadHistoryExportChainSignature(chain=dimensionAuditDownloadHistoryExportChain()){
+  const value=chain??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    readiness_signature:String(value.readiness_snapshot?.snapshot_signature??""),
+    gate_signature:String(value.gate_snapshot?.snapshot_signature??""),
+    decision_signature:String(value.decision_snapshot?.snapshot_signature??""),
+    authorization_signature:String(value.authorization_snapshot?.snapshot_signature??""),
+    allowed:value.allowed===true,
+    code:String(value.code??"")
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportChainSignatureValid(signature,chain=dimensionAuditDownloadHistoryExportChain()){
+  return dimensionAuditDownloadHistoryExportChainValid(chain)
+    &&String(signature??"")===dimensionAuditDownloadHistoryExportChainSignature(chain);
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
