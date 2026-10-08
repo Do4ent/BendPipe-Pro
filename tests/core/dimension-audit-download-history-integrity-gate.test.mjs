@@ -8,8 +8,9 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 555: audit download history export fails closed on invalid integrity",()=>{
-  const copy=ui.match(/async function copyDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  const download=ui.match(/function downloadDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(copy,/if\(!health\.valid\)\{toast\("Audit download history health invalid: "\+health\.code\);return false;\}/);
-  assert.match(download,/if\(!health\.valid\)\{toast\("Audit download history health invalid: "\+health\.code\);return false;\}/);
+  const verification=ui.match(/function dimensionAuditDownloadHistoryVerification\(snapshot=\{\}\)\{([\s\S]*?)\n  \}/)?.[1]??"";
+  assert.match(verification,/const integrity=dimensionAuditDownloadAttemptHistoryIntegrity\(value\)/);
+  assert.match(verification,/!integrity\.valid\?"INVALID_INTEGRITY":null/);
+  const gate=/if\(!verification\.valid\)\{toast\("Audit download history verification failed: "\+verification\.code\);return false;\}/g;
+  assert.equal((ui.match(gate)??[]).length,2);
 });
