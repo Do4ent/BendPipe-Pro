@@ -3968,7 +3968,7 @@
     const auditDownloadHistoryExportGateSignatureValid=dimensionAuditDownloadHistoryExportGateSignatureValid(auditDownloadHistoryExportGateSignature,auditDownloadHistoryExportGate);
     const auditDownloadHistoryExportGateSnapshot=dimensionAuditDownloadHistoryExportGateSnapshot(auditDownloadHistoryExportGate);
     const auditDownloadHistoryExportGateSnapshotValid=dimensionAuditDownloadHistoryExportGateSnapshotValid(auditDownloadHistoryExportGateSnapshot);
-    const auditDownloadHistoryExportReady=auditDownloadHistoryExportReadinessSnapshot.ready&&auditDownloadHistoryExportReadinessSnapshotValid;
+    const auditDownloadHistoryExportReady=auditDownloadHistoryExportGateSnapshotValid&&auditDownloadHistoryExportGate.allowed;
     const lastAuditDownloadAttempt=dimensionAuditDownloadLastAttempt();
     const managerReviewContextState=dimensionReviewContextState(items,selectedDimensionAuditIds());
     const managerReviewContextSummary=dimensionReviewContextSummary(items,managerReviewContextState);
