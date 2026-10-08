@@ -9,5 +9,6 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 240: filtered audit filename includes active filter and Dimension count",()=>{
   assert.match(ui,/const filterName=dimensionAuditFilenamePart\(snapshot\?\.view\?\.filter,"all"\)/);
-  assert.match(ui,/dimension-audit-view-"\+filterName\+"-"\+snapshot\.dimension_count\+"-"/);
+  assert.match(ui,/const sortName=dimensionAuditFilenamePart\(snapshot\?\.view\?\.sort,"project"\)/);
+  assert.match(ui,/dimension-audit-view-"\+filterName\+"-"\+sortName\+"-"\+snapshot\.dimension_count\+"-"/);
 });
