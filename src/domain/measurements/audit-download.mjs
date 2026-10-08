@@ -206,6 +206,9 @@ export function buildDimensionAuditDownloadAttempt({
   }
   const timestamp=new Date(generated_at);
   if(Number.isNaN(timestamp.getTime()))throw new TypeError("audit download attempt generated_at must be a valid timestamp");
+  const safeError=error==null?null:String(error);
+  if(safeStatus==="failed"&&!safeError)throw new TypeError("failed audit download attempt must include error");
+  if(safeStatus!=="failed"&&safeError!==null)throw new TypeError("non-failed audit download attempt cannot include error");
   const base={
     schema:DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA,
     status:safeStatus,
@@ -215,7 +218,7 @@ export function buildDimensionAuditDownloadAttempt({
     preflight_signature:String(preflight_signature??""),
     runtime_signature:String(runtime_signature??""),
     protocol_signature:String(protocol_signature??""),
-    error:error==null?null:String(error)
+    error:safeError
   };
   return freeze({
     ...base,
