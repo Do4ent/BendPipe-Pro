@@ -2903,10 +2903,16 @@
       envelope_valid:dimensionAuditDownloadAttemptHistoryEnvelopeValid(enveloped)
     };
     const health=dimensionAuditDownloadHistoryHealth(checked);
-    return {
+    const withHealth={
       ...checked,
       health,
       health_signature:dimensionAuditDownloadHistoryHealthSignature(health)
+    };
+    const healthEmbedding=dimensionAuditDownloadHistoryHealthEmbedding(withHealth);
+    return {
+      ...withHealth,
+      health_embedding:healthEmbedding,
+      health_embedding_signature:dimensionAuditDownloadHistoryHealthEmbeddingSignature(healthEmbedding)
     };
   }
 
