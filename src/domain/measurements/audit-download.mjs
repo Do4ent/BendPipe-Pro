@@ -10,6 +10,7 @@ function freeze(value){
 export const DIMENSION_AUDIT_DOWNLOAD_POLICY_SCHEMA="TubeBender.DimensionAuditDownloadPolicy.v1";
 export const DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA="TubeBender.DimensionAuditDownloadValidation.v1";
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA="TubeBender.DimensionAuditDownloadHistory.v1";
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_SUMMARY_SCHEMA="TubeBender.DimensionAuditDownloadAttemptHistorySummary.v1";
 export const DIMENSION_AUDIT_DOWNLOAD_VALIDATION_CODES=freeze([
   "OK",
   "INVALID_FILENAME",
@@ -162,6 +163,23 @@ export function dimensionAuditDownloadProtocolSignature(state=dimensionAuditDown
 }
 
 
+export function dimensionAuditDownloadHistorySummaryValid(summary={},attempts=[]){
+  if(!Array.isArray(attempts))return false;
+  const value=summary??{};
+  const counts={blocked:0,downloaded:0,failed:0};
+  for(const attempt of attempts){
+    const status=String(attempt?.status??"");
+    if(!Object.prototype.hasOwnProperty.call(counts,status))return false;
+    counts[status]++;
+  }
+  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_SUMMARY_SCHEMA
+    &&Number(value.total??-1)===attempts.length
+    &&Number(value.blocked??-1)===counts.blocked
+    &&Number(value.downloaded??-1)===counts.downloaded
+    &&Number(value.failed??-1)===counts.failed
+    &&String(value.latest_signature??"")===String(attempts.at(-1)?.signature??"");
+}
+
 export function dimensionAuditDownloadHistorySummarySignature(summary={}){
   const value=summary??{};
   return JSON.stringify({
@@ -193,7 +211,7 @@ export function dimensionAuditDownloadHistoryValid(snapshot={}){
   const summary=value.summary??{};
   const baseValid=String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA
     &&Number(value.attempt_count??-1)===attempts.length
-    &&Number(summary.total??-1)===attempts.length
+    &&dimensionAuditDownloadHistorySummaryValid(summary,attempts)
     &&String(value.summary_signature??"")===dimensionAuditDownloadHistorySummarySignature(summary);
   if(!baseValid)return false;
   const signature=String(value.snapshot_signature??"");
