@@ -10,6 +10,8 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 587: copy and download require valid audit history envelope",()=>{
   const copy=ui.match(/async function copyDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   const download=ui.match(/function downloadDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(copy,/if\(!snapshot\.envelope_valid\)/);
-  assert.match(download,/if\(!snapshot\.envelope_valid\)/);
+  assert.match(copy,/const health=dimensionAuditDownloadHistoryHealth\(snapshot\)/);
+  assert.match(copy,/if\(!health\.valid\)/);
+  assert.match(download,/const health=dimensionAuditDownloadHistoryHealth\(snapshot\)/);
+  assert.match(download,/if\(!health\.valid\)/);
 });
