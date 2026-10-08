@@ -1118,6 +1118,12 @@ export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapsh
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
   return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA
+    &&dimensionAuditDownloadHistoryExportReadinessProtocolValid(value.protocol)
+    &&dimensionAuditDownloadHistoryExportReadinessProtocolSignatureValid(value.protocol_signature,value.protocol)
+    &&value.protocol_valid===true
+    &&value.protocol_signature_valid===true
+    &&dimensionAuditDownloadHistoryExportReadinessProtocolSignature(value.protocol)===dimensionAuditDownloadHistoryExportReadinessProtocolSignature(expected.protocol)
+    &&String(value.protocol_signature??"")===String(expected.protocol_signature??"")
     &&String(value.state_schema??"")===String(expected.state_schema??"")
     &&value.state_valid===true
     &&value.ready===expected.ready
