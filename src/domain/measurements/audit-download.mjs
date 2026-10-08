@@ -294,6 +294,52 @@ export function dimensionAuditDownloadAttemptValid(attempt={}){
     &&signature===dimensionAuditDownloadAttemptSignature(value);
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_PERMIT_EVIDENCE_SUMMARY_SCHEMA="TubeBender.DimensionAuditDownloadHistoryPermitEvidenceSummary.v1";
+
+export function dimensionAuditDownloadHistoryPermitEvidenceSummary(attempts=[]){
+  if(!Array.isArray(attempts))throw new TypeError("audit download history attempts must be an array");
+  let present=0,valid=0,invalid=0,copy=0,download=0;
+  for(const attempt of attempts){
+    const evidence=dimensionAuditDownloadAttemptPermitEvidence(attempt);
+    if(!evidence.present)continue;
+    present++;
+    if(evidence.valid)valid++;else invalid++;
+    if(evidence.action==="copy")copy++;
+    if(evidence.action==="download")download++;
+  }
+  const latest=dimensionAuditDownloadAttemptPermitEvidence(attempts.at(-1)??{});
+  return freeze({
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_PERMIT_EVIDENCE_SUMMARY_SCHEMA,
+    total:attempts.length,
+    present,
+    absent:attempts.length-present,
+    valid,
+    invalid,
+    copy,
+    download,
+    latest_present:latest.present,
+    latest_valid:latest.valid,
+    latest_action:latest.action
+  });
+}
+
+export function dimensionAuditDownloadHistoryPermitEvidenceSummaryValid(summary={},attempts=[]){
+  if(!Array.isArray(attempts))return false;
+  const expected=dimensionAuditDownloadHistoryPermitEvidenceSummary(attempts);
+  const value=summary??{};
+  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_PERMIT_EVIDENCE_SUMMARY_SCHEMA
+    &&Number(value.total)===expected.total
+    &&Number(value.present)===expected.present
+    &&Number(value.absent)===expected.absent
+    &&Number(value.valid)===expected.valid
+    &&Number(value.invalid)===expected.invalid
+    &&Number(value.copy)===expected.copy
+    &&Number(value.download)===expected.download
+    &&value.latest_present===expected.latest_present
+    &&value.latest_valid===expected.latest_valid
+    &&String(value.latest_action??"")===String(expected.latest_action??"");
+}
+
 export function dimensionAuditDownloadHistorySummary(attempts=[]){
   if(!Array.isArray(attempts))throw new TypeError("audit download history attempts must be an array");
   const counts={blocked:0,downloaded:0,failed:0};
