@@ -20,7 +20,7 @@ test("question 593: domain builds canonical signed audit download attempts",()=>
   assert.equal(attempt.schema,DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA);
   assert.equal(attempt.status,"downloaded");
   assert.ok(attempt.signature);
-  assert.equal(attempt.generated_at,"2099-01-01T00:00:00Z");
+  assert.equal(attempt.generated_at,"2099-01-01T00:00:00.000Z");
   assert.equal(dimensionAuditDownloadAttemptValid(attempt),true);
   assert.equal(Object.isFrozen(attempt),true);
   assert.throws(()=>buildDimensionAuditDownloadAttempt({status:"unknown"}),/unsupported audit download attempt status/);
