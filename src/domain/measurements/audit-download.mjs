@@ -725,10 +725,16 @@ export function dimensionAuditDownloadHistorySnapshot({
     envelope_valid:dimensionAuditDownloadHistoryEnvelopeValid(enveloped)
   };
   const health=dimensionAuditDownloadHistoryHealth(checked);
-  return freeze({
+  const withHealth={
     ...checked,
     health,
     health_signature:dimensionAuditDownloadHistoryHealthSignature(health)
+  };
+  const healthEmbedding=dimensionAuditDownloadHistoryHealthEmbedding(withHealth);
+  return freeze({
+    ...withHealth,
+    health_embedding:healthEmbedding,
+    health_embedding_signature:dimensionAuditDownloadHistoryHealthEmbeddingSignature(healthEmbedding)
   });
 }
 
