@@ -661,9 +661,15 @@ export function dimensionAuditDownloadHistorySnapshot({
     ...full,
     envelope_signature:dimensionAuditDownloadHistoryEnvelopeSignature(full)
   };
-  return freeze({
+  const checked={
     ...enveloped,
     envelope_valid:dimensionAuditDownloadHistoryEnvelopeValid(enveloped)
+  };
+  const health=dimensionAuditDownloadHistoryHealth(checked);
+  return freeze({
+    ...checked,
+    health,
+    health_signature:dimensionAuditDownloadHistoryHealthSignature(health)
   });
 }
 
