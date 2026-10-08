@@ -10,6 +10,7 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 488: Dimension audit schema validation is centralized",()=>{
   assert.match(ui,/function dimensionAuditDownloadSchemaSupported\(schema\)/);
   assert.match(ui,/DIMENSION_AUDIT_DOWNLOAD_SCHEMAS\.includes\(String\(schema\?\?""\)\.trim\(\)\)/);
-  assert.match(ui,/if\(!dimensionAuditDownloadSchemaSupported\(snapshotSchema\)\)/);
-  assert.match(ui,/dimensionAuditDownloadSchemaSupported,downloadVisibleDimensionAudits/);
+  const validation=ui.match(/function dimensionAuditDownloadValidation\(filename,snapshot\)\{([\s\S]*?)\n  \}/)?.[1]??"";
+  assert.match(validation,/dimensionAuditDownloadSchemaSupported\(schema\)/);
+  assert.match(ui,/dimensionAuditDownloadSchemaSupported,dimensionAuditDownloadValidation/);
 });
