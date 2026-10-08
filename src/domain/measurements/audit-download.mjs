@@ -1200,8 +1200,23 @@ export function dimensionAuditDownloadHistoryExportGateSignature(gate=dimensionA
   });
 }
 
+export function dimensionAuditDownloadHistoryExportGateValid(gate=dimensionAuditDownloadHistoryExportGate()){
+  const value=gate??{};
+  const code=String(value.code??"");
+  const readinessCode=String(value.readiness_code??"");
+  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_GATE_SCHEMA)return false;
+  if(!DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_GATE_CODES.includes(code))return false;
+  if(!DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_CODES.includes(readinessCode))return false;
+  if((value.allowed===true)!==(code==="READY"))return false;
+  if(DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_CODES.includes(code)){
+    return value.snapshot_valid===true&&code===readinessCode;
+  }
+  return value.allowed!==true&&value.snapshot_valid===false;
+}
+
 export function dimensionAuditDownloadHistoryExportGateSignatureValid(signature,gate=dimensionAuditDownloadHistoryExportGate()){
-  return String(signature??"")===dimensionAuditDownloadHistoryExportGateSignature(gate);
+  return dimensionAuditDownloadHistoryExportGateValid(gate)
+    &&String(signature??"")===dimensionAuditDownloadHistoryExportGateSignature(gate);
 }
 
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
