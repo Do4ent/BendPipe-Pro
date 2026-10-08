@@ -3301,6 +3301,9 @@
   }
 
   function dimensionAuditDownloadHistoryExportReadinessProtocol(){
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportReadinessProtocol){
+      return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessProtocol();
+    }
     return Object.freeze({
       schema:"TubeBender.DimensionAuditDownloadHistoryExportReadinessProtocol.v1",
       state_schema:String(auditDownloadDomain?.DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SCHEMA??"TubeBender.DimensionAuditDownloadHistoryExportReadiness.v1"),
@@ -3313,6 +3316,9 @@
 
   function dimensionAuditDownloadHistoryExportReadinessProtocolSignature(protocol=dimensionAuditDownloadHistoryExportReadinessProtocol()){
     const value=protocol??{};
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportReadinessProtocolSignature){
+      return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessProtocolSignature(value);
+    }
     return JSON.stringify({
       schema:String(value.schema??""),
       state_schema:String(value.state_schema??""),
