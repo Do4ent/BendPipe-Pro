@@ -11,5 +11,5 @@ test("question 752: copy and download use canonical history export decision",()=
   const decisionMatches=[...ui.matchAll(/const exportDecision=dimensionAuditDownloadHistoryExportDecision\(exportGateSnapshot\)/g)];
   assert.equal(decisionMatches.length,2);
   assert.match(ui,/const exportDecisionSnapshot=dimensionAuditDownloadHistoryExportDecisionSnapshot\(exportDecision\)/);
-  assert.match(ui,/if\(!exportDecisionSnapshotValid\|\|!exportDecision\.allowed\)/);
+  assert.match(ui,/const exportAuthorization=dimensionAuditDownloadHistoryExportAuthorization\(exportDecisionSnapshot\)/);
 });
