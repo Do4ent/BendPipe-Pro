@@ -2095,10 +2095,12 @@
   }
 
   function dimensionAuditDownloadSnapshotShapeSupported(snapshot){
+    if(auditDownloadDomain?.dimensionAuditDownloadSnapshotShapeSupported)return auditDownloadDomain.dimensionAuditDownloadSnapshotShapeSupported(snapshot);
     return !!snapshot&&typeof snapshot==="object"&&!Array.isArray(snapshot);
   }
 
   function dimensionAuditDownloadFilenameSupported(filename){
+    if(auditDownloadDomain?.dimensionAuditDownloadFilenameSupported)return auditDownloadDomain.dimensionAuditDownloadFilenameSupported(filename);
     const value=String(filename??"").trim();
     return !!value
       &&value.length<=DIMENSION_AUDIT_FILENAME_POLICY.json_max_length
@@ -2107,6 +2109,7 @@
   }
 
   function dimensionAuditDownloadSchemaSupported(schema){
+    if(auditDownloadDomain?.dimensionAuditDownloadSchemaSupported)return auditDownloadDomain.dimensionAuditDownloadSchemaSupported(schema);
     return DIMENSION_AUDIT_DOWNLOAD_SCHEMAS.includes(String(schema??"").trim());
   }
 
@@ -2120,6 +2123,7 @@
   });
 
   function dimensionAuditDownloadValidation(filename,snapshot){
+    if(auditDownloadDomain?.dimensionAuditDownloadValidation)return auditDownloadDomain.dimensionAuditDownloadValidation(filename,snapshot);
     const safeFilename=String(filename??"").trim();
     if(!dimensionAuditDownloadFilenameSupported(safeFilename)){
       return {validation_schema:DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA,valid:false,code:"INVALID_FILENAME",filename:safeFilename,schema:null};
