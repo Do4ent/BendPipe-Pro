@@ -119,3 +119,27 @@ export function dimensionAuditDownloadPolicy(){
     filename:{...DIMENSION_AUDIT_FILENAME_POLICY}
   });
 }
+
+
+export function dimensionAuditDownloadProtocolState(){
+  const policy=dimensionAuditDownloadPolicy();
+  const validationSchema=String(policy.validation_schema??"");
+  const validationCodes=[...(policy.validation_codes??[])];
+  const schemas=[...(policy.schemas??[])];
+  const filename={...(policy.filename??{})};
+  const protocolConsistent=
+    validationSchema===DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA
+    &&JSON.stringify(validationCodes)===JSON.stringify([...DIMENSION_AUDIT_DOWNLOAD_VALIDATION_CODES])
+    &&JSON.stringify(schemas)===JSON.stringify([...DIMENSION_AUDIT_DOWNLOAD_SCHEMAS])
+    &&JSON.stringify(filename)===JSON.stringify({...DIMENSION_AUDIT_FILENAME_POLICY});
+  return freeze({
+    schema:"TubeBender.DimensionAuditDownloadProtocolState.v1",
+    valid:protocolConsistent,
+    protocol_consistent:protocolConsistent,
+    policy_schema:String(policy.schema??""),
+    validation_schema:validationSchema,
+    validation_codes:validationCodes,
+    schemas,
+    filename
+  });
+}
