@@ -8,7 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 497: Dimension audit validation protocol metadata is exposed",()=>{
-  const policy=ui.match(/function dimensionAuditDownloadPolicy\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(policy,/validation_schema:DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA/);
-  assert.match(ui,/dimensionAuditDownloadValidationSchema:\(\)=>DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA/);
+  assert.match(ui,/function dimensionAuditDownloadValidationSchema\(\)/);
+  assert.match(ui,/auditDownloadDomain\?\.DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA\?\?DIMENSION_AUDIT_DOWNLOAD_VALIDATION_SCHEMA/);
+  assert.match(ui,/dimensionAuditDownloadValidationSchema,dimensionAuditDownloadValidationCodes/);
 });
