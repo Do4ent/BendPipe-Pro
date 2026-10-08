@@ -2461,6 +2461,7 @@
     };
     const signed={
       ...base,
+      summary_valid:dimensionAuditDownloadAttemptHistorySummaryValid(summary,attempts),
       snapshot_signature:dimensionAuditDownloadAttemptHistoryAuditSignature(base)
     };
     return {
