@@ -1776,10 +1776,25 @@
     return {...context,signature:dimensionReviewContextSignature(context)};
   }
 
+  function dimensionReviewContextSummarySignature(summary={}){
+    const sortedRecord=(value)=>Object.fromEntries(
+      Object.entries(value??{}).sort(([a],[b])=>String(a).localeCompare(String(b)))
+    );
+    return JSON.stringify({
+      schema:String(summary?.schema??"TubeBender.DimensionReviewContextSummary.v1"),
+      total:Number(summary?.total??0),
+      action_required:Number(summary?.action_required??0),
+      by_state:sortedRecord(summary?.by_state),
+      by_health:sortedRecord(summary?.by_health),
+      blocker_counts:sortedRecord(summary?.blocker_counts)
+    });
+  }
+
   function dimensionReviewContextSummary(items=savedDimensions(),contextState=null){
     const list=Array.isArray(items)?items:[];
     const sharedState=contextState??dimensionReviewContextState(savedDimensions(),selectedDimensionAuditIds());
     const summary={
+      schema:"TubeBender.DimensionReviewContextSummary.v1",
       total:list.length,
       action_required:0,
       by_state:{},
@@ -1796,7 +1811,7 @@
         summary.blocker_counts[key]=(summary.blocker_counts[key]??0)+1;
       }
     }
-    return summary;
+    return {...summary,signature:dimensionReviewContextSummarySignature(summary)};
   }
 
   function reviewQueueDimensionAuditSnapshot(){
