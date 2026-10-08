@@ -3376,10 +3376,19 @@
 
   function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(value=dimensionAuditDownloadHistoryExportReadinessSnapshot(),snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot()){
     const current=value??{};
+    const readiness=dimensionAuditDownloadHistoryExportReadiness(snapshot);
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportReadinessSnapshotValid){
+      return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessSnapshotValid(current,readiness);
+    }
     const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(snapshot);
-    return String(current.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportReadiness.v1"
+    return String(current.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportReadinessSnapshot.v1"
+      &&String(current.state_schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportReadiness.v1"
       &&current.ready===expected.ready
       &&String(current.code??"")===String(expected.code??"")
+      &&Number(current.attempt_count)===Number(expected.attempt_count)
+      &&current.verification_valid===expected.verification_valid
+      &&current.trusted===expected.trusted
+      &&current.provenance_valid===expected.provenance_valid
       &&String(current.history_snapshot_signature??"")===String(expected.history_snapshot_signature??"")
       &&String(current.provenance_signature??"")===String(expected.provenance_signature??"")
       &&String(current.signature??"")===String(expected.signature??"")
