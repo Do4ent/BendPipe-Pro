@@ -2079,6 +2079,7 @@
 
   function dimensionAuditDownloadPolicy(){
     return {
+      schema:"TubeBender.DimensionAuditDownloadPolicy.v1",
       validation_codes:[...DIMENSION_AUDIT_DOWNLOAD_VALIDATION_CODES],
       schemas:[...DIMENSION_AUDIT_DOWNLOAD_SCHEMAS],
       filename:{...DIMENSION_AUDIT_FILENAME_POLICY}
