@@ -467,6 +467,55 @@ export function dimensionAuditDownloadHistoryExportEventSummaryValid(summary={},
     &&String(value.latest_action??"")===expected.latest_action;
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_HISTORY_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportEventHistory.v1";
+
+export function dimensionAuditDownloadHistoryExportEventHistorySignature(snapshot={}){
+  const value=snapshot??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    event_count:Number(value.event_count??0),
+    event_signatures:(Array.isArray(value.events)?value.events:[]).map(event=>String(event?.signature??"")),
+    summary_schema:String(value.summary?.schema??""),
+    summary_total:Number(value.summary?.total??0),
+    summary_latest_signature:String(value.summary?.latest_signature??""),
+    events_valid:value.events_valid===true,
+    summary_valid:value.summary_valid===true,
+    generated_at:String(value.generated_at??"")
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportEventHistorySnapshot(events=[],generatedAt=new Date()){
+  if(!Array.isArray(events))throw new TypeError("history export events must be an array");
+  const timestamp=generatedAt instanceof Date?generatedAt:new Date(generatedAt);
+  if(Number.isNaN(timestamp.getTime()))throw new TypeError("history export event snapshot generatedAt must be valid");
+  const normalized=events.map(event=>freeze({...event}));
+  const summary=dimensionAuditDownloadHistoryExportEventSummary(normalized);
+  const base={
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_HISTORY_SCHEMA,
+    event_count:normalized.length,
+    events:freeze(normalized),
+    events_valid:normalized.every(event=>dimensionAuditDownloadHistoryExportEventValid(event)),
+    summary,
+    summary_valid:dimensionAuditDownloadHistoryExportEventSummaryValid(summary,normalized),
+    generated_at:timestamp.toISOString()
+  };
+  return freeze({...base,signature:dimensionAuditDownloadHistoryExportEventHistorySignature(base)});
+}
+
+export function dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(snapshot={}){
+  const value=snapshot??{};
+  const events=Array.isArray(value.events)?value.events:null;
+  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_HISTORY_SCHEMA||!events)return false;
+  if(Number(value.event_count)!==events.length)return false;
+  if(value.events_valid!==events.every(event=>dimensionAuditDownloadHistoryExportEventValid(event)))return false;
+  if(value.events_valid!==true)return false;
+  if(!dimensionAuditDownloadHistoryExportEventSummaryValid(value.summary,events))return false;
+  if(value.summary_valid!==true)return false;
+  if(Number.isNaN(new Date(String(value.generated_at??"")).getTime()))return false;
+  return !!String(value.signature??"")
+    &&String(value.signature)===dimensionAuditDownloadHistoryExportEventHistorySignature(value);
+}
+
 export function dimensionAuditDownloadHistorySummary(attempts=[]){
   if(!Array.isArray(attempts))throw new TypeError("audit download history attempts must be an array");
   const counts={blocked:0,downloaded:0,failed:0};
