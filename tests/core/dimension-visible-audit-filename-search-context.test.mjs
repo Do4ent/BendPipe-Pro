@@ -10,5 +10,5 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 475: visible audit filename includes bounded search context when active",()=>{
   assert.match(ui,/const searchValue=String\(snapshot\?\.view\?\.search\?\?""\)\.trim\(\)/);
   assert.match(ui,/const searchName=searchValue\?"-search-"\+dimensionAuditFilenamePart\(searchValue,"query",40\):""/);
-  assert.match(ui,/dimension-audit-view-"\+filterName\+"-"\+sortName\+searchName\+"-"\+snapshot\.dimension_count\+"-"/);
+  assert.match(ui,/dimension-audit-view-"\+filterName\+"-"\+sortName\+searchName\+focusName\+"-"\+snapshot\.dimension_count\+"-"/);
 });
