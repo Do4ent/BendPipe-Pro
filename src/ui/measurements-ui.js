@@ -739,9 +739,11 @@
       generated_at:new Date().toISOString()
     };
   }
-  function dimensionRebindAuditSnapshot(dimension){
+  function dimensionRebindAuditSnapshot(dimension,reviewContextState=null){
     const references=dimension?.references??[];
     const referenceGeometryStatuses=[...new Set(references.map(ref=>String(ref?.geometry_status??"").trim()).filter(Boolean))];
+    const contextState=reviewContextState??dimensionReviewContextState();
+    const reviewContext=dimensionReviewContext(dimension,contextState);
     return {
       ...dimensionAuditProjectContext(),
       dimension_id:String(dimension?.id??""),
@@ -750,6 +752,8 @@
       status:String(dimension?.status??""),
       needs_review:dimensionAuditNeedsReview(dimension),
       review_reasons:clone(dimensionAuditReviewReasons(dimension)),
+      review_context:clone(reviewContext),
+      review_context_signature:String(reviewContext?.signature??""),
       geometry_class:dimensionAuditGeometryClass(dimension),
       reference_geometry_statuses:referenceGeometryStatuses,
       reference_geometry_counts:clone(dimensionReferenceStatusCounts(dimension)),
