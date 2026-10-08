@@ -10,6 +10,6 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 762: copy and download enforce canonical history export authorization",()=>{
   const matches=[...ui.matchAll(/const exportAuthorization=dimensionAuditDownloadHistoryExportAuthorization\(exportDecisionSnapshot\)/g)];
   assert.equal(matches.length,2);
-  assert.match(ui,/if\(!exportAuthorization\.allowed\)/);
-  assert.match(ui,/Audit download history export blocked: "\+exportAuthorization\.code/);
+  assert.match(ui,/const exportAuthorizationSnapshot=dimensionAuditDownloadHistoryExportAuthorizationSnapshot\(exportAuthorization\)/);
+  assert.match(ui,/if\(!exportAuthorizationSnapshotValid\|\|!exportAuthorization\.allowed\)/);
 });
