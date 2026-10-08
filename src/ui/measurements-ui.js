@@ -2077,6 +2077,10 @@
       toast("Некорректное имя Dimension audit JSON");
       return false;
     }
+    if(!snapshot||typeof snapshot!=="object"||Array.isArray(snapshot)){
+      toast("Некорректный Dimension audit snapshot");
+      return false;
+    }
     try{
       const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:"application/json"});
       const url=URL.createObjectURL(blob);
