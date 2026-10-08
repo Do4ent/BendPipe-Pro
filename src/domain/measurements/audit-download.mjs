@@ -1200,6 +1200,10 @@ export function dimensionAuditDownloadHistoryExportGateSignature(gate=dimensionA
   });
 }
 
+export function dimensionAuditDownloadHistoryExportGateSignatureValid(signature,gate=dimensionAuditDownloadHistoryExportGate()){
+  return String(signature??"")===dimensionAuditDownloadHistoryExportGateSignature(gate);
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
