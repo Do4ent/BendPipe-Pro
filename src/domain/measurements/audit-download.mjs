@@ -467,6 +467,21 @@ export function dimensionAuditDownloadHistoryProtocolStateSignature(state=dimens
   });
 }
 
+export function dimensionAuditDownloadHistoryProtocolStateValid(state=dimensionAuditDownloadHistoryProtocolState()){
+  const value=state??{};
+  const protocol=value.protocol??{};
+  const validation=value.validation??{};
+  const protocolSignature=String(value.protocol_signature??"");
+  const validationSignature=String(value.validation_signature??"");
+  const expectedValidation=dimensionAuditDownloadHistoryProtocolValidation(protocol);
+  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_STATE_SCHEMA
+    &&protocolSignature===dimensionAuditDownloadHistoryProtocolSignature(protocol)
+    &&validationSignature===dimensionAuditDownloadHistoryProtocolValidationSignature(validation)
+    &&dimensionAuditDownloadHistoryProtocolValidationSignature(expectedValidation)===validationSignature
+    &&value.valid===validation.valid
+    &&value.valid===expectedValidation.valid;
+}
+
 export function dimensionAuditDownloadHistoryEnvelopeSignature(snapshot={}){
   const value=snapshot??{};
   return JSON.stringify({
