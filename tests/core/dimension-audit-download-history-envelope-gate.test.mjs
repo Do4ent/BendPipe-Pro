@@ -8,10 +8,9 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 587: copy and download require valid audit history envelope",()=>{
-  const copy=ui.match(/async function copyDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  const download=ui.match(/function downloadDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(copy,/const health=dimensionAuditDownloadHistoryHealth\(snapshot\)/);
-  assert.match(copy,/if\(!health\.valid\)/);
-  assert.match(download,/const health=dimensionAuditDownloadHistoryHealth\(snapshot\)/);
-  assert.match(download,/if\(!health\.valid\)/);
+  const verification=ui.match(/function dimensionAuditDownloadHistoryVerification\(snapshot=\{\}\)\{([\s\S]*?)\n  \}/)?.[1]??"";
+  assert.match(verification,/const envelopeValid=dimensionAuditDownloadAttemptHistoryEnvelopeValid\(value\)/);
+  assert.match(verification,/!envelopeValid\?"INVALID_ENVELOPE":null/);
+  const gate=/const verification=dimensionAuditDownloadHistoryVerification\(snapshot\);\s*if\(!verification\.valid\)/g;
+  assert.equal((ui.match(gate)??[]).length,2);
 });
