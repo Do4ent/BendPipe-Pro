@@ -4197,6 +4197,8 @@
     const envelopeSignatureTypeValid=rawEnvelopeSignature==null||typeof rawEnvelopeSignature==="string";
     const envelopeSignature=typeof rawEnvelopeSignature==="string"?rawEnvelopeSignature:"";
     const envelopeSignatureValid=envelopeSignatureTypeValid&&(!envelopeSignature||envelopeSignature===dimensionAuditDownloadAttemptHistoryEnvelopeSignature(value));
+    const envelopeSignatureContractValid=envelopeSignatureTypeValid
+      &&(!envelopeSignature||dimensionAuditDownloadAttemptHistoryEnvelopeSignatureValid(envelopeSignature,value));
     return coreIntegrity.valid
       &&embeddedIntegrityValid
       &&embeddedBindingValid
@@ -4204,7 +4206,8 @@
       &&value.summary_valid===coreIntegrity.summary_valid
       &&value.protocol_binding_valid===dimensionAuditDownloadHistoryProtocolBindingValid(value)
       &&value.valid===coreIntegrity.valid
-      &&envelopeSignatureValid;
+      &&envelopeSignatureValid
+      &&envelopeSignatureContractValid;
   }
 
   function dimensionAuditDownloadAttemptHistoryAuditValid(snapshot){
