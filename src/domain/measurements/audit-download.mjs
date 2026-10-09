@@ -176,6 +176,27 @@ export function dimensionAuditDownloadProtocolSignature(state=dimensionAuditDown
   });
 }
 
+export function dimensionAuditDownloadProtocolSignatureValid(signature,state=dimensionAuditDownloadProtocolState()){
+  const value=state??{};
+  return typeof signature==="string"
+    &&signature.length>0
+    &&typeof value.schema==="string"
+    &&typeof value.valid==="boolean"
+    &&typeof value.protocol_consistent==="boolean"
+    &&typeof value.policy_schema==="string"
+    &&typeof value.validation_schema==="string"
+    &&Array.isArray(value.validation_codes)
+    &&value.validation_codes.every(code=>typeof code==="string")
+    &&Array.isArray(value.schemas)
+    &&value.schemas.every(schema=>typeof schema==="string")
+    &&!!value.filename
+    &&typeof value.filename==="object"
+    &&!Array.isArray(value.filename)
+    &&value.valid===true
+    &&value.protocol_consistent===true
+    &&signature===dimensionAuditDownloadProtocolSignature(value);
+}
+
 
 export function dimensionAuditDownloadAttemptSignature(attempt={}){
   const value=attempt??{};
