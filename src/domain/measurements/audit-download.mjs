@@ -3273,15 +3273,25 @@ export function dimensionAuditDownloadHistoryExportActionPermitValid(permit=dime
 
 export function dimensionAuditDownloadHistoryExportActionPermitSignature(permit=dimensionAuditDownloadHistoryExportActionPermit()){
   const value=permit??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.action!=="string"
+    ||typeof value.ready!=="boolean"
+    ||typeof value.code!=="string"
+    ||typeof value.action_valid!=="boolean"
+    ||typeof value.action_status_snapshot_valid!=="boolean"
+    ||typeof value.action_status_ready!=="boolean"
+    ||typeof value.action_status_snapshot_signature!=="string"){
+    throw new TypeError("history export action permit signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    action:String(value.action??""),
-    ready:value.ready===true,
-    code:String(value.code??""),
-    action_valid:value.action_valid===true,
-    action_status_snapshot_valid:value.action_status_snapshot_valid===true,
-    action_status_ready:value.action_status_ready===true,
-    action_status_snapshot_signature:String(value.action_status_snapshot_signature??"")
+    schema:value.schema,
+    action:value.action,
+    ready:value.ready,
+    code:value.code,
+    action_valid:value.action_valid,
+    action_status_snapshot_valid:value.action_status_snapshot_valid,
+    action_status_ready:value.action_status_ready,
+    action_status_snapshot_signature:value.action_status_snapshot_signature
   });
 }
 
