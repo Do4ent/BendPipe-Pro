@@ -13,5 +13,5 @@ test("question 836: export event history copy is fail-closed on invalid or empty
   assert.match(fn,/dimensionAuditDownloadHistoryExportEventHistorySnapshotValid\(snapshot\)/);
   assert.match(fn,/if\(snapshot\.event_count===0\)/);
   assert.match(fn,/navigator\?\.clipboard\?\.writeText/);
-  assert.match(fn,/JSON\.stringify\(envelope,null,2\)/);
+  assert.match(fn,/JSON\.stringify\(envelopeSnapshot,null,2\)/);
 });
