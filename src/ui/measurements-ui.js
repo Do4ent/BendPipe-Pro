@@ -4179,24 +4179,30 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportGateValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportGateValid(value);
     }
-    const code=String(value.code??"");
-    const readinessCode=String(value.readiness_code??"");
+    if(typeof value.schema!=="string"
+      ||typeof value.allowed!=="boolean"
+      ||typeof value.code!=="string"
+      ||typeof value.readiness_code!=="string"
+      ||typeof value.snapshot_valid!=="boolean")return false;
+    const code=value.code;
+    const readinessCode=value.readiness_code;
     const gateCodes=["READY","EMPTY","VERIFICATION_FAILED","UNTRUSTED","INVALID_PROVENANCE","INVALID_PROTOCOL","INVALID_PROTOCOL_SIGNATURE","INVALID_STATE","INVALID_STATE_SIGNATURE","INVALID_SNAPSHOT_SIGNATURE","INVALID_SNAPSHOT"];
     const readinessCodes=["READY","EMPTY","VERIFICATION_FAILED","UNTRUSTED","INVALID_PROVENANCE"];
-    if(String(value.schema??"")!=="TubeBender.DimensionAuditDownloadHistoryExportGate.v1")return false;
+    if(value.schema!=="TubeBender.DimensionAuditDownloadHistoryExportGate.v1")return false;
     if(!gateCodes.includes(code)||!readinessCodes.includes(readinessCode))return false;
-    if((value.allowed===true)!==(code==="READY"))return false;
+    if(value.allowed!==(code==="READY"))return false;
     if(readinessCodes.includes(code))return value.snapshot_valid===true&&code===readinessCode;
-    return value.allowed!==true&&value.snapshot_valid===false;
+    return value.allowed===false&&value.snapshot_valid===false;
   }
 
   function dimensionAuditDownloadHistoryExportGateSignatureValid(signature=dimensionAuditDownloadHistoryExportGateSignature(),gate=dimensionAuditDownloadHistoryExportGate()){
     const value=gate??{};
+    if(typeof signature!=="string"||signature.length===0)return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportGateSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportGateSignatureValid(signature,value);
     }
     return dimensionAuditDownloadHistoryExportGateValid(value)
-      &&String(signature??"")===dimensionAuditDownloadHistoryExportGateSignature(value);
+      &&signature===dimensionAuditDownloadHistoryExportGateSignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportGateSnapshotSignature(snapshot={}){
@@ -4214,10 +4220,11 @@
 
   function dimensionAuditDownloadHistoryExportGateSnapshotSignatureValid(signature,snapshot={}){
     const value=snapshot??{};
+    if(typeof signature!=="string"||signature.length===0)return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportGateSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportGateSnapshotSignatureValid(signature,value);
     }
-    return String(signature??"")===dimensionAuditDownloadHistoryExportGateSnapshotSignature(value);
+    return signature===dimensionAuditDownloadHistoryExportGateSnapshotSignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportGateSnapshot(gate=dimensionAuditDownloadHistoryExportGate()){
@@ -4242,7 +4249,13 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportGateSnapshotValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportGateSnapshotValid(value);
     }
-    return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportGateSnapshot.v1"
+    if(typeof value.schema!=="string"
+      ||typeof value.gate_signature!=="string"
+      ||typeof value.gate_valid!=="boolean"
+      ||typeof value.gate_signature_valid!=="boolean"
+      ||typeof value.snapshot_signature!=="string"
+      ||typeof value.snapshot_signature_valid!=="boolean")return false;
+    return value.schema==="TubeBender.DimensionAuditDownloadHistoryExportGateSnapshot.v1"
       &&dimensionAuditDownloadHistoryExportGateValid(value.gate)
       &&value.gate_valid===true
       &&value.gate_signature_valid===true
