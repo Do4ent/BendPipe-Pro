@@ -3290,7 +3290,8 @@
       &&generatedAtValid
       &&permitEvidenceValid
       &&signature.length>0
-      &&signature===dimensionAuditDownloadAttemptSignature(value);
+      &&signature===dimensionAuditDownloadAttemptSignature(value)
+      &&dimensionAuditDownloadAttemptSignatureValid(signature,value);
   }
 
   function recordDimensionAuditDownloadAttempt(status,preflight,error=null){
