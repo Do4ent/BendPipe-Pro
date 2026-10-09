@@ -598,7 +598,7 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummar
     &&typeof value.event_binding_signature==="string"
     &&typeof value.summary_valid==="boolean"
     &&typeof value.summary_signature_valid==="boolean"
-    &&value.summary_valid===value.summary_signature_valid
+    &&value.summary_signature_valid===summarySignatureValid
     &&signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignature(value);
 }
 
@@ -744,18 +744,21 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSigna
 export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignatureValid(signature,snapshot={}){
   const value=snapshot??{};
   const envelope=value.envelope;
+  const envelopeSignatureValid=!!envelope
+    &&typeof envelope==="object"
+    &&!Array.isArray(envelope)
+    &&typeof envelope.signature==="string"
+    &&typeof value.envelope_signature==="string"
+    &&value.envelope_signature===envelope.signature
+    &&dimensionAuditDownloadHistoryExportEventLogEnvelopeSignatureValid(value.envelope_signature,envelope);
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
     &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LOG_ENVELOPE_SNAPSHOT_SCHEMA
     &&typeof value.envelope_signature==="string"
     &&typeof value.envelope_valid==="boolean"
-    &&!!envelope
-    &&typeof envelope==="object"
-    &&!Array.isArray(envelope)
-    &&typeof envelope.signature==="string"
-    &&value.envelope_signature===envelope.signature
-    &&dimensionAuditDownloadHistoryExportEventLogEnvelopeSignatureValid(value.envelope_signature,envelope)
+    &&envelopeSignatureValid
+    &&value.envelope_valid===envelopeSignatureValid
     &&signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignature(value);
 }
 
@@ -1989,8 +1992,12 @@ export function dimensionAuditDownloadHistoryHealthEmbeddingSignature(embedding=
   });
 }
 
-export function dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid(signature,embedding=dimensionAuditDownloadHistoryHealthEmbedding()){
+export function dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid(signature,embedding=dimensionAuditDownloadHistoryHealthEmbedding(),snapshot=null){
   const value=embedding??{};
+  if(snapshot!=null){
+    const expected=dimensionAuditDownloadHistoryHealthEmbedding(snapshot);
+    if(dimensionAuditDownloadHistoryHealthEmbeddingSignature(value)!==dimensionAuditDownloadHistoryHealthEmbeddingSignature(expected))return false;
+  }
   const errors=[
     value.present===false?"MISSING_HEALTH":null,
     value.present===true&&value.signature_valid===false?"INVALID_HEALTH_SIGNATURE":null,
@@ -2192,8 +2199,12 @@ export function dimensionAuditDownloadHistoryVerificationEmbeddingSignature(embe
   });
 }
 
-export function dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid(signature,embedding=dimensionAuditDownloadHistoryVerificationEmbedding()){
+export function dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid(signature,embedding=dimensionAuditDownloadHistoryVerificationEmbedding(),snapshot=null){
   const value=embedding??{};
+  if(snapshot!=null){
+    const expected=dimensionAuditDownloadHistoryVerificationEmbedding(snapshot);
+    if(dimensionAuditDownloadHistoryVerificationEmbeddingSignature(value)!==dimensionAuditDownloadHistoryVerificationEmbeddingSignature(expected))return false;
+  }
   const errors=[
     value.present===false?"MISSING_VERIFICATION":null,
     value.present===true&&value.signature_valid===false?"INVALID_VERIFICATION_SIGNATURE":null,
@@ -2381,8 +2392,12 @@ export function dimensionAuditDownloadHistoryAttestationEmbeddingSignature(embed
   });
 }
 
-export function dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid(signature,embedding=dimensionAuditDownloadHistoryAttestationEmbedding()){
+export function dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid(signature,embedding=dimensionAuditDownloadHistoryAttestationEmbedding(),snapshot=null){
   const value=embedding??{};
+  if(snapshot!=null){
+    const expected=dimensionAuditDownloadHistoryAttestationEmbedding(snapshot);
+    if(dimensionAuditDownloadHistoryAttestationEmbeddingSignature(value)!==dimensionAuditDownloadHistoryAttestationEmbeddingSignature(expected))return false;
+  }
   const errors=[
     value.present===false?"MISSING_ATTESTATION":null,
     value.present===true&&value.signature_valid===false?"INVALID_ATTESTATION_SIGNATURE":null,
@@ -3459,7 +3474,7 @@ export function dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignatu
     &&typeof value.binding_valid==="boolean"
     &&typeof value.binding_signature_valid==="boolean"
     &&bindingSignatureValid
-    &&value.binding_valid===value.binding_signature_valid
+    &&value.binding_signature_valid===bindingSignatureValid
     &&signature===dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignature(value);
 }
 
@@ -3601,7 +3616,7 @@ export function dimensionAuditDownloadHistoryExportActionStatusSnapshotSignature
     &&typeof value.status_valid==="boolean"
     &&typeof value.status_signature_valid==="boolean"
     &&statusSignatureValid
-    &&value.status_valid===value.status_signature_valid
+    &&value.status_signature_valid===statusSignatureValid
     &&signature===dimensionAuditDownloadHistoryExportActionStatusSnapshotSignature(value);
 }
 
@@ -3756,7 +3771,7 @@ export function dimensionAuditDownloadHistoryExportActionPermitSnapshotSignature
     &&typeof value.permit_valid==="boolean"
     &&typeof value.permit_signature_valid==="boolean"
     &&permitSignatureValid
-    &&value.permit_valid===value.permit_signature_valid
+    &&value.permit_signature_valid===permitSignatureValid
     &&signature===dimensionAuditDownloadHistoryExportActionPermitSnapshotSignature(value);
 }
 
@@ -3917,7 +3932,7 @@ export function dimensionAuditDownloadHistoryExportFinalStateSnapshotSignatureVa
     &&typeof value.state_valid==="boolean"
     &&typeof value.state_signature_valid==="boolean"
     &&stateSignatureValid
-    &&value.state_valid===value.state_signature_valid
+    &&value.state_signature_valid===stateSignatureValid
     &&signature===dimensionAuditDownloadHistoryExportFinalStateSnapshotSignature(value);
 }
 
