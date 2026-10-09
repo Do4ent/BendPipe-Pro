@@ -2910,12 +2910,22 @@ export function dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(sna
 
 export function dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid(signature,snapshot={}){
   const value=snapshot??{};
+  const decision=value.decision;
+  const decisionPresent=!!decision&&typeof decision==="object"&&!Array.isArray(decision);
+  const decisionValid=decisionPresent&&dimensionAuditDownloadHistoryExportDecisionValid(decision);
+  const decisionSignatureValid=decisionPresent
+    &&typeof value.decision_signature==="string"
+    &&dimensionAuditDownloadHistoryExportDecisionSignatureValid(value.decision_signature,decision);
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_SNAPSHOT_SCHEMA
     &&typeof value.decision_signature==="string"
     &&typeof value.decision_valid==="boolean"
     &&typeof value.decision_signature_valid==="boolean"
+    &&decisionPresent
+    &&value.decision_valid===decisionValid
+    &&value.decision_signature_valid===decisionSignatureValid
     &&signature===dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(value);
 }
 
