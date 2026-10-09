@@ -4599,23 +4599,35 @@
   }
 
   function dimensionAuditDownloadAttemptHistoryEnvelopeSignature(snapshot){
-    if(auditDownloadDomain?.dimensionAuditDownloadHistoryEnvelopeSignature){
-      return auditDownloadDomain.dimensionAuditDownloadHistoryEnvelopeSignature(snapshot??{});
-    }
     const value=snapshot??{};
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryEnvelopeSignature){
+      return auditDownloadDomain.dimensionAuditDownloadHistoryEnvelopeSignature(value);
+    }
+    if(typeof value.schema!=="string"
+      ||typeof value.snapshot_signature!=="string"
+      ||typeof value.protocol_state_signature!=="string"
+      ||typeof value.protocol_binding_signature!=="string"
+      ||typeof value.integrity_signature!=="string"
+      ||typeof value.protocol_binding_valid!=="boolean"
+      ||typeof value.attempts_valid!=="boolean"
+      ||typeof value.summary_valid!=="boolean"
+      ||typeof value.valid!=="boolean"){
+      throw new TypeError("audit download history envelope signature fields must be canonical");
+    }
     return JSON.stringify({
       schema:"TubeBender.DimensionAuditDownloadHistoryEnvelope.v1",
-      history_schema:String(value.schema??""),
-      snapshot_signature:String(value.snapshot_signature??""),
-      protocol_state_signature:String(value.protocol_state_signature??""),
-      protocol_binding_signature:String(value.protocol_binding_signature??""),
-      integrity_signature:String(value.integrity_signature??""),
-      protocol_binding_valid:value.protocol_binding_valid===true,
-      attempts_valid:value.attempts_valid===true,
-      summary_valid:value.summary_valid===true,
-      valid:value.valid===true
+      history_schema:value.schema,
+      snapshot_signature:value.snapshot_signature,
+      protocol_state_signature:value.protocol_state_signature,
+      protocol_binding_signature:value.protocol_binding_signature,
+      integrity_signature:value.integrity_signature,
+      protocol_binding_valid:value.protocol_binding_valid,
+      attempts_valid:value.attempts_valid,
+      summary_valid:value.summary_valid,
+      valid:value.valid
     });
   }
+  
   function dimensionAuditDownloadAttemptHistoryEnvelopeSignatureValid(signature,snapshot){
     const value=snapshot??{};
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryEnvelopeSignatureValid){
