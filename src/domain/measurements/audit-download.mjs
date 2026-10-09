@@ -424,6 +424,27 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummar
     &&typeof value.latest_valid==="boolean"&&value.latest_valid===expected.latest_valid;
 }
 
+export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignature(summary={}){
+  const value=summary??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    total:Number(value.total??0),
+    present:Number(value.present??0),
+    absent:Number(value.absent??0),
+    valid:Number(value.valid??0),
+    invalid:Number(value.invalid??0),
+    latest_present:value.latest_present===true,
+    latest_valid:value.latest_valid===true
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignatureValid(signature,summary={},events=[]){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummaryValid(summary,events)
+    &&signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignature(summary);
+}
+
 export function dimensionAuditDownloadHistoryExportEventSignature(event={}){
   const value=event??{};
   const hasFinalStateEvidence=value.final_state_signature!=null
