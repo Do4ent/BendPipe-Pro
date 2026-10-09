@@ -277,20 +277,39 @@ export function buildDimensionAuditDownloadAttempt({
 
 export function dimensionAuditDownloadAttemptValid(attempt={}){
   const value=attempt??{};
-  const status=String(value.status??"");
-  const signature=String(value.signature??"");
-  const error=value.error==null?null:String(value.error);
+  if(typeof value.schema!=="string"
+    ||typeof value.status!=="string"
+    ||typeof value.filename!=="string"
+    ||!(value.snapshot_schema===null||typeof value.snapshot_schema==="string")
+    ||typeof value.code!=="string"
+    ||typeof value.preflight_signature!=="string"
+    ||typeof value.runtime_signature!=="string"
+    ||typeof value.protocol_signature!=="string"
+    ||!(value.error===null||typeof value.error==="string")
+    ||typeof value.generated_at!=="string"
+    ||typeof value.signature!=="string")return false;
+  const status=value.status;
+  const signature=value.signature;
+  const error=value.error;
   const outcomeValid=status==="failed"?!!error:error===null;
-  const timestamp=new Date(String(value.generated_at??""));
-  const generatedAtValid=!Number.isNaN(timestamp.getTime());
+  const timestamp=new Date(value.generated_at);
+  const generatedAtValid=!Number.isNaN(timestamp.getTime())&&timestamp.toISOString()===value.generated_at;
+  const hasPermitEvidence=value.export_action!=null
+    ||value.action_permit_signature!=null
+    ||value.action_permit_snapshot_signature!=null;
+  if(hasPermitEvidence&&(
+    typeof value.export_action!=="string"
+    ||typeof value.action_permit_signature!=="string"
+    ||typeof value.action_permit_snapshot_signature!=="string"
+  ))return false;
   const permitEvidence=dimensionAuditDownloadAttemptPermitEvidence(value);
   const permitEvidenceValid=permitEvidence.valid;
-  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA
+  return value.schema===DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA
     &&["blocked","downloaded","failed"].includes(status)
     &&outcomeValid
     &&generatedAtValid
     &&permitEvidenceValid
-    &&!!signature
+    &&signature.length>0
     &&signature===dimensionAuditDownloadAttemptSignature(value);
 }
 
