@@ -15,6 +15,23 @@ test("question 1135: export-event signature validation rejects coercible non-can
     generated_at:"2026-10-09T00:00:00.000Z"
   });
   const malformed={...event,code:{toString:()=>event.code}};
-  const forgedSignature=dimensionAuditDownloadHistoryExportEventSignature(malformed);
-  assert.equal(dimensionAuditDownloadHistoryExportEventSignatureValid(forgedSignature,malformed),false);
+  assert.throws(
+    ()=>dimensionAuditDownloadHistoryExportEventSignature(malformed),
+    {name:"TypeError",message:"history export event signature fields must be canonical"}
+  );
+});
+
+test("question 1185: export-event signature validator remains fail-closed if malformed input bypasses the strict builder",()=>{
+  const malformed={
+    schema:"TubeBender.DimensionAuditDownloadHistoryExportEvent.v1",
+    action:"copy",
+    outcome:"blocked",
+    code:{toString:()=>"EMPTY"},
+    history_snapshot_signature:"h",
+    action_permit_signature:"",
+    action_permit_snapshot_signature:"",
+    error:null,
+    generated_at:"2026-10-09T00:00:00.000Z"
+  };
+  assert.equal(dimensionAuditDownloadHistoryExportEventSignatureValid("forged",malformed),false);
 });
