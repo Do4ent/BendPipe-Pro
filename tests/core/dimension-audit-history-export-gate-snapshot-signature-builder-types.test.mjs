@@ -5,7 +5,7 @@ import {
   dimensionAuditDownloadHistoryExportGateSnapshotSignatureValid
 } from "../../src/domain/measurements/audit-download.mjs";
 
-const canonical={
+const canonicalFieldsOnly={
   schema:"TubeBender.DimensionAuditDownloadHistoryExportGateSnapshot.v1",
   gate_signature:"gate",
   gate_valid:true,
@@ -13,9 +13,14 @@ const canonical={
 };
 
 test("question 1196: gate snapshot signature builder rejects coercible fields",()=>{
-  const signature=dimensionAuditDownloadHistoryExportGateSnapshotSignature(canonical);
-  assert.equal(dimensionAuditDownloadHistoryExportGateSnapshotSignatureValid(signature,canonical),true);
-  const malformed={...canonical,gate_valid:1};
+  const signature=dimensionAuditDownloadHistoryExportGateSnapshotSignature(canonicalFieldsOnly);
+  assert.equal(typeof signature,"string");
+  assert.equal(
+    dimensionAuditDownloadHistoryExportGateSnapshotSignatureValid(signature,canonicalFieldsOnly),
+    false,
+    "detached field-only gate snapshot cannot satisfy semantic signature validation"
+  );
+  const malformed={...canonicalFieldsOnly,gate_valid:1};
   assert.throws(
     ()=>dimensionAuditDownloadHistoryExportGateSnapshotSignature(malformed),
     {name:"TypeError",message:"history export gate snapshot signature fields must be canonical"}
