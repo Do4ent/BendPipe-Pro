@@ -3414,23 +3414,28 @@
   }
 
   function dimensionAuditDownloadHistoryPermitEvidenceSummaryValid(summary=dimensionAuditDownloadHistoryPermitEvidenceSummary(),attempts=dimensionAuditDownloadAttemptHistorySnapshot()){
-    const list=Array.isArray(attempts)?attempts:[];
+    if(!Array.isArray(attempts))return false;
+    const list=attempts;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryPermitEvidenceSummaryValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryPermitEvidenceSummaryValid(summary??{},list);
     }
     const value=summary??{};
     const expected=dimensionAuditDownloadHistoryPermitEvidenceSummary(list);
-    return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistoryPermitEvidenceSummary.v1"
-      &&Number(value.total)===expected.total
-      &&Number(value.present)===expected.present
-      &&Number(value.absent)===expected.absent
-      &&Number(value.valid)===expected.valid
-      &&Number(value.invalid)===expected.invalid
-      &&Number(value.copy)===expected.copy
-      &&Number(value.download)===expected.download
+    return typeof value.schema==="string"
+      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryPermitEvidenceSummary.v1"
+      &&Number.isInteger(value.total)&&value.total===expected.total
+      &&Number.isInteger(value.present)&&value.present===expected.present
+      &&Number.isInteger(value.absent)&&value.absent===expected.absent
+      &&Number.isInteger(value.valid)&&value.valid===expected.valid
+      &&Number.isInteger(value.invalid)&&value.invalid===expected.invalid
+      &&Number.isInteger(value.copy)&&value.copy===expected.copy
+      &&Number.isInteger(value.download)&&value.download===expected.download
+      &&typeof value.latest_present==="boolean"
+      &&typeof value.latest_valid==="boolean"
+      &&(value.latest_action===null||typeof value.latest_action==="string")
       &&value.latest_present===expected.latest_present
       &&value.latest_valid===expected.latest_valid
-      &&String(value.latest_action??"")===String(expected.latest_action??"");
+      &&value.latest_action===expected.latest_action;
   }
 
   function dimensionAuditDownloadAttemptHistorySummary(){
