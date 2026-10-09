@@ -5799,6 +5799,10 @@
     }
     return typeof signature==="string"
       &&signature.length>0
+      &&typeof value.schema==="string"
+      &&typeof value.permit_signature==="string"
+      &&typeof value.permit_valid==="boolean"
+      &&typeof value.permit_signature_valid==="boolean"
       &&signature===dimensionAuditDownloadHistoryExportActionPermitSnapshotSignature(value);
   }
 
