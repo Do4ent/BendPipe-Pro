@@ -178,6 +178,7 @@ export function dimensionAuditDownloadProtocolSignature(state=dimensionAuditDown
 
 export function dimensionAuditDownloadProtocolSignatureValid(signature,state=dimensionAuditDownloadProtocolState()){
   const value=state??{};
+  const expected=dimensionAuditDownloadProtocolState();
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
@@ -194,6 +195,7 @@ export function dimensionAuditDownloadProtocolSignatureValid(signature,state=dim
     &&!Array.isArray(value.filename)
     &&value.valid===true
     &&value.protocol_consistent===true
+    &&dimensionAuditDownloadProtocolSignature(value)===dimensionAuditDownloadProtocolSignature(expected)
     &&signature===dimensionAuditDownloadProtocolSignature(value);
 }
 
