@@ -3489,15 +3489,25 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignature){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignature(value);
     }
+    if(typeof value.schema!=="string"
+      ||!Number.isInteger(value.total)
+      ||!Number.isInteger(value.present)
+      ||!Number.isInteger(value.absent)
+      ||!Number.isInteger(value.valid)
+      ||!Number.isInteger(value.invalid)
+      ||typeof value.latest_present!=="boolean"
+      ||typeof value.latest_valid!=="boolean"){
+      throw new TypeError("history export final-state evidence summary signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      total:Number(value.total??0),
-      present:Number(value.present??0),
-      absent:Number(value.absent??0),
-      valid:Number(value.valid??0),
-      invalid:Number(value.invalid??0),
-      latest_present:value.latest_present===true,
-      latest_valid:value.latest_valid===true
+      schema:value.schema,
+      total:value.total,
+      present:value.present,
+      absent:value.absent,
+      valid:value.valid,
+      invalid:value.invalid,
+      latest_present:value.latest_present,
+      latest_valid:value.latest_valid
     });
   }
 
