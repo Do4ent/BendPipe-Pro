@@ -3105,6 +3105,7 @@
     if(!dimensionAuditDownloadHistoryExportEventValid(event)){
       throw new TypeError("invalid history export event");
     }
+    Object.freeze(event);
     dimensionAuditDownloadHistoryExportEventHistory.push(event);
     while(dimensionAuditDownloadHistoryExportEventHistory.length>DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LIMIT){
       dimensionAuditDownloadHistoryExportEventHistory.shift();
