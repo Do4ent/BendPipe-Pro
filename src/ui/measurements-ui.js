@@ -3911,7 +3911,8 @@
       &&value.evidence_summary_snapshot_valid===true
       &&dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotValid(value.evidence_summary_snapshot,events)
       &&value.signature.length>0
-      &&value.signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(value);
+      &&value.signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(value)
+      &&dimensionAuditDownloadHistoryExportEventLogEnvelopeSignatureValid(value.signature,value);
   }
 
   function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignature(snapshot={}){
