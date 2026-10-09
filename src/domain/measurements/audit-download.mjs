@@ -457,7 +457,8 @@ export function dimensionAuditDownloadHistoryExportEventSummary(events=[]){
     total:events.length,blocked,copied,downloaded,failed,copy,download,valid,invalid,
     latest_signature:String(events.at(-1)?.signature??""),
     latest_outcome:String(events.at(-1)?.outcome??""),
-    latest_action:String(events.at(-1)?.action??"")
+    latest_action:String(events.at(-1)?.action??""),
+    latest_code:String(events.at(-1)?.code??"")
   });
 }
 
