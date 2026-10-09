@@ -3648,13 +3648,21 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignatureValid(signature,value);
     }
+    const summary=value.summary;
+    const summarySignatureValid=!!summary
+      &&typeof summary==="object"
+      &&!Array.isArray(summary)
+      &&typeof value.summary_signature==="string"
+      &&value.summary_signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignature(summary);
     return typeof signature==="string"
       &&signature.length>0
       &&typeof value.schema==="string"
-      &&typeof value.summary_signature==="string"
+      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshot.v1"
+      &&summarySignatureValid
       &&typeof value.event_binding_signature==="string"
       &&typeof value.summary_valid==="boolean"
       &&typeof value.summary_signature_valid==="boolean"
+      &&value.summary_valid===value.summary_signature_valid
       &&signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignature(value);
   }
 
