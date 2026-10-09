@@ -2134,16 +2134,23 @@
     }
     const value=protocol??{};
     const expected=dimensionAuditDownloadHistoryProtocol();
+    const scalarValid=(field,expectedValue)=>typeof field==="string"&&field===expectedValue;
+    const integrityCodesValid=Array.isArray(value.integrity_codes)
+      &&value.integrity_codes.every(code=>typeof code==="string")
+      &&JSON.stringify(value.integrity_codes)===JSON.stringify(expected.integrity_codes);
+    const validationCodesValid=Array.isArray(value.validation_codes)
+      &&value.validation_codes.every(code=>typeof code==="string")
+      &&JSON.stringify(value.validation_codes)===JSON.stringify(expected.validation_codes);
     const errors=[
-      String(value.schema??"")!==String(expected.schema??"")?"INVALID_PROTOCOL_SCHEMA":null,
-      String(value.attempt_schema??"")!==String(expected.attempt_schema??"")?"INVALID_ATTEMPT_SCHEMA":null,
-      String(value.history_schema??"")!==String(expected.history_schema??"")?"INVALID_HISTORY_SCHEMA":null,
-      String(value.summary_schema??"")!==String(expected.summary_schema??"")?"INVALID_SUMMARY_SCHEMA":null,
-      String(value.integrity_schema??"")!==String(expected.integrity_schema??"")?"INVALID_INTEGRITY_SCHEMA":null,
-      JSON.stringify([...(value.integrity_codes??[])])!==JSON.stringify([...(expected.integrity_codes??[])])?"INVALID_INTEGRITY_CODES":null,
-      String(value.envelope_schema??"")!==String(expected.envelope_schema??"")?"INVALID_ENVELOPE_SCHEMA":null,
-      String(value.validation_schema??"")!==String(expected.validation_schema??"")?"INVALID_PROTOCOL_VALIDATION_SCHEMA":null,
-      JSON.stringify([...(value.validation_codes??[])])!==JSON.stringify([...(expected.validation_codes??[])])?"INVALID_PROTOCOL_VALIDATION_CODES":null
+      !scalarValid(value.schema,expected.schema)?"INVALID_PROTOCOL_SCHEMA":null,
+      !scalarValid(value.attempt_schema,expected.attempt_schema)?"INVALID_ATTEMPT_SCHEMA":null,
+      !scalarValid(value.history_schema,expected.history_schema)?"INVALID_HISTORY_SCHEMA":null,
+      !scalarValid(value.summary_schema,expected.summary_schema)?"INVALID_SUMMARY_SCHEMA":null,
+      !scalarValid(value.integrity_schema,expected.integrity_schema)?"INVALID_INTEGRITY_SCHEMA":null,
+      !integrityCodesValid?"INVALID_INTEGRITY_CODES":null,
+      !scalarValid(value.envelope_schema,expected.envelope_schema)?"INVALID_ENVELOPE_SCHEMA":null,
+      !scalarValid(value.validation_schema,expected.validation_schema)?"INVALID_PROTOCOL_VALIDATION_SCHEMA":null,
+      !validationCodesValid?"INVALID_PROTOCOL_VALIDATION_CODES":null
     ].filter(Boolean);
     return {
       schema:"TubeBender.DimensionAuditDownloadHistoryProtocolValidation.v1",
