@@ -6169,11 +6169,17 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportFinalStateSnapshotSignature){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportFinalStateSnapshotSignature(value);
     }
+    if(typeof value.schema!=="string"
+      ||typeof value.state_signature!=="string"
+      ||typeof value.state_valid!=="boolean"
+      ||typeof value.state_signature_valid!=="boolean"){
+      throw new TypeError("history export final state snapshot signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      state_signature:String(value.state_signature??""),
-      state_valid:value.state_valid===true,
-      state_signature_valid:value.state_signature_valid===true
+      schema:value.schema,
+      state_signature:value.state_signature,
+      state_valid:value.state_valid,
+      state_signature_valid:value.state_signature_valid
     });
   }
 
