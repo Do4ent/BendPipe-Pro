@@ -13,7 +13,9 @@ test("question 566: UI validates audit history summary against attempts",()=>{
   assert.match(fn,/Number\.isInteger\(value\.blocked\)&&value\.blocked===counts\.blocked/);
   assert.match(fn,/Number\.isInteger\(value\.downloaded\)&&value\.downloaded===counts\.downloaded/);
   assert.match(fn,/Number\.isInteger\(value\.failed\)&&value\.failed===counts\.failed/);
-  assert.match(fn,/attempts\.at\(-1\)\?\.signature/);
+  assert.match(fn,/typeof attempt\.status==="string"/);
+  assert.match(fn,/typeof attempt\.signature==="string"/);
+  assert.match(fn,/attempts\.length\?attempts\.at\(-1\)\.signature:""/);
   const integrity=ui.match(/function dimensionAuditDownloadAttemptHistoryIntegrity\(snapshot\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(integrity,/const summaryValid=attemptsArrayValid&&dimensionAuditDownloadAttemptHistorySummaryValid\(summary,attempts\)/);
 });
