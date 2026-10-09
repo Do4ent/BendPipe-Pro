@@ -3192,7 +3192,13 @@
     }
     const expected=dimensionAuditDownloadHistoryExportEventSummary(list);
     const value=summary??{};
-    return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportEventSummary.v1"
+    return typeof value.schema==="string"
+      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportEventSummary.v1"
+      &&typeof value.latest_signature==="string"
+      &&typeof value.latest_outcome==="string"
+      &&typeof value.latest_action==="string"
+      &&typeof value.latest_code==="string"
+      &&typeof value.signature==="string"
       &&Number.isInteger(value.total)&&value.total===expected.total
       &&Number.isInteger(value.blocked)&&value.blocked===expected.blocked
       &&Number.isInteger(value.copied)&&value.copied===expected.copied
