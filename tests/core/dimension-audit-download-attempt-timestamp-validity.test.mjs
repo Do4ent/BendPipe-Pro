@@ -24,7 +24,7 @@ test("question 672: audit attempt validity rejects invalid generated_at semantic
   assert.equal(dimensionAuditDownloadAttemptValid(resigned),false);
 
   const fn=ui.match(/function dimensionAuditDownloadAttemptValid\(attempt\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/const timestamp=new Date\(String\(value\.generated_at\?\?""\)\)/);
-  assert.match(fn,/const generatedAtValid=!Number\.isNaN\(timestamp\.getTime\(\)\)/);
+  assert.match(fn,/const timestamp=new Date\\(value\\.generated_at\\)/);
+  assert.match(fn,/const generatedAtValid=!Number\\.isNaN\\(timestamp\\.getTime\\(\\)\\)&&timestamp\\.toISOString\\(\\)===value\\.generated_at/);
   assert.match(fn,/&&generatedAtValid/);
 });
