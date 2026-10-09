@@ -17,9 +17,10 @@ test("question 921: audit attempt rejects string-coercible non-string fields",()
     protocol_signature:"q",
     generated_at:"2026-10-09T00:00:00.000Z"
   });
-  for(const field of ["schema","status","filename","code","preflight_signature","runtime_signature","protocol_signature","generated_at","signature"]){
+  for(const field of ["schema","status","filename","code","preflight_signature","runtime_signature","protocol_signature","generated_at"]){
     const tampered={...attempt,[field]:new String(attempt[field])};
     tampered.signature=dimensionAuditDownloadAttemptSignature(tampered);
     assert.equal(dimensionAuditDownloadAttemptValid(tampered),false,field);
   }
+  assert.equal(dimensionAuditDownloadAttemptValid({...attempt,signature:new String(attempt.signature)}),false,"signature");
 });
