@@ -626,7 +626,7 @@ test("question 42214: preserves source contract",()=>has(2,"diameter_mm:2*r,"));
 test("question 42215: preserves source contract",()=>has(2,"sweep_rad:sweep,"));
 test("question 42216: preserves source contract",()=>has(2,"sweep_deg:radToDeg(sweep),"));
 test("question 42217: preserves source contract",()=>has(2,"arc_length_mm:Math.abs(r*sweep),"));
-test("question 42218: preserves source contract",()=>has(2,"chord_length_mm:2*r*Math.sin(Math.abs(sweep)/2)"));
+test("question 42218: preserves source contract",()=>has(2,"chord_length_mm:2*r*Math.abs(Math.sin(sweep/2))"));
 test("question 42219: preserves source contract",()=>has(2,"export function measurePointToLine(point,line){"));
 test("question 42220: preserves source contract",()=>has(2,"const p=vec(point,\"point\"),l=lineInput(line),closest=closestPointOnLine(p,l.point,l.direction);"));
 test("question 42221: preserves source contract",()=>has(2,"const delta=sub(p,closest.point);"));
