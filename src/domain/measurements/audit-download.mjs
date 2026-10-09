@@ -873,13 +873,15 @@ export function dimensionAuditDownloadHistoryProtocolStateValid(state=dimensionA
   const value=state??{};
   const protocol=value.protocol??{};
   const validation=value.validation??{};
-  const protocolSignature=String(value.protocol_signature??"");
-  const validationSignature=String(value.validation_signature??"");
+  if(typeof value.schema!=="string"
+    ||typeof value.valid!=="boolean"
+    ||typeof value.protocol_signature!=="string"
+    ||typeof value.validation_signature!=="string")return false;
   const expectedValidation=dimensionAuditDownloadHistoryProtocolValidation(protocol);
-  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_STATE_SCHEMA
-    &&protocolSignature===dimensionAuditDownloadHistoryProtocolSignature(protocol)
-    &&validationSignature===dimensionAuditDownloadHistoryProtocolValidationSignature(validation)
-    &&dimensionAuditDownloadHistoryProtocolValidationSignature(expectedValidation)===validationSignature
+  return value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_STATE_SCHEMA
+    &&value.protocol_signature===dimensionAuditDownloadHistoryProtocolSignature(protocol)
+    &&value.validation_signature===dimensionAuditDownloadHistoryProtocolValidationSignature(validation)
+    &&dimensionAuditDownloadHistoryProtocolValidationSignature(expectedValidation)===value.validation_signature
     &&value.valid===validation.valid
     &&value.valid===expectedValidation.valid;
 }
@@ -888,8 +890,9 @@ export function dimensionAuditDownloadHistoryProtocolBindingValid(snapshot={}){
   const value=snapshot??{};
   const state=value.protocol_state??null;
   return !!state
+    &&typeof value.protocol_state_signature==="string"
     &&dimensionAuditDownloadHistoryProtocolStateValid(state)
-    &&String(value.protocol_state_signature??"")===dimensionAuditDownloadHistoryProtocolStateSignature(state);
+    &&value.protocol_state_signature===dimensionAuditDownloadHistoryProtocolStateSignature(state);
 }
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_BINDING_SCHEMA="TubeBender.DimensionAuditDownloadHistoryProtocolBinding.v1";
@@ -906,7 +909,8 @@ export function dimensionAuditDownloadHistoryProtocolBinding(snapshot={}){
   const statePresent=!!state;
   const stateValid=statePresent&&dimensionAuditDownloadHistoryProtocolStateValid(state);
   const signatureValid=statePresent
-    &&String(value.protocol_state_signature??"")===dimensionAuditDownloadHistoryProtocolStateSignature(state);
+    &&typeof value.protocol_state_signature==="string"
+    &&value.protocol_state_signature===dimensionAuditDownloadHistoryProtocolStateSignature(state);
   const errors=[
     !statePresent?"MISSING_PROTOCOL_STATE":null,
     statePresent&&!stateValid?"INVALID_PROTOCOL_STATE":null,
