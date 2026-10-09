@@ -5554,14 +5554,27 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportChainSignature){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportChainSignature(value);
     }
+    const readiness=value.readiness_snapshot;
+    const gate=value.gate_snapshot;
+    const decision=value.decision_snapshot;
+    const authorization=value.authorization_snapshot;
+    if(typeof value.schema!=="string"
+      ||!readiness||typeof readiness!=="object"||Array.isArray(readiness)||typeof readiness.snapshot_signature!=="string"
+      ||!gate||typeof gate!=="object"||Array.isArray(gate)||typeof gate.snapshot_signature!=="string"
+      ||!decision||typeof decision!=="object"||Array.isArray(decision)||typeof decision.snapshot_signature!=="string"
+      ||!authorization||typeof authorization!=="object"||Array.isArray(authorization)||typeof authorization.snapshot_signature!=="string"
+      ||typeof value.allowed!=="boolean"
+      ||typeof value.code!=="string"){
+      throw new TypeError("history export chain signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      readiness_signature:String(value.readiness_snapshot?.snapshot_signature??""),
-      gate_signature:String(value.gate_snapshot?.snapshot_signature??""),
-      decision_signature:String(value.decision_snapshot?.snapshot_signature??""),
-      authorization_signature:String(value.authorization_snapshot?.snapshot_signature??""),
-      allowed:value.allowed===true,
-      code:String(value.code??"")
+      schema:value.schema,
+      readiness_signature:readiness.snapshot_signature,
+      gate_signature:gate.snapshot_signature,
+      decision_signature:decision.snapshot_signature,
+      authorization_signature:authorization.snapshot_signature,
+      allowed:value.allowed,
+      code:value.code
     });
   }
 
