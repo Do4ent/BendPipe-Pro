@@ -29,7 +29,7 @@ function attempt(status,filename){
     runtime_signature:"runtime",
     protocol_signature:"protocol",
     error:null,
-    generated_at:"2099-01-01T00:00:00Z"
+    generated_at:"2099-01-01T00:00:00.000Z"
   };
   return {...base,signature:dimensionAuditDownloadAttemptSignature(base)};
 }
@@ -45,7 +45,7 @@ function snapshot(){
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA,
     project_id:"p1",
     project_name:"Project",
-    generated_at:"2099-01-01T00:00:00Z",
+    generated_at:"2099-01-01T00:00:00.000Z",
     summary,
     summary_signature:dimensionAuditDownloadHistorySummarySignature(summary),
     protocol_state:protocolState,
@@ -82,10 +82,10 @@ test("question 584: audit download history envelope signature is deterministic",
   const value=snapshot();
   assert.equal(
     dimensionAuditDownloadHistoryEnvelopeSignature(value),
-    dimensionAuditDownloadHistoryEnvelopeSignature({...value,generated_at:"2099-01-01T00:00:01Z"})
+    dimensionAuditDownloadHistoryEnvelopeSignature({...value,generated_at:"2099-01-01T00:00:01.000Z"})
   );
   assert.equal(
-    dimensionAuditDownloadHistoryEnvelopeValid({...value,generated_at:"2099-01-01T00:00:01Z"}),
+    dimensionAuditDownloadHistoryEnvelopeValid({...value,generated_at:"2099-01-01T00:00:01.000Z"}),
     false
   );
 });
