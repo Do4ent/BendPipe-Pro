@@ -521,9 +521,15 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummar
 }
 
 export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignatureValid(signature,snapshot={}){
+  const value=snapshot??{};
   return typeof signature==="string"
     &&signature.length>0
-    &&signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignature(snapshot);
+    &&typeof value.schema==="string"
+    &&typeof value.summary_signature==="string"
+    &&typeof value.event_binding_signature==="string"
+    &&typeof value.summary_valid==="boolean"
+    &&typeof value.summary_signature_valid==="boolean"
+    &&signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignature(value);
 }
 
 export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshot(summary=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummary(),events=[]){
