@@ -27,6 +27,25 @@ test("question 1138: event-log envelope signature rejects coercible non-canonica
     ...envelope,
     history_snapshot:{...envelope.history_snapshot,event_count:{valueOf:()=>1}}
   };
-  const forged=dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(malformed);
-  assert.equal(dimensionAuditDownloadHistoryExportEventLogEnvelopeSignatureValid(forged,malformed),false);
+  assert.throws(
+    ()=>dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(malformed),
+    {name:"TypeError",message:"history export event-log envelope signature fields must be canonical"}
+  );
+});
+
+test("question 1159: envelope signature validator remains fail-closed if malformed input bypasses the builder",()=>{
+  const malformed={
+    schema:"TubeBender.DimensionAuditDownloadHistoryExportEventLogEnvelope.v1",
+    history_snapshot:{signature:"h",events:[{signature:"e"}],event_count:{valueOf:()=>1}},
+    evidence_summary_snapshot:{
+      snapshot_signature:"es",
+      summary_signature:"s",
+      event_binding_signature:'["e"]',
+      summary:{total:1}
+    }
+  };
+  assert.equal(
+    dimensionAuditDownloadHistoryExportEventLogEnvelopeSignatureValid("forged",malformed),
+    false
+  );
 });
