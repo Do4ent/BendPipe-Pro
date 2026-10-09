@@ -4259,17 +4259,24 @@
     const signedAttempts=attempts.filter(attempt=>attempt?.schema==="TubeBender.DimensionAuditDownloadAttempt.v1");
     if(signedAttempts.length>0&&signedAttempts.length!==attempts.length)return false;
     if(signedAttempts.length===attempts.length&&!attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt)))return false;
+    if(signedAttempts.length===0&&!attempts.every(attempt=>
+      !!attempt
+      &&typeof attempt==="object"
+      &&!Array.isArray(attempt)
+      &&typeof attempt.status==="string"
+      &&typeof attempt.signature==="string"
+    ))return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistorySummaryValid){
       return auditDownloadDomain.dimensionAuditDownloadHistorySummaryValid(summary??{},attempts);
     }
     const value=summary??{};
     const counts={blocked:0,downloaded:0,failed:0};
     for(const attempt of attempts){
-      const status=String(attempt?.status??"");
+      const status=attempt.status;
       if(!Object.prototype.hasOwnProperty.call(counts,status))return false;
       counts[status]++;
     }
-    const expectedLatest=String(attempts.at(-1)?.signature??"");
+    const expectedLatest=attempts.length?attempts.at(-1).signature:"";
     return typeof value.schema==="string"
       &&value.schema==="TubeBender.DimensionAuditDownloadAttemptHistorySummary.v1"
       &&typeof value.latest_signature==="string"
