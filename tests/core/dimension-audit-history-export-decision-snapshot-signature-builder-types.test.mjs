@@ -5,7 +5,7 @@ import {
   dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid
 } from "../../src/domain/measurements/audit-download.mjs";
 
-const canonical={
+const canonicalFieldsOnly={
   schema:"TubeBender.DimensionAuditDownloadHistoryExportDecisionSnapshot.v1",
   decision_signature:"decision",
   decision_valid:true,
@@ -13,9 +13,14 @@ const canonical={
 };
 
 test("question 1198: decision snapshot signature builder rejects coercible fields",()=>{
-  const signature=dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(canonical);
-  assert.equal(dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid(signature,canonical),true);
-  const malformed={...canonical,decision_valid:1};
+  const signature=dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(canonicalFieldsOnly);
+  assert.equal(typeof signature,"string");
+  assert.equal(
+    dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid(signature,canonicalFieldsOnly),
+    false,
+    "detached field-only decision snapshot cannot satisfy semantic signature validation"
+  );
+  const malformed={...canonicalFieldsOnly,decision_valid:1};
   assert.throws(
     ()=>dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(malformed),
     {name:"TypeError",message:"history export decision snapshot signature fields must be canonical"}
