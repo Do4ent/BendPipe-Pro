@@ -6215,10 +6215,26 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportActionStatusSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportActionStatusSnapshotSignatureValid(signature,value);
     }
+    const status=value.status;
+    const statusCanonical=!!status
+      &&typeof status==="object"
+      &&!Array.isArray(status)
+      &&typeof status.schema==="string"
+      &&typeof status.ready==="boolean"
+      &&typeof status.code==="string"
+      &&typeof status.payload_binding_snapshot_valid==="boolean"
+      &&typeof status.payload_binding_allowed==="boolean"
+      &&typeof status.payload_binding_snapshot_signature==="string";
+    const statusSignatureValid=statusCanonical
+      &&typeof value.status_signature==="string"
+      &&value.status_signature===dimensionAuditDownloadHistoryExportActionStatusSignature(status);
     return typeof value.schema==="string"
+      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportActionStatusSnapshot.v1"
       &&typeof value.status_signature==="string"
       &&typeof value.status_valid==="boolean"
       &&typeof value.status_signature_valid==="boolean"
+      &&statusSignatureValid
+      &&value.status_valid===value.status_signature_valid
       &&signature===dimensionAuditDownloadHistoryExportActionStatusSnapshotSignature(value);
   }
 
