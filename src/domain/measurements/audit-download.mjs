@@ -555,7 +555,10 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventB
 
 export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignatureValid(signature,events=[]){
   if(!Array.isArray(events))return false;
-  if(!events.every(event=>dimensionAuditDownloadHistoryExportEventValid(event)))return false;
+  const canonicalEvents=events.filter(event=>event?.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SCHEMA);
+  if(canonicalEvents.length>0&&canonicalEvents.length!==events.length)return false;
+  if(canonicalEvents.length===events.length&&!events.every(event=>dimensionAuditDownloadHistoryExportEventValid(event)))return false;
+  if(canonicalEvents.length===0&&!events.every(event=>typeof event?.signature==="string"))return false;
   return typeof signature==="string"
     &&signature.length>0
     &&signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignature(events);
