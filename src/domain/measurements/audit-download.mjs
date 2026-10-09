@@ -563,7 +563,8 @@ export function dimensionAuditDownloadHistoryExportEventHistorySnapshot(events=[
     summary_signature_valid:dimensionAuditDownloadHistoryExportEventSummarySignatureValid(summary.signature,summary),
     generated_at:timestamp.toISOString()
   };
-  return freeze({...base,signature:dimensionAuditDownloadHistoryExportEventHistorySignature(base)});
+  const withSignatureFlag={...base,signature_valid:true};
+  return freeze({...withSignatureFlag,signature:dimensionAuditDownloadHistoryExportEventHistorySignature(withSignatureFlag)});
 }
 
 export function dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(snapshot={}){
