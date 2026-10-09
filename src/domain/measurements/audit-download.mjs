@@ -2193,19 +2193,36 @@ export function dimensionAuditDownloadHistoryExportPayloadBindingValid(binding=d
   const chain_snapshot=chainSnapshot??{};
   const chain=chain_snapshot.chain??{};
   const readiness=chain.readiness_state??{};
-  const historySignature=String(history.snapshot_signature??"");
-  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_PAYLOAD_BINDING_SCHEMA)return false;
+  if(typeof value.schema!=="string"
+    ||typeof value.history_snapshot_signature!=="string"
+    ||typeof value.chain_snapshot_signature!=="string"
+    ||!Number.isInteger(value.attempt_count)
+    ||value.attempt_count<0
+    ||!Number.isInteger(value.chain_attempt_count)
+    ||value.chain_attempt_count<0
+    ||typeof value.allowed!=="boolean"
+    ||typeof value.code!=="string"
+    ||typeof value.history_signature_matches_chain!=="boolean")return false;
+  if(typeof history.snapshot_signature!=="string"||history.snapshot_signature.length===0)return false;
+  if(!Number.isInteger(history.attempt_count)||history.attempt_count<0)return false;
+  if(typeof chain_snapshot.snapshot_signature!=="string"||chain_snapshot.snapshot_signature.length===0)return false;
+  if(typeof readiness.history_snapshot_signature!=="string"
+    ||!Number.isInteger(readiness.attempt_count)
+    ||readiness.attempt_count<0
+    ||typeof chain.allowed!=="boolean"
+    ||typeof chain.code!=="string")return false;
+  const historySignature=history.snapshot_signature;
+  if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_PAYLOAD_BINDING_SCHEMA)return false;
   if(!dimensionAuditDownloadHistoryExportChainSnapshotValid(chain_snapshot))return false;
-  if(!historySignature)return false;
-  if(String(value.history_snapshot_signature??"")!==historySignature)return false;
-  if(String(value.chain_snapshot_signature??"")!==String(chain_snapshot.snapshot_signature??""))return false;
-  if(String(readiness.history_snapshot_signature??"")!==historySignature)return false;
+  if(value.history_snapshot_signature!==historySignature)return false;
+  if(value.chain_snapshot_signature!==chain_snapshot.snapshot_signature)return false;
+  if(readiness.history_snapshot_signature!==historySignature)return false;
   if(value.history_signature_matches_chain!==true)return false;
-  if(Number(value.attempt_count)!==Math.max(0,Number(history.attempt_count)||0))return false;
-  if(Number(value.chain_attempt_count)!==Math.max(0,Number(readiness.attempt_count)||0))return false;
-  if(Number(value.attempt_count)!==Number(value.chain_attempt_count))return false;
-  if((value.allowed===true)!==(chain.allowed===true))return false;
-  return String(value.code??"")===String(chain.code??"");
+  if(value.attempt_count!==history.attempt_count)return false;
+  if(value.chain_attempt_count!==readiness.attempt_count)return false;
+  if(value.attempt_count!==value.chain_attempt_count)return false;
+  if(value.allowed!==chain.allowed)return false;
+  return value.code===chain.code;
 }
 
 export function dimensionAuditDownloadHistoryExportPayloadBindingSignature(binding=dimensionAuditDownloadHistoryExportPayloadBinding()){
@@ -2223,8 +2240,10 @@ export function dimensionAuditDownloadHistoryExportPayloadBindingSignature(bindi
 }
 
 export function dimensionAuditDownloadHistoryExportPayloadBindingSignatureValid(signature,binding=dimensionAuditDownloadHistoryExportPayloadBinding(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
-  return dimensionAuditDownloadHistoryExportPayloadBindingValid(binding,historySnapshot,chainSnapshot)
-    &&String(signature??"")===dimensionAuditDownloadHistoryExportPayloadBindingSignature(binding);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryExportPayloadBindingValid(binding,historySnapshot,chainSnapshot)
+    &&signature===dimensionAuditDownloadHistoryExportPayloadBindingSignature(binding);
 }
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_PAYLOAD_BINDING_SNAPSHOT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportPayloadBindingSnapshot.v1";
@@ -2240,7 +2259,9 @@ export function dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignatu
 }
 
 export function dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignatureValid(signature,snapshot={}){
-  return String(signature??"")===dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignature(snapshot);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignature(snapshot);
 }
 
 export function dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(binding=dimensionAuditDownloadHistoryExportPayloadBinding(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
@@ -2259,7 +2280,13 @@ export function dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(bindin
 
 export function dimensionAuditDownloadHistoryExportPayloadBindingSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
   const value=snapshot??{};
-  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_PAYLOAD_BINDING_SNAPSHOT_SCHEMA)return false;
+  if(typeof value.schema!=="string"
+    ||typeof value.binding_signature!=="string"
+    ||typeof value.binding_valid!=="boolean"
+    ||typeof value.binding_signature_valid!=="boolean"
+    ||typeof value.snapshot_signature!=="string"
+    ||typeof value.snapshot_signature_valid!=="boolean")return false;
+  if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_PAYLOAD_BINDING_SNAPSHOT_SCHEMA)return false;
   if(!dimensionAuditDownloadHistoryExportPayloadBindingValid(value.binding,historySnapshot,chainSnapshot))return false;
   if(value.binding_valid!==true||value.binding_signature_valid!==true)return false;
   if(!dimensionAuditDownloadHistoryExportPayloadBindingSignatureValid(value.binding_signature,value.binding,historySnapshot,chainSnapshot))return false;
