@@ -368,6 +368,8 @@ export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SUMMARY_SCHEMA="TubeB
 
 export function dimensionAuditDownloadHistoryExportEventSignature(event={}){
   const value=event??{};
+  const hasFinalStateEvidence=value.final_state_signature!=null
+    ||value.final_state_snapshot_signature!=null;
   return JSON.stringify({
     schema:String(value.schema??""),
     action:String(value.action??""),
@@ -376,6 +378,10 @@ export function dimensionAuditDownloadHistoryExportEventSignature(event={}){
     history_snapshot_signature:String(value.history_snapshot_signature??""),
     action_permit_signature:String(value.action_permit_signature??""),
     action_permit_snapshot_signature:String(value.action_permit_snapshot_signature??""),
+    ...(hasFinalStateEvidence?{
+      final_state_signature:String(value.final_state_signature??""),
+      final_state_snapshot_signature:String(value.final_state_snapshot_signature??"")
+    }:{ }),
     error:value.error==null?null:String(value.error),
     generated_at:String(value.generated_at??"")
   });
@@ -388,6 +394,8 @@ export function buildDimensionAuditDownloadHistoryExportEvent({
   history_snapshot_signature="",
   action_permit_signature="",
   action_permit_snapshot_signature="",
+  final_state_signature=null,
+  final_state_snapshot_signature=null,
   error=null,
   generated_at=new Date().toISOString()
 }={}){
@@ -410,6 +418,13 @@ export function buildDimensionAuditDownloadHistoryExportEvent({
   if(["copied","downloaded"].includes(safeOutcome)&&!permitEvidenceComplete){
     throw new TypeError("successful history export event requires permit evidence");
   }
+  const hasFinalStateEvidence=final_state_signature!=null||final_state_snapshot_signature!=null;
+  const finalStateSignature=hasFinalStateEvidence?String(final_state_signature??""):"";
+  const finalStateSnapshotSignature=hasFinalStateEvidence?String(final_state_snapshot_signature??""):"";
+  const finalStateEvidenceComplete=!!finalStateSignature&&!!finalStateSnapshotSignature;
+  if(hasFinalStateEvidence&&!finalStateEvidenceComplete){
+    throw new TypeError("history export final-state evidence must be complete or absent");
+  }
   const historySnapshotSignature=String(history_snapshot_signature??"");
   if(!historySnapshotSignature)throw new TypeError("history export event requires history snapshot signature");
   const safeCode=String(code??"");
@@ -425,6 +440,10 @@ export function buildDimensionAuditDownloadHistoryExportEvent({
     history_snapshot_signature:historySnapshotSignature,
     action_permit_signature:permitSignature,
     action_permit_snapshot_signature:permitSnapshotSignature,
+    ...(hasFinalStateEvidence?{
+      final_state_signature:finalStateSignature,
+      final_state_snapshot_signature:finalStateSnapshotSignature
+    }:{ }),
     error:safeError,
     generated_at:timestamp.toISOString()
   };
@@ -440,6 +459,10 @@ export function dimensionAuditDownloadHistoryExportEventValid(event={}){
   const permitSnapshotSignature=String(value.action_permit_snapshot_signature??"");
   const permitEvidenceComplete=!!permitSignature&&!!permitSnapshotSignature;
   const permitEvidenceAbsent=!permitSignature&&!permitSnapshotSignature;
+  const hasFinalStateEvidence=value.final_state_signature!=null||value.final_state_snapshot_signature!=null;
+  const finalStateSignature=hasFinalStateEvidence?String(value.final_state_signature??""):"";
+  const finalStateSnapshotSignature=hasFinalStateEvidence?String(value.final_state_snapshot_signature??""):"";
+  const finalStateEvidenceComplete=!!finalStateSignature&&!!finalStateSnapshotSignature;
   const actionOutcomeValid=(action==="copy"&&outcome!=="downloaded")||(action==="download"&&outcome!=="copied");
   const error=value.error==null?null:String(value.error);
   const errorValid=outcome==="failed"?!!error:error===null;
@@ -455,6 +478,11 @@ export function dimensionAuditDownloadHistoryExportEventValid(event={}){
     &&typeof value.history_snapshot_signature==="string"
     &&typeof value.action_permit_signature==="string"
     &&typeof value.action_permit_snapshot_signature==="string"
+    &&(!hasFinalStateEvidence||(
+      typeof value.final_state_signature==="string"
+      &&typeof value.final_state_snapshot_signature==="string"
+      &&finalStateEvidenceComplete
+    ))
     &&(value.error===null||typeof value.error==="string")
     &&typeof value.generated_at==="string"
     &&typeof value.signature==="string"
