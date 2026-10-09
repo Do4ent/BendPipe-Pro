@@ -11,7 +11,7 @@ test("question 828: copy history records blocked, copied and failed export event
   const fn=ui.match(/async function copyDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(fn,/const recordBlocked=\(code\)=>recordDimensionAuditDownloadHistoryExportEvent\("copy","blocked",code,snapshot\)/);
   const blocked=[...fn.matchAll(/recordBlocked\(blockCode\)/g)];
-  assert.equal(blocked.length,10);
+  assert.equal(blocked.length,11);
   assert.match(fn,/recordDimensionAuditDownloadHistoryExportEvent\("copy","copied","READY",snapshot,\{/);
   assert.match(fn,/action_permit_signature:exportActionPermitSignature/);
   assert.match(fn,/action_permit_snapshot_signature:exportActionPermitSnapshot\.snapshot_signature/);
