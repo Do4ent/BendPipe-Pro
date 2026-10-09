@@ -1362,11 +1362,25 @@ export function dimensionAuditDownloadHistoryAttestationSignature(attestation=di
   });
 }
 
+function dimensionAuditDownloadHistoryAttestationCanonical(attestation={}){
+  const value=attestation??{};
+  return typeof value.schema==="string"
+    &&typeof value.valid==="boolean"
+    &&typeof value.code==="string"
+    &&Array.isArray(value.errors)
+    &&value.errors.every(code=>typeof code==="string")
+    &&typeof value.verification_valid==="boolean"
+    &&typeof value.embedded_verification_valid==="boolean"
+    &&typeof value.verification_embedding_valid==="boolean"
+    &&typeof value.embedded_verification_embedding_valid==="boolean";
+}
+
 export function dimensionAuditDownloadHistoryEmbeddedAttestationValid(snapshot={}){
   const value=snapshot??{};
   const embedded=value.attestation??null;
-  const signature=String(value.attestation_signature??"");
-  if(!embedded||!signature)return false;
+  const signature=value.attestation_signature;
+  if(!embedded||typeof signature!=="string"||signature.length===0)return false;
+  if(!dimensionAuditDownloadHistoryAttestationCanonical(embedded))return false;
   const embeddedValid=dimensionAuditDownloadHistoryAttestationSignature(embedded)===signature;
   const current=dimensionAuditDownloadHistoryAttestation(value);
   const currentValid=dimensionAuditDownloadHistoryAttestationSignature(current)===signature;
@@ -1384,12 +1398,17 @@ export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_ATTESTATION_EMBEDDING_CODES=freeze
 export function dimensionAuditDownloadHistoryAttestationEmbedding(snapshot={}){
   const value=snapshot??{};
   const embedded=value.attestation??null;
-  const signature=String(value.attestation_signature??"");
-  const present=!!embedded&&!!signature;
-  const signatureValid=present&&dimensionAuditDownloadHistoryAttestationSignature(embedded)===signature;
+  const signaturePresent=value.attestation_signature!=null;
+  const signatureTypeValid=typeof value.attestation_signature==="string"&&value.attestation_signature.length>0;
+  const signature=signatureTypeValid?value.attestation_signature:"";
+  const present=!!embedded&&signaturePresent;
+  const signatureValid=present
+    &&signatureTypeValid
+    &&dimensionAuditDownloadHistoryAttestationCanonical(embedded)
+    &&dimensionAuditDownloadHistoryAttestationSignature(embedded)===signature;
   const current=dimensionAuditDownloadHistoryAttestation(value);
   const currentSignature=dimensionAuditDownloadHistoryAttestationSignature(current);
-  const currentValid=present&&currentSignature===signature;
+  const currentValid=signatureValid&&currentSignature===signature;
   const errors=[
     !present?"MISSING_ATTESTATION":null,
     present&&!signatureValid?"INVALID_ATTESTATION_SIGNATURE":null,
@@ -1421,11 +1440,25 @@ export function dimensionAuditDownloadHistoryAttestationEmbeddingSignature(embed
   });
 }
 
+function dimensionAuditDownloadHistoryAttestationEmbeddingCanonical(embedding={}){
+  const value=embedding??{};
+  return typeof value.schema==="string"
+    &&typeof value.valid==="boolean"
+    &&typeof value.code==="string"
+    &&Array.isArray(value.errors)
+    &&value.errors.every(code=>typeof code==="string")
+    &&typeof value.present==="boolean"
+    &&typeof value.signature_valid==="boolean"
+    &&typeof value.current_valid==="boolean"
+    &&typeof value.current_signature==="string";
+}
+
 export function dimensionAuditDownloadHistoryEmbeddedAttestationEmbeddingValid(snapshot={}){
   const value=snapshot??{};
   const embedded=value.attestation_embedding??null;
-  const signature=String(value.attestation_embedding_signature??"");
-  if(!embedded||!signature)return false;
+  const signature=value.attestation_embedding_signature;
+  if(!embedded||typeof signature!=="string"||signature.length===0)return false;
+  if(!dimensionAuditDownloadHistoryAttestationEmbeddingCanonical(embedded))return false;
   const embeddedValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignature(embedded)===signature;
   const current=dimensionAuditDownloadHistoryAttestationEmbedding(value);
   const currentValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignature(current)===signature;
