@@ -470,8 +470,9 @@ export function dimensionAuditDownloadHistoryExportEventSummarySignature(summary
 }
 
 export function dimensionAuditDownloadHistoryExportEventSummarySignatureValid(signature,summary={}){
-  return !!String(signature??"")
-    &&String(signature)===dimensionAuditDownloadHistoryExportEventSummarySignature(summary);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistoryExportEventSummarySignature(summary);
 }
 
 export function dimensionAuditDownloadHistoryExportEventSummary(events=[]){
@@ -549,8 +550,9 @@ export function dimensionAuditDownloadHistoryExportEventHistorySignature(snapsho
 }
 
 export function dimensionAuditDownloadHistoryExportEventHistorySignatureValid(signature,snapshot={}){
-  return !!String(signature??"")
-    &&String(signature)===dimensionAuditDownloadHistoryExportEventHistorySignature(snapshot);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistoryExportEventHistorySignature(snapshot);
 }
 
 export function dimensionAuditDownloadHistoryExportEventHistorySnapshot(events=[],generatedAt=new Date()){
