@@ -536,6 +536,11 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelopeValid(envelop
     ||typeof value.signature!=="string")return false;
   if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LOG_ENVELOPE_SCHEMA)return false;
   if(value.history_snapshot_valid!==true||!dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(value.history_snapshot))return false;
+  const historyEvents=Array.isArray(value.history_snapshot?.events)?value.history_snapshot.events:null;
+  if(!historyEvents||historyEvents.length!==events.length)return false;
+  for(let index=0;index<events.length;index++){
+    if(String(historyEvents[index]?.signature??"")!==String(events[index]?.signature??""))return false;
+  }
   if(value.evidence_summary_snapshot_valid!==true||!dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotValid(value.evidence_summary_snapshot,events))return false;
   return value.signature.length>0
     &&value.signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(value);
