@@ -12,6 +12,7 @@ test("question 859: single export-event UI validator has no snapshot-scope depen
   assert.match(fn,/date\.toISOString\(\)===text/);
   assert.doesNotMatch(fn,/events\.map\(/);
   assert.doesNotMatch(fn,/times\[/);
-  assert.match(fn,/typeof value\.history_snapshot_signature==="string"/);\n  assert.match(fn,/value\.history_snapshot_signature\.length>0/);
+  assert.match(fn,/typeof value\.history_snapshot_signature==="string"/);
+  assert.match(fn,/value\.history_snapshot_signature\.length>0/);
   assert.match(fn,/codeOutcomeValid/);
 });
