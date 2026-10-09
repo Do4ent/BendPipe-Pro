@@ -3183,15 +3183,15 @@
     const expected=dimensionAuditDownloadHistoryExportEventSummary(list);
     const value=summary??{};
     return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportEventSummary.v1"
-      &&Number(value.total)===expected.total
-      &&Number(value.blocked)===expected.blocked
-      &&Number(value.copied)===expected.copied
-      &&Number(value.downloaded)===expected.downloaded
-      &&Number(value.failed)===expected.failed
-      &&Number(value.copy)===expected.copy
-      &&Number(value.download)===expected.download
-      &&Number(value.valid)===expected.valid
-      &&Number(value.invalid)===expected.invalid
+      &&Number.isInteger(value.total)&&value.total===expected.total
+      &&Number.isInteger(value.blocked)&&value.blocked===expected.blocked
+      &&Number.isInteger(value.copied)&&value.copied===expected.copied
+      &&Number.isInteger(value.downloaded)&&value.downloaded===expected.downloaded
+      &&Number.isInteger(value.failed)&&value.failed===expected.failed
+      &&Number.isInteger(value.copy)&&value.copy===expected.copy
+      &&Number.isInteger(value.download)&&value.download===expected.download
+      &&Number.isInteger(value.valid)&&value.valid===expected.valid
+      &&Number.isInteger(value.invalid)&&value.invalid===expected.invalid
       &&String(value.latest_signature??"")===expected.latest_signature
       &&String(value.latest_outcome??"")===expected.latest_outcome
       &&String(value.latest_action??"")===expected.latest_action
@@ -3268,7 +3268,7 @@
     const events=Array.isArray(value.events)?value.events:null;
     return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportEventHistory.v1"
       &&!!events
-      &&Number(value.event_count)===events.length
+      &&Number.isInteger(value.event_count)&&value.event_count===events.length
       &&value.events_valid===true
       &&events.every(event=>dimensionAuditDownloadHistoryExportEventValid(event))
       &&value.summary_valid===true
