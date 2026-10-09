@@ -16,8 +16,8 @@ test("question 993: real download button uses canonical final download readiness
 });
 
 test("question 994: final buttons expose per-action permit code diagnostics",()=>{
-  assert.match(ui,/title="'\+esc\(auditDownloadHistoryCopyPermit\.code\)\+'"/);
-  assert.match(ui,/title="'\+esc\(auditDownloadHistoryDownloadPermit\.code\)\+'"/);
+  assert.match(ui,/title="'\+esc\(auditDownloadHistoryCopyFinalState\.code\)\+'"/);
+  assert.match(ui,/title="'\+esc\(auditDownloadHistoryDownloadFinalState\.code\)\+'"/);
 });
 
 test("question 995: runtime final readiness routes through canonical helper",()=>{
