@@ -424,7 +424,17 @@ export function dimensionAuditDownloadHistoryExportEventValid(event={}){
   const successPermitValid=!successful||permitEvidenceComplete;
   const code=String(value.code??"");
   const codeOutcomeValid=successful?code==="READY":!!code&&code!=="READY";
-  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SCHEMA
+  return typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SCHEMA
+    &&typeof value.action==="string"
+    &&typeof value.outcome==="string"
+    &&typeof value.code==="string"
+    &&typeof value.history_snapshot_signature==="string"
+    &&typeof value.action_permit_signature==="string"
+    &&typeof value.action_permit_snapshot_signature==="string"
+    &&(value.error===null||typeof value.error==="string")
+    &&typeof value.generated_at==="string"
+    &&typeof value.signature==="string"
     &&["copy","download"].includes(action)
     &&["blocked","copied","downloaded","failed"].includes(outcome)
     &&actionOutcomeValid
