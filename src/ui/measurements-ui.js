@@ -3613,7 +3613,8 @@
       &&value.history_snapshot_signature.length>0
       &&(()=>{const text=value.generated_at;const date=new Date(text);return !Number.isNaN(date.getTime())&&date.toISOString()===text;})()
       &&value.signature.length>0
-      &&value.signature===dimensionAuditDownloadHistoryExportEventSignature(value);
+      &&value.signature===dimensionAuditDownloadHistoryExportEventSignature(value)
+      &&dimensionAuditDownloadHistoryExportEventSignatureValid(value.signature,value);
   }
 
   function recordDimensionAuditDownloadHistoryExportEvent(action,outcome,code,snapshot,permitEvidence=null,error=null){
