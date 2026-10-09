@@ -15,5 +15,5 @@ test("question 863: exporting the export-event log does not recursively record a
     assert.doesNotMatch(fn,/recordDimensionAuditDownloadAttempt\(/);
     assert.doesNotMatch(fn,/downloadDimensionAuditJsonWithPermitEvidence\(/);
   }
-  assert.match(download,/new Blob\(\[JSON\.stringify\(envelope,null,2\)\]/);
+  assert.match(download,/new Blob\(\[JSON\.stringify\(envelopeSnapshot,null,2\)\]/);
 });
