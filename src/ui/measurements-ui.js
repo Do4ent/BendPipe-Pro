@@ -5118,7 +5118,11 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid(signature,value);
     }
-    return signature===dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(value);
+    return typeof value.schema==="string"
+      &&typeof value.decision_signature==="string"
+      &&typeof value.decision_valid==="boolean"
+      &&typeof value.decision_signature_valid==="boolean"
+      &&signature===dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportDecisionSnapshot(decision=dimensionAuditDownloadHistoryExportDecision()){
