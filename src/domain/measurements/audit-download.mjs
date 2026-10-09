@@ -540,6 +540,49 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelopeValid(envelop
     &&value.signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(value);
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LOG_ENVELOPE_SNAPSHOT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshot.v1";
+
+export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignature(snapshot={}){
+  const value=snapshot??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    envelope_signature:String(value.envelope_signature??""),
+    envelope_valid:value.envelope_valid===true
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignatureValid(signature,snapshot={}){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignature(snapshot);
+}
+
+export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshot(envelope=dimensionAuditDownloadHistoryExportEventLogEnvelope(),events=[]){
+  const value=envelope??{};
+  const base={
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LOG_ENVELOPE_SNAPSHOT_SCHEMA,
+    envelope:value,
+    envelope_signature:String(value.signature??""),
+    envelope_valid:dimensionAuditDownloadHistoryExportEventLogEnvelopeValid(value,events)
+  };
+  const snapshotSignature=dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignature(base);
+  return freeze({...base,snapshot_signature:snapshotSignature,snapshot_signature_valid:true});
+}
+
+export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotValid(snapshot={},events=[]){
+  const value=snapshot??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.envelope_signature!=="string"
+    ||typeof value.envelope_valid!=="boolean"
+    ||typeof value.snapshot_signature!=="string"
+    ||typeof value.snapshot_signature_valid!=="boolean")return false;
+  if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LOG_ENVELOPE_SNAPSHOT_SCHEMA)return false;
+  if(value.envelope_valid!==true||!dimensionAuditDownloadHistoryExportEventLogEnvelopeValid(value.envelope,events))return false;
+  if(value.envelope_signature!==value.envelope.signature)return false;
+  if(value.snapshot_signature_valid!==true)return false;
+  return dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignatureValid(value.snapshot_signature,value);
+}
+
 export function dimensionAuditDownloadHistoryExportEventSignature(event={}){
   const value=event??{};
   const hasFinalStateEvidence=value.final_state_signature!=null
