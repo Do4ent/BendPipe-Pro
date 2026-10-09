@@ -1062,14 +1062,21 @@ export function dimensionAuditDownloadHistorySummaryValid(summary={},attempts=[]
   const signedAttempts=attempts.filter(attempt=>attempt?.schema===DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA);
   if(signedAttempts.length>0&&signedAttempts.length!==attempts.length)return false;
   if(signedAttempts.length===attempts.length&&!attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt)))return false;
+  if(signedAttempts.length===0&&!attempts.every(attempt=>
+    !!attempt
+    &&typeof attempt==="object"
+    &&!Array.isArray(attempt)
+    &&typeof attempt.status==="string"
+    &&typeof attempt.signature==="string"
+  ))return false;
   const value=summary??{};
   const counts={blocked:0,downloaded:0,failed:0};
   for(const attempt of attempts){
-    const status=String(attempt?.status??"");
+    const status=attempt.status;
     if(!Object.prototype.hasOwnProperty.call(counts,status))return false;
     counts[status]++;
   }
-  const expectedLatest=String(attempts.at(-1)?.signature??"");
+  const expectedLatest=attempts.length?attempts.at(-1).signature:"";
   return typeof value.schema==="string"
     &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_SUMMARY_SCHEMA
     &&typeof value.latest_signature==="string"
