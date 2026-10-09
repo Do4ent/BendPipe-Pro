@@ -2704,9 +2704,14 @@ export function dimensionAuditDownloadHistoryExportChainSnapshotSignature(snapsh
 }
 
 export function dimensionAuditDownloadHistoryExportChainSnapshotSignatureValid(signature,snapshot={}){
+  const value=snapshot??{};
   return typeof signature==="string"
     &&signature.length>0
-    &&signature===dimensionAuditDownloadHistoryExportChainSnapshotSignature(snapshot);
+    &&typeof value.schema==="string"
+    &&typeof value.chain_signature==="string"
+    &&typeof value.chain_valid==="boolean"
+    &&typeof value.chain_signature_valid==="boolean"
+    &&signature===dimensionAuditDownloadHistoryExportChainSnapshotSignature(value);
 }
 
 export function dimensionAuditDownloadHistoryExportChainSnapshot(chain=dimensionAuditDownloadHistoryExportChain()){
