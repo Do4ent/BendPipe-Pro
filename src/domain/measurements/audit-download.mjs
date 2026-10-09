@@ -531,6 +531,11 @@ export function dimensionAuditDownloadHistoryExportEventHistorySignature(snapsho
   });
 }
 
+export function dimensionAuditDownloadHistoryExportEventHistorySignatureValid(signature,snapshot={}){
+  return !!String(signature??"")
+    &&String(signature)===dimensionAuditDownloadHistoryExportEventHistorySignature(snapshot);
+}
+
 export function dimensionAuditDownloadHistoryExportEventHistorySnapshot(events=[],generatedAt=new Date()){
   if(!Array.isArray(events))throw new TypeError("history export events must be an array");
   const timestamp=generatedAt instanceof Date?generatedAt:new Date(generatedAt);
