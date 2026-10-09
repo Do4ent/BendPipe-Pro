@@ -2370,19 +2370,12 @@
       value.state_present===true&&value.state_valid===false?"INVALID_PROTOCOL_STATE":null,
       value.state_present===true&&value.signature_valid===false?"INVALID_PROTOCOL_STATE_SIGNATURE":null
     ].filter(Boolean);
-    return typeof signature==="string"
-      &&signature.length>0
-      &&typeof value.schema==="string"
-      &&typeof value.valid==="boolean"
-      &&typeof value.code==="string"
-      &&Array.isArray(value.errors)
-      &&value.errors.every(code=>typeof code==="string")
-      &&typeof value.state_present==="boolean"
-      &&typeof value.state_valid==="boolean"
-      &&typeof value.signature_valid==="boolean"
+    return typeof signature==="string"&&signature.length>0
+      &&typeof value.schema==="string"&&typeof value.valid==="boolean"&&typeof value.code==="string"
+      &&Array.isArray(value.errors)&&value.errors.every(code=>typeof code==="string")
+      &&typeof value.state_present==="boolean"&&typeof value.state_valid==="boolean"&&typeof value.signature_valid==="boolean"
       &&JSON.stringify(value.errors)===JSON.stringify(errors)
-      &&value.valid===(errors.length===0)
-      &&value.code===(errors[0]??"OK")
+      &&value.valid===(errors.length===0)&&value.code===(errors[0]??"OK")
       &&signature===dimensionAuditDownloadHistoryProtocolBindingSignature(value);
   }
 
@@ -2439,21 +2432,10 @@
 
   function dimensionAuditDownloadHistoryHealthSignatureValid(signature,health=dimensionAuditDownloadHistoryHealth()){
     const value=health??{};
-    if(auditDownloadDomain?.dimensionAuditDownloadHistoryHealthSignatureValid){
-      return auditDownloadDomain.dimensionAuditDownloadHistoryHealthSignatureValid(signature,value);
-    }
-    const errors=[
-      value.protocol_state_valid===false?"INVALID_PROTOCOL_STATE":null,
-      value.protocol_binding_valid===false?"INVALID_PROTOCOL_BINDING":null,
-      value.integrity_valid===false?"INVALID_INTEGRITY":null,
-      value.envelope_valid===false?"INVALID_ENVELOPE":null
-    ].filter(Boolean);
-    return typeof signature==="string"
-      &&signature.length>0
-      &&dimensionAuditDownloadHistoryHealthCanonical(value)
-      &&JSON.stringify(value.errors)===JSON.stringify(errors)
-      &&value.valid===(errors.length===0)
-      &&value.code===(errors[0]??"OK")
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryHealthSignatureValid)return auditDownloadDomain.dimensionAuditDownloadHistoryHealthSignatureValid(signature,value);
+    const errors=[!value.protocol_state_valid?"INVALID_PROTOCOL_STATE":null,!value.protocol_binding_valid?"INVALID_PROTOCOL_BINDING":null,!value.integrity_valid?"INVALID_INTEGRITY":null,!value.envelope_valid?"INVALID_ENVELOPE":null].filter(Boolean);
+    return typeof signature==="string"&&signature.length>0&&dimensionAuditDownloadHistoryHealthCanonical(value)
+      &&JSON.stringify(value.errors)===JSON.stringify(errors)&&value.valid===(errors.length===0)&&value.code===(errors[0]??"OK")
       &&signature===dimensionAuditDownloadHistoryHealthSignature(value);
   }
 
@@ -2545,20 +2527,10 @@
 
   function dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid(signature,embedding=dimensionAuditDownloadHistoryHealthEmbedding()){
     const value=embedding??{};
-    if(auditDownloadDomain?.dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid){
-      return auditDownloadDomain.dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid(signature,value);
-    }
-    const errors=[
-      value.present===false?"MISSING_HEALTH":null,
-      value.present===true&&value.signature_valid===false?"INVALID_HEALTH_SIGNATURE":null,
-      value.present===true&&value.signature_valid===true&&value.current_valid===false?"STALE_HEALTH":null
-    ].filter(Boolean);
-    return typeof signature==="string"
-      &&signature.length>0
-      &&dimensionAuditDownloadHistoryHealthEmbeddingCanonical(value)
-      &&JSON.stringify(value.errors)===JSON.stringify(errors)
-      &&value.valid===(errors.length===0)
-      &&value.code===(errors[0]??"OK")
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid)return auditDownloadDomain.dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid(signature,value);
+    const errors=[!value.present?"MISSING_HEALTH":null,value.present&&!value.signature_valid?"INVALID_HEALTH_SIGNATURE":null,value.present&&value.signature_valid&&!value.current_valid?"STALE_HEALTH":null].filter(Boolean);
+    return typeof signature==="string"&&signature.length>0&&dimensionAuditDownloadHistoryHealthEmbeddingCanonical(value)
+      &&JSON.stringify(value.errors)===JSON.stringify(errors)&&value.valid===(errors.length===0)&&value.code===(errors[0]??"OK")
       &&signature===dimensionAuditDownloadHistoryHealthEmbeddingSignature(value);
   }
 
@@ -2649,23 +2621,10 @@
 
   function dimensionAuditDownloadHistoryVerificationSignatureValid(signature,verification=dimensionAuditDownloadHistoryVerification()){
     const value=verification??{};
-    if(auditDownloadDomain?.dimensionAuditDownloadHistoryVerificationSignatureValid){
-      return auditDownloadDomain.dimensionAuditDownloadHistoryVerificationSignatureValid(signature,value);
-    }
-    const errors=[
-      value.protocol_binding_valid===false?"INVALID_PROTOCOL_BINDING":null,
-      value.integrity_valid===false?"INVALID_INTEGRITY":null,
-      value.envelope_valid===false?"INVALID_ENVELOPE":null,
-      value.health_valid===false?"INVALID_HEALTH":null,
-      value.embedded_health_valid===false?"INVALID_EMBEDDED_HEALTH":null,
-      value.health_embedding_valid===false?"INVALID_HEALTH_EMBEDDING":null
-    ].filter(Boolean);
-    return typeof signature==="string"
-      &&signature.length>0
-      &&dimensionAuditDownloadHistoryVerificationCanonical(value)
-      &&JSON.stringify(value.errors)===JSON.stringify(errors)
-      &&value.valid===(errors.length===0)
-      &&value.code===(errors[0]??"OK")
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryVerificationSignatureValid)return auditDownloadDomain.dimensionAuditDownloadHistoryVerificationSignatureValid(signature,value);
+    const errors=[!value.protocol_binding_valid?"INVALID_PROTOCOL_BINDING":null,!value.integrity_valid?"INVALID_INTEGRITY":null,!value.envelope_valid?"INVALID_ENVELOPE":null,!value.health_valid?"INVALID_HEALTH":null,!value.embedded_health_valid?"INVALID_EMBEDDED_HEALTH":null,!value.health_embedding_valid?"INVALID_HEALTH_EMBEDDING":null].filter(Boolean);
+    return typeof signature==="string"&&signature.length>0&&dimensionAuditDownloadHistoryVerificationCanonical(value)
+      &&JSON.stringify(value.errors)===JSON.stringify(errors)&&value.valid===(errors.length===0)&&value.code===(errors[0]??"OK")
       &&signature===dimensionAuditDownloadHistoryVerificationSignature(value);
   }
 
@@ -2757,20 +2716,10 @@
 
   function dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid(signature,embedding=dimensionAuditDownloadHistoryVerificationEmbedding()){
     const value=embedding??{};
-    if(auditDownloadDomain?.dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid){
-      return auditDownloadDomain.dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid(signature,value);
-    }
-    const errors=[
-      value.present===false?"MISSING_VERIFICATION":null,
-      value.present===true&&value.signature_valid===false?"INVALID_VERIFICATION_SIGNATURE":null,
-      value.present===true&&value.signature_valid===true&&value.current_valid===false?"STALE_VERIFICATION":null
-    ].filter(Boolean);
-    return typeof signature==="string"
-      &&signature.length>0
-      &&dimensionAuditDownloadHistoryVerificationEmbeddingCanonical(value)
-      &&JSON.stringify(value.errors)===JSON.stringify(errors)
-      &&value.valid===(errors.length===0)
-      &&value.code===(errors[0]??"OK")
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid)return auditDownloadDomain.dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid(signature,value);
+    const errors=[!value.present?"MISSING_VERIFICATION":null,value.present&&!value.signature_valid?"INVALID_VERIFICATION_SIGNATURE":null,value.present&&value.signature_valid&&!value.current_valid?"STALE_VERIFICATION":null].filter(Boolean);
+    return typeof signature==="string"&&signature.length>0&&dimensionAuditDownloadHistoryVerificationEmbeddingCanonical(value)
+      &&JSON.stringify(value.errors)===JSON.stringify(errors)&&value.valid===(errors.length===0)&&value.code===(errors[0]??"OK")
       &&signature===dimensionAuditDownloadHistoryVerificationEmbeddingSignature(value);
   }
 
@@ -2853,21 +2802,10 @@
 
   function dimensionAuditDownloadHistoryAttestationSignatureValid(signature,attestation=dimensionAuditDownloadHistoryAttestation()){
     const value=attestation??{};
-    if(auditDownloadDomain?.dimensionAuditDownloadHistoryAttestationSignatureValid){
-      return auditDownloadDomain.dimensionAuditDownloadHistoryAttestationSignatureValid(signature,value);
-    }
-    const errors=[
-      value.verification_valid===false?"INVALID_VERIFICATION":null,
-      value.embedded_verification_valid===false?"INVALID_EMBEDDED_VERIFICATION":null,
-      value.verification_embedding_valid===false?"INVALID_VERIFICATION_EMBEDDING":null,
-      value.embedded_verification_embedding_valid===false?"INVALID_EMBEDDED_VERIFICATION_EMBEDDING":null
-    ].filter(Boolean);
-    return typeof signature==="string"
-      &&signature.length>0
-      &&dimensionAuditDownloadHistoryAttestationCanonical(value)
-      &&JSON.stringify(value.errors)===JSON.stringify(errors)
-      &&value.valid===(errors.length===0)
-      &&value.code===(errors[0]??"OK")
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryAttestationSignatureValid)return auditDownloadDomain.dimensionAuditDownloadHistoryAttestationSignatureValid(signature,value);
+    const errors=[!value.verification_valid?"INVALID_VERIFICATION":null,!value.embedded_verification_valid?"INVALID_EMBEDDED_VERIFICATION":null,!value.verification_embedding_valid?"INVALID_VERIFICATION_EMBEDDING":null,!value.embedded_verification_embedding_valid?"INVALID_EMBEDDED_VERIFICATION_EMBEDDING":null].filter(Boolean);
+    return typeof signature==="string"&&signature.length>0&&dimensionAuditDownloadHistoryAttestationCanonical(value)
+      &&JSON.stringify(value.errors)===JSON.stringify(errors)&&value.valid===(errors.length===0)&&value.code===(errors[0]??"OK")
       &&signature===dimensionAuditDownloadHistoryAttestationSignature(value);
   }
 
@@ -2957,20 +2895,10 @@
 
   function dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid(signature,embedding=dimensionAuditDownloadHistoryAttestationEmbedding()){
     const value=embedding??{};
-    if(auditDownloadDomain?.dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid){
-      return auditDownloadDomain.dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid(signature,value);
-    }
-    const errors=[
-      value.present===false?"MISSING_ATTESTATION":null,
-      value.present===true&&value.signature_valid===false?"INVALID_ATTESTATION_SIGNATURE":null,
-      value.present===true&&value.signature_valid===true&&value.current_valid===false?"STALE_ATTESTATION":null
-    ].filter(Boolean);
-    return typeof signature==="string"
-      &&signature.length>0
-      &&dimensionAuditDownloadHistoryAttestationEmbeddingCanonical(value)
-      &&JSON.stringify(value.errors)===JSON.stringify(errors)
-      &&value.valid===(errors.length===0)
-      &&value.code===(errors[0]??"OK")
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid)return auditDownloadDomain.dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid(signature,value);
+    const errors=[!value.present?"MISSING_ATTESTATION":null,value.present&&!value.signature_valid?"INVALID_ATTESTATION_SIGNATURE":null,value.present&&value.signature_valid&&!value.current_valid?"STALE_ATTESTATION":null].filter(Boolean);
+    return typeof signature==="string"&&signature.length>0&&dimensionAuditDownloadHistoryAttestationEmbeddingCanonical(value)
+      &&JSON.stringify(value.errors)===JSON.stringify(errors)&&value.valid===(errors.length===0)&&value.code===(errors[0]??"OK")
       &&signature===dimensionAuditDownloadHistoryAttestationEmbeddingSignature(value);
   }
 
@@ -3066,25 +2994,11 @@
 
   function dimensionAuditDownloadHistoryTrustSignatureValid(signature,trust=dimensionAuditDownloadHistoryTrust(),snapshot=null){
     const value=trust??{};
-    if(auditDownloadDomain?.dimensionAuditDownloadHistoryTrustSignatureValid){
-      return auditDownloadDomain.dimensionAuditDownloadHistoryTrustSignatureValid(signature,value,snapshot);
-    }
-    if(snapshot!=null){
-      const expected=dimensionAuditDownloadHistoryTrust(snapshot);
-      if(dimensionAuditDownloadHistoryTrustSignature(value)!==dimensionAuditDownloadHistoryTrustSignature(expected))return false;
-    }
-    const errors=[
-      value.attestation_valid===false?"INVALID_ATTESTATION":null,
-      value.embedded_attestation_valid===false?"INVALID_EMBEDDED_ATTESTATION":null,
-      value.attestation_embedding_valid===false?"INVALID_ATTESTATION_EMBEDDING":null,
-      value.embedded_attestation_embedding_valid===false?"INVALID_EMBEDDED_ATTESTATION_EMBEDDING":null
-    ].filter(Boolean);
-    return typeof signature==="string"
-      &&signature.length>0
-      &&dimensionAuditDownloadHistoryTrustCanonical(value)
-      &&JSON.stringify(value.errors)===JSON.stringify(errors)
-      &&value.trusted===(errors.length===0)
-      &&value.code===(errors[0]??"OK")
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryTrustSignatureValid)return auditDownloadDomain.dimensionAuditDownloadHistoryTrustSignatureValid(signature,value,snapshot);
+    if(snapshot!=null){const expected=dimensionAuditDownloadHistoryTrust(snapshot);if(dimensionAuditDownloadHistoryTrustSignature(value)!==dimensionAuditDownloadHistoryTrustSignature(expected))return false;}
+    const errors=[!value.attestation_valid?"INVALID_ATTESTATION":null,!value.embedded_attestation_valid?"INVALID_EMBEDDED_ATTESTATION":null,!value.attestation_embedding_valid?"INVALID_ATTESTATION_EMBEDDING":null,!value.embedded_attestation_embedding_valid?"INVALID_EMBEDDED_ATTESTATION_EMBEDDING":null].filter(Boolean);
+    return typeof signature==="string"&&signature.length>0&&dimensionAuditDownloadHistoryTrustCanonical(value)
+      &&JSON.stringify(value.errors)===JSON.stringify(errors)&&value.trusted===(errors.length===0)&&value.code===(errors[0]??"OK")
       &&signature===dimensionAuditDownloadHistoryTrustSignature(value);
   }
 
@@ -3697,8 +3611,7 @@
     if(canonicalEvents.length>0&&canonicalEvents.length!==events.length)return false;
     if(canonicalEvents.length===events.length&&!events.every(event=>dimensionAuditDownloadHistoryExportEventValid(event)))return false;
     if(canonicalEvents.length===0&&!events.every(event=>typeof event?.signature==="string"))return false;
-    return typeof signature==="string"
-      &&signature.length>0
+    return typeof signature==="string"&&signature.length>0
       &&signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignature(events);
   }
 
@@ -4013,10 +3926,7 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventSummarySignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventSummarySignatureValid(signature,value);
     }
-    const counters=[
-      value.total,value.blocked,value.copied,value.downloaded,value.failed,
-      value.copy,value.download,value.valid,value.invalid
-    ];
+    const counters=[value.total,value.blocked,value.copied,value.downloaded,value.failed,value.copy,value.download,value.valid,value.invalid];
     const countersValid=counters.every(count=>Number.isInteger(count)&&count>=0);
     const totalsValid=countersValid
       &&value.blocked+value.copied+value.downloaded+value.failed===value.total
@@ -4024,59 +3934,18 @@
       &&value.valid+value.invalid===value.total;
     const latestActionOutcomeValid=value.latest_action==="copy"
       ?value.latest_outcome!=="downloaded"
-      :value.latest_action==="download"
-        ?value.latest_outcome!=="copied"
-        :false;
+      :value.latest_action==="download"?value.latest_outcome!=="copied":false;
     const latestValid=value.total===0
       ?value.latest_signature===""&&value.latest_outcome===""&&value.latest_action===""&&value.latest_code===""
       :value.latest_signature.length>0
         &&["blocked","copied","downloaded","failed"].includes(value.latest_outcome)
         &&["copy","download"].includes(value.latest_action)
-        &&latestActionOutcomeValid
-        &&value.latest_code.length>0;
-    return typeof signature==="string"
-      &&signature.length>0
-      &&typeof value.schema==="string"
-      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportEventSummary.v1"
-      &&countersValid
-      &&typeof value.latest_signature==="string"
-      &&typeof value.latest_outcome==="string"
-      &&typeof value.latest_action==="string"
-      &&typeof value.latest_code==="string"
-      &&totalsValid
-      &&latestValid
-      &&signature===dimensionAuditDownloadHistoryExportEventSummarySignature(value);
-  }){
-    const value=summary??{};
-    if(typeof signature!=="string"||signature.length===0)return false;
-    if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventSummarySignatureValid){
-      return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventSummarySignatureValid(signature,value);
-    }
-    const counters=[
-      value.total,value.blocked,value.copied,value.downloaded,value.failed,
-      value.copy,value.download,value.valid,value.invalid
-    ];
-    const countersValid=counters.every(count=>Number.isInteger(count)&&count>=0);
-    const totalsValid=countersValid
-      &&value.blocked+value.copied+value.downloaded+value.failed===value.total
-      &&value.copy+value.download===value.total
-      &&value.valid+value.invalid===value.total;
-    const latestValid=value.total===0
-      ?value.latest_signature===""&&value.latest_outcome===""&&value.latest_action===""&&value.latest_code===""
-      :value.latest_signature.length>0
-        &&["blocked","copied","downloaded","failed"].includes(value.latest_outcome)
-        &&["copy","download"].includes(value.latest_action)
-        &&value.latest_code.length>0;
-    return typeof value.schema==="string"
-      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportEventSummary.v1"
-      &&countersValid
-      &&typeof value.latest_signature==="string"
-      &&typeof value.latest_outcome==="string"
-      &&typeof value.latest_action==="string"
-      &&typeof value.latest_code==="string"
-      &&totalsValid
-      &&latestValid
-      &&signature===dimensionAuditDownloadHistoryExportEventSummarySignature(value);
+        &&latestActionOutcomeValid&&value.latest_code.length>0;
+    return typeof signature==="string"&&signature.length>0
+      &&typeof value.schema==="string"&&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportEventSummary.v1"
+      &&countersValid&&typeof value.latest_signature==="string"&&typeof value.latest_outcome==="string"
+      &&typeof value.latest_action==="string"&&typeof value.latest_code==="string"
+      &&totalsValid&&latestValid&&signature===dimensionAuditDownloadHistoryExportEventSummarySignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportEventSummary(events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
