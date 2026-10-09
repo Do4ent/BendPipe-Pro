@@ -1498,9 +1498,9 @@ export function dimensionAuditDownloadHistoryEmbeddedHealthEmbeddingValid(snapsh
   const signature=value.health_embedding_signature;
   if(!embedded||typeof signature!=="string"||signature.length===0)return false;
   if(!dimensionAuditDownloadHistoryHealthEmbeddingCanonical(embedded))return false;
-  const embeddedValid=dimensionAuditDownloadHistoryHealthEmbeddingSignature(embedded)===signature;
+  const embeddedValid=dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid(signature,embedded);
   const current=dimensionAuditDownloadHistoryHealthEmbedding(value);
-  const currentValid=dimensionAuditDownloadHistoryHealthEmbeddingSignature(current)===signature;
+  const currentValid=dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid(signature,current);
   return embeddedValid&&currentValid;
 }
 
