@@ -1092,6 +1092,14 @@ export function dimensionAuditDownloadHistoryProtocolSignature(protocol=dimensio
   });
 }
 
+export function dimensionAuditDownloadHistoryProtocolSignatureValid(signature,protocol=dimensionAuditDownloadHistoryProtocol()){
+  const validation=dimensionAuditDownloadHistoryProtocolValidation(protocol);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&validation.valid===true
+    &&signature===dimensionAuditDownloadHistoryProtocolSignature(protocol);
+}
+
 export function dimensionAuditDownloadHistoryProtocolValidation(protocol=dimensionAuditDownloadHistoryProtocol()){
   const value=protocol??{};
   const scalarValid=(field,expected)=>typeof field==="string"&&field===expected;
