@@ -555,6 +555,12 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(env
   });
 }
 
+export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSignatureValid(signature,envelope={}){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(envelope);
+}
+
 export function dimensionAuditDownloadHistoryExportEventLogEnvelope(historySnapshot=dimensionAuditDownloadHistoryExportEventHistorySnapshot(),evidenceSummarySnapshot=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshot(),events=[]){
   if(!Array.isArray(events))throw new TypeError("history export events must be an array");
   const history=historySnapshot??{};
