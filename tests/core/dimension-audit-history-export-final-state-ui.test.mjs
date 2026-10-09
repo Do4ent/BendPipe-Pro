@@ -12,8 +12,8 @@ test("questions 998-999: UI manager and runtime use canonical final export state
   assert.match(ui,/function dimensionAuditDownloadHistoryExportFinalStateValid\(/);
   assert.match(ui,/const auditDownloadHistoryCopyFinalState=dimensionAuditDownloadHistoryExportFinalState\("copy"/);
   assert.match(ui,/const auditDownloadHistoryDownloadFinalState=dimensionAuditDownloadHistoryExportFinalState\("download"/);
-  assert.match(ui,/const auditDownloadHistoryCopyPermitReady=auditDownloadHistoryCopyFinalStateValid&&auditDownloadHistoryCopyFinalState\.ready/);
-  assert.match(ui,/const auditDownloadHistoryDownloadPermitReady=auditDownloadHistoryDownloadFinalStateValid&&auditDownloadHistoryDownloadFinalState\.ready/);
+  assert.match(ui,/const auditDownloadHistoryCopyPermitReady=auditDownloadHistoryCopyFinalStateSnapshotValid&&auditDownloadHistoryCopyFinalState\.ready/);
+  assert.match(ui,/const auditDownloadHistoryDownloadPermitReady=auditDownloadHistoryDownloadFinalStateSnapshotValid&&auditDownloadHistoryDownloadFinalState\.ready/);
   assert.match(ui,/currentDimensionAuditDownloadHistoryExportFinalState:/);
   assert.match(ui,/currentDimensionAuditDownloadHistoryExportFinalStateValid:/);
 });
