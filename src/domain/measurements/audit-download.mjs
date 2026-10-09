@@ -1614,14 +1614,24 @@ export function dimensionAuditDownloadHistoryProtocolBinding(snapshot={}){
 
 export function dimensionAuditDownloadHistoryProtocolBindingSignature(binding=dimensionAuditDownloadHistoryProtocolBinding()){
   const value=binding??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.valid!=="boolean"
+    ||typeof value.code!=="string"
+    ||!Array.isArray(value.errors)
+    ||!value.errors.every(code=>typeof code==="string")
+    ||typeof value.state_present!=="boolean"
+    ||typeof value.state_valid!=="boolean"
+    ||typeof value.signature_valid!=="boolean"){
+    throw new TypeError("audit download history protocol binding signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    valid:value.valid===true,
-    code:String(value.code??""),
-    errors:[...(value.errors??[])].map(code=>String(code)),
-    state_present:value.state_present===true,
-    state_valid:value.state_valid===true,
-    signature_valid:value.signature_valid===true
+    schema:value.schema,
+    valid:value.valid,
+    code:value.code,
+    errors:[...value.errors],
+    state_present:value.state_present,
+    state_valid:value.state_valid,
+    signature_valid:value.signature_valid
   });
 }
 
