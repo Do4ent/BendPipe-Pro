@@ -389,6 +389,8 @@ export function buildDimensionAuditDownloadHistoryExportEvent({
   }
   const historySnapshotSignature=String(history_snapshot_signature??"");
   if(!historySnapshotSignature)throw new TypeError("history export event requires history snapshot signature");
+  const safeCode=String(code??"");
+  if(!safeCode)throw new TypeError("history export event requires code");
   const base={
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SCHEMA,
     action:safeAction,
