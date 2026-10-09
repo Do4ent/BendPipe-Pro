@@ -420,7 +420,10 @@ export function dimensionAuditDownloadHistoryExportEventValid(event={}){
   const actionOutcomeValid=(action==="copy"&&outcome!=="downloaded")||(action==="download"&&outcome!=="copied");
   const error=value.error==null?null:String(value.error);
   const errorValid=outcome==="failed"?!!error:error===null;
-  const successPermitValid=!["copied","downloaded"].includes(outcome)||permitEvidenceComplete;
+  const successful=["copied","downloaded"].includes(outcome);
+  const successPermitValid=!successful||permitEvidenceComplete;
+  const code=String(value.code??"");
+  const codeOutcomeValid=successful?code==="READY":!!code&&code!=="READY";
   return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SCHEMA
     &&["copy","download"].includes(action)
     &&["blocked","copied","downloaded","failed"].includes(outcome)
