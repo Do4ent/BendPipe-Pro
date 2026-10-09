@@ -25,7 +25,7 @@ test("question 558: audit download history integrity is validated by pure domain
     runtime_signature:"runtime",
     protocol_signature:"protocol",
     error:null,
-    generated_at:"2099-01-01T00:00:00Z"
+    generated_at:"2099-01-01T00:00:00.000Z"
   });
   const a1=attemptBase("blocked","a1.json");
   const a2=attemptBase("downloaded","a2.json");
@@ -40,7 +40,7 @@ test("question 558: audit download history integrity is validated by pure domain
     schema:"TubeBender.DimensionAuditDownloadHistory.v1",
     project_id:"p1",
     project_name:"Project",
-    generated_at:"2099-01-01T00:00:00Z",
+    generated_at:"2099-01-01T00:00:00.000Z",
     summary,
     summary_signature:normalizedSummarySignature,
     protocol_state:protocolState,
@@ -51,12 +51,12 @@ test("question 558: audit download history integrity is validated by pure domain
   assert.equal(dimensionAuditDownloadHistoryValid(snapshot),true);
   assert.notEqual(
     dimensionAuditDownloadHistorySignature(snapshot),
-    dimensionAuditDownloadHistorySignature({...snapshot,generated_at:"2099-01-01T00:00:01Z"})
+    dimensionAuditDownloadHistorySignature({...snapshot,generated_at:"2099-01-01T00:00:01.000Z"})
   );
   assert.equal(dimensionAuditDownloadHistoryValid({...snapshot,attempt_count:1}),false);
   assert.equal(dimensionAuditDownloadHistoryValid({...snapshot,summary_signature:"bad"}),false);
   const signed={...snapshot,snapshot_signature:dimensionAuditDownloadHistorySignature(snapshot)};
   assert.equal(dimensionAuditDownloadHistoryValid(signed),true);
-  assert.equal(dimensionAuditDownloadHistoryValid({...signed,generated_at:"2099-01-01T00:00:01Z"}),false);
+  assert.equal(dimensionAuditDownloadHistoryValid({...signed,generated_at:"2099-01-01T00:00:01.000Z"}),false);
   assert.equal(dimensionAuditDownloadHistoryValid({...signed,snapshot_signature:"bad"}),false);
 });
