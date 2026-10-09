@@ -2561,17 +2561,20 @@
       return auditDownloadDomain.dimensionAuditDownloadHistoryVerificationSignature(verification??{});
     }
     const value=verification??{};
+    if(!dimensionAuditDownloadHistoryVerificationCanonical(value)){
+      throw new TypeError("audit download history verification signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      valid:value.valid===true,
-      code:String(value.code??""),
-      errors:[...(value.errors??[])].map(code=>String(code)),
-      protocol_binding_valid:value.protocol_binding_valid===true,
-      integrity_valid:value.integrity_valid===true,
-      envelope_valid:value.envelope_valid===true,
-      health_valid:value.health_valid===true,
-      embedded_health_valid:value.embedded_health_valid===true,
-      health_embedding_valid:value.health_embedding_valid===true
+      schema:value.schema,
+      valid:value.valid,
+      code:value.code,
+      errors:[...value.errors],
+      protocol_binding_valid:value.protocol_binding_valid,
+      integrity_valid:value.integrity_valid,
+      envelope_valid:value.envelope_valid,
+      health_valid:value.health_valid,
+      embedded_health_valid:value.embedded_health_valid,
+      health_embedding_valid:value.health_embedding_valid
     });
   }
 
