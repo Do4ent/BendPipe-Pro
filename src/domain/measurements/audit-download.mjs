@@ -810,21 +810,45 @@ export function dimensionAuditDownloadHistoryExportEventSignature(event={}){
 export function dimensionAuditDownloadHistoryExportEventSignatureValid(signature,event={}){
   const value=event??{};
   const hasFinalStateEvidence=value.final_state_signature!=null||value.final_state_snapshot_signature!=null;
+  const timestamp=typeof value.generated_at==="string"?new Date(value.generated_at):null;
+  const generatedAtValid=!!timestamp&&!Number.isNaN(timestamp.getTime())&&timestamp.toISOString()===value.generated_at;
+  const permitEvidenceComplete=typeof value.action_permit_signature==="string"
+    &&value.action_permit_signature.length>0
+    &&typeof value.action_permit_snapshot_signature==="string"
+    &&value.action_permit_snapshot_signature.length>0;
+  const permitEvidenceAbsent=value.action_permit_signature===""&&value.action_permit_snapshot_signature==="";
+  const finalStateEvidenceValid=!hasFinalStateEvidence||(
+    typeof value.final_state_signature==="string"
+    &&value.final_state_signature.length>0
+    &&typeof value.final_state_snapshot_signature==="string"
+    &&value.final_state_snapshot_signature.length>0
+  );
+  const actionOutcomeValid=(value.action==="copy"&&value.outcome!=="downloaded")
+    ||(value.action==="download"&&value.outcome!=="copied");
+  const errorValid=value.outcome==="failed"?typeof value.error==="string"&&value.error.length>0:value.error===null;
+  const successful=["copied","downloaded"].includes(value.outcome);
+  const codeOutcomeValid=successful?value.code==="READY":typeof value.code==="string"&&value.code.length>0&&value.code!=="READY";
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SCHEMA
     &&typeof value.action==="string"
+    &&["copy","download"].includes(value.action)
     &&typeof value.outcome==="string"
+    &&["blocked","copied","downloaded","failed"].includes(value.outcome)
+    &&actionOutcomeValid
     &&typeof value.code==="string"
+    &&codeOutcomeValid
     &&typeof value.history_snapshot_signature==="string"
+    &&value.history_snapshot_signature.length>0
     &&typeof value.action_permit_signature==="string"
     &&typeof value.action_permit_snapshot_signature==="string"
-    &&(!hasFinalStateEvidence||(
-      typeof value.final_state_signature==="string"
-      &&typeof value.final_state_snapshot_signature==="string"
-    ))
+    &&(permitEvidenceComplete||permitEvidenceAbsent)
+    &&(!successful||permitEvidenceComplete)
+    &&finalStateEvidenceValid
     &&(value.error===null||typeof value.error==="string")
-    &&typeof value.generated_at==="string"
+    &&errorValid
+    &&generatedAtValid
     &&signature===dimensionAuditDownloadHistoryExportEventSignature(value);
 }
 
