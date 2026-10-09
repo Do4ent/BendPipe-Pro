@@ -2248,9 +2248,7 @@
     const value=snapshot??{};
     const state=value.protocol_state??null;
     return !!state
-      &&typeof value.protocol_state_signature==="string"
-      &&dimensionAuditDownloadHistoryProtocolStateValid(state)
-      &&value.protocol_state_signature===dimensionAuditDownloadHistoryProtocolStateSignature(state);
+      &&dimensionAuditDownloadHistoryProtocolStateSignatureValid(value.protocol_state_signature,state);
   }
 
   function dimensionAuditDownloadHistoryProtocolBinding(snapshot={}){
@@ -2262,8 +2260,7 @@
     const statePresent=!!state;
     const stateValid=statePresent&&dimensionAuditDownloadHistoryProtocolStateValid(state);
     const signatureValid=statePresent
-      &&typeof value.protocol_state_signature==="string"
-      &&value.protocol_state_signature===dimensionAuditDownloadHistoryProtocolStateSignature(state);
+      &&dimensionAuditDownloadHistoryProtocolStateSignatureValid(value.protocol_state_signature,state);
     const errors=[
       !statePresent?"MISSING_PROTOCOL_STATE":null,
       statePresent&&!stateValid?"INVALID_PROTOCOL_STATE":null,
@@ -4023,7 +4020,7 @@
     const protocolState=value.protocol_state??null;
     const protocolStateSignatureValid=!!protocolState
       &&typeof value.protocol_state_signature==="string"
-      &&value.protocol_state_signature===dimensionAuditDownloadHistoryProtocolStateSignature(protocolState);
+      &&dimensionAuditDownloadHistoryProtocolStateSignatureValid(value.protocol_state_signature,protocolState);
     const protocolStateValid=dimensionAuditDownloadHistoryProtocolBindingValid(value);
     const rawSignature=value.snapshot_signature;
     const snapshotSignatureTypeValid=rawSignature==null||typeof rawSignature==="string";
