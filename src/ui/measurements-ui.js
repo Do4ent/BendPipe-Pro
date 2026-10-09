@@ -3942,21 +3942,22 @@
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessProtocolValid(value);
     }
     const expected=dimensionAuditDownloadHistoryExportReadinessProtocol();
-    return String(value.schema??"")===String(expected.schema??"")
-      &&String(value.state_schema??"")===String(expected.state_schema??"")
-      &&String(value.snapshot_schema??"")===String(expected.snapshot_schema??"")
+    return typeof value.schema==="string"&&value.schema===expected.schema
+      &&typeof value.state_schema==="string"&&value.state_schema===expected.state_schema
+      &&typeof value.snapshot_schema==="string"&&value.snapshot_schema===expected.snapshot_schema
       &&Array.isArray(value.codes)
       &&value.codes.length===expected.codes.length
-      &&value.codes.every((code,index)=>String(code)===String(expected.codes[index]));
+      &&value.codes.every((code,index)=>typeof code==="string"&&code===expected.codes[index]);
   }
 
   function dimensionAuditDownloadHistoryExportReadinessProtocolSignatureValid(signature=dimensionAuditDownloadHistoryExportReadinessProtocolSignature(),protocol=dimensionAuditDownloadHistoryExportReadinessProtocol()){
     const value=protocol??{};
+    if(typeof signature!=="string"||signature.length===0)return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportReadinessProtocolSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessProtocolSignatureValid(signature,value);
     }
     return dimensionAuditDownloadHistoryExportReadinessProtocolValid(value)
-      &&String(signature??"")===dimensionAuditDownloadHistoryExportReadinessProtocolSignature(value);
+      &&signature===dimensionAuditDownloadHistoryExportReadinessProtocolSignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportReadiness(snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot()){
