@@ -502,6 +502,10 @@ export function dimensionAuditDownloadHistoryExportEventHistorySnapshot(events=[
   const timestamp=generatedAt instanceof Date?generatedAt:new Date(generatedAt);
   if(Number.isNaN(timestamp.getTime()))throw new TypeError("history export event snapshot generatedAt must be valid");
   const normalized=events.map(event=>freeze({...event}));
+  const latestEventTime=Math.max(-Infinity,...normalized.map(event=>new Date(String(event?.generated_at??"")).getTime()).filter(Number.isFinite));
+  if(Number.isFinite(latestEventTime)&&timestamp.getTime()<latestEventTime){
+    throw new RangeError("history export event snapshot cannot predate contained events");
+  }
   const summary=dimensionAuditDownloadHistoryExportEventSummary(normalized);
   const base={
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_HISTORY_SCHEMA,
