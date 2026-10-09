@@ -9,10 +9,10 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 835: export event history can be downloaded only from a valid non-empty snapshot",()=>{
   const fn=ui.match(/function downloadDimensionAuditHistoryExportEvents\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/dimensionAuditDownloadHistoryExportEventHistorySnapshot\(\)/);
+  assert.match(fn,/dimensionAuditDownloadHistoryExportEventHistorySnapshot\(events\)/);
   assert.match(fn,/dimensionAuditDownloadHistoryExportEventHistorySnapshotValid\(snapshot\)/);
   assert.match(fn,/if\(snapshot\.event_count===0\)/);
-  assert.match(fn,/new Blob\(\[JSON\.stringify\(snapshot,null,2\)\],\{type:"application\/json"\}\)/);
+  assert.match(fn,/new Blob\(\[JSON\.stringify\(envelope,null,2\)\],\{type:"application\/json"\}\)/);
   assert.match(ui,/data-download-dimension-audit-history-export-events/);
   assert.match(ui,/addEventListener\("click",downloadDimensionAuditHistoryExportEvents\)/);
 });
