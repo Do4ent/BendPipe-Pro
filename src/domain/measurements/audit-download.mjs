@@ -478,7 +478,8 @@ export function dimensionAuditDownloadHistoryExportEventSummaryValid(summary={},
     &&Number(value.invalid)===expected.invalid
     &&String(value.latest_signature??"")===expected.latest_signature
     &&String(value.latest_outcome??"")===expected.latest_outcome
-    &&String(value.latest_action??"")===expected.latest_action;
+    &&String(value.latest_action??"")===expected.latest_action
+    &&String(value.latest_code??"")===expected.latest_code;
 }
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_HISTORY_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportEventHistory.v1";
