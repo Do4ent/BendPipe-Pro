@@ -9,7 +9,7 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 817: final export buttons expose accessible blocked state and permit reason",()=>{
   assert.match(ui,/aria-disabled="'\+\(auditDownloadHistoryCopyPermitReady\?'false':'true'\)\+'"/);
-  assert.match(ui,/title="'\+esc\(auditDownloadHistoryCopyPermit\.code\)\+'"/);
+  assert.match(ui,/title="'\+esc\(auditDownloadHistoryCopyFinalState\.code\)\+'"/);
   assert.match(ui,/aria-disabled="'\+\(auditDownloadHistoryDownloadPermitReady\?'false':'true'\)\+'"/);
-  assert.match(ui,/title="'\+esc\(auditDownloadHistoryDownloadPermit\.code\)\+'"/);
+  assert.match(ui,/title="'\+esc\(auditDownloadHistoryDownloadFinalState\.code\)\+'"/);
 });
