@@ -2875,9 +2875,11 @@
     const signature=value.attestation_embedding_signature;
     if(!embedded||typeof signature!=="string"||signature.length===0)return false;
     if(!dimensionAuditDownloadHistoryAttestationEmbeddingCanonical(embedded))return false;
-    const embeddedValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignature(embedded)===signature;
+    const embeddedValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignature(embedded)===signature
+      &&dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid(signature,embedded);
     const current=dimensionAuditDownloadHistoryAttestationEmbedding(value);
-    const currentValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignature(current)===signature;
+    const currentValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignature(current)===signature
+      &&dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid(signature,current);
     return embeddedValid&&currentValid;
   }
 
