@@ -1458,9 +1458,19 @@ export function dimensionAuditDownloadHistoryEnvelopeSignature(snapshot={}){
 }
 
 export function dimensionAuditDownloadHistoryEnvelopeSignatureValid(signature,snapshot={}){
+  const value=snapshot??{};
   return typeof signature==="string"
     &&signature.length>0
-    &&signature===dimensionAuditDownloadHistoryEnvelopeSignature(snapshot);
+    &&typeof value.schema==="string"
+    &&typeof value.snapshot_signature==="string"
+    &&typeof value.protocol_state_signature==="string"
+    &&typeof value.protocol_binding_signature==="string"
+    &&typeof value.integrity_signature==="string"
+    &&typeof value.protocol_binding_valid==="boolean"
+    &&typeof value.attempts_valid==="boolean"
+    &&typeof value.summary_valid==="boolean"
+    &&typeof value.valid==="boolean"
+    &&signature===dimensionAuditDownloadHistoryEnvelopeSignature(value);
 }
 
 export function dimensionAuditDownloadHistoryEnvelopeValid(snapshot={}){
