@@ -1306,8 +1306,8 @@ export function dimensionAuditDownloadHistoryEnvelopeValid(snapshot={}){
   const coreBinding=dimensionAuditDownloadHistoryProtocolBinding(value);
   const embeddedBindingValid=!!embeddedBinding
     &&embeddedBindingSignatureValid
-    &&dimensionAuditDownloadHistoryProtocolBindingSignature(embeddedBinding)===embeddedBindingSignature
-    &&dimensionAuditDownloadHistoryProtocolBindingSignature(coreBinding)===embeddedBindingSignature;
+    &&dimensionAuditDownloadHistoryProtocolBindingSignatureValid(embeddedBindingSignature,embeddedBinding)
+    &&dimensionAuditDownloadHistoryProtocolBindingSignatureValid(embeddedBindingSignature,coreBinding);
   const rawEnvelopeSignature=value.envelope_signature;
   const envelopeSignatureTypeValid=rawEnvelopeSignature==null||typeof rawEnvelopeSignature==="string";
   const envelopeSignature=typeof rawEnvelopeSignature==="string"?rawEnvelopeSignature:"";
