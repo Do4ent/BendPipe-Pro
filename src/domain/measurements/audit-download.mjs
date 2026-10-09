@@ -1385,6 +1385,13 @@ export function dimensionAuditDownloadHistoryHealthSignature(health=dimensionAud
   });
 }
 
+export function dimensionAuditDownloadHistoryHealthSignatureValid(signature,health=dimensionAuditDownloadHistoryHealth()){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryHealthCanonical(health)
+    &&signature===dimensionAuditDownloadHistoryHealthSignature(health);
+}
+
 function dimensionAuditDownloadHistoryHealthCanonical(health={}){
   const value=health??{};
   return typeof value.schema==="string"
