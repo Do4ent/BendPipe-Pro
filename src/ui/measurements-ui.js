@@ -2495,14 +2495,30 @@
     });
   }
 
+  function dimensionAuditDownloadHistoryVerificationCanonical(verification={}){
+    const value=verification??{};
+    return typeof value.schema==="string"
+      &&typeof value.valid==="boolean"
+      &&typeof value.code==="string"
+      &&Array.isArray(value.errors)
+      &&value.errors.every(code=>typeof code==="string")
+      &&typeof value.protocol_binding_valid==="boolean"
+      &&typeof value.integrity_valid==="boolean"
+      &&typeof value.envelope_valid==="boolean"
+      &&typeof value.health_valid==="boolean"
+      &&typeof value.embedded_health_valid==="boolean"
+      &&typeof value.health_embedding_valid==="boolean";
+  }
+
   function dimensionAuditDownloadHistoryEmbeddedVerificationValid(snapshot={}){
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryEmbeddedVerificationValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryEmbeddedVerificationValid(snapshot??{});
     }
     const value=snapshot??{};
     const embedded=value.verification??null;
-    const signature=String(value.verification_signature??"");
-    if(!embedded||!signature)return false;
+    const signature=value.verification_signature;
+    if(!embedded||typeof signature!=="string"||signature.length===0)return false;
+    if(!dimensionAuditDownloadHistoryVerificationCanonical(embedded))return false;
     const embeddedValid=dimensionAuditDownloadHistoryVerificationSignature(embedded)===signature;
     const current=dimensionAuditDownloadHistoryVerification(value);
     const currentValid=dimensionAuditDownloadHistoryVerificationSignature(current)===signature;
@@ -2515,12 +2531,17 @@
     }
     const value=snapshot??{};
     const embedded=value.verification??null;
-    const signature=String(value.verification_signature??"");
-    const present=!!embedded&&!!signature;
-    const signatureValid=present&&dimensionAuditDownloadHistoryVerificationSignature(embedded)===signature;
+    const signaturePresent=value.verification_signature!=null;
+    const signatureTypeValid=typeof value.verification_signature==="string"&&value.verification_signature.length>0;
+    const signature=signatureTypeValid?value.verification_signature:"";
+    const present=!!embedded&&signaturePresent;
+    const signatureValid=present
+      &&signatureTypeValid
+      &&dimensionAuditDownloadHistoryVerificationCanonical(embedded)
+      &&dimensionAuditDownloadHistoryVerificationSignature(embedded)===signature;
     const current=dimensionAuditDownloadHistoryVerification(value);
     const currentSignature=dimensionAuditDownloadHistoryVerificationSignature(current);
-    const currentValid=present&&currentSignature===signature;
+    const currentValid=signatureValid&&currentSignature===signature;
     const errors=[
       !present?"MISSING_VERIFICATION":null,
       present&&!signatureValid?"INVALID_VERIFICATION_SIGNATURE":null,
@@ -2555,14 +2576,28 @@
     });
   }
 
+  function dimensionAuditDownloadHistoryVerificationEmbeddingCanonical(embedding={}){
+    const value=embedding??{};
+    return typeof value.schema==="string"
+      &&typeof value.valid==="boolean"
+      &&typeof value.code==="string"
+      &&Array.isArray(value.errors)
+      &&value.errors.every(code=>typeof code==="string")
+      &&typeof value.present==="boolean"
+      &&typeof value.signature_valid==="boolean"
+      &&typeof value.current_valid==="boolean"
+      &&typeof value.current_signature==="string";
+  }
+
   function dimensionAuditDownloadHistoryEmbeddedVerificationEmbeddingValid(snapshot={}){
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryEmbeddedVerificationEmbeddingValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryEmbeddedVerificationEmbeddingValid(snapshot??{});
     }
     const value=snapshot??{};
     const embedded=value.verification_embedding??null;
-    const signature=String(value.verification_embedding_signature??"");
-    if(!embedded||!signature)return false;
+    const signature=value.verification_embedding_signature;
+    if(!embedded||typeof signature!=="string"||signature.length===0)return false;
+    if(!dimensionAuditDownloadHistoryVerificationEmbeddingCanonical(embedded))return false;
     const embeddedValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignature(embedded)===signature;
     const current=dimensionAuditDownloadHistoryVerificationEmbedding(value);
     const currentValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignature(current)===signature;
