@@ -3497,10 +3497,11 @@
 
   function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignature(events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
     if(!Array.isArray(events))throw new TypeError("history export events must be an array");
+    if(!events.every(event=>typeof event?.signature==="string"))throw new TypeError("history export event signatures must be strings");
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignature){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignature(events);
     }
-    return JSON.stringify(events.map(event=>String(event?.signature??"")));
+    return JSON.stringify(events.map(event=>event.signature));
   }
 
   function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignatureValid(signature,events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
