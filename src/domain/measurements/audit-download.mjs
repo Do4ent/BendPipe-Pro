@@ -336,8 +336,7 @@ export function dimensionAuditDownloadAttemptValid(attempt={}){
     &&outcomeValid
     &&generatedAtValid
     &&permitEvidenceValid
-    &&signature.length>0
-    &&signature===dimensionAuditDownloadAttemptSignature(value);
+    &&dimensionAuditDownloadAttemptSignatureValid(signature,value);
 }
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_PERMIT_EVIDENCE_SUMMARY_SCHEMA="TubeBender.DimensionAuditDownloadHistoryPermitEvidenceSummary.v1";
