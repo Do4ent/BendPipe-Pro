@@ -1892,8 +1892,12 @@ export function dimensionAuditDownloadHistoryHealthSignature(health=dimensionAud
   });
 }
 
-export function dimensionAuditDownloadHistoryHealthSignatureValid(signature,health=dimensionAuditDownloadHistoryHealth()){
+export function dimensionAuditDownloadHistoryHealthSignatureValid(signature,health=dimensionAuditDownloadHistoryHealth(),snapshot=null){
   const value=health??{};
+  if(snapshot!=null){
+    const expected=dimensionAuditDownloadHistoryHealth(snapshot);
+    if(dimensionAuditDownloadHistoryHealthSignature(value)!==dimensionAuditDownloadHistoryHealthSignature(expected))return false;
+  }
   const errors=[
     value.protocol_state_valid===false?"INVALID_PROTOCOL_STATE":null,
     value.protocol_binding_valid===false?"INVALID_PROTOCOL_BINDING":null,
@@ -1930,9 +1934,9 @@ export function dimensionAuditDownloadHistoryEmbeddedHealthValid(snapshot={}){
   const signature=value.health_signature;
   if(!embedded||typeof signature!=="string"||signature.length===0)return false;
   if(!dimensionAuditDownloadHistoryHealthCanonical(embedded))return false;
-  const embeddedValid=dimensionAuditDownloadHistoryHealthSignatureValid(signature,embedded);
+  const embeddedValid=dimensionAuditDownloadHistoryHealthSignatureValid(signature,embedded,value);
   const current=dimensionAuditDownloadHistoryHealth(value);
-  const currentValid=dimensionAuditDownloadHistoryHealthSignatureValid(signature,current);
+  const currentValid=dimensionAuditDownloadHistoryHealthSignatureValid(signature,current,value);
   return embeddedValid&&currentValid;
 }
 
@@ -2031,9 +2035,9 @@ export function dimensionAuditDownloadHistoryEmbeddedHealthEmbeddingValid(snapsh
   const signature=value.health_embedding_signature;
   if(!embedded||typeof signature!=="string"||signature.length===0)return false;
   if(!dimensionAuditDownloadHistoryHealthEmbeddingCanonical(embedded))return false;
-  const embeddedValid=dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid(signature,embedded);
+  const embeddedValid=dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid(signature,embedded,value);
   const current=dimensionAuditDownloadHistoryHealthEmbedding(value);
-  const currentValid=dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid(signature,current);
+  const currentValid=dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid(signature,current,value);
   return embeddedValid&&currentValid;
 }
 
@@ -2097,8 +2101,12 @@ export function dimensionAuditDownloadHistoryVerificationSignature(verification=
   });
 }
 
-export function dimensionAuditDownloadHistoryVerificationSignatureValid(signature,verification=dimensionAuditDownloadHistoryVerification()){
+export function dimensionAuditDownloadHistoryVerificationSignatureValid(signature,verification=dimensionAuditDownloadHistoryVerification(),snapshot=null){
   const value=verification??{};
+  if(snapshot!=null){
+    const expected=dimensionAuditDownloadHistoryVerification(snapshot);
+    if(dimensionAuditDownloadHistoryVerificationSignature(value)!==dimensionAuditDownloadHistoryVerificationSignature(expected))return false;
+  }
   const errors=[
     value.protocol_binding_valid===false?"INVALID_PROTOCOL_BINDING":null,
     value.integrity_valid===false?"INVALID_INTEGRITY":null,
@@ -2137,9 +2145,9 @@ export function dimensionAuditDownloadHistoryEmbeddedVerificationValid(snapshot=
   const signature=value.verification_signature;
   if(!embedded||typeof signature!=="string"||signature.length===0)return false;
   if(!dimensionAuditDownloadHistoryVerificationCanonical(embedded))return false;
-  const embeddedValid=dimensionAuditDownloadHistoryVerificationSignatureValid(signature,embedded);
+  const embeddedValid=dimensionAuditDownloadHistoryVerificationSignatureValid(signature,embedded,value);
   const current=dimensionAuditDownloadHistoryVerification(value);
-  const currentValid=dimensionAuditDownloadHistoryVerificationSignatureValid(signature,current);
+  const currentValid=dimensionAuditDownloadHistoryVerificationSignatureValid(signature,current,value);
   return embeddedValid&&currentValid;
 }
 
@@ -2238,9 +2246,9 @@ export function dimensionAuditDownloadHistoryEmbeddedVerificationEmbeddingValid(
   const signature=value.verification_embedding_signature;
   if(!embedded||typeof signature!=="string"||signature.length===0)return false;
   if(!dimensionAuditDownloadHistoryVerificationEmbeddingCanonical(embedded))return false;
-  const embeddedValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid(signature,embedded);
+  const embeddedValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid(signature,embedded,value);
   const current=dimensionAuditDownloadHistoryVerificationEmbedding(value);
-  const currentValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid(signature,current);
+  const currentValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid(signature,current,value);
   return embeddedValid&&currentValid;
 }
 
@@ -2294,8 +2302,12 @@ export function dimensionAuditDownloadHistoryAttestationSignature(attestation=di
   });
 }
 
-export function dimensionAuditDownloadHistoryAttestationSignatureValid(signature,attestation=dimensionAuditDownloadHistoryAttestation()){
+export function dimensionAuditDownloadHistoryAttestationSignatureValid(signature,attestation=dimensionAuditDownloadHistoryAttestation(),snapshot=null){
   const value=attestation??{};
+  if(snapshot!=null){
+    const expected=dimensionAuditDownloadHistoryAttestation(snapshot);
+    if(dimensionAuditDownloadHistoryAttestationSignature(value)!==dimensionAuditDownloadHistoryAttestationSignature(expected))return false;
+  }
   const errors=[
     value.verification_valid===false?"INVALID_VERIFICATION":null,
     value.embedded_verification_valid===false?"INVALID_EMBEDDED_VERIFICATION":null,
@@ -2330,9 +2342,9 @@ export function dimensionAuditDownloadHistoryEmbeddedAttestationValid(snapshot={
   const signature=value.attestation_signature;
   if(!embedded||typeof signature!=="string"||signature.length===0)return false;
   if(!dimensionAuditDownloadHistoryAttestationCanonical(embedded))return false;
-  const embeddedValid=dimensionAuditDownloadHistoryAttestationSignatureValid(signature,embedded);
+  const embeddedValid=dimensionAuditDownloadHistoryAttestationSignatureValid(signature,embedded,value);
   const current=dimensionAuditDownloadHistoryAttestation(value);
-  const currentValid=dimensionAuditDownloadHistoryAttestationSignatureValid(signature,current);
+  const currentValid=dimensionAuditDownloadHistoryAttestationSignatureValid(signature,current,value);
   return embeddedValid&&currentValid;
 }
 
@@ -2431,9 +2443,9 @@ export function dimensionAuditDownloadHistoryEmbeddedAttestationEmbeddingValid(s
   const signature=value.attestation_embedding_signature;
   if(!embedded||typeof signature!=="string"||signature.length===0)return false;
   if(!dimensionAuditDownloadHistoryAttestationEmbeddingCanonical(embedded))return false;
-  const embeddedValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid(signature,embedded);
+  const embeddedValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid(signature,embedded,value);
   const current=dimensionAuditDownloadHistoryAttestationEmbedding(value);
-  const currentValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid(signature,current);
+  const currentValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid(signature,current,value);
   return embeddedValid&&currentValid;
 }
 
