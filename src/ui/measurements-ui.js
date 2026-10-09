@@ -2252,7 +2252,7 @@
       &&validation.code===expectedValidation.code
       &&JSON.stringify(validation.errors)===JSON.stringify(expectedValidation.errors)
       &&value.protocol_signature===dimensionAuditDownloadHistoryProtocolSignature(protocol)
-      &&value.validation_signature===dimensionAuditDownloadHistoryProtocolValidationSignature(validation)
+      &&dimensionAuditDownloadHistoryProtocolValidationSignatureValid(value.validation_signature,validation)
       &&dimensionAuditDownloadHistoryProtocolValidationSignature(expectedValidation)===value.validation_signature;
   }
 
