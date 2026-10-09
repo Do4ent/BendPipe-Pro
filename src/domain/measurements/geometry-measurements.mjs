@@ -8,6 +8,13 @@ function freeze(value){
   return value;
 }
 function num(value,name){
+  // Avoid JavaScript coercions that turn missing data into plausible zeros.
+  // Numeric strings are accepted only when their content is non-blank.
+  if(value==null||typeof value==="boolean"||
+     (typeof value==="string"&&!value.trim())||
+     (typeof value!=="number"&&typeof value!=="string")){
+    throw new TypeError(`${name} must be a finite number`);
+  }
   const n=Number(value);
   if(!Number.isFinite(n))throw new TypeError(`${name} must be finite`);
   return n;
@@ -91,7 +98,8 @@ export function measureArc({radius_mm,sweep_rad,sweep_deg}={}){
     sweep_rad:sweep,
     sweep_deg:radToDeg(sweep),
     arc_length_mm:Math.abs(r*sweep),
-    chord_length_mm:2*r*Math.sin(Math.abs(sweep)/2)
+    // Chord length is a non-negative distance even for full/multi-turn sweeps.
+    chord_length_mm:2*r*Math.abs(Math.sin(sweep/2))
   });
 }
 
