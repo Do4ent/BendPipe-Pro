@@ -1706,17 +1706,20 @@ export function dimensionAuditDownloadHistoryHealth(snapshot={}){
 
 export function dimensionAuditDownloadHistoryHealthSignature(health=dimensionAuditDownloadHistoryHealth()){
   const value=health??{};
+  if(!dimensionAuditDownloadHistoryHealthCanonical(value)){
+    throw new TypeError("audit download history health signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    valid:value.valid===true,
-    code:String(value.code??""),
-    errors:[...(value.errors??[])].map(code=>String(code)),
-    protocol_state_valid:value.protocol_state_valid===true,
-    protocol_binding_valid:value.protocol_binding_valid===true,
-    protocol_binding_code:String(value.protocol_binding_code??""),
-    integrity_valid:value.integrity_valid===true,
-    integrity_code:String(value.integrity_code??""),
-    envelope_valid:value.envelope_valid===true
+    schema:value.schema,
+    valid:value.valid,
+    code:value.code,
+    errors:[...value.errors],
+    protocol_state_valid:value.protocol_state_valid,
+    protocol_binding_valid:value.protocol_binding_valid,
+    protocol_binding_code:value.protocol_binding_code,
+    integrity_valid:value.integrity_valid,
+    integrity_code:value.integrity_code,
+    envelope_valid:value.envelope_valid
   });
 }
 
