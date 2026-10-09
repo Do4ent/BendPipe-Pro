@@ -4850,11 +4850,18 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportReadinessProtocolSignature){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessProtocolSignature(value);
     }
+    if(typeof value.schema!=="string"
+      ||typeof value.state_schema!=="string"
+      ||typeof value.snapshot_schema!=="string"
+      ||!Array.isArray(value.codes)
+      ||!value.codes.every(code=>typeof code==="string")){
+      throw new TypeError("history export readiness protocol signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      state_schema:String(value.state_schema??""),
-      snapshot_schema:String(value.snapshot_schema??""),
-      codes:[...(value.codes??[])].map(code=>String(code))
+      schema:value.schema,
+      state_schema:value.state_schema,
+      snapshot_schema:value.snapshot_schema,
+      codes:[...value.codes]
     });
   }
 
