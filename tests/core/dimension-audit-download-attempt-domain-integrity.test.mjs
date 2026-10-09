@@ -17,12 +17,12 @@ test("question 570: audit download attempts are individually signature-validated
     runtime_signature:"runtime",
     protocol_signature:"protocol",
     error:null,
-    generated_at:"2099-01-01T00:00:00Z"
+    generated_at:"2099-01-01T00:00:00.000Z"
   };
   const attempt={...base,signature:dimensionAuditDownloadAttemptSignature(base)};
   assert.equal(dimensionAuditDownloadAttemptValid(attempt),true);
   assert.equal(dimensionAuditDownloadAttemptValid({...attempt,filename:"tampered.json"}),false);
-  assert.equal(dimensionAuditDownloadAttemptValid({...attempt,generated_at:"2099-01-01T00:00:01Z"}),false);
+  assert.equal(dimensionAuditDownloadAttemptValid({...attempt,generated_at:"2099-01-01T00:00:01.000Z"}),false);
   assert.equal(dimensionAuditDownloadAttemptValid({...attempt,status:"unknown"}),false);
   assert.equal(dimensionAuditDownloadAttemptValid({...attempt,signature:""}),false);
 });
