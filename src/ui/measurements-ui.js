@@ -4537,32 +4537,48 @@
   }
 
   function dimensionAuditDownloadAttemptHistoryIntegritySignature(integrity){
-    if(auditDownloadDomain?.dimensionAuditDownloadHistoryIntegritySignature){
-      return auditDownloadDomain.dimensionAuditDownloadHistoryIntegritySignature(integrity??{});
-    }
     const value=integrity??{};
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryIntegritySignature){
+      return auditDownloadDomain.dimensionAuditDownloadHistoryIntegritySignature(value);
+    }
+    if(typeof value.schema!=="string"
+      ||typeof value.valid!=="boolean"
+      ||typeof value.code!=="string"
+      ||!Array.isArray(value.errors)
+      ||!value.errors.every(code=>typeof code==="string")
+      ||typeof value.history_schema_valid!=="boolean"
+      ||typeof value.generated_at_valid!=="boolean"
+      ||typeof value.attempt_count_valid!=="boolean"
+      ||typeof value.attempts_valid!=="boolean"
+      ||typeof value.summary_valid!=="boolean"
+      ||typeof value.summary_signature_valid!=="boolean"
+      ||typeof value.protocol_state_valid!=="boolean"
+      ||typeof value.protocol_state_signature_valid!=="boolean"
+      ||typeof value.snapshot_signature_valid!=="boolean"){
+      throw new TypeError("audit download history integrity signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      valid:value.valid===true,
-      code:String(value.code??""),
-      errors:[...(value.errors??[])].map(code=>String(code)),
-      history_schema_valid:value.history_schema_valid===true,
-      generated_at_valid:value.generated_at_valid===true,
-      attempt_count_valid:value.attempt_count_valid===true,
-      attempts_valid:value.attempts_valid===true,
-      summary_valid:value.summary_valid===true,
-      summary_signature_valid:value.summary_signature_valid===true,
-      protocol_state_valid:value.protocol_state_valid===true,
-      protocol_state_signature_valid:value.protocol_state_signature_valid===true,
-      snapshot_signature_valid:value.snapshot_signature_valid===true
+      schema:value.schema,
+      valid:value.valid,
+      code:value.code,
+      errors:[...value.errors],
+      history_schema_valid:value.history_schema_valid,
+      generated_at_valid:value.generated_at_valid,
+      attempt_count_valid:value.attempt_count_valid,
+      attempts_valid:value.attempts_valid,
+      summary_valid:value.summary_valid,
+      summary_signature_valid:value.summary_signature_valid,
+      protocol_state_valid:value.protocol_state_valid,
+      protocol_state_signature_valid:value.protocol_state_signature_valid,
+      snapshot_signature_valid:value.snapshot_signature_valid
     });
   }
 
   function dimensionAuditDownloadAttemptHistoryIntegritySignatureValid(signature,integrity){
-    if(auditDownloadDomain?.dimensionAuditDownloadHistoryIntegritySignatureValid){
-      return auditDownloadDomain.dimensionAuditDownloadHistoryIntegritySignatureValid(signature,integrity??{});
-    }
     const value=integrity??{};
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryIntegritySignatureValid){
+      return auditDownloadDomain.dimensionAuditDownloadHistoryIntegritySignatureValid(signature,value);
+    }
     return typeof signature==="string"
       &&signature.length>0
       &&typeof value.schema==="string"
@@ -4570,6 +4586,15 @@
       &&typeof value.code==="string"
       &&Array.isArray(value.errors)
       &&value.errors.every(code=>typeof code==="string")
+      &&typeof value.history_schema_valid==="boolean"
+      &&typeof value.generated_at_valid==="boolean"
+      &&typeof value.attempt_count_valid==="boolean"
+      &&typeof value.attempts_valid==="boolean"
+      &&typeof value.summary_valid==="boolean"
+      &&typeof value.summary_signature_valid==="boolean"
+      &&typeof value.protocol_state_valid==="boolean"
+      &&typeof value.protocol_state_signature_valid==="boolean"
+      &&typeof value.snapshot_signature_valid==="boolean"
       &&signature===dimensionAuditDownloadAttemptHistoryIntegritySignature(value);
   }
 
