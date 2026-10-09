@@ -4172,7 +4172,9 @@
     const embeddedIntegrityValid=!!embeddedIntegrity
       &&embeddedIntegritySignatureValid
       &&dimensionAuditDownloadAttemptHistoryIntegritySignature(embeddedIntegrity)===embeddedIntegritySignature
-      &&dimensionAuditDownloadAttemptHistoryIntegritySignature(coreIntegrity)===embeddedIntegritySignature;
+      &&dimensionAuditDownloadAttemptHistoryIntegritySignature(coreIntegrity)===embeddedIntegritySignature
+      &&dimensionAuditDownloadAttemptHistoryIntegritySignatureValid(embeddedIntegritySignature,embeddedIntegrity)
+      &&dimensionAuditDownloadAttemptHistoryIntegritySignatureValid(embeddedIntegritySignature,coreIntegrity);
     const embeddedBinding=value.protocol_binding??null;
     const embeddedBindingSignatureValid=typeof value.protocol_binding_signature==="string";
     const embeddedBindingSignature=embeddedBindingSignatureValid?value.protocol_binding_signature:"";
