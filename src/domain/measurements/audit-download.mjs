@@ -1483,11 +1483,18 @@ export function dimensionAuditDownloadHistoryProtocolValidation(protocol=dimensi
 
 export function dimensionAuditDownloadHistoryProtocolValidationSignature(validation=dimensionAuditDownloadHistoryProtocolValidation()){
   const value=validation??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.valid!=="boolean"
+    ||typeof value.code!=="string"
+    ||!Array.isArray(value.errors)
+    ||!value.errors.every(code=>typeof code==="string")){
+    throw new TypeError("audit download history protocol validation signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    valid:value.valid===true,
-    code:String(value.code??""),
-    errors:[...(value.errors??[])].map(code=>String(code))
+    schema:value.schema,
+    valid:value.valid,
+    code:value.code,
+    errors:[...value.errors]
   });
 }
 
