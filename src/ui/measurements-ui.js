@@ -3064,7 +3064,7 @@
       &&(outcome==="failed"?!!error:error===null)
       &&(permitEvidenceComplete||permitEvidenceAbsent)
       &&(!["copied","downloaded"].includes(outcome)||permitEvidenceComplete)
-      &&!Number.isNaN(new Date(String(value.generated_at??"")).getTime())
+      &&(()=>{const text=String(value.generated_at??"");const date=new Date(text);return !Number.isNaN(date.getTime())&&date.toISOString()===text;})()
       &&!!String(value.signature??"")
       &&String(value.signature)===dimensionAuditDownloadHistoryExportEventSignature(value);
   }
