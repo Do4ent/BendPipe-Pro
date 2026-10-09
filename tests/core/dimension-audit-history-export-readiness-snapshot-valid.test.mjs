@@ -14,5 +14,5 @@ test("question 695: audit history export readiness snapshot is validated",()=>{
   assert.match(ui,/current\.ready===expected\.ready/);
   assert.match(ui,/current\.signature_valid===true/);
   assert.match(ui,/data-history-export-state-valid="'\+\(auditDownloadHistoryExportReadinessSnapshotValid\?'1':'0'\)\+'"/);
-  assert.match(ui,/currentDimensionAuditDownloadHistoryExportReadinessSnapshotValid:\(\)=>dimensionAuditDownloadHistoryExportReadinessSnapshotValid\(\)/);
+  assert.match(ui,/currentDimensionAuditDownloadHistoryExportReadinessSnapshotValid:\(\)=>\{const history=dimensionAuditDownloadAttemptHistoryAuditSnapshot\(\);const snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot\(history\);return dimensionAuditDownloadHistoryExportReadinessSnapshotValid\(snapshot,history\);\}/);
 });
