@@ -394,7 +394,7 @@ export function buildDimensionAuditDownloadHistoryExportEvent({
     action:safeAction,
     outcome:safeOutcome,
     code:String(code??""),
-    history_snapshot_signature:String(history_snapshot_signature??""),
+    history_snapshot_signature:historySnapshotSignature,
     action_permit_signature:permitSignature,
     action_permit_snapshot_signature:permitSnapshotSignature,
     error:safeError,
