@@ -5880,10 +5880,20 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportChainSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportChainSnapshotSignatureValid(signature,value);
     }
+    const chain=value.chain;
+    const chainPresent=!!chain&&typeof chain==="object"&&!Array.isArray(chain);
+    const chainValid=chainPresent&&dimensionAuditDownloadHistoryExportChainValid(chain);
+    const chainSignatureValid=chainPresent
+      &&typeof value.chain_signature==="string"
+      &&dimensionAuditDownloadHistoryExportChainSignatureValid(value.chain_signature,chain);
     return typeof value.schema==="string"
+      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportChainSnapshot.v1"
       &&typeof value.chain_signature==="string"
       &&typeof value.chain_valid==="boolean"
       &&typeof value.chain_signature_valid==="boolean"
+      &&chainPresent
+      &&value.chain_valid===chainValid
+      &&value.chain_signature_valid===chainSignatureValid
       &&signature===dimensionAuditDownloadHistoryExportChainSnapshotSignature(value);
   }
 
