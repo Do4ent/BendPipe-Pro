@@ -1744,17 +1744,38 @@ export function dimensionAuditDownloadHistoryEnvelopeSignature(snapshot={}){
 
 export function dimensionAuditDownloadHistoryEnvelopeSignatureValid(signature,snapshot={}){
   const value=snapshot??{};
+  const coreIntegrity=dimensionAuditDownloadHistoryIntegrity(value);
+  const coreBinding=dimensionAuditDownloadHistoryProtocolBinding(value);
+  const embeddedIntegrity=value.integrity??null;
+  const embeddedBinding=value.protocol_binding??null;
+  const snapshotSignatureValid=typeof value.snapshot_signature==="string"
+    &&dimensionAuditDownloadHistorySignatureValid(value.snapshot_signature,value);
+  const protocolStateSignatureValid=typeof value.protocol_state_signature==="string"
+    &&dimensionAuditDownloadHistoryProtocolStateSignatureValid(value.protocol_state_signature,value.protocol_state);
+  const integritySignatureValid=!!embeddedIntegrity
+    &&typeof value.integrity_signature==="string"
+    &&dimensionAuditDownloadHistoryIntegritySignatureValid(value.integrity_signature,embeddedIntegrity)
+    &&dimensionAuditDownloadHistoryIntegritySignatureValid(value.integrity_signature,coreIntegrity);
+  const bindingSignatureValid=!!embeddedBinding
+    &&typeof value.protocol_binding_signature==="string"
+    &&dimensionAuditDownloadHistoryProtocolBindingSignatureValid(value.protocol_binding_signature,embeddedBinding)
+    &&dimensionAuditDownloadHistoryProtocolBindingSignatureValid(value.protocol_binding_signature,coreBinding);
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
-    &&typeof value.snapshot_signature==="string"
-    &&typeof value.protocol_state_signature==="string"
-    &&typeof value.protocol_binding_signature==="string"
-    &&typeof value.integrity_signature==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA
+    &&snapshotSignatureValid
+    &&protocolStateSignatureValid
+    &&bindingSignatureValid
+    &&integritySignatureValid
     &&typeof value.protocol_binding_valid==="boolean"
     &&typeof value.attempts_valid==="boolean"
     &&typeof value.summary_valid==="boolean"
     &&typeof value.valid==="boolean"
+    &&value.protocol_binding_valid===dimensionAuditDownloadHistoryProtocolBindingValid(value)
+    &&value.attempts_valid===coreIntegrity.attempts_valid
+    &&value.summary_valid===coreIntegrity.summary_valid
+    &&value.valid===coreIntegrity.valid
     &&signature===dimensionAuditDownloadHistoryEnvelopeSignature(value);
 }
 
