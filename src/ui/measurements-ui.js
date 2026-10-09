@@ -2212,14 +2212,23 @@
     if(typeof value.schema!=="string"
       ||typeof value.valid!=="boolean"
       ||typeof value.protocol_signature!=="string"
-      ||typeof value.validation_signature!=="string")return false;
+      ||typeof value.validation_signature!=="string"
+      ||typeof validation.schema!=="string"
+      ||typeof validation.valid!=="boolean"
+      ||typeof validation.code!=="string"
+      ||!Array.isArray(validation.errors)
+      ||!validation.errors.every(code=>typeof code==="string"))return false;
     const expectedValidation=dimensionAuditDownloadHistoryProtocolValidation(protocol);
     return value.schema==="TubeBender.DimensionAuditDownloadHistoryProtocolState.v1"
+      &&value.valid===true
+      &&validation.valid===true
+      &&expectedValidation.valid===true
+      &&validation.schema===expectedValidation.schema
+      &&validation.code===expectedValidation.code
+      &&JSON.stringify(validation.errors)===JSON.stringify(expectedValidation.errors)
       &&value.protocol_signature===dimensionAuditDownloadHistoryProtocolSignature(protocol)
       &&value.validation_signature===dimensionAuditDownloadHistoryProtocolValidationSignature(validation)
-      &&dimensionAuditDownloadHistoryProtocolValidationSignature(expectedValidation)===value.validation_signature
-      &&value.valid===validation.valid
-      &&value.valid===expectedValidation.valid;
+      &&dimensionAuditDownloadHistoryProtocolValidationSignature(expectedValidation)===value.validation_signature;
   }
 
   function dimensionAuditDownloadHistoryProtocolBindingValid(snapshot={}){
