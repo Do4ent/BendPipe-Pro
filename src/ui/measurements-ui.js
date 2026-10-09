@@ -3873,6 +3873,7 @@
   function dimensionAuditDownloadHistoryPermitEvidenceSummaryValid(summary=dimensionAuditDownloadHistoryPermitEvidenceSummary(),attempts=dimensionAuditDownloadAttemptHistorySnapshot()){
     if(!Array.isArray(attempts))return false;
     const list=attempts;
+    if(!list.every(attempt=>dimensionAuditDownloadAttemptValid(attempt)))return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryPermitEvidenceSummaryValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryPermitEvidenceSummaryValid(summary??{},list);
     }
