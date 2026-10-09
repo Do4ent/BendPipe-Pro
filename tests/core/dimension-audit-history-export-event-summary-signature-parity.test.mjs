@@ -13,7 +13,7 @@ function signatureFields(source,marker,nextMarker){
   const end=source.indexOf(nextMarker,start);
   assert.ok(start>=0&&end>start);
   const body=source.slice(start,end);
-  return [...body.matchAll(/^\s{4}([a-z_]+):/gm)].map(match=>match[1]);
+  return [...body.matchAll(/^\s+([a-z_]+):/gm)].map(match=>match[1]);
 }
 
 test("question 866: domain and UI fallback export-event summary signatures stay field-order compatible",()=>{
