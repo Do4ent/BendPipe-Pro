@@ -5,7 +5,7 @@ import {
   dimensionAuditDownloadHistoryEnvelopeSignatureValid
 } from "../../src/domain/measurements/audit-download.mjs";
 
-const canonical={
+const canonicalFieldsOnly={
   schema:"TubeBender.DimensionAuditDownloadHistory.v1",
   snapshot_signature:"snapshot",
   protocol_state_signature:"protocol",
@@ -18,9 +18,14 @@ const canonical={
 };
 
 test("question 1191: history envelope signature builder rejects coercible fields",()=>{
-  const signature=dimensionAuditDownloadHistoryEnvelopeSignature(canonical);
-  assert.equal(dimensionAuditDownloadHistoryEnvelopeSignatureValid(signature,canonical),true);
-  const malformed={...canonical,protocol_binding_valid:1};
+  const signature=dimensionAuditDownloadHistoryEnvelopeSignature(canonicalFieldsOnly);
+  assert.equal(typeof signature,"string");
+  assert.equal(
+    dimensionAuditDownloadHistoryEnvelopeSignatureValid(signature,canonicalFieldsOnly),
+    false,
+    "detached field-only envelope cannot satisfy semantic signature validation"
+  );
+  const malformed={...canonicalFieldsOnly,protocol_binding_valid:1};
   assert.throws(
     ()=>dimensionAuditDownloadHistoryEnvelopeSignature(malformed),
     {name:"TypeError",message:"audit download history envelope signature fields must be canonical"}
