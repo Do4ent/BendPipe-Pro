@@ -2609,9 +2609,11 @@
     const signature=value.verification_signature;
     if(!embedded||typeof signature!=="string"||signature.length===0)return false;
     if(!dimensionAuditDownloadHistoryVerificationCanonical(embedded))return false;
-    const embeddedValid=dimensionAuditDownloadHistoryVerificationSignature(embedded)===signature;
+    const embeddedValid=dimensionAuditDownloadHistoryVerificationSignature(embedded)===signature
+      &&dimensionAuditDownloadHistoryVerificationSignatureValid(signature,embedded);
     const current=dimensionAuditDownloadHistoryVerification(value);
-    const currentValid=dimensionAuditDownloadHistoryVerificationSignature(current)===signature;
+    const currentValid=dimensionAuditDownloadHistoryVerificationSignature(current)===signature
+      &&dimensionAuditDownloadHistoryVerificationSignatureValid(signature,current);
     return embeddedValid&&currentValid;
   }
 
