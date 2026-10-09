@@ -3064,6 +3064,7 @@
       &&(outcome==="failed"?!!error:error===null)
       &&(permitEvidenceComplete||permitEvidenceAbsent)
       &&(!["copied","downloaded"].includes(outcome)||permitEvidenceComplete)
+      &&!!String(value.code??"")
       &&!!String(value.history_snapshot_signature??"")
       &&(()=>{const text=String(value.generated_at??"");const date=new Date(text);return !Number.isNaN(date.getTime())&&date.toISOString()===text;})()
       &&!!String(value.signature??"")
