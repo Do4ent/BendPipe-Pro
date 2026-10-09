@@ -164,15 +164,29 @@ export function dimensionAuditDownloadProtocolState(){
 
 export function dimensionAuditDownloadProtocolSignature(state=dimensionAuditDownloadProtocolState()){
   const value=state??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.valid!=="boolean"
+    ||typeof value.protocol_consistent!=="boolean"
+    ||typeof value.policy_schema!=="string"
+    ||typeof value.validation_schema!=="string"
+    ||!Array.isArray(value.validation_codes)
+    ||!value.validation_codes.every(code=>typeof code==="string")
+    ||!Array.isArray(value.schemas)
+    ||!value.schemas.every(schema=>typeof schema==="string")
+    ||!value.filename
+    ||typeof value.filename!=="object"
+    ||Array.isArray(value.filename)){
+    throw new TypeError("audit download protocol signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    valid:value.valid===true,
-    protocol_consistent:value.protocol_consistent===true,
-    policy_schema:String(value.policy_schema??""),
-    validation_schema:String(value.validation_schema??""),
-    validation_codes:[...(value.validation_codes??[])],
-    schemas:[...(value.schemas??[])],
-    filename:{...(value.filename??{})}
+    schema:value.schema,
+    valid:value.valid,
+    protocol_consistent:value.protocol_consistent,
+    policy_schema:value.policy_schema,
+    validation_schema:value.validation_schema,
+    validation_codes:[...value.validation_codes],
+    schemas:[...value.schemas],
+    filename:{...value.filename}
   });
 }
 
