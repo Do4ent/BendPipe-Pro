@@ -2471,15 +2471,18 @@
       return auditDownloadDomain.dimensionAuditDownloadHistoryHealthEmbeddingSignature(embedding??{});
     }
     const value=embedding??{};
+    if(!dimensionAuditDownloadHistoryHealthEmbeddingCanonical(value)){
+      throw new TypeError("audit download history health embedding signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      valid:value.valid===true,
-      code:String(value.code??""),
-      errors:[...(value.errors??[])].map(code=>String(code)),
-      present:value.present===true,
-      signature_valid:value.signature_valid===true,
-      current_valid:value.current_valid===true,
-      current_signature:String(value.current_signature??"")
+      schema:value.schema,
+      valid:value.valid,
+      code:value.code,
+      errors:[...value.errors],
+      present:value.present,
+      signature_valid:value.signature_valid,
+      current_valid:value.current_valid,
+      current_signature:value.current_signature
     });
   }
 
