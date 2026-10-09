@@ -647,6 +647,12 @@ export function dimensionAuditDownloadHistoryExportEventSignature(event={}){
   });
 }
 
+export function dimensionAuditDownloadHistoryExportEventSignatureValid(signature,event={}){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistoryExportEventSignature(event);
+}
+
 export function buildDimensionAuditDownloadHistoryExportEvent({
   action,
   outcome,
