@@ -3916,6 +3916,7 @@
   }
   function dimensionAuditDownloadAttemptHistorySummaryValid(summary=dimensionAuditDownloadAttemptHistorySummary(),attempts=dimensionAuditDownloadAttemptHistorySnapshot()){
     if(!Array.isArray(attempts))return false;
+    if(!attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt)))return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistorySummaryValid){
       return auditDownloadDomain.dimensionAuditDownloadHistorySummaryValid(summary??{},attempts);
     }
