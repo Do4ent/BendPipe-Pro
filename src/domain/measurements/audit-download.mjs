@@ -2430,14 +2430,22 @@ export function dimensionAuditDownloadHistoryExportActionPermit(action="copy",st
 export function dimensionAuditDownloadHistoryExportActionPermitValid(permit=dimensionAuditDownloadHistoryExportActionPermit(),action="copy",statusSnapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
   const value=permit??{};
   const expected=dimensionAuditDownloadHistoryExportActionPermit(action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot);
-  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_PERMIT_SCHEMA
-    &&String(value.action??"")===expected.action
+  if(typeof value.schema!=="string"
+    ||typeof value.action!=="string"
+    ||typeof value.ready!=="boolean"
+    ||typeof value.code!=="string"
+    ||typeof value.action_valid!=="boolean"
+    ||typeof value.action_status_snapshot_valid!=="boolean"
+    ||typeof value.action_status_ready!=="boolean"
+    ||typeof value.action_status_snapshot_signature!=="string")return false;
+  return value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_PERMIT_SCHEMA
+    &&value.action===expected.action
     &&value.ready===expected.ready
-    &&String(value.code??"")===String(expected.code??"")
+    &&value.code===expected.code
     &&value.action_valid===expected.action_valid
     &&value.action_status_snapshot_valid===expected.action_status_snapshot_valid
     &&value.action_status_ready===expected.action_status_ready
-    &&String(value.action_status_snapshot_signature??"")===String(expected.action_status_snapshot_signature??"");
+    &&value.action_status_snapshot_signature===expected.action_status_snapshot_signature;
 }
 
 export function dimensionAuditDownloadHistoryExportActionPermitSignature(permit=dimensionAuditDownloadHistoryExportActionPermit()){
@@ -2455,8 +2463,10 @@ export function dimensionAuditDownloadHistoryExportActionPermitSignature(permit=
 }
 
 export function dimensionAuditDownloadHistoryExportActionPermitSignatureValid(signature,permit=dimensionAuditDownloadHistoryExportActionPermit(),action="copy",statusSnapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
-  return dimensionAuditDownloadHistoryExportActionPermitValid(permit,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot)
-    &&String(signature??"")===dimensionAuditDownloadHistoryExportActionPermitSignature(permit);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryExportActionPermitValid(permit,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot)
+    &&signature===dimensionAuditDownloadHistoryExportActionPermitSignature(permit);
 }
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_PERMIT_SNAPSHOT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportActionPermitSnapshot.v1";
@@ -2472,7 +2482,9 @@ export function dimensionAuditDownloadHistoryExportActionPermitSnapshotSignature
 }
 
 export function dimensionAuditDownloadHistoryExportActionPermitSnapshotSignatureValid(signature,snapshot={}){
-  return String(signature??"")===dimensionAuditDownloadHistoryExportActionPermitSnapshotSignature(snapshot);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistoryExportActionPermitSnapshotSignature(snapshot);
 }
 
 export function dimensionAuditDownloadHistoryExportActionPermitSnapshot(permit=dimensionAuditDownloadHistoryExportActionPermit(),action="copy",statusSnapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
@@ -2491,7 +2503,13 @@ export function dimensionAuditDownloadHistoryExportActionPermitSnapshot(permit=d
 
 export function dimensionAuditDownloadHistoryExportActionPermitSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportActionPermitSnapshot(),action="copy",statusSnapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
   const value=snapshot??{};
-  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_PERMIT_SNAPSHOT_SCHEMA)return false;
+  if(typeof value.schema!=="string"
+    ||typeof value.permit_signature!=="string"
+    ||typeof value.permit_valid!=="boolean"
+    ||typeof value.permit_signature_valid!=="boolean"
+    ||typeof value.snapshot_signature!=="string"
+    ||typeof value.snapshot_signature_valid!=="boolean")return false;
+  if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_PERMIT_SNAPSHOT_SCHEMA)return false;
   if(!dimensionAuditDownloadHistoryExportActionPermitValid(value.permit,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot))return false;
   if(value.permit_valid!==true||value.permit_signature_valid!==true)return false;
   if(!dimensionAuditDownloadHistoryExportActionPermitSignatureValid(value.permit_signature,value.permit,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot))return false;
