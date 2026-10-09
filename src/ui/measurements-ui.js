@@ -2115,16 +2115,29 @@
       return auditDownloadDomain.dimensionAuditDownloadHistoryProtocolSignature(protocol??{});
     }
     const value=protocol??{};
+    if(typeof value.schema!=="string"
+      ||typeof value.attempt_schema!=="string"
+      ||typeof value.history_schema!=="string"
+      ||typeof value.summary_schema!=="string"
+      ||typeof value.integrity_schema!=="string"
+      ||!Array.isArray(value.integrity_codes)
+      ||!value.integrity_codes.every(code=>typeof code==="string")
+      ||typeof value.envelope_schema!=="string"
+      ||typeof value.validation_schema!=="string"
+      ||!Array.isArray(value.validation_codes)
+      ||!value.validation_codes.every(code=>typeof code==="string")){
+      throw new TypeError("audit download history protocol signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      attempt_schema:String(value.attempt_schema??""),
-      history_schema:String(value.history_schema??""),
-      summary_schema:String(value.summary_schema??""),
-      integrity_schema:String(value.integrity_schema??""),
-      integrity_codes:[...(value.integrity_codes??[])].map(code=>String(code)),
-      envelope_schema:String(value.envelope_schema??""),
-      validation_schema:String(value.validation_schema??""),
-      validation_codes:[...(value.validation_codes??[])].map(code=>String(code))
+      schema:value.schema,
+      attempt_schema:value.attempt_schema,
+      history_schema:value.history_schema,
+      summary_schema:value.summary_schema,
+      integrity_schema:value.integrity_schema,
+      integrity_codes:[...value.integrity_codes],
+      envelope_schema:value.envelope_schema,
+      validation_schema:value.validation_schema,
+      validation_codes:[...value.validation_codes]
     });
   }
 
