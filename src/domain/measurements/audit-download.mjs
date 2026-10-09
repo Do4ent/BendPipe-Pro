@@ -2840,9 +2840,14 @@ export function dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignatu
 }
 
 export function dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignatureValid(signature,snapshot={}){
+  const value=snapshot??{};
   return typeof signature==="string"
     &&signature.length>0
-    &&signature===dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignature(snapshot);
+    &&typeof value.schema==="string"
+    &&typeof value.binding_signature==="string"
+    &&typeof value.binding_valid==="boolean"
+    &&typeof value.binding_signature_valid==="boolean"
+    &&signature===dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignature(value);
 }
 
 export function dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(binding=dimensionAuditDownloadHistoryExportPayloadBinding(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
