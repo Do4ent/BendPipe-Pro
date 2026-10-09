@@ -1850,16 +1850,22 @@ export function dimensionAuditDownloadHistoryExportDecision(gateSnapshot=dimensi
 
 export function dimensionAuditDownloadHistoryExportDecisionValid(decision=dimensionAuditDownloadHistoryExportDecision()){
   const value=decision??{};
-  const code=String(value.code??"");
-  const gateCode=String(value.gate_code??"");
-  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_SCHEMA)return false;
+  if(typeof value.schema!=="string"
+    ||typeof value.allowed!=="boolean"
+    ||typeof value.code!=="string"
+    ||typeof value.gate_snapshot_valid!=="boolean"
+    ||typeof value.gate_code!=="string"
+    ||typeof value.gate_allowed!=="boolean")return false;
+  const code=value.code;
+  const gateCode=value.gate_code;
+  if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_SCHEMA)return false;
   if(!DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_CODES.includes(code))return false;
-  if((value.allowed===true)!==(code==="READY"))return false;
+  if(value.allowed!==(code==="READY"))return false;
   if(code==="INVALID_GATE_SNAPSHOT"){
-    return value.gate_snapshot_valid===false&&value.allowed!==true;
+    return value.gate_snapshot_valid===false&&value.allowed===false;
   }
   if(!DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_GATE_CODES.includes(gateCode))return false;
-  return value.gate_snapshot_valid===true&&gateCode===code&&(value.gate_allowed===true)===(code==="READY");
+  return value.gate_snapshot_valid===true&&gateCode===code&&value.gate_allowed===(code==="READY");
 }
 
 export function dimensionAuditDownloadHistoryExportDecisionSignature(decision=dimensionAuditDownloadHistoryExportDecision()){
@@ -1875,8 +1881,10 @@ export function dimensionAuditDownloadHistoryExportDecisionSignature(decision=di
 }
 
 export function dimensionAuditDownloadHistoryExportDecisionSignatureValid(signature,decision=dimensionAuditDownloadHistoryExportDecision()){
-  return dimensionAuditDownloadHistoryExportDecisionValid(decision)
-    &&String(signature??"")===dimensionAuditDownloadHistoryExportDecisionSignature(decision);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryExportDecisionValid(decision)
+    &&signature===dimensionAuditDownloadHistoryExportDecisionSignature(decision);
 }
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_SNAPSHOT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportDecisionSnapshot.v1";
@@ -1892,7 +1900,9 @@ export function dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(sna
 }
 
 export function dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid(signature,snapshot={}){
-  return String(signature??"")===dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(snapshot);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(snapshot);
 }
 
 export function dimensionAuditDownloadHistoryExportDecisionSnapshot(decision=dimensionAuditDownloadHistoryExportDecision()){
@@ -1915,7 +1925,13 @@ export function dimensionAuditDownloadHistoryExportDecisionSnapshot(decision=dim
 
 export function dimensionAuditDownloadHistoryExportDecisionSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportDecisionSnapshot()){
   const value=snapshot??{};
-  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_SNAPSHOT_SCHEMA)return false;
+  if(typeof value.schema!=="string"
+    ||typeof value.decision_signature!=="string"
+    ||typeof value.decision_valid!=="boolean"
+    ||typeof value.decision_signature_valid!=="boolean"
+    ||typeof value.snapshot_signature!=="string"
+    ||typeof value.snapshot_signature_valid!=="boolean")return false;
+  if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_SNAPSHOT_SCHEMA)return false;
   if(!dimensionAuditDownloadHistoryExportDecisionValid(value.decision))return false;
   if(value.decision_valid!==true||value.decision_signature_valid!==true)return false;
   if(!dimensionAuditDownloadHistoryExportDecisionSignatureValid(value.decision_signature,value.decision))return false;
