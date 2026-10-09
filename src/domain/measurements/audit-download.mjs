@@ -1561,6 +1561,13 @@ export function dimensionAuditDownloadHistoryVerificationSignature(verification=
   });
 }
 
+export function dimensionAuditDownloadHistoryVerificationSignatureValid(signature,verification=dimensionAuditDownloadHistoryVerification()){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryVerificationCanonical(verification)
+    &&signature===dimensionAuditDownloadHistoryVerificationSignature(verification);
+}
+
 function dimensionAuditDownloadHistoryVerificationCanonical(verification={}){
   const value=verification??{};
   return typeof value.schema==="string"
