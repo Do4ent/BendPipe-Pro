@@ -446,7 +446,7 @@ export function dimensionAuditDownloadHistoryExportEventValid(event={}){
     &&!Number.isNaN(timestamp.getTime())
     &&timestamp.toISOString()===String(value.generated_at??"")
     &&!!String(value.signature??"")
-    &&String(value.signature)===dimensionAuditDownloadHistoryExportEventSignature(value);
+    &&value.signature===dimensionAuditDownloadHistoryExportEventSignature(value);
 }
 
 export function dimensionAuditDownloadHistoryExportEventSummarySignature(summary={}){
