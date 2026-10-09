@@ -1838,9 +1838,9 @@ export function dimensionAuditDownloadHistoryEmbeddedAttestationEmbeddingValid(s
   const signature=value.attestation_embedding_signature;
   if(!embedded||typeof signature!=="string"||signature.length===0)return false;
   if(!dimensionAuditDownloadHistoryAttestationEmbeddingCanonical(embedded))return false;
-  const embeddedValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignature(embedded)===signature;
+  const embeddedValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid(signature,embedded);
   const current=dimensionAuditDownloadHistoryAttestationEmbedding(value);
-  const currentValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignature(current)===signature;
+  const currentValid=dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid(signature,current);
   return embeddedValid&&currentValid;
 }
 
