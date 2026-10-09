@@ -590,8 +590,7 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelopeValid(envelop
     if(String(historyEvents[index]?.signature??"")!==String(events[index]?.signature??""))return false;
   }
   if(value.evidence_summary_snapshot_valid!==true||!dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotValid(value.evidence_summary_snapshot,events))return false;
-  return value.signature.length>0
-    &&value.signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(value);
+  return dimensionAuditDownloadHistoryExportEventLogEnvelopeSignatureValid(value.signature,value);
 }
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LOG_ENVELOPE_SNAPSHOT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshot.v1";
