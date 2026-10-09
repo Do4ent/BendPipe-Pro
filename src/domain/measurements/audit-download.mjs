@@ -226,9 +226,28 @@ export function dimensionAuditDownloadAttemptSignature(attempt={}){
 }
 
 export function dimensionAuditDownloadAttemptSignatureValid(signature,attempt={}){
+  const value=attempt??{};
+  const hasPermitEvidence=value.export_action!=null
+    ||value.action_permit_signature!=null
+    ||value.action_permit_snapshot_signature!=null;
   return typeof signature==="string"
     &&signature.length>0
-    &&signature===dimensionAuditDownloadAttemptSignature(attempt);
+    &&typeof value.schema==="string"
+    &&typeof value.status==="string"
+    &&typeof value.filename==="string"
+    &&(value.snapshot_schema===null||typeof value.snapshot_schema==="string")
+    &&typeof value.code==="string"
+    &&typeof value.preflight_signature==="string"
+    &&typeof value.runtime_signature==="string"
+    &&typeof value.protocol_signature==="string"
+    &&(value.error===null||typeof value.error==="string")
+    &&typeof value.generated_at==="string"
+    &&(!hasPermitEvidence||(
+      typeof value.export_action==="string"
+      &&typeof value.action_permit_signature==="string"
+      &&typeof value.action_permit_snapshot_signature==="string"
+    ))
+    &&signature===dimensionAuditDownloadAttemptSignature(value);
 }
 
 export function dimensionAuditDownloadAttemptPermitEvidence(attempt={}){
