@@ -5,7 +5,7 @@ import {
   dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignatureValid
 } from "../../src/domain/measurements/audit-download.mjs";
 
-const canonical={
+const canonicalFieldsOnly={
   schema:"TubeBender.DimensionAuditDownloadHistoryExportAuthorizationSnapshot.v1",
   authorization_signature:"authorization",
   authorization_valid:true,
@@ -13,9 +13,14 @@ const canonical={
 };
 
 test("question 1200: authorization snapshot signature builder rejects coercible fields",()=>{
-  const signature=dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignature(canonical);
-  assert.equal(dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignatureValid(signature,canonical),true);
-  const malformed={...canonical,authorization_valid:1};
+  const signature=dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignature(canonicalFieldsOnly);
+  assert.equal(typeof signature,"string");
+  assert.equal(
+    dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignatureValid(signature,canonicalFieldsOnly),
+    false,
+    "detached field-only authorization snapshot cannot satisfy semantic signature validation"
+  );
+  const malformed={...canonicalFieldsOnly,authorization_valid:1};
   assert.throws(
     ()=>dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignature(malformed),
     {name:"TypeError",message:"history export authorization snapshot signature fields must be canonical"}
