@@ -554,6 +554,7 @@ export function dimensionAuditDownloadHistoryExportEventHistorySnapshot(events=[
     events_valid:normalized.every(event=>dimensionAuditDownloadHistoryExportEventValid(event)),
     summary,
     summary_valid:dimensionAuditDownloadHistoryExportEventSummaryValid(summary,normalized),
+    summary_signature_valid:dimensionAuditDownloadHistoryExportEventSummarySignatureValid(summary.signature,summary),
     generated_at:timestamp.toISOString()
   };
   return freeze({...base,signature:dimensionAuditDownloadHistoryExportEventHistorySignature(base)});
