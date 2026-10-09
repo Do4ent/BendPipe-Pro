@@ -346,17 +346,21 @@ export function dimensionAuditDownloadHistoryPermitEvidenceSummaryValid(summary=
   if(!Array.isArray(attempts))return false;
   const expected=dimensionAuditDownloadHistoryPermitEvidenceSummary(attempts);
   const value=summary??{};
-  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_PERMIT_EVIDENCE_SUMMARY_SCHEMA
-    &&Number(value.total)===expected.total
-    &&Number(value.present)===expected.present
-    &&Number(value.absent)===expected.absent
-    &&Number(value.valid)===expected.valid
-    &&Number(value.invalid)===expected.invalid
-    &&Number(value.copy)===expected.copy
-    &&Number(value.download)===expected.download
+  return typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_PERMIT_EVIDENCE_SUMMARY_SCHEMA
+    &&Number.isInteger(value.total)&&value.total===expected.total
+    &&Number.isInteger(value.present)&&value.present===expected.present
+    &&Number.isInteger(value.absent)&&value.absent===expected.absent
+    &&Number.isInteger(value.valid)&&value.valid===expected.valid
+    &&Number.isInteger(value.invalid)&&value.invalid===expected.invalid
+    &&Number.isInteger(value.copy)&&value.copy===expected.copy
+    &&Number.isInteger(value.download)&&value.download===expected.download
+    &&typeof value.latest_present==="boolean"
+    &&typeof value.latest_valid==="boolean"
+    &&(value.latest_action===null||typeof value.latest_action==="string")
     &&value.latest_present===expected.latest_present
     &&value.latest_valid===expected.latest_valid
-    &&String(value.latest_action??"")===String(expected.latest_action??"");
+    &&value.latest_action===expected.latest_action;
 }
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportEvent.v1";
