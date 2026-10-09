@@ -3081,7 +3081,7 @@
       &&!!String(value.history_snapshot_signature??"")
       &&(()=>{const text=String(value.generated_at??"");const date=new Date(text);return !Number.isNaN(date.getTime())&&date.toISOString()===text;})()
       &&!!String(value.signature??"")
-      &&String(value.signature)===dimensionAuditDownloadHistoryExportEventSignature(value);
+      &&value.signature===dimensionAuditDownloadHistoryExportEventSignature(value);
   }
 
   function recordDimensionAuditDownloadHistoryExportEvent(action,outcome,code,snapshot,permitEvidence=null,error=null){
