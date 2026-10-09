@@ -3627,20 +3627,35 @@
     }
     const hasFinalStateEvidence=value.final_state_signature!=null
       ||value.final_state_snapshot_signature!=null;
+    if(typeof value.schema!=="string"
+      ||typeof value.action!=="string"
+      ||typeof value.outcome!=="string"
+      ||typeof value.code!=="string"
+      ||typeof value.history_snapshot_signature!=="string"
+      ||typeof value.action_permit_signature!=="string"
+      ||typeof value.action_permit_snapshot_signature!=="string"
+      ||(hasFinalStateEvidence&&(
+        typeof value.final_state_signature!=="string"
+        ||typeof value.final_state_snapshot_signature!=="string"
+      ))
+      ||!(value.error===null||typeof value.error==="string")
+      ||typeof value.generated_at!=="string"){
+      throw new TypeError("history export event signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      action:String(value.action??""),
-      outcome:String(value.outcome??""),
-      code:String(value.code??""),
-      history_snapshot_signature:String(value.history_snapshot_signature??""),
-      action_permit_signature:String(value.action_permit_signature??""),
-      action_permit_snapshot_signature:String(value.action_permit_snapshot_signature??""),
+      schema:value.schema,
+      action:value.action,
+      outcome:value.outcome,
+      code:value.code,
+      history_snapshot_signature:value.history_snapshot_signature,
+      action_permit_signature:value.action_permit_signature,
+      action_permit_snapshot_signature:value.action_permit_snapshot_signature,
       ...(hasFinalStateEvidence?{
-        final_state_signature:String(value.final_state_signature??""),
-        final_state_snapshot_signature:String(value.final_state_snapshot_signature??"")
+        final_state_signature:value.final_state_signature,
+        final_state_snapshot_signature:value.final_state_snapshot_signature
       }:{ }),
-      error:value.error==null?null:String(value.error),
-      generated_at:String(value.generated_at??"")
+      error:value.error,
+      generated_at:value.generated_at
     });
   }
 
