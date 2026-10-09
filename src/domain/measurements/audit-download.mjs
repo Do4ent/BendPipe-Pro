@@ -3161,11 +3161,17 @@ export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_STATUS_SNAPSHOT_SCHE
 
 export function dimensionAuditDownloadHistoryExportActionStatusSnapshotSignature(snapshot={}){
   const value=snapshot??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.status_signature!=="string"
+    ||typeof value.status_valid!=="boolean"
+    ||typeof value.status_signature_valid!=="boolean"){
+    throw new TypeError("history export action status snapshot signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    status_signature:String(value.status_signature??""),
-    status_valid:value.status_valid===true,
-    status_signature_valid:value.status_signature_valid===true
+    schema:value.schema,
+    status_signature:value.status_signature,
+    status_valid:value.status_valid,
+    status_signature_valid:value.status_signature_valid
   });
 }
 
