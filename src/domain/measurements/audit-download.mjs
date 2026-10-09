@@ -2630,13 +2630,21 @@ export function dimensionAuditDownloadHistoryExportDecisionValid(decision=dimens
 
 export function dimensionAuditDownloadHistoryExportDecisionSignature(decision=dimensionAuditDownloadHistoryExportDecision()){
   const value=decision??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.allowed!=="boolean"
+    ||typeof value.code!=="string"
+    ||typeof value.gate_snapshot_valid!=="boolean"
+    ||typeof value.gate_code!=="string"
+    ||typeof value.gate_allowed!=="boolean"){
+    throw new TypeError("history export decision signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    allowed:value.allowed===true,
-    code:String(value.code??""),
-    gate_snapshot_valid:value.gate_snapshot_valid===true,
-    gate_code:String(value.gate_code??""),
-    gate_allowed:value.gate_allowed===true
+    schema:value.schema,
+    allowed:value.allowed,
+    code:value.code,
+    gate_snapshot_valid:value.gate_snapshot_valid,
+    gate_code:value.gate_code,
+    gate_allowed:value.gate_allowed
   });
 }
 
