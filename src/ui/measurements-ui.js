@@ -2220,11 +2220,17 @@
       return auditDownloadDomain.dimensionAuditDownloadHistoryProtocolStateSignature(state??{});
     }
     const value=state??{};
+    if(typeof value.schema!=="string"
+      ||typeof value.valid!=="boolean"
+      ||typeof value.protocol_signature!=="string"
+      ||typeof value.validation_signature!=="string"){
+      throw new TypeError("audit download history protocol state signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      valid:value.valid===true,
-      protocol_signature:String(value.protocol_signature??""),
-      validation_signature:String(value.validation_signature??"")
+      schema:value.schema,
+      valid:value.valid,
+      protocol_signature:value.protocol_signature,
+      validation_signature:value.validation_signature
     });
   }
 
