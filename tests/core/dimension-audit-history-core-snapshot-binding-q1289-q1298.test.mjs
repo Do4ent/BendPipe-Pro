@@ -83,5 +83,6 @@ test("question 1297: full history validity rejects a tampered envelope while cor
 
 test("question 1298: UI fallback history validity mirrors conditional envelope validation",()=>{
   assert.match(ui,/const hasEnvelope=value\.envelope_signature!=null\|\|value\.integrity!=null\|\|value\.protocol_binding!=null;/);
-  assert.match(ui,/return integrityValid&&\(!hasEnvelope\|\|dimensionAuditDownloadAttemptHistoryEnvelopeValid\(value\)\);/);
+  assert.match(ui,/if\(hasEnvelope\)return integrityValid&&dimensionAuditDownloadAttemptHistoryEnvelopeValid\(value\);/);
+  assert.match(ui,/return dimensionAuditDownloadAttemptHistoryIntegrity\(snapshot\)\.valid;/);
 });
