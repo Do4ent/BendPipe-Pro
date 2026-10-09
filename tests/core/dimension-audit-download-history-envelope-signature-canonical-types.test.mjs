@@ -18,6 +18,23 @@ test("question 1143: history-envelope signature validation rejects coercible non
     valid:true
   };
   const malformed={...snapshot,valid:1};
-  const forged=dimensionAuditDownloadHistoryEnvelopeSignature(malformed);
-  assert.equal(dimensionAuditDownloadHistoryEnvelopeSignatureValid(forged,malformed),false);
+  assert.throws(
+    ()=>dimensionAuditDownloadHistoryEnvelopeSignature(malformed),
+    {name:"TypeError",message:"audit download history envelope signature fields must be canonical"}
+  );
+});
+
+test("question 1192: history-envelope signature validator remains fail-closed if malformed input bypasses the strict builder",()=>{
+  const malformed={
+    schema:"s",
+    snapshot_signature:"snap",
+    protocol_state_signature:"protocol",
+    protocol_binding_signature:"binding",
+    integrity_signature:"integrity",
+    protocol_binding_valid:true,
+    attempts_valid:true,
+    summary_valid:true,
+    valid:1
+  };
+  assert.equal(dimensionAuditDownloadHistoryEnvelopeSignatureValid("forged",malformed),false);
 });
