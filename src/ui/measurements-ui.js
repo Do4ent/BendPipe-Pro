@@ -3110,6 +3110,29 @@
     return count;
   }
 
+  function dimensionAuditDownloadHistoryExportEventSummarySignature(summary={}){
+    const value=summary??{};
+    if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventSummarySignature){
+      return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventSummarySignature(value);
+    }
+    return JSON.stringify({
+      schema:String(value.schema??""),
+      total:Number(value.total??0),
+      blocked:Number(value.blocked??0),
+      copied:Number(value.copied??0),
+      downloaded:Number(value.downloaded??0),
+      failed:Number(value.failed??0),
+      copy:Number(value.copy??0),
+      download:Number(value.download??0),
+      valid:Number(value.valid??0),
+      invalid:Number(value.invalid??0),
+      latest_signature:String(value.latest_signature??""),
+      latest_outcome:String(value.latest_outcome??""),
+      latest_action:String(value.latest_action??""),
+      latest_code:String(value.latest_code??"")
+    });
+  }
+
   function dimensionAuditDownloadHistoryExportEventSummary(events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
     const list=Array.isArray(events)?events:[];
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventSummary){
@@ -3126,14 +3149,15 @@
       if(String(event?.action??"")==="download")download++;
       if(dimensionAuditDownloadHistoryExportEventValid(event))valid++;else invalid++;
     }
-    return Object.freeze({
+    const base={
       schema:"TubeBender.DimensionAuditDownloadHistoryExportEventSummary.v1",
       total:list.length,blocked,copied,downloaded,failed,copy,download,valid,invalid,
       latest_signature:String(list.at(-1)?.signature??""),
       latest_outcome:String(list.at(-1)?.outcome??""),
       latest_action:String(list.at(-1)?.action??""),
       latest_code:String(list.at(-1)?.code??"")
-    });
+    };
+    return Object.freeze({...base,signature:dimensionAuditDownloadHistoryExportEventSummarySignature(base)});
   }
 
   function dimensionAuditDownloadHistoryExportEventSummaryValid(summary=dimensionAuditDownloadHistoryExportEventSummary(),events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
@@ -3156,7 +3180,9 @@
       &&String(value.latest_signature??"")===expected.latest_signature
       &&String(value.latest_outcome??"")===expected.latest_outcome
       &&String(value.latest_action??"")===expected.latest_action
-      &&String(value.latest_code??"")===expected.latest_code;
+      &&String(value.latest_code??"")===expected.latest_code
+      &&!!String(value.signature??"")
+      &&String(value.signature)===dimensionAuditDownloadHistoryExportEventSummarySignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportEventHistorySignature(snapshot={}){
