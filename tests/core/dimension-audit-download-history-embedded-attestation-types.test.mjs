@@ -17,10 +17,14 @@ test("questions 950-951: embedded attestation rejects boxed signature and non-ca
   );
 
   const boxed={...snapshot.attestation,code:new String(snapshot.attestation.code)};
+  assert.throws(
+    ()=>dimensionAuditDownloadHistoryAttestationSignature(boxed),
+    {name:"TypeError",message:"audit download history attestation signature fields must be canonical"}
+  );
   const tampered={
     ...snapshot,
     attestation:boxed,
-    attestation_signature:dimensionAuditDownloadHistoryAttestationSignature(boxed)
+    attestation_signature:snapshot.attestation_signature
   };
   assert.equal(dimensionAuditDownloadHistoryEmbeddedAttestationValid(tampered),false);
 
