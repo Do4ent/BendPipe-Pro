@@ -12,7 +12,7 @@ test("question 835: export event history can be downloaded only from a valid non
   assert.match(fn,/dimensionAuditDownloadHistoryExportEventHistorySnapshot\(events\)/);
   assert.match(fn,/dimensionAuditDownloadHistoryExportEventHistorySnapshotValid\(snapshot\)/);
   assert.match(fn,/if\(snapshot\.event_count===0\)/);
-  assert.match(fn,/new Blob\(\[JSON\.stringify\(envelope,null,2\)\],\{type:"application\/json"\}\)/);
+  assert.match(fn,/new Blob\(\[JSON\.stringify\(envelopeSnapshot,null,2\)\],\{type:"application\/json"\}\)/);
   assert.match(ui,/data-download-dimension-audit-history-export-events/);
   assert.match(ui,/addEventListener\("click",downloadDimensionAuditHistoryExportEvents\)/);
 });
