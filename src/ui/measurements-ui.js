@@ -3667,6 +3667,9 @@
       &&typeof value.signature==="string"
       &&value.history_snapshot_valid===true
       &&dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(value.history_snapshot)
+      &&Array.isArray(value.history_snapshot?.events)
+      &&value.history_snapshot.events.length===events.length
+      &&value.history_snapshot.events.every((event,index)=>String(event?.signature??"")===String(events[index]?.signature??""))
       &&value.evidence_summary_snapshot_valid===true
       &&dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotValid(value.evidence_summary_snapshot,events)
       &&value.signature.length>0
