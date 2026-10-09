@@ -3749,6 +3749,11 @@
       toast("History export event envelope invalid");
       return false;
     }
+    const envelopeSnapshot=dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshot(envelope,events);
+    if(!dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotValid(envelopeSnapshot,events)){
+      toast("History export event envelope snapshot invalid");
+      return false;
+    }
     const text=JSON.stringify(envelope,null,2);
     try{
       if(navigator?.clipboard?.writeText)await navigator.clipboard.writeText(text);
@@ -3784,6 +3789,11 @@
     const envelope=dimensionAuditDownloadHistoryExportEventLogEnvelope(snapshot,evidenceSummarySnapshot,events);
     if(!dimensionAuditDownloadHistoryExportEventLogEnvelopeValid(envelope,events)){
       toast("History export event envelope invalid");
+      return false;
+    }
+    const envelopeSnapshot=dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshot(envelope,events);
+    if(!dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotValid(envelopeSnapshot,events)){
+      toast("History export event envelope snapshot invalid");
       return false;
     }
     const projectName=dimensionAuditFilenamePart(project()?.name??project()?.id??"project","project");
