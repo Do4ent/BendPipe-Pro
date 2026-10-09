@@ -502,6 +502,44 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummar
   return dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignatureValid(value.snapshot_signature,value);
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LOG_ENVELOPE_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportEventLogEnvelope.v1";
+
+export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(envelope={}){
+  const value=envelope??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    history_snapshot_signature:String(value.history_snapshot?.signature??""),
+    evidence_summary_snapshot_signature:String(value.evidence_summary_snapshot?.snapshot_signature??""),
+    event_count:Number(value.history_snapshot?.event_count??0)
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportEventLogEnvelope(historySnapshot=dimensionAuditDownloadHistoryExportEventHistorySnapshot(),evidenceSummarySnapshot=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshot(),events=[]){
+  const history=historySnapshot??{};
+  const evidence=evidenceSummarySnapshot??{};
+  const base={
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LOG_ENVELOPE_SCHEMA,
+    history_snapshot:history,
+    evidence_summary_snapshot:evidence,
+    history_snapshot_valid:dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(history),
+    evidence_summary_snapshot_valid:dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotValid(evidence,events)
+  };
+  return freeze({...base,signature:dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(base)});
+}
+
+export function dimensionAuditDownloadHistoryExportEventLogEnvelopeValid(envelope={},events=[]){
+  const value=envelope??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.history_snapshot_valid!=="boolean"
+    ||typeof value.evidence_summary_snapshot_valid!=="boolean"
+    ||typeof value.signature!=="string")return false;
+  if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LOG_ENVELOPE_SCHEMA)return false;
+  if(value.history_snapshot_valid!==true||!dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(value.history_snapshot))return false;
+  if(value.evidence_summary_snapshot_valid!==true||!dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotValid(value.evidence_summary_snapshot,events))return false;
+  return value.signature.length>0
+    &&value.signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(value);
+}
+
 export function dimensionAuditDownloadHistoryExportEventSignature(event={}){
   const value=event??{};
   const hasFinalStateEvidence=value.final_state_signature!=null
