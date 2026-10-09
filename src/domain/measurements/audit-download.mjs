@@ -2316,13 +2316,22 @@ export function dimensionAuditDownloadHistoryExportActionStatusValid(status=dime
   const snapshot=bindingSnapshot??{};
   const binding=snapshot.binding??{};
   const snapshotValid=dimensionAuditDownloadHistoryExportPayloadBindingSnapshotValid(snapshot,historySnapshot,chainSnapshot);
-  const expectedCode=snapshotValid?String(binding.code??"INVALID_EXPORT_PAYLOAD_BINDING"):"INVALID_EXPORT_PAYLOAD_BINDING_SNAPSHOT";
-  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_STATUS_SCHEMA)return false;
+  if(typeof binding.code!=="string"
+    ||typeof binding.allowed!=="boolean"
+    ||typeof snapshot.snapshot_signature!=="string")return false;
+  const expectedCode=snapshotValid?binding.code:"INVALID_EXPORT_PAYLOAD_BINDING_SNAPSHOT";
+  if(typeof value.schema!=="string"
+    ||typeof value.ready!=="boolean"
+    ||typeof value.code!=="string"
+    ||typeof value.payload_binding_snapshot_valid!=="boolean"
+    ||typeof value.payload_binding_allowed!=="boolean"
+    ||typeof value.payload_binding_snapshot_signature!=="string")return false;
+  if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_STATUS_SCHEMA)return false;
   if(value.payload_binding_snapshot_valid!==snapshotValid)return false;
-  if(value.payload_binding_allowed!==(binding.allowed===true))return false;
-  if(String(value.payload_binding_snapshot_signature??"")!==String(snapshot.snapshot_signature??""))return false;
-  if(String(value.code??"")!==expectedCode)return false;
-  return (value.ready===true)===(snapshotValid&&binding.allowed===true&&expectedCode==="READY");
+  if(value.payload_binding_allowed!==binding.allowed)return false;
+  if(value.payload_binding_snapshot_signature!==snapshot.snapshot_signature)return false;
+  if(value.code!==expectedCode)return false;
+  return value.ready===(snapshotValid&&binding.allowed&&expectedCode==="READY");
 }
 
 export function dimensionAuditDownloadHistoryExportActionStatusSignature(status=dimensionAuditDownloadHistoryExportActionStatus()){
@@ -2338,8 +2347,10 @@ export function dimensionAuditDownloadHistoryExportActionStatusSignature(status=
 }
 
 export function dimensionAuditDownloadHistoryExportActionStatusSignatureValid(signature,status=dimensionAuditDownloadHistoryExportActionStatus(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
-  return dimensionAuditDownloadHistoryExportActionStatusValid(status,bindingSnapshot,historySnapshot,chainSnapshot)
-    &&String(signature??"")===dimensionAuditDownloadHistoryExportActionStatusSignature(status);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryExportActionStatusValid(status,bindingSnapshot,historySnapshot,chainSnapshot)
+    &&signature===dimensionAuditDownloadHistoryExportActionStatusSignature(status);
 }
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_STATUS_SNAPSHOT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportActionStatusSnapshot.v1";
@@ -2355,7 +2366,9 @@ export function dimensionAuditDownloadHistoryExportActionStatusSnapshotSignature
 }
 
 export function dimensionAuditDownloadHistoryExportActionStatusSnapshotSignatureValid(signature,snapshot={}){
-  return String(signature??"")===dimensionAuditDownloadHistoryExportActionStatusSnapshotSignature(snapshot);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistoryExportActionStatusSnapshotSignature(snapshot);
 }
 
 export function dimensionAuditDownloadHistoryExportActionStatusSnapshot(status=dimensionAuditDownloadHistoryExportActionStatus(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
@@ -2374,7 +2387,13 @@ export function dimensionAuditDownloadHistoryExportActionStatusSnapshot(status=d
 
 export function dimensionAuditDownloadHistoryExportActionStatusSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
   const value=snapshot??{};
-  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_STATUS_SNAPSHOT_SCHEMA)return false;
+  if(typeof value.schema!=="string"
+    ||typeof value.status_signature!=="string"
+    ||typeof value.status_valid!=="boolean"
+    ||typeof value.status_signature_valid!=="boolean"
+    ||typeof value.snapshot_signature!=="string"
+    ||typeof value.snapshot_signature_valid!=="boolean")return false;
+  if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_STATUS_SNAPSHOT_SCHEMA)return false;
   if(!dimensionAuditDownloadHistoryExportActionStatusValid(value.status,bindingSnapshot,historySnapshot,chainSnapshot))return false;
   if(value.status_valid!==true||value.status_signature_valid!==true)return false;
   if(!dimensionAuditDownloadHistoryExportActionStatusSignatureValid(value.status_signature,value.status,bindingSnapshot,historySnapshot,chainSnapshot))return false;
