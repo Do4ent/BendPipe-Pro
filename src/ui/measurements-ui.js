@@ -3755,7 +3755,21 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventSummarySignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventSummarySignatureValid(signature,value);
     }
-    return signature===dimensionAuditDownloadHistoryExportEventSummarySignature(value);
+    return typeof value.schema==="string"
+      &&Number.isInteger(value.total)
+      &&Number.isInteger(value.blocked)
+      &&Number.isInteger(value.copied)
+      &&Number.isInteger(value.downloaded)
+      &&Number.isInteger(value.failed)
+      &&Number.isInteger(value.copy)
+      &&Number.isInteger(value.download)
+      &&Number.isInteger(value.valid)
+      &&Number.isInteger(value.invalid)
+      &&typeof value.latest_signature==="string"
+      &&typeof value.latest_outcome==="string"
+      &&typeof value.latest_action==="string"
+      &&typeof value.latest_code==="string"
+      &&signature===dimensionAuditDownloadHistoryExportEventSummarySignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportEventSummary(events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
