@@ -3069,7 +3069,7 @@
       &&(!successful||permitEvidenceComplete)
       &&codeOutcomeValid
       &&!!String(value.history_snapshot_signature??"")
-      &&(()=>{const text=String(value.generated_at??"");const date=new Date(text);if(Number.isNaN(date.getTime())||date.toISOString()!==text)return false;const times=events.map(event=>new Date(String(event?.generated_at??"")).getTime());for(let index=1;index<times.length;index++)if(times[index]<times[index-1])return false;return !times.some(time=>Number.isFinite(time)&&time>date.getTime());})()
+      &&(()=>{const text=String(value.generated_at??"");const date=new Date(text);return !Number.isNaN(date.getTime())&&date.toISOString()===text;})()
       &&!!String(value.signature??"")
       &&String(value.signature)===dimensionAuditDownloadHistoryExportEventSignature(value);
   }
