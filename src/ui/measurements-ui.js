@@ -5710,15 +5710,25 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportPayloadBindingSignature){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportPayloadBindingSignature(value);
     }
+    if(typeof value.schema!=="string"
+      ||typeof value.history_snapshot_signature!=="string"
+      ||typeof value.chain_snapshot_signature!=="string"
+      ||!Number.isInteger(value.attempt_count)
+      ||!Number.isInteger(value.chain_attempt_count)
+      ||typeof value.allowed!=="boolean"
+      ||typeof value.code!=="string"
+      ||typeof value.history_signature_matches_chain!=="boolean"){
+      throw new TypeError("history export payload binding signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      history_snapshot_signature:String(value.history_snapshot_signature??""),
-      chain_snapshot_signature:String(value.chain_snapshot_signature??""),
-      attempt_count:Number(value.attempt_count)||0,
-      chain_attempt_count:Number(value.chain_attempt_count)||0,
-      allowed:value.allowed===true,
-      code:String(value.code??""),
-      history_signature_matches_chain:value.history_signature_matches_chain===true
+      schema:value.schema,
+      history_snapshot_signature:value.history_snapshot_signature,
+      chain_snapshot_signature:value.chain_snapshot_signature,
+      attempt_count:value.attempt_count,
+      chain_attempt_count:value.chain_attempt_count,
+      allowed:value.allowed,
+      code:value.code,
+      history_signature_matches_chain:value.history_signature_matches_chain
     });
   }
 
