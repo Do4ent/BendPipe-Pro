@@ -2347,23 +2347,41 @@ export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA="
 
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotSignature(snapshot={}){
   const value=snapshot??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.protocol_signature!=="string"
+    ||typeof value.protocol_valid!=="boolean"
+    ||typeof value.protocol_signature_valid!=="boolean"
+    ||typeof value.state_schema!=="string"
+    ||typeof value.state_valid!=="boolean"
+    ||typeof value.ready!=="boolean"
+    ||typeof value.code!=="string"
+    ||!Number.isInteger(value.attempt_count)
+    ||typeof value.verification_valid!=="boolean"
+    ||typeof value.trusted!=="boolean"
+    ||typeof value.provenance_valid!=="boolean"
+    ||typeof value.history_snapshot_signature!=="string"
+    ||typeof value.provenance_signature!=="string"
+    ||typeof value.signature!=="string"
+    ||typeof value.signature_valid!=="boolean"){
+    throw new TypeError("history export readiness snapshot signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    protocol_signature:String(value.protocol_signature??""),
-    protocol_valid:value.protocol_valid===true,
-    protocol_signature_valid:value.protocol_signature_valid===true,
-    state_schema:String(value.state_schema??""),
-    state_valid:value.state_valid===true,
-    ready:value.ready===true,
-    code:String(value.code??""),
-    attempt_count:Math.max(0,Math.trunc(Number(value.attempt_count)||0)),
-    verification_valid:value.verification_valid===true,
-    trusted:value.trusted===true,
-    provenance_valid:value.provenance_valid===true,
-    history_snapshot_signature:String(value.history_snapshot_signature??""),
-    provenance_signature:String(value.provenance_signature??""),
-    signature:String(value.signature??""),
-    signature_valid:value.signature_valid===true
+    schema:value.schema,
+    protocol_signature:value.protocol_signature,
+    protocol_valid:value.protocol_valid,
+    protocol_signature_valid:value.protocol_signature_valid,
+    state_schema:value.state_schema,
+    state_valid:value.state_valid,
+    ready:value.ready,
+    code:value.code,
+    attempt_count:value.attempt_count,
+    verification_valid:value.verification_valid,
+    trusted:value.trusted,
+    provenance_valid:value.provenance_valid,
+    history_snapshot_signature:value.history_snapshot_signature,
+    provenance_signature:value.provenance_signature,
+    signature:value.signature,
+    signature_valid:value.signature_valid
   });
 }
 
