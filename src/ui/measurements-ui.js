@@ -2740,15 +2740,18 @@
       return auditDownloadDomain.dimensionAuditDownloadHistoryAttestationSignature(attestation??{});
     }
     const value=attestation??{};
+    if(!dimensionAuditDownloadHistoryAttestationCanonical(value)){
+      throw new TypeError("audit download history attestation signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      valid:value.valid===true,
-      code:String(value.code??""),
-      errors:[...(value.errors??[])].map(code=>String(code)),
-      verification_valid:value.verification_valid===true,
-      embedded_verification_valid:value.embedded_verification_valid===true,
-      verification_embedding_valid:value.verification_embedding_valid===true,
-      embedded_verification_embedding_valid:value.embedded_verification_embedding_valid===true
+      schema:value.schema,
+      valid:value.valid,
+      code:value.code,
+      errors:[...value.errors],
+      verification_valid:value.verification_valid,
+      embedded_verification_valid:value.embedded_verification_valid,
+      verification_embedding_valid:value.verification_embedding_valid,
+      embedded_verification_embedding_valid:value.embedded_verification_embedding_valid
     });
   }
 
