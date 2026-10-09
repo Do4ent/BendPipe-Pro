@@ -3457,10 +3457,10 @@
     };
   }
   function dimensionAuditDownloadAttemptHistorySummaryValid(summary=dimensionAuditDownloadAttemptHistorySummary(),attempts=dimensionAuditDownloadAttemptHistorySnapshot()){
-    if(auditDownloadDomain?.dimensionAuditDownloadHistorySummaryValid){
-      return auditDownloadDomain.dimensionAuditDownloadHistorySummaryValid(summary??{},attempts??[]);
-    }
     if(!Array.isArray(attempts))return false;
+    if(auditDownloadDomain?.dimensionAuditDownloadHistorySummaryValid){
+      return auditDownloadDomain.dimensionAuditDownloadHistorySummaryValid(summary??{},attempts);
+    }
     const value=summary??{};
     const counts={blocked:0,downloaded:0,failed:0};
     for(const attempt of attempts){
@@ -3468,12 +3468,15 @@
       if(!Object.prototype.hasOwnProperty.call(counts,status))return false;
       counts[status]++;
     }
-    return String(value.schema??"")==="TubeBender.DimensionAuditDownloadAttemptHistorySummary.v1"
-      &&Number(value.total??-1)===attempts.length
-      &&Number(value.blocked??-1)===counts.blocked
-      &&Number(value.downloaded??-1)===counts.downloaded
-      &&Number(value.failed??-1)===counts.failed
-      &&String(value.latest_signature??"")===String(attempts.at(-1)?.signature??"");
+    const expectedLatest=String(attempts.at(-1)?.signature??"");
+    return typeof value.schema==="string"
+      &&value.schema==="TubeBender.DimensionAuditDownloadAttemptHistorySummary.v1"
+      &&typeof value.latest_signature==="string"
+      &&Number.isInteger(value.total)&&value.total===attempts.length
+      &&Number.isInteger(value.blocked)&&value.blocked===counts.blocked
+      &&Number.isInteger(value.downloaded)&&value.downloaded===counts.downloaded
+      &&Number.isInteger(value.failed)&&value.failed===counts.failed
+      &&value.latest_signature===expectedLatest;
   }
 
   function dimensionAuditDownloadAttemptHistorySummarySignature(summary=dimensionAuditDownloadAttemptHistorySummary()){
