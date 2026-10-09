@@ -3534,6 +3534,11 @@
     }
     return typeof signature==="string"
       &&signature.length>0
+      &&typeof value.schema==="string"
+      &&typeof value.summary_signature==="string"
+      &&typeof value.event_binding_signature==="string"
+      &&typeof value.summary_valid==="boolean"
+      &&typeof value.summary_signature_valid==="boolean"
       &&signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignature(value);
   }
 
