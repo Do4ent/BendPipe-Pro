@@ -3244,7 +3244,7 @@
       &&events.every(event=>dimensionAuditDownloadHistoryExportEventValid(event))
       &&value.summary_valid===true
       &&dimensionAuditDownloadHistoryExportEventSummaryValid(value.summary,events)
-      &&!Number.isNaN(new Date(String(value.generated_at??"")).getTime())
+      &&(()=>{const text=String(value.generated_at??"");const date=new Date(text);if(Number.isNaN(date.getTime())||date.toISOString()!==text)return false;const times=events.map(event=>new Date(String(event?.generated_at??"")).getTime());for(let index=1;index<times.length;index++)if(times[index]<times[index-1])return false;return !times.some(time=>Number.isFinite(time)&&time>date.getTime());})()
       &&!!String(value.signature??"")
       &&String(value.signature)===dimensionAuditDownloadHistoryExportEventHistorySignature(value);
   }
