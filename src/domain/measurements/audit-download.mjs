@@ -391,6 +391,9 @@ export function buildDimensionAuditDownloadHistoryExportEvent({
   if(!historySnapshotSignature)throw new TypeError("history export event requires history snapshot signature");
   const safeCode=String(code??"");
   if(!safeCode)throw new TypeError("history export event requires code");
+  const successful=["copied","downloaded"].includes(safeOutcome);
+  if(successful&&safeCode!=="READY")throw new TypeError("successful history export event requires READY code");
+  if(!successful&&safeCode==="READY")throw new TypeError("non-successful history export event cannot use READY code");
   const base={
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SCHEMA,
     action:safeAction,
