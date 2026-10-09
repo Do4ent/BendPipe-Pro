@@ -635,7 +635,8 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelopeValid(envelop
   const historyEvents=Array.isArray(value.history_snapshot?.events)?value.history_snapshot.events:null;
   if(!historyEvents||historyEvents.length!==events.length)return false;
   for(let index=0;index<events.length;index++){
-    if(String(historyEvents[index]?.signature??"")!==String(events[index]?.signature??""))return false;
+    if(typeof historyEvents[index]?.signature!=="string"||typeof events[index]?.signature!=="string")return false;
+    if(historyEvents[index].signature!==events[index].signature)return false;
   }
   if(value.evidence_summary_snapshot_valid!==true||!dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotValid(value.evidence_summary_snapshot,events))return false;
   return dimensionAuditDownloadHistoryExportEventLogEnvelopeSignatureValid(value.signature,value);
