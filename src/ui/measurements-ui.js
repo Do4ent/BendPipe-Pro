@@ -2915,15 +2915,18 @@
       return auditDownloadDomain.dimensionAuditDownloadHistoryTrustSignature(trust??{});
     }
     const value=trust??{};
+    if(!dimensionAuditDownloadHistoryTrustCanonical(value)){
+      throw new TypeError("audit download history trust signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      trusted:value.trusted===true,
-      code:String(value.code??""),
-      errors:[...(value.errors??[])].map(code=>String(code)),
-      attestation_valid:value.attestation_valid===true,
-      embedded_attestation_valid:value.embedded_attestation_valid===true,
-      attestation_embedding_valid:value.attestation_embedding_valid===true,
-      embedded_attestation_embedding_valid:value.embedded_attestation_embedding_valid===true
+      schema:value.schema,
+      trusted:value.trusted,
+      code:value.code,
+      errors:[...value.errors],
+      attestation_valid:value.attestation_valid,
+      embedded_attestation_valid:value.embedded_attestation_valid,
+      attestation_embedding_valid:value.attestation_embedding_valid,
+      embedded_attestation_embedding_valid:value.embedded_attestation_embedding_valid
     });
   }
 
