@@ -387,6 +387,8 @@ export function buildDimensionAuditDownloadHistoryExportEvent({
   if(["copied","downloaded"].includes(safeOutcome)&&!permitEvidenceComplete){
     throw new TypeError("successful history export event requires permit evidence");
   }
+  const historySnapshotSignature=String(history_snapshot_signature??"");
+  if(!historySnapshotSignature)throw new TypeError("history export event requires history snapshot signature");
   const base={
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SCHEMA,
     action:safeAction,
