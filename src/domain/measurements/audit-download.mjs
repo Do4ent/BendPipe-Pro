@@ -3201,12 +3201,22 @@ export function dimensionAuditDownloadHistoryExportChainSnapshotSignature(snapsh
 
 export function dimensionAuditDownloadHistoryExportChainSnapshotSignatureValid(signature,snapshot={}){
   const value=snapshot??{};
+  const chain=value.chain;
+  const chainPresent=!!chain&&typeof chain==="object"&&!Array.isArray(chain);
+  const chainValid=chainPresent&&dimensionAuditDownloadHistoryExportChainValid(chain);
+  const chainSignatureValid=chainPresent
+    &&typeof value.chain_signature==="string"
+    &&dimensionAuditDownloadHistoryExportChainSignatureValid(value.chain_signature,chain);
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_CHAIN_SNAPSHOT_SCHEMA
     &&typeof value.chain_signature==="string"
     &&typeof value.chain_valid==="boolean"
     &&typeof value.chain_signature_valid==="boolean"
+    &&chainPresent
+    &&value.chain_valid===chainValid
+    &&value.chain_signature_valid===chainSignatureValid
     &&signature===dimensionAuditDownloadHistoryExportChainSnapshotSignature(value);
 }
 
