@@ -3057,14 +3057,17 @@
     const permitEvidenceComplete=!!permitSignature&&!!permitSnapshotSignature;
     const permitEvidenceAbsent=!permitSignature&&!permitSnapshotSignature;
     const error=value.error==null?null:String(value.error);
+    const successful=["copied","downloaded"].includes(outcome);
+    const code=String(value.code??"");
+    const codeOutcomeValid=successful?code==="READY":!!code&&code!=="READY";
     return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportEvent.v1"
       &&["copy","download"].includes(action)
       &&["blocked","copied","downloaded","failed"].includes(outcome)
       &&((action==="copy"&&outcome!=="downloaded")||(action==="download"&&outcome!=="copied"))
       &&(outcome==="failed"?!!error:error===null)
       &&(permitEvidenceComplete||permitEvidenceAbsent)
-      &&(!["copied","downloaded"].includes(outcome)||permitEvidenceComplete)
-      &&!!String(value.code??"")
+      &&(!successful||permitEvidenceComplete)
+      &&codeOutcomeValid
       &&!!String(value.history_snapshot_signature??"")
       &&(()=>{const text=String(value.generated_at??"");const date=new Date(text);return !Number.isNaN(date.getTime())&&date.toISOString()===text;})()
       &&!!String(value.signature??"")
