@@ -3923,8 +3923,28 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventLogEnvelopeSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventLogEnvelopeSignatureValid(signature,value);
     }
+    const history=value.history_snapshot;
+    const evidence=value.evidence_summary_snapshot;
     return typeof signature==="string"
       &&signature.length>0
+      &&typeof value.schema==="string"
+      &&!!history
+      &&typeof history==="object"
+      &&!Array.isArray(history)
+      &&typeof history.signature==="string"
+      &&Array.isArray(history.events)
+      &&history.events.every(event=>typeof event?.signature==="string")
+      &&Number.isInteger(history.event_count)
+      &&!!evidence
+      &&typeof evidence==="object"
+      &&!Array.isArray(evidence)
+      &&typeof evidence.snapshot_signature==="string"
+      &&typeof evidence.summary_signature==="string"
+      &&typeof evidence.event_binding_signature==="string"
+      &&!!evidence.summary
+      &&typeof evidence.summary==="object"
+      &&!Array.isArray(evidence.summary)
+      &&Number.isInteger(evidence.summary.total)
       &&signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(value);
   }
 
