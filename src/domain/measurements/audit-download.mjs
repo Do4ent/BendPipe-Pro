@@ -2901,11 +2901,17 @@ export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_CHAIN_SNAPSHOT_SCHEMA="Tube
 
 export function dimensionAuditDownloadHistoryExportChainSnapshotSignature(snapshot={}){
   const value=snapshot??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.chain_signature!=="string"
+    ||typeof value.chain_valid!=="boolean"
+    ||typeof value.chain_signature_valid!=="boolean"){
+    throw new TypeError("history export chain snapshot signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    chain_signature:String(value.chain_signature??""),
-    chain_valid:value.chain_valid===true,
-    chain_signature_valid:value.chain_signature_valid===true
+    schema:value.schema,
+    chain_signature:value.chain_signature,
+    chain_valid:value.chain_valid,
+    chain_signature_valid:value.chain_signature_valid
   });
 }
 
