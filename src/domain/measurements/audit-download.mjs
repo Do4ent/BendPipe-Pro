@@ -3043,11 +3043,17 @@ export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_PAYLOAD_BINDING_SNAPSHOT_SC
 
 export function dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignature(snapshot={}){
   const value=snapshot??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.binding_signature!=="string"
+    ||typeof value.binding_valid!=="boolean"
+    ||typeof value.binding_signature_valid!=="boolean"){
+    throw new TypeError("history export payload binding snapshot signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    binding_signature:String(value.binding_signature??""),
-    binding_valid:value.binding_valid===true,
-    binding_signature_valid:value.binding_signature_valid===true
+    schema:value.schema,
+    binding_signature:value.binding_signature,
+    binding_valid:value.binding_valid,
+    binding_signature_valid:value.binding_signature_valid
   });
 }
 
