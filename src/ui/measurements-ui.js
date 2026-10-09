@@ -4584,17 +4584,26 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistorySignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistorySignatureValid(signature,value);
     }
+    const attempts=Array.isArray(value.attempts)?value.attempts:null;
+    const generatedAtValid=value.generated_at==null||(
+      typeof value.generated_at==="string"
+      &&(()=>{const date=new Date(value.generated_at);return !Number.isNaN(date.getTime())&&date.toISOString()===value.generated_at;})()
+    );
     return typeof signature==="string"
       &&signature.length>0
       &&typeof value.schema==="string"
+      &&value.schema===dimensionAuditDownloadHistorySchema()
       &&typeof value.project_id==="string"
       &&typeof value.project_name==="string"
-      &&(value.generated_at==null||typeof value.generated_at==="string")
+      &&generatedAtValid
       &&typeof value.summary_signature==="string"
       &&typeof value.protocol_state_signature==="string"
       &&Number.isInteger(value.attempt_count)
-      &&Array.isArray(value.attempts)
-      &&value.attempts.every(attempt=>typeof attempt?.signature==="string")
+      &&!!attempts
+      &&value.attempt_count===attempts.length
+      &&attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt))
+      &&dimensionAuditDownloadAttemptHistorySummarySignatureValid(value.summary_signature,value.summary,attempts)
+      &&dimensionAuditDownloadHistoryProtocolStateSignatureValid(value.protocol_state_signature,value.protocol_state)
       &&signature===dimensionAuditDownloadAttemptHistoryAuditSignature(value);
   }
   function dimensionAuditDownloadAttemptHistoryIntegrity(snapshot){
