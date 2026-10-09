@@ -3069,7 +3069,7 @@
       &&(!successful||permitEvidenceComplete)
       &&codeOutcomeValid
       &&!!String(value.history_snapshot_signature??"")
-      &&(()=>{const text=String(value.generated_at??"");const date=new Date(text);return !Number.isNaN(date.getTime())&&date.toISOString()===text;})()
+      &&(()=>{const text=String(value.generated_at??"");const date=new Date(text);return !Number.isNaN(date.getTime())&&date.toISOString()===text&&!events.some(event=>{const time=new Date(String(event?.generated_at??"")).getTime();return Number.isFinite(time)&&time>date.getTime();});})()
       &&!!String(value.signature??"")
       &&String(value.signature)===dimensionAuditDownloadHistoryExportEventSignature(value);
   }
@@ -3182,6 +3182,8 @@
     }
     const timestamp=generatedAt instanceof Date?generatedAt:new Date(generatedAt);
     const normalized=clone(list);
+    const latestEventTime=Math.max(-Infinity,...normalized.map(event=>new Date(String(event?.generated_at??"")).getTime()).filter(Number.isFinite));
+    if(Number.isFinite(latestEventTime)&&timestamp.getTime()<latestEventTime)throw new RangeError("history export event snapshot cannot predate contained events");
     const summary=dimensionAuditDownloadHistoryExportEventSummary(normalized);
     const base={
       schema:"TubeBender.DimensionAuditDownloadHistoryExportEventHistory.v1",
