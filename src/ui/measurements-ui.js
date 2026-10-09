@@ -3754,7 +3754,7 @@
       toast("History export event envelope snapshot invalid");
       return false;
     }
-    const text=JSON.stringify(envelope,null,2);
+    const text=JSON.stringify(envelopeSnapshot,null,2);
     try{
       if(navigator?.clipboard?.writeText)await navigator.clipboard.writeText(text);
       else{
@@ -3799,7 +3799,7 @@
     const projectName=dimensionAuditFilenamePart(project()?.name??project()?.id??"project","project");
     const filename=dimensionAuditJsonFilename(projectName+"-dimension-audit-history-export-events-"+snapshot.event_count,snapshot.generated_at);
     try{
-      const blob=new Blob([JSON.stringify(envelope,null,2)],{type:"application/json"});
+      const blob=new Blob([JSON.stringify(envelopeSnapshot,null,2)],{type:"application/json"});
       const url=URL.createObjectURL(blob);
       const link=document.createElement("a");
       link.href=url;link.download=filename;
