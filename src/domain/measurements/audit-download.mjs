@@ -1203,7 +1203,7 @@ export function dimensionAuditDownloadHistoryProtocolStateValid(state=dimensionA
     &&validation.schema===expectedValidation.schema
     &&validation.code===expectedValidation.code
     &&JSON.stringify(validation.errors)===JSON.stringify(expectedValidation.errors)
-    &&value.protocol_signature===dimensionAuditDownloadHistoryProtocolSignature(protocol)
+    &&dimensionAuditDownloadHistoryProtocolSignatureValid(value.protocol_signature,protocol)
     &&dimensionAuditDownloadHistoryProtocolValidationSignatureValid(value.validation_signature,validation)
     &&dimensionAuditDownloadHistoryProtocolValidationSignature(expectedValidation)===value.validation_signature;
 }
