@@ -499,7 +499,8 @@ export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_FINAL_STATE_EVIDENCE_
 
 export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignature(events=[]){
   if(!Array.isArray(events))throw new TypeError("history export events must be an array");
-  return JSON.stringify(events.map(event=>String(event?.signature??"")));
+  if(!events.every(event=>typeof event?.signature==="string"))throw new TypeError("history export event signatures must be strings");
+  return JSON.stringify(events.map(event=>event.signature));
 }
 
 export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignatureValid(signature,events=[]){
