@@ -2940,9 +2940,13 @@
       &&typeof value.embedded_attestation_embedding_valid==="boolean";
   }
 
-  function dimensionAuditDownloadHistoryTrustSignatureValid(signature,trust=dimensionAuditDownloadHistoryTrust()){
+  function dimensionAuditDownloadHistoryTrustSignatureValid(signature,trust=dimensionAuditDownloadHistoryTrust(),snapshot=null){
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryTrustSignatureValid){
-      return auditDownloadDomain.dimensionAuditDownloadHistoryTrustSignatureValid(signature,trust??{});
+      return auditDownloadDomain.dimensionAuditDownloadHistoryTrustSignatureValid(signature,trust??{},snapshot);
+    }
+    if(snapshot!=null){
+      const expected=dimensionAuditDownloadHistoryTrust(snapshot);
+      if(dimensionAuditDownloadHistoryTrustSignature(trust)!==dimensionAuditDownloadHistoryTrustSignature(expected))return false;
     }
     return typeof signature==="string"
       &&signature.length>0
