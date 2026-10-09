@@ -344,6 +344,7 @@ export function dimensionAuditDownloadHistoryPermitEvidenceSummary(attempts=[]){
 
 export function dimensionAuditDownloadHistoryPermitEvidenceSummaryValid(summary={},attempts=[]){
   if(!Array.isArray(attempts))return false;
+  if(!attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt)))return false;
   const expected=dimensionAuditDownloadHistoryPermitEvidenceSummary(attempts);
   const value=summary??{};
   return typeof value.schema==="string"
