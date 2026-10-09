@@ -1530,17 +1530,19 @@ export function dimensionAuditDownloadHistoryExportReadinessProtocolSignature(pr
 
 export function dimensionAuditDownloadHistoryExportReadinessProtocolValid(protocol=dimensionAuditDownloadHistoryExportReadinessProtocol()){
   const value=protocol??{};
-  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_PROTOCOL_SCHEMA)return false;
-  if(String(value.state_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SCHEMA)return false;
-  if(String(value.snapshot_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA)return false;
+  if(typeof value.schema!=="string"||value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_PROTOCOL_SCHEMA)return false;
+  if(typeof value.state_schema!=="string"||value.state_schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SCHEMA)return false;
+  if(typeof value.snapshot_schema!=="string"||value.snapshot_schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_SNAPSHOT_SCHEMA)return false;
   if(!Array.isArray(value.codes))return false;
   if(value.codes.length!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_CODES.length)return false;
-  return value.codes.every((code,index)=>String(code)===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_CODES[index]);
+  return value.codes.every((code,index)=>typeof code==="string"&&code===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_READINESS_CODES[index]);
 }
 
 export function dimensionAuditDownloadHistoryExportReadinessProtocolSignatureValid(signature,protocol=dimensionAuditDownloadHistoryExportReadinessProtocol()){
-  return dimensionAuditDownloadHistoryExportReadinessProtocolValid(protocol)
-    &&String(signature??"")===dimensionAuditDownloadHistoryExportReadinessProtocolSignature(protocol);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryExportReadinessProtocolValid(protocol)
+    &&signature===dimensionAuditDownloadHistoryExportReadinessProtocolSignature(protocol);
 }
 
 export function dimensionAuditDownloadHistoryExportReadinessState({
