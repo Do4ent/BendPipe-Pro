@@ -659,12 +659,15 @@ export function dimensionAuditDownloadHistorySummaryValid(summary={},attempts=[]
     if(!Object.prototype.hasOwnProperty.call(counts,status))return false;
     counts[status]++;
   }
-  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_SUMMARY_SCHEMA
-    &&Number(value.total??-1)===attempts.length
-    &&Number(value.blocked??-1)===counts.blocked
-    &&Number(value.downloaded??-1)===counts.downloaded
-    &&Number(value.failed??-1)===counts.failed
-    &&String(value.latest_signature??"")===String(attempts.at(-1)?.signature??"");
+  const expectedLatest=String(attempts.at(-1)?.signature??"");
+  return typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_SUMMARY_SCHEMA
+    &&typeof value.latest_signature==="string"
+    &&Number.isInteger(value.total)&&value.total===attempts.length
+    &&Number.isInteger(value.blocked)&&value.blocked===counts.blocked
+    &&Number.isInteger(value.downloaded)&&value.downloaded===counts.downloaded
+    &&Number.isInteger(value.failed)&&value.failed===counts.failed
+    &&value.latest_signature===expectedLatest;
 }
 
 export function dimensionAuditDownloadHistorySummarySignature(summary={}){
