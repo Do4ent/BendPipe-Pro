@@ -3069,7 +3069,7 @@
       &&(!successful||permitEvidenceComplete)
       &&codeOutcomeValid
       &&!!String(value.history_snapshot_signature??"")
-      &&(()=>{const text=String(value.generated_at??"");const date=new Date(text);return !Number.isNaN(date.getTime())&&date.toISOString()===text&&!events.some(event=>{const time=new Date(String(event?.generated_at??"")).getTime();return Number.isFinite(time)&&time>date.getTime();});})()
+      &&(()=>{const text=String(value.generated_at??"");const date=new Date(text);if(Number.isNaN(date.getTime())||date.toISOString()!==text)return false;const times=events.map(event=>new Date(String(event?.generated_at??"")).getTime());for(let index=1;index<times.length;index++)if(times[index]<times[index-1])return false;return !times.some(time=>Number.isFinite(time)&&time>date.getTime());})()
       &&!!String(value.signature??"")
       &&String(value.signature)===dimensionAuditDownloadHistoryExportEventSignature(value);
   }
@@ -3182,7 +3182,9 @@
     }
     const timestamp=generatedAt instanceof Date?generatedAt:new Date(generatedAt);
     const normalized=clone(list);
-    const latestEventTime=Math.max(-Infinity,...normalized.map(event=>new Date(String(event?.generated_at??"")).getTime()).filter(Number.isFinite));
+    const eventTimes=normalized.map(event=>new Date(String(event?.generated_at??"")).getTime());
+    for(let index=1;index<eventTimes.length;index++)if(Number.isFinite(eventTimes[index-1])&&Number.isFinite(eventTimes[index])&&eventTimes[index]<eventTimes[index-1])throw new RangeError("history export events must be chronological");
+    const latestEventTime=Math.max(-Infinity,...eventTimes.filter(Number.isFinite));
     if(Number.isFinite(latestEventTime)&&timestamp.getTime()<latestEventTime)throw new RangeError("history export event snapshot cannot predate contained events");
     const summary=dimensionAuditDownloadHistoryExportEventSummary(normalized);
     const base={
