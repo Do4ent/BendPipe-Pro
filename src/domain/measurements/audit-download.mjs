@@ -735,11 +735,19 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSigna
 
 export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignatureValid(signature,snapshot={}){
   const value=snapshot??{};
+  const envelope=value.envelope;
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LOG_ENVELOPE_SNAPSHOT_SCHEMA
     &&typeof value.envelope_signature==="string"
     &&typeof value.envelope_valid==="boolean"
+    &&!!envelope
+    &&typeof envelope==="object"
+    &&!Array.isArray(envelope)
+    &&typeof envelope.signature==="string"
+    &&value.envelope_signature===envelope.signature
+    &&dimensionAuditDownloadHistoryExportEventLogEnvelopeSignatureValid(value.envelope_signature,envelope)
     &&signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignature(value);
 }
 
