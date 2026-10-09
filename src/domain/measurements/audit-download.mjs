@@ -422,6 +422,7 @@ export function dimensionAuditDownloadHistoryExportEventValid(event={}){
     &&(permitEvidenceComplete||permitEvidenceAbsent)
     &&successPermitValid
     &&!Number.isNaN(timestamp.getTime())
+    &&timestamp.toISOString()===String(value.generated_at??"")
     &&!!String(value.signature??"")
     &&String(value.signature)===dimensionAuditDownloadHistoryExportEventSignature(value);
 }
