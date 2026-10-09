@@ -6012,11 +6012,17 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportActionPermitSnapshotSignature){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportActionPermitSnapshotSignature(value);
     }
+    if(typeof value.schema!=="string"
+      ||typeof value.permit_signature!=="string"
+      ||typeof value.permit_valid!=="boolean"
+      ||typeof value.permit_signature_valid!=="boolean"){
+      throw new TypeError("history export action permit snapshot signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      permit_signature:String(value.permit_signature??""),
-      permit_valid:value.permit_valid===true,
-      permit_signature_valid:value.permit_signature_valid===true
+      schema:value.schema,
+      permit_signature:value.permit_signature,
+      permit_valid:value.permit_valid,
+      permit_signature_valid:value.permit_signature_valid
     });
   }
 
