@@ -442,10 +442,10 @@ export function dimensionAuditDownloadHistoryExportEventValid(event={}){
     &&(permitEvidenceComplete||permitEvidenceAbsent)
     &&successPermitValid
     &&codeOutcomeValid
-    &&!!String(value.history_snapshot_signature??"")
+    &&value.history_snapshot_signature.length>0
     &&!Number.isNaN(timestamp.getTime())
-    &&timestamp.toISOString()===String(value.generated_at??"")
-    &&!!String(value.signature??"")
+    &&timestamp.toISOString()===value.generated_at
+    &&value.signature.length>0
     &&value.signature===dimensionAuditDownloadHistoryExportEventSignature(value);
 }
 
@@ -519,10 +519,10 @@ export function dimensionAuditDownloadHistoryExportEventSummaryValid(summary={},
     &&Number.isInteger(value.download)&&value.download===expected.download
     &&Number.isInteger(value.valid)&&value.valid===expected.valid
     &&Number.isInteger(value.invalid)&&value.invalid===expected.invalid
-    &&String(value.latest_signature??"")===expected.latest_signature
-    &&String(value.latest_outcome??"")===expected.latest_outcome
-    &&String(value.latest_action??"")===expected.latest_action
-    &&String(value.latest_code??"")===expected.latest_code
+    &&value.latest_signature===expected.latest_signature
+    &&value.latest_outcome===expected.latest_outcome
+    &&value.latest_action===expected.latest_action
+    &&value.latest_code===expected.latest_code
     &&dimensionAuditDownloadHistoryExportEventSummarySignatureValid(value.signature,value);
 }
 
@@ -598,7 +598,7 @@ export function dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(sna
   if(value.summary_signature_valid!==true)return false;
   if(!dimensionAuditDownloadHistoryExportEventSummarySignatureValid(value.summary?.signature,value.summary))return false;
   if(value.signature_valid!==true)return false;
-  const generatedAtText=String(value.generated_at??"");
+  const generatedAtText=value.generated_at;
   const generatedAt=new Date(generatedAtText);
   if(Number.isNaN(generatedAt.getTime())||generatedAt.toISOString()!==generatedAtText)return false;
   const eventTimes=events.map(event=>new Date(String(event?.generated_at??"")).getTime());
