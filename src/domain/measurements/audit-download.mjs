@@ -1047,6 +1047,18 @@ export function dimensionAuditDownloadHistoryIntegritySignature(integrity={}){
   });
 }
 
+export function dimensionAuditDownloadHistoryIntegritySignatureValid(signature,integrity={}){
+  const value=integrity??{};
+  return typeof signature==="string"
+    &&signature.length>0
+    &&typeof value.schema==="string"
+    &&typeof value.valid==="boolean"
+    &&typeof value.code==="string"
+    &&Array.isArray(value.errors)
+    &&value.errors.every(code=>typeof code==="string")
+    &&signature===dimensionAuditDownloadHistoryIntegritySignature(value);
+}
+
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_ENVELOPE_SCHEMA="TubeBender.DimensionAuditDownloadHistoryEnvelope.v1";
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_SCHEMA="TubeBender.DimensionAuditDownloadHistoryProtocol.v1";
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_SCHEMA="TubeBender.DimensionAuditDownloadHistoryProtocolValidation.v1";
