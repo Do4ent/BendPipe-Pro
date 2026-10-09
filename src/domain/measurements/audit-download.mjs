@@ -504,6 +504,7 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventB
 
 export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignatureValid(signature,events=[]){
   if(!Array.isArray(events))return false;
+  if(!events.every(event=>typeof event?.signature==="string"))return false;
   return typeof signature==="string"
     &&signature.length>0
     &&signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignature(events);
