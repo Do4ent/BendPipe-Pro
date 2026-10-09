@@ -2415,14 +2415,28 @@
     });
   }
 
+  function dimensionAuditDownloadHistoryHealthEmbeddingCanonical(embedding={}){
+    const value=embedding??{};
+    return typeof value.schema==="string"
+      &&typeof value.valid==="boolean"
+      &&typeof value.code==="string"
+      &&Array.isArray(value.errors)
+      &&value.errors.every(code=>typeof code==="string")
+      &&typeof value.present==="boolean"
+      &&typeof value.signature_valid==="boolean"
+      &&typeof value.current_valid==="boolean"
+      &&typeof value.current_signature==="string";
+  }
+
   function dimensionAuditDownloadHistoryEmbeddedHealthEmbeddingValid(snapshot={}){
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryEmbeddedHealthEmbeddingValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryEmbeddedHealthEmbeddingValid(snapshot??{});
     }
     const value=snapshot??{};
     const embedded=value.health_embedding??null;
-    const signature=String(value.health_embedding_signature??"");
-    if(!embedded||!signature)return false;
+    const signature=value.health_embedding_signature;
+    if(!embedded||typeof signature!=="string"||signature.length===0)return false;
+    if(!dimensionAuditDownloadHistoryHealthEmbeddingCanonical(embedded))return false;
     const embeddedValid=dimensionAuditDownloadHistoryHealthEmbeddingSignature(embedded)===signature;
     const current=dimensionAuditDownloadHistoryHealthEmbedding(value);
     const currentValid=dimensionAuditDownloadHistoryHealthEmbeddingSignature(current)===signature;
