@@ -537,7 +537,9 @@ export function dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(sna
   const generatedAtText=String(value.generated_at??"");
   const generatedAt=new Date(generatedAtText);
   if(Number.isNaN(generatedAt.getTime())||generatedAt.toISOString()!==generatedAtText)return false;
-  if(events.some(event=>{const time=new Date(String(event?.generated_at??"")).getTime();return Number.isFinite(time)&&time>generatedAt.getTime();}))return false;
+  const eventTimes=events.map(event=>new Date(String(event?.generated_at??"")).getTime());
+  for(let index=1;index<eventTimes.length;index++)if(eventTimes[index]<eventTimes[index-1])return false;
+  if(eventTimes.some(time=>Number.isFinite(time)&&time>generatedAt.getTime()))return false;
   return !!String(value.signature??"")
     &&String(value.signature)===dimensionAuditDownloadHistoryExportEventHistorySignature(value);
 }
