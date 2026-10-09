@@ -3236,6 +3236,7 @@
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventHistorySnapshot(list,generatedAt);
     }
     const timestamp=generatedAt instanceof Date?generatedAt:new Date(generatedAt);
+    if(Number.isNaN(timestamp.getTime()))throw new TypeError("history export event snapshot generatedAt must be valid");
     const normalized=clone(list);
     const eventTimes=normalized.map(event=>new Date(String(event?.generated_at??"")).getTime());
     for(let index=1;index<eventTimes.length;index++)if(Number.isFinite(eventTimes[index-1])&&Number.isFinite(eventTimes[index])&&eventTimes[index]<eventTimes[index-1])throw new RangeError("history export events must be chronological");
