@@ -1130,6 +1130,18 @@ export function dimensionAuditDownloadHistoryProtocolValidationSignature(validat
   });
 }
 
+export function dimensionAuditDownloadHistoryProtocolValidationSignatureValid(signature,validation=dimensionAuditDownloadHistoryProtocolValidation()){
+  const value=validation??{};
+  return typeof signature==="string"
+    &&signature.length>0
+    &&typeof value.schema==="string"
+    &&typeof value.valid==="boolean"
+    &&typeof value.code==="string"
+    &&Array.isArray(value.errors)
+    &&value.errors.every(code=>typeof code==="string")
+    &&signature===dimensionAuditDownloadHistoryProtocolValidationSignature(value);
+}
+
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_STATE_SCHEMA="TubeBender.DimensionAuditDownloadHistoryProtocolState.v1";
 
 export function dimensionAuditDownloadHistoryProtocolState(){
