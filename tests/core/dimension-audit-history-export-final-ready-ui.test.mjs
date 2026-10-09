@@ -12,7 +12,7 @@ test("questions 990-991: manager and runtime use canonical final readiness",()=>
   assert.match(ui,/if\(typeof action!=="string"\)return false/);
   assert.match(ui,/if\(!\["copy","download"\]\.includes\(normalizedAction\)\)return false/);
   assert.match(ui,/auditDownloadDomain\?\.dimensionAuditDownloadHistoryExportFinalReady/);
-  assert.match(ui,/const auditDownloadHistoryCopyPermitReady=dimensionAuditDownloadHistoryExportFinalReady\("copy"/);
-  assert.match(ui,/const auditDownloadHistoryDownloadPermitReady=dimensionAuditDownloadHistoryExportFinalReady\("download"/);
+  assert.match(ui,/const auditDownloadHistoryCopyFinalState=dimensionAuditDownloadHistoryExportFinalState\("copy"/);
+  assert.match(ui,/const auditDownloadHistoryDownloadFinalState=dimensionAuditDownloadHistoryExportFinalState\("download"/);
   assert.match(ui,/currentDimensionAuditDownloadHistoryExportFinalReady:\(action="copy"\)=>/);
 });
