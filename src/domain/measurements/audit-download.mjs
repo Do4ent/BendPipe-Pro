@@ -1448,8 +1448,12 @@ export function dimensionAuditDownloadHistoryIntegritySignature(integrity={}){
   });
 }
 
-export function dimensionAuditDownloadHistoryIntegritySignatureValid(signature,integrity={}){
+export function dimensionAuditDownloadHistoryIntegritySignatureValid(signature,integrity={},snapshot=null){
   const value=integrity??{};
+  if(snapshot!=null){
+    const expected=dimensionAuditDownloadHistoryIntegrity(snapshot);
+    if(dimensionAuditDownloadHistoryIntegritySignature(value)!==dimensionAuditDownloadHistoryIntegritySignature(expected))return false;
+  }
   const fields=[
     ["history_schema_valid","INVALID_HISTORY_SCHEMA"],
     ["generated_at_valid","INVALID_GENERATED_AT"],
@@ -1725,8 +1729,12 @@ export function dimensionAuditDownloadHistoryProtocolBindingSignature(binding=di
   });
 }
 
-export function dimensionAuditDownloadHistoryProtocolBindingSignatureValid(signature,binding=dimensionAuditDownloadHistoryProtocolBinding()){
+export function dimensionAuditDownloadHistoryProtocolBindingSignatureValid(signature,binding=dimensionAuditDownloadHistoryProtocolBinding(),snapshot=null){
   const value=binding??{};
+  if(snapshot!=null){
+    const expected=dimensionAuditDownloadHistoryProtocolBinding(snapshot);
+    if(dimensionAuditDownloadHistoryProtocolBindingSignature(value)!==dimensionAuditDownloadHistoryProtocolBindingSignature(expected))return false;
+  }
   const errors=[
     value.state_present===false?"MISSING_PROTOCOL_STATE":null,
     value.state_present===true&&value.state_valid===false?"INVALID_PROTOCOL_STATE":null,
@@ -1787,12 +1795,12 @@ export function dimensionAuditDownloadHistoryEnvelopeSignatureValid(signature,sn
     &&dimensionAuditDownloadHistoryProtocolStateSignatureValid(value.protocol_state_signature,value.protocol_state);
   const integritySignatureValid=!!embeddedIntegrity
     &&typeof value.integrity_signature==="string"
-    &&dimensionAuditDownloadHistoryIntegritySignatureValid(value.integrity_signature,embeddedIntegrity)
-    &&dimensionAuditDownloadHistoryIntegritySignatureValid(value.integrity_signature,coreIntegrity);
+    &&dimensionAuditDownloadHistoryIntegritySignatureValid(value.integrity_signature,embeddedIntegrity,value)
+    &&dimensionAuditDownloadHistoryIntegritySignatureValid(value.integrity_signature,coreIntegrity,value);
   const bindingSignatureValid=!!embeddedBinding
     &&typeof value.protocol_binding_signature==="string"
-    &&dimensionAuditDownloadHistoryProtocolBindingSignatureValid(value.protocol_binding_signature,embeddedBinding)
-    &&dimensionAuditDownloadHistoryProtocolBindingSignatureValid(value.protocol_binding_signature,coreBinding);
+    &&dimensionAuditDownloadHistoryProtocolBindingSignatureValid(value.protocol_binding_signature,embeddedBinding,value)
+    &&dimensionAuditDownloadHistoryProtocolBindingSignatureValid(value.protocol_binding_signature,coreBinding,value);
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
@@ -1820,16 +1828,16 @@ export function dimensionAuditDownloadHistoryEnvelopeValid(snapshot={}){
   const embeddedIntegritySignature=embeddedIntegritySignatureValid?value.integrity_signature:"";
   const embeddedIntegrityValid=!!embeddedIntegrity
     &&embeddedIntegritySignatureValid
-    &&dimensionAuditDownloadHistoryIntegritySignatureValid(embeddedIntegritySignature,embeddedIntegrity)
-    &&dimensionAuditDownloadHistoryIntegritySignatureValid(embeddedIntegritySignature,coreIntegrity);
+    &&dimensionAuditDownloadHistoryIntegritySignatureValid(embeddedIntegritySignature,embeddedIntegrity,value)
+    &&dimensionAuditDownloadHistoryIntegritySignatureValid(embeddedIntegritySignature,coreIntegrity,value);
   const embeddedBinding=value.protocol_binding??null;
   const embeddedBindingSignatureValid=typeof value.protocol_binding_signature==="string";
   const embeddedBindingSignature=embeddedBindingSignatureValid?value.protocol_binding_signature:"";
   const coreBinding=dimensionAuditDownloadHistoryProtocolBinding(value);
   const embeddedBindingValid=!!embeddedBinding
     &&embeddedBindingSignatureValid
-    &&dimensionAuditDownloadHistoryProtocolBindingSignatureValid(embeddedBindingSignature,embeddedBinding)
-    &&dimensionAuditDownloadHistoryProtocolBindingSignatureValid(embeddedBindingSignature,coreBinding);
+    &&dimensionAuditDownloadHistoryProtocolBindingSignatureValid(embeddedBindingSignature,embeddedBinding,value)
+    &&dimensionAuditDownloadHistoryProtocolBindingSignatureValid(embeddedBindingSignature,coreBinding,value);
   const rawEnvelopeSignature=value.envelope_signature;
   const envelopeSignatureTypeValid=rawEnvelopeSignature==null||typeof rawEnvelopeSignature==="string";
   const envelopeSignature=typeof rawEnvelopeSignature==="string"?rawEnvelopeSignature:"";
@@ -4158,5 +4166,8 @@ export function dimensionAuditDownloadHistorySnapshot({
 }
 
 export function dimensionAuditDownloadHistoryValid(snapshot={}){
-  return dimensionAuditDownloadHistoryIntegrity(snapshot).valid;
+  const value=snapshot??{};
+  const integrityValid=dimensionAuditDownloadHistoryIntegrity(value).valid;
+  const hasEnvelope=value.envelope_signature!=null||value.integrity!=null||value.protocol_binding!=null;
+  return integrityValid&&(!hasEnvelope||dimensionAuditDownloadHistoryEnvelopeValid(value));
 }
