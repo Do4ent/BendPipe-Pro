@@ -3175,6 +3175,8 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventSignature){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventSignature(value);
     }
+    const hasFinalStateEvidence=value.final_state_signature!=null
+      ||value.final_state_snapshot_signature!=null;
     return JSON.stringify({
       schema:String(value.schema??""),
       action:String(value.action??""),
@@ -3183,6 +3185,10 @@
       history_snapshot_signature:String(value.history_snapshot_signature??""),
       action_permit_signature:String(value.action_permit_signature??""),
       action_permit_snapshot_signature:String(value.action_permit_snapshot_signature??""),
+      ...(hasFinalStateEvidence?{
+        final_state_signature:String(value.final_state_signature??""),
+        final_state_snapshot_signature:String(value.final_state_snapshot_signature??"")
+      }:{ }),
       error:value.error==null?null:String(value.error),
       generated_at:String(value.generated_at??"")
     });
@@ -3199,6 +3205,10 @@
     const permitSnapshotSignature=String(value.action_permit_snapshot_signature??"");
     const permitEvidenceComplete=!!permitSignature&&!!permitSnapshotSignature;
     const permitEvidenceAbsent=!permitSignature&&!permitSnapshotSignature;
+    const hasFinalStateEvidence=value.final_state_signature!=null||value.final_state_snapshot_signature!=null;
+    const finalStateSignature=hasFinalStateEvidence?String(value.final_state_signature??""):"";
+    const finalStateSnapshotSignature=hasFinalStateEvidence?String(value.final_state_snapshot_signature??""):"";
+    const finalStateEvidenceComplete=!!finalStateSignature&&!!finalStateSnapshotSignature;
     const error=value.error==null?null:String(value.error);
     const successful=["copied","downloaded"].includes(outcome);
     const code=String(value.code??"");
@@ -3211,6 +3221,11 @@
       &&typeof value.history_snapshot_signature==="string"
       &&typeof value.action_permit_signature==="string"
       &&typeof value.action_permit_snapshot_signature==="string"
+      &&(!hasFinalStateEvidence||(
+        typeof value.final_state_signature==="string"
+        &&typeof value.final_state_snapshot_signature==="string"
+        &&finalStateEvidenceComplete
+      ))
       &&(value.error===null||typeof value.error==="string")
       &&typeof value.generated_at==="string"
       &&typeof value.signature==="string"
@@ -3236,6 +3251,10 @@
       history_snapshot_signature:String(snapshot?.snapshot_signature??""),
       action_permit_signature:String(evidence.action_permit_signature??""),
       action_permit_snapshot_signature:String(evidence.action_permit_snapshot_signature??""),
+      ...(evidence.final_state_signature!=null||evidence.final_state_snapshot_signature!=null?{
+        final_state_signature:String(evidence.final_state_signature??""),
+        final_state_snapshot_signature:String(evidence.final_state_snapshot_signature??"")
+      }:{ }),
       error:error==null?null:String(error?.message??error),
       generated_at:new Date().toISOString()
     };
@@ -5311,14 +5330,18 @@
       }
       recordDimensionAuditDownloadHistoryExportEvent("copy","copied","READY",snapshot,{
         action_permit_signature:exportActionPermitSignature,
-        action_permit_snapshot_signature:exportActionPermitSnapshot.snapshot_signature
+        action_permit_snapshot_signature:exportActionPermitSnapshot.snapshot_signature,
+        final_state_signature:dimensionAuditDownloadHistoryExportFinalStateSignature(exportFinalState),
+        final_state_snapshot_signature:exportFinalStateSnapshot.snapshot_signature
       });
       toast("Audit download history скопирован");
       return true;
     }catch(error){
       recordDimensionAuditDownloadHistoryExportEvent("copy","failed","COPY_FAILED",snapshot,{
         action_permit_signature:exportActionPermitSignature,
-        action_permit_snapshot_signature:exportActionPermitSnapshot.snapshot_signature
+        action_permit_snapshot_signature:exportActionPermitSnapshot.snapshot_signature,
+        final_state_signature:dimensionAuditDownloadHistoryExportFinalStateSignature(exportFinalState),
+        final_state_snapshot_signature:exportFinalStateSnapshot.snapshot_signature
       },error);
       toast("Не удалось скопировать audit download history");
       return false;
