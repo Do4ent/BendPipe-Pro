@@ -1472,6 +1472,13 @@ export function dimensionAuditDownloadHistoryHealthEmbeddingSignature(embedding=
   });
 }
 
+export function dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid(signature,embedding=dimensionAuditDownloadHistoryHealthEmbedding()){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryHealthEmbeddingCanonical(embedding)
+    &&signature===dimensionAuditDownloadHistoryHealthEmbeddingSignature(embedding);
+}
+
 function dimensionAuditDownloadHistoryHealthEmbeddingCanonical(embedding={}){
   const value=embedding??{};
   return typeof value.schema==="string"
