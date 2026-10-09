@@ -1413,9 +1413,9 @@ export function dimensionAuditDownloadHistoryEmbeddedHealthValid(snapshot={}){
   const signature=value.health_signature;
   if(!embedded||typeof signature!=="string"||signature.length===0)return false;
   if(!dimensionAuditDownloadHistoryHealthCanonical(embedded))return false;
-  const embeddedValid=dimensionAuditDownloadHistoryHealthSignature(embedded)===signature;
+  const embeddedValid=dimensionAuditDownloadHistoryHealthSignatureValid(signature,embedded);
   const current=dimensionAuditDownloadHistoryHealth(value);
-  const currentValid=dimensionAuditDownloadHistoryHealthSignature(current)===signature;
+  const currentValid=dimensionAuditDownloadHistoryHealthSignatureValid(signature,current);
   return embeddedValid&&currentValid;
 }
 
