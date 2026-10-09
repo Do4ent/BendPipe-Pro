@@ -3073,9 +3073,14 @@ export function dimensionAuditDownloadHistoryExportActionPermitSnapshotSignature
 }
 
 export function dimensionAuditDownloadHistoryExportActionPermitSnapshotSignatureValid(signature,snapshot={}){
+  const value=snapshot??{};
   return typeof signature==="string"
     &&signature.length>0
-    &&signature===dimensionAuditDownloadHistoryExportActionPermitSnapshotSignature(snapshot);
+    &&typeof value.schema==="string"
+    &&typeof value.permit_signature==="string"
+    &&typeof value.permit_valid==="boolean"
+    &&typeof value.permit_signature_valid==="boolean"
+    &&signature===dimensionAuditDownloadHistoryExportActionPermitSnapshotSignature(value);
 }
 
 export function dimensionAuditDownloadHistoryExportActionPermitSnapshot(permit=dimensionAuditDownloadHistoryExportActionPermit(),action="copy",statusSnapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
