@@ -3516,20 +3516,28 @@
       return auditDownloadDomain.dimensionAuditDownloadHistoryIntegrity(snapshot??{});
     }
     const value=snapshot??{};
-    const attempts=Array.isArray(value.attempts)?value.attempts:[];
+    const attemptsArrayValid=Array.isArray(value.attempts);
+    const attempts=attemptsArrayValid?value.attempts:[];
     const summary=value.summary??{};
-    const historySchemaValid=String(value.schema??"")===dimensionAuditDownloadHistorySchema();
-    const generatedAtValid=value.generated_at==null||!Number.isNaN(new Date(String(value.generated_at)).getTime());
-    const attemptCountValid=Number(value.attempt_count??-1)===attempts.length;
-    const attemptsValid=attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt));
-    const summaryValid=dimensionAuditDownloadAttemptHistorySummaryValid(summary,attempts);
-    const summarySignatureValid=String(value.summary_signature??"")===dimensionAuditDownloadAttemptHistorySummarySignature(summary);
+    const historySchemaValid=typeof value.schema==="string"&&value.schema===dimensionAuditDownloadHistorySchema();
+    const generatedAtValid=value.generated_at==null||(
+      typeof value.generated_at==="string"
+      &&(()=>{const date=new Date(value.generated_at);return !Number.isNaN(date.getTime())&&date.toISOString()===value.generated_at;})()
+    );
+    const attemptCountValid=attemptsArrayValid&&Number.isInteger(value.attempt_count)&&value.attempt_count===attempts.length;
+    const attemptsValid=attemptsArrayValid&&attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt));
+    const summaryValid=attemptsArrayValid&&dimensionAuditDownloadAttemptHistorySummaryValid(summary,attempts);
+    const summarySignatureValid=typeof value.summary_signature==="string"
+      &&value.summary_signature===dimensionAuditDownloadAttemptHistorySummarySignature(summary);
     const protocolState=value.protocol_state??null;
     const protocolStateSignatureValid=!!protocolState
-      &&String(value.protocol_state_signature??"")===dimensionAuditDownloadHistoryProtocolStateSignature(protocolState);
+      &&typeof value.protocol_state_signature==="string"
+      &&value.protocol_state_signature===dimensionAuditDownloadHistoryProtocolStateSignature(protocolState);
     const protocolStateValid=dimensionAuditDownloadHistoryProtocolBindingValid(value);
-    const signature=String(value.snapshot_signature??"");
-    const snapshotSignatureValid=!signature||signature===dimensionAuditDownloadAttemptHistoryAuditSignature(value);
+    const rawSignature=value.snapshot_signature;
+    const snapshotSignatureTypeValid=rawSignature==null||typeof rawSignature==="string";
+    const signature=typeof rawSignature==="string"?rawSignature:"";
+    const snapshotSignatureValid=snapshotSignatureTypeValid&&(!signature||signature===dimensionAuditDownloadAttemptHistoryAuditSignature(value));
     const errors=[
       !historySchemaValid?"INVALID_HISTORY_SCHEMA":null,
       !generatedAtValid?"INVALID_GENERATED_AT":null,
