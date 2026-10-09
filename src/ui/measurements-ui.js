@@ -4415,15 +4415,21 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportAuthorizationValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportAuthorizationValid(value);
     }
+    if(typeof value.schema!=="string"
+      ||typeof value.allowed!=="boolean"
+      ||typeof value.code!=="string"
+      ||typeof value.decision_snapshot_valid!=="boolean"
+      ||typeof value.decision_code!=="string"
+      ||typeof value.decision_allowed!=="boolean")return false;
     const authorizationCodes=["READY","EMPTY","VERIFICATION_FAILED","UNTRUSTED","INVALID_PROVENANCE","INVALID_PROTOCOL","INVALID_PROTOCOL_SIGNATURE","INVALID_STATE","INVALID_STATE_SIGNATURE","INVALID_SNAPSHOT_SIGNATURE","INVALID_SNAPSHOT","INVALID_GATE_SNAPSHOT","INVALID_DECISION_SNAPSHOT"];
     const decisionCodes=authorizationCodes.filter(code=>code!=="INVALID_DECISION_SNAPSHOT");
-    const code=String(value.code??"");
-    const decisionCode=String(value.decision_code??"");
-    if(String(value.schema??"")!=="TubeBender.DimensionAuditDownloadHistoryExportAuthorization.v1")return false;
+    const code=value.code;
+    const decisionCode=value.decision_code;
+    if(value.schema!=="TubeBender.DimensionAuditDownloadHistoryExportAuthorization.v1")return false;
     if(!authorizationCodes.includes(code))return false;
-    if((value.allowed===true)!==(code==="READY"))return false;
-    if(code==="INVALID_DECISION_SNAPSHOT")return value.decision_snapshot_valid===false&&value.allowed!==true;
-    return decisionCodes.includes(decisionCode)&&value.decision_snapshot_valid===true&&decisionCode===code&&(value.decision_allowed===true)===(code==="READY");
+    if(value.allowed!==(code==="READY"))return false;
+    if(code==="INVALID_DECISION_SNAPSHOT")return value.decision_snapshot_valid===false&&value.allowed===false;
+    return decisionCodes.includes(decisionCode)&&value.decision_snapshot_valid===true&&decisionCode===code&&value.decision_allowed===(code==="READY");
   }
 
   function dimensionAuditDownloadHistoryExportAuthorizationSignature(authorization=dimensionAuditDownloadHistoryExportAuthorization()){
@@ -4443,11 +4449,12 @@
 
   function dimensionAuditDownloadHistoryExportAuthorizationSignatureValid(signature=dimensionAuditDownloadHistoryExportAuthorizationSignature(),authorization=dimensionAuditDownloadHistoryExportAuthorization()){
     const value=authorization??{};
+    if(typeof signature!=="string"||signature.length===0)return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportAuthorizationSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportAuthorizationSignatureValid(signature,value);
     }
     return dimensionAuditDownloadHistoryExportAuthorizationValid(value)
-      &&String(signature??"")===dimensionAuditDownloadHistoryExportAuthorizationSignature(value);
+      &&signature===dimensionAuditDownloadHistoryExportAuthorizationSignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignature(snapshot={}){
@@ -4465,10 +4472,11 @@
 
   function dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignatureValid(signature,snapshot={}){
     const value=snapshot??{};
+    if(typeof signature!=="string"||signature.length===0)return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignatureValid(signature,value);
     }
-    return String(signature??"")===dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignature(value);
+    return signature===dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportAuthorizationSnapshot(authorization=dimensionAuditDownloadHistoryExportAuthorization()){
@@ -4493,7 +4501,13 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportAuthorizationSnapshotValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportAuthorizationSnapshotValid(value);
     }
-    return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportAuthorizationSnapshot.v1"
+    if(typeof value.schema!=="string"
+      ||typeof value.authorization_signature!=="string"
+      ||typeof value.authorization_valid!=="boolean"
+      ||typeof value.authorization_signature_valid!=="boolean"
+      ||typeof value.snapshot_signature!=="string"
+      ||typeof value.snapshot_signature_valid!=="boolean")return false;
+    return value.schema==="TubeBender.DimensionAuditDownloadHistoryExportAuthorizationSnapshot.v1"
       &&dimensionAuditDownloadHistoryExportAuthorizationValid(value.authorization)
       &&value.authorization_valid===true
       &&value.authorization_signature_valid===true
