@@ -3215,6 +3215,7 @@
       summary_latest_code:String(value.summary?.latest_code??""),
       events_valid:value.events_valid===true,
       summary_valid:value.summary_valid===true,
+      summary_signature_valid:value.summary_signature_valid===true,
       generated_at:String(value.generated_at??"")
     });
   }
@@ -3238,6 +3239,7 @@
       events_valid:normalized.every(event=>dimensionAuditDownloadHistoryExportEventValid(event)),
       summary,
       summary_valid:dimensionAuditDownloadHistoryExportEventSummaryValid(summary,normalized),
+      summary_signature_valid:dimensionAuditDownloadHistoryExportEventSummarySignatureValid(summary.signature,summary),
       generated_at:timestamp.toISOString()
     };
     return Object.freeze({...base,signature:dimensionAuditDownloadHistoryExportEventHistorySignature(base)});
@@ -3255,7 +3257,9 @@
       &&value.events_valid===true
       &&events.every(event=>dimensionAuditDownloadHistoryExportEventValid(event))
       &&value.summary_valid===true
+      &&value.summary_signature_valid===true
       &&dimensionAuditDownloadHistoryExportEventSummaryValid(value.summary,events)
+      &&dimensionAuditDownloadHistoryExportEventSummarySignatureValid(value.summary?.signature,value.summary)
       &&(()=>{const text=String(value.generated_at??"");const date=new Date(text);if(Number.isNaN(date.getTime())||date.toISOString()!==text)return false;const times=events.map(event=>new Date(String(event?.generated_at??"")).getTime());for(let index=1;index<times.length;index++)if(times[index]<times[index-1])return false;return !times.some(time=>Number.isFinite(time)&&time>date.getTime());})()
       &&!!String(value.signature??"")
       &&String(value.signature)===dimensionAuditDownloadHistoryExportEventHistorySignature(value);
