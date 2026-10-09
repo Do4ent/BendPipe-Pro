@@ -502,7 +502,13 @@ export function dimensionAuditDownloadHistoryExportEventSummaryValid(summary={},
   if(!Array.isArray(events))return false;
   const expected=dimensionAuditDownloadHistoryExportEventSummary(events);
   const value=summary??{};
-  return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SUMMARY_SCHEMA
+  return typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SUMMARY_SCHEMA
+    &&typeof value.latest_signature==="string"
+    &&typeof value.latest_outcome==="string"
+    &&typeof value.latest_action==="string"
+    &&typeof value.latest_code==="string"
+    &&typeof value.signature==="string"
     &&Number.isInteger(value.total)&&value.total===expected.total
     &&Number.isInteger(value.blocked)&&value.blocked===expected.blocked
     &&Number.isInteger(value.copied)&&value.copied===expected.copied
