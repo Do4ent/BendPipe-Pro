@@ -3282,7 +3282,10 @@
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(value);
     }
     const events=Array.isArray(value.events)?value.events:null;
-    return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportEventHistory.v1"
+    return typeof value.schema==="string"
+      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportEventHistory.v1"
+      &&typeof value.generated_at==="string"
+      &&typeof value.signature==="string"
       &&!!events
       &&Number.isInteger(value.event_count)&&value.event_count===events.length
       &&value.events_valid===true
