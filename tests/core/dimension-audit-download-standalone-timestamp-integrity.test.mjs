@@ -23,5 +23,17 @@ test("question 670: standalone audit signatures protect generated_at",()=>{
   const attempt=moduleText.match(/function dimensionAuditDownloadAttemptSignature\(attempt=\{\}\)\{([\s\S]*?)\n\}/)?.[1]??"";
   const history=moduleText.match(/function dimensionAuditDownloadHistorySignature\(snapshot=\{\}\)\{([\s\S]*?)\n\}/)?.[1]??"";
   assert.match(attempt,/generated_at:String\(value\.generated_at\?\?""\)/);
-  assert.match(history,/generated_at:String\(value\.generated_at\?\?""\)/);
+  assert.match(history,/generated_at:value\.generated_at\?\?""/);
+  assert.match(history,/typeof value\.generated_at==="string"/);
+  assert.doesNotMatch(history,/generated_at:String\(/);
+});
+
+test("question 1176: standalone history signature keeps generated_at canonical without coercion",()=>{
+  execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root,encoding:"utf8"});
+  const html=fs.readFileSync(output,"utf8");
+  const match=html.match(/const AUDIT_DOWNLOAD_URL="data:text\/javascript;base64,([^"]+)"/);
+  assert.ok(match);
+  const moduleText=Buffer.from(match[1],"base64").toString("utf8");
+  const history=moduleText.match(/function dimensionAuditDownloadHistorySignature\(snapshot=\{\}\)\{([\s\S]*?)\n\}/)?.[1]??"";
+  assert.doesNotMatch(history,/String\(value\.generated_at/);
 });
