@@ -248,7 +248,7 @@ export function buildDimensionAuditDownloadAttempt({
     status:safeStatus,
     filename:String(filename??""),
     snapshot_schema:snapshot_schema==null?null:String(snapshot_schema),
-    code:String(code??""),
+    code:safeCode,
     preflight_signature:String(preflight_signature??""),
     runtime_signature:String(runtime_signature??""),
     protocol_signature:String(protocol_signature??""),
