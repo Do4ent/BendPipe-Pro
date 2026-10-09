@@ -960,9 +960,29 @@ export function dimensionAuditDownloadHistoryExportEventHistorySignature(snapsho
 }
 
 export function dimensionAuditDownloadHistoryExportEventHistorySignatureValid(signature,snapshot={}){
+  const value=snapshot??{};
   return typeof signature==="string"
     &&signature.length>0
-    &&signature===dimensionAuditDownloadHistoryExportEventHistorySignature(snapshot);
+    &&typeof value.schema==="string"
+    &&Number.isInteger(value.event_count)
+    &&Array.isArray(value.events)
+    &&value.events.every(event=>typeof event?.signature==="string")
+    &&!!value.summary
+    &&typeof value.summary==="object"
+    &&!Array.isArray(value.summary)
+    &&typeof value.summary.schema==="string"
+    &&typeof value.summary.signature==="string"
+    &&Number.isInteger(value.summary.total)
+    &&typeof value.summary.latest_signature==="string"
+    &&typeof value.summary.latest_action==="string"
+    &&typeof value.summary.latest_outcome==="string"
+    &&typeof value.summary.latest_code==="string"
+    &&typeof value.events_valid==="boolean"
+    &&typeof value.summary_valid==="boolean"
+    &&typeof value.summary_signature_valid==="boolean"
+    &&typeof value.signature_valid==="boolean"
+    &&typeof value.generated_at==="string"
+    &&signature===dimensionAuditDownloadHistoryExportEventHistorySignature(value);
 }
 
 export function dimensionAuditDownloadHistoryExportEventHistorySnapshot(events=[],generatedAt=new Date()){
