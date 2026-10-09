@@ -3252,6 +3252,7 @@
   }
 
   function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignatureValid(signature=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignature(),summary=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummary(),events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
+    if(!Array.isArray(events))return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignatureValid(signature,summary??{},events);
     }
