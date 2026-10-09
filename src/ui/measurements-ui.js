@@ -5407,10 +5407,20 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportGateSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportGateSnapshotSignatureValid(signature,value);
     }
+    const gate=value.gate;
+    const gatePresent=!!gate&&typeof gate==="object"&&!Array.isArray(gate);
+    const gateValid=gatePresent&&dimensionAuditDownloadHistoryExportGateValid(gate);
+    const gateSignatureValid=gatePresent
+      &&typeof value.gate_signature==="string"
+      &&dimensionAuditDownloadHistoryExportGateSignatureValid(value.gate_signature,gate);
     return typeof value.schema==="string"
+      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportGateSnapshot.v1"
       &&typeof value.gate_signature==="string"
       &&typeof value.gate_valid==="boolean"
       &&typeof value.gate_signature_valid==="boolean"
+      &&gatePresent
+      &&value.gate_valid===gateValid
+      &&value.gate_signature_valid===gateSignatureValid
       &&signature===dimensionAuditDownloadHistoryExportGateSnapshotSignature(value);
   }
 
