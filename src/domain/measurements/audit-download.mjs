@@ -2517,6 +2517,16 @@ export function dimensionAuditDownloadHistoryExportActionPermitSnapshotValid(sna
   return dimensionAuditDownloadHistoryExportActionPermitSnapshotSignatureValid(value.snapshot_signature,value);
 }
 
+export function dimensionAuditDownloadHistoryExportFinalReady(action="copy",statusSnapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
+  if(typeof action!=="string")return false;
+  const normalizedAction=action.toLowerCase();
+  if(!DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTIONS.includes(normalizedAction))return false;
+  const permit=dimensionAuditDownloadHistoryExportActionPermit(normalizedAction,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot);
+  const permitSnapshot=dimensionAuditDownloadHistoryExportActionPermitSnapshot(permit,normalizedAction,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot);
+  return dimensionAuditDownloadHistoryExportActionPermitSnapshotValid(permitSnapshot,normalizedAction,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot)
+    &&permit.ready===true;
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
