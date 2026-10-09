@@ -762,8 +762,7 @@ export function dimensionAuditDownloadHistoryExportEventValid(event={}){
     &&value.history_snapshot_signature.length>0
     &&!Number.isNaN(timestamp.getTime())
     &&timestamp.toISOString()===value.generated_at
-    &&value.signature.length>0
-    &&value.signature===dimensionAuditDownloadHistoryExportEventSignature(value);
+    &&dimensionAuditDownloadHistoryExportEventSignatureValid(value.signature,value);
 }
 
 export function dimensionAuditDownloadHistoryExportEventSummarySignature(summary={}){
