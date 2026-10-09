@@ -3999,8 +3999,8 @@
     const attemptCountValid=attemptsArrayValid&&Number.isInteger(value.attempt_count)&&value.attempt_count===attempts.length;
     const attemptsValid=attemptsArrayValid&&attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt));
     const summaryValid=attemptsArrayValid&&dimensionAuditDownloadAttemptHistorySummaryValid(summary,attempts);
-    const summarySignatureValid=typeof value.summary_signature==="string"
-      &&value.summary_signature===dimensionAuditDownloadAttemptHistorySummarySignature(summary);
+    const summarySignatureValid=attemptsArrayValid
+      &&dimensionAuditDownloadAttemptHistorySummarySignatureValid(value.summary_signature,summary,attempts);
     const protocolState=value.protocol_state??null;
     const protocolStateSignatureValid=!!protocolState
       &&typeof value.protocol_state_signature==="string"
