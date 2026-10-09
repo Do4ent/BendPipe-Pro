@@ -521,6 +521,7 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(env
 }
 
 export function dimensionAuditDownloadHistoryExportEventLogEnvelope(historySnapshot=dimensionAuditDownloadHistoryExportEventHistorySnapshot(),evidenceSummarySnapshot=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshot(),events=[]){
+  if(!Array.isArray(events))throw new TypeError("history export events must be an array");
   const history=historySnapshot??{};
   const evidence=evidenceSummarySnapshot??{};
   const base={
@@ -570,6 +571,7 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSigna
 }
 
 export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshot(envelope=dimensionAuditDownloadHistoryExportEventLogEnvelope(),events=[]){
+  if(!Array.isArray(events))throw new TypeError("history export events must be an array");
   const value=envelope??{};
   const base={
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LOG_ENVELOPE_SNAPSHOT_SCHEMA,
