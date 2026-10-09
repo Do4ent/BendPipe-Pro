@@ -4945,14 +4945,22 @@
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportActionPermitValid(value,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot);
     }
     const expected=dimensionAuditDownloadHistoryExportActionPermit(action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot);
-    return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportActionPermit.v1"
-      &&String(value.action??"")===expected.action
+    if(typeof value.schema!=="string"
+      ||typeof value.action!=="string"
+      ||typeof value.ready!=="boolean"
+      ||typeof value.code!=="string"
+      ||typeof value.action_valid!=="boolean"
+      ||typeof value.action_status_snapshot_valid!=="boolean"
+      ||typeof value.action_status_ready!=="boolean"
+      ||typeof value.action_status_snapshot_signature!=="string")return false;
+    return value.schema==="TubeBender.DimensionAuditDownloadHistoryExportActionPermit.v1"
+      &&value.action===expected.action
       &&value.ready===expected.ready
-      &&String(value.code??"")===String(expected.code??"")
+      &&value.code===expected.code
       &&value.action_valid===expected.action_valid
       &&value.action_status_snapshot_valid===expected.action_status_snapshot_valid
       &&value.action_status_ready===expected.action_status_ready
-      &&String(value.action_status_snapshot_signature??"")===String(expected.action_status_snapshot_signature??"");
+      &&value.action_status_snapshot_signature===expected.action_status_snapshot_signature;
   }
 
   function dimensionAuditDownloadHistoryExportActionPermitSignature(permit=dimensionAuditDownloadHistoryExportActionPermit()){
@@ -4977,8 +4985,10 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportActionPermitSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportActionPermitSignatureValid(signature,value,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot);
     }
-    return dimensionAuditDownloadHistoryExportActionPermitValid(value,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot)
-      &&String(signature??"")===dimensionAuditDownloadHistoryExportActionPermitSignature(value);
+    return typeof signature==="string"
+      &&signature.length>0
+      &&dimensionAuditDownloadHistoryExportActionPermitValid(value,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot)
+      &&signature===dimensionAuditDownloadHistoryExportActionPermitSignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportActionPermitSnapshotSignature(snapshot={}){
@@ -4999,7 +5009,9 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportActionPermitSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportActionPermitSnapshotSignatureValid(signature,value);
     }
-    return String(signature??"")===dimensionAuditDownloadHistoryExportActionPermitSnapshotSignature(value);
+    return typeof signature==="string"
+      &&signature.length>0
+      &&signature===dimensionAuditDownloadHistoryExportActionPermitSnapshotSignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportActionPermitSnapshot(permit=dimensionAuditDownloadHistoryExportActionPermit(),action="copy",statusSnapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot(),chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
@@ -5024,7 +5036,13 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportActionPermitSnapshotValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportActionPermitSnapshotValid(value,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot);
     }
-    return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportActionPermitSnapshot.v1"
+    if(typeof value.schema!=="string"
+      ||typeof value.permit_signature!=="string"
+      ||typeof value.permit_valid!=="boolean"
+      ||typeof value.permit_signature_valid!=="boolean"
+      ||typeof value.snapshot_signature!=="string"
+      ||typeof value.snapshot_signature_valid!=="boolean")return false;
+    return value.schema==="TubeBender.DimensionAuditDownloadHistoryExportActionPermitSnapshot.v1"
       &&dimensionAuditDownloadHistoryExportActionPermitValid(value.permit,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot)
       &&value.permit_valid===true
       &&value.permit_signature_valid===true
