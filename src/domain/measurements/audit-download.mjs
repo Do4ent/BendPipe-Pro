@@ -472,14 +472,15 @@ export function dimensionAuditDownloadHistoryExportEventSummary(events=[]){
     if(String(event?.action??"")==="download")download++;
     if(dimensionAuditDownloadHistoryExportEventValid(event))valid++;else invalid++;
   }
-  return freeze({
+  const base={
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SUMMARY_SCHEMA,
     total:events.length,blocked,copied,downloaded,failed,copy,download,valid,invalid,
     latest_signature:String(events.at(-1)?.signature??""),
     latest_outcome:String(events.at(-1)?.outcome??""),
     latest_action:String(events.at(-1)?.action??""),
     latest_code:String(events.at(-1)?.code??"")
-  });
+  };
+  return freeze({...base,signature:dimensionAuditDownloadHistoryExportEventSummarySignature(base)});
 }
 
 export function dimensionAuditDownloadHistoryExportEventSummaryValid(summary={},events=[]){
