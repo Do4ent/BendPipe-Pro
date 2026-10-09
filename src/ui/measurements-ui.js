@@ -3131,7 +3131,8 @@
       total:list.length,blocked,copied,downloaded,failed,copy,download,valid,invalid,
       latest_signature:String(list.at(-1)?.signature??""),
       latest_outcome:String(list.at(-1)?.outcome??""),
-      latest_action:String(list.at(-1)?.action??"")
+      latest_action:String(list.at(-1)?.action??""),
+      latest_code:String(list.at(-1)?.code??"")
     });
   }
 
