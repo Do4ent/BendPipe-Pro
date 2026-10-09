@@ -2570,6 +2570,75 @@ export function dimensionAuditDownloadHistoryExportFinalStateValid(state=dimensi
     &&value.permit_snapshot_signature===expected.permit_snapshot_signature;
 }
 
+export function dimensionAuditDownloadHistoryExportFinalStateSignature(state=dimensionAuditDownloadHistoryExportFinalState()){
+  const value=state??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    action:String(value.action??""),
+    ready:value.ready===true,
+    code:String(value.code??""),
+    action_valid:value.action_valid===true,
+    permit_snapshot_valid:value.permit_snapshot_valid===true,
+    permit_ready:value.permit_ready===true,
+    permit_snapshot_signature:String(value.permit_snapshot_signature??"")
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportFinalStateSignatureValid(signature,state=dimensionAuditDownloadHistoryExportFinalState(),action="copy",statusSnapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryExportFinalStateValid(state,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot)
+    &&signature===dimensionAuditDownloadHistoryExportFinalStateSignature(state);
+}
+
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_FINAL_STATE_SNAPSHOT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportFinalStateSnapshot.v1";
+
+export function dimensionAuditDownloadHistoryExportFinalStateSnapshotSignature(snapshot={}){
+  const value=snapshot??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    state_signature:String(value.state_signature??""),
+    state_valid:value.state_valid===true,
+    state_signature_valid:value.state_signature_valid===true
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportFinalStateSnapshotSignatureValid(signature,snapshot={}){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistoryExportFinalStateSnapshotSignature(snapshot);
+}
+
+export function dimensionAuditDownloadHistoryExportFinalStateSnapshot(state=dimensionAuditDownloadHistoryExportFinalState(),action="copy",statusSnapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
+  const value=state??{};
+  const signature=dimensionAuditDownloadHistoryExportFinalStateSignature(value);
+  const base={
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_FINAL_STATE_SNAPSHOT_SCHEMA,
+    state:value,
+    state_signature:signature,
+    state_valid:dimensionAuditDownloadHistoryExportFinalStateValid(value,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot),
+    state_signature_valid:dimensionAuditDownloadHistoryExportFinalStateSignatureValid(signature,value,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot)
+  };
+  const snapshotSignature=dimensionAuditDownloadHistoryExportFinalStateSnapshotSignature(base);
+  return freeze({...base,snapshot_signature:snapshotSignature,snapshot_signature_valid:true});
+}
+
+export function dimensionAuditDownloadHistoryExportFinalStateSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportFinalStateSnapshot(),action="copy",statusSnapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
+  const value=snapshot??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.state_signature!=="string"
+    ||typeof value.state_valid!=="boolean"
+    ||typeof value.state_signature_valid!=="boolean"
+    ||typeof value.snapshot_signature!=="string"
+    ||typeof value.snapshot_signature_valid!=="boolean")return false;
+  if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_FINAL_STATE_SNAPSHOT_SCHEMA)return false;
+  if(!dimensionAuditDownloadHistoryExportFinalStateValid(value.state,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot))return false;
+  if(value.state_valid!==true||value.state_signature_valid!==true)return false;
+  if(!dimensionAuditDownloadHistoryExportFinalStateSignatureValid(value.state_signature,value.state,action,statusSnapshot,bindingSnapshot,historySnapshot,chainSnapshot))return false;
+  if(value.snapshot_signature_valid!==true)return false;
+  return dimensionAuditDownloadHistoryExportFinalStateSnapshotSignatureValid(value.snapshot_signature,value);
+}
+
 export function dimensionAuditDownloadHistoryExportReadinessSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportReadinessSnapshot(),state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=snapshot??{};
   const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(state);
