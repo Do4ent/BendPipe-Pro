@@ -5561,10 +5561,20 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid(signature,value);
     }
+    const decision=value.decision;
+    const decisionPresent=!!decision&&typeof decision==="object"&&!Array.isArray(decision);
+    const decisionValid=decisionPresent&&dimensionAuditDownloadHistoryExportDecisionValid(decision);
+    const decisionSignatureValid=decisionPresent
+      &&typeof value.decision_signature==="string"
+      &&dimensionAuditDownloadHistoryExportDecisionSignatureValid(value.decision_signature,decision);
     return typeof value.schema==="string"
+      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportDecisionSnapshot.v1"
       &&typeof value.decision_signature==="string"
       &&typeof value.decision_valid==="boolean"
       &&typeof value.decision_signature_valid==="boolean"
+      &&decisionPresent
+      &&value.decision_valid===decisionValid
+      &&value.decision_signature_valid===decisionSignatureValid
       &&signature===dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(value);
   }
 
