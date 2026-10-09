@@ -9,7 +9,7 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 838: export event controls fail closed when the event history is empty",()=>{
   assert.match(ui,/data-copy-dimension-audit-history-export-events/);
-  assert.match(ui,/auditDownloadHistoryExportEventSnapshotValid&&auditDownloadHistoryExportEventSummary\.total\?'':'disabled'/);
+  assert.match(ui,/auditDownloadHistoryExportEventLogEnvelopeSnapshotValid&&auditDownloadHistoryExportEventSummary\.total\?'':'disabled'/);
   assert.match(ui,/data-download-dimension-audit-history-export-events/);
   assert.match(ui,/data-clear-dimension-audit-history-export-events/);
   assert.match(ui,/auditDownloadHistoryExportEventSummary\.total\?'':'disabled'/);
