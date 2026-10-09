@@ -4324,12 +4324,22 @@
     });
   }
   function dimensionAuditDownloadAttemptHistoryAuditSignatureValid(signature,snapshot){
+    const value=snapshot??{};
     if(auditDownloadDomain?.dimensionAuditDownloadHistorySignatureValid){
-      return auditDownloadDomain.dimensionAuditDownloadHistorySignatureValid(signature,snapshot??{});
+      return auditDownloadDomain.dimensionAuditDownloadHistorySignatureValid(signature,value);
     }
     return typeof signature==="string"
       &&signature.length>0
-      &&signature===dimensionAuditDownloadAttemptHistoryAuditSignature(snapshot??{});
+      &&typeof value.schema==="string"
+      &&typeof value.project_id==="string"
+      &&typeof value.project_name==="string"
+      &&typeof value.generated_at==="string"
+      &&typeof value.summary_signature==="string"
+      &&typeof value.protocol_state_signature==="string"
+      &&Number.isInteger(value.attempt_count)
+      &&Array.isArray(value.attempts)
+      &&value.attempts.every(attempt=>typeof attempt?.signature==="string")
+      &&signature===dimensionAuditDownloadAttemptHistoryAuditSignature(value);
   }
   function dimensionAuditDownloadAttemptHistoryIntegrity(snapshot){
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryIntegrity){
