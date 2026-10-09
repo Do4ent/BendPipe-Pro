@@ -3039,6 +3039,16 @@
     if(auditDownloadDomain?.dimensionAuditDownloadProtocolSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadProtocolSignatureValid(signature,value);
     }
+    const expected={
+      schema:"TubeBender.DimensionAuditDownloadProtocolState.v1",
+      valid:dimensionAuditDownloadProtocolConsistent(),
+      protocol_consistent:dimensionAuditDownloadProtocolConsistent(),
+      policy_schema:String(dimensionAuditDownloadPolicy()?.schema??""),
+      validation_schema:dimensionAuditDownloadValidationSchema(),
+      validation_codes:dimensionAuditDownloadValidationCodes(),
+      schemas:dimensionAuditDownloadSchemas(),
+      filename:dimensionAuditFilenamePolicy()
+    };
     return typeof signature==="string"
       &&signature.length>0
       &&typeof value.schema==="string"
@@ -3055,6 +3065,7 @@
       &&!Array.isArray(value.filename)
       &&value.valid===true
       &&value.protocol_consistent===true
+      &&dimensionAuditDownloadProtocolSignature(value)===dimensionAuditDownloadProtocolSignature(expected)
       &&signature===dimensionAuditDownloadProtocolSignature(value);
   }
 
