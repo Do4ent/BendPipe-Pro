@@ -3991,9 +3991,11 @@
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessStateValid(value);
     }
     const expected=dimensionAuditDownloadHistoryExportReadiness(snapshot);
-    return ["READY","EMPTY","VERIFICATION_FAILED","UNTRUSTED","INVALID_PROVENANCE"].includes(String(value.code??""))
+    return typeof value.ready==="boolean"
+      &&typeof value.code==="string"
+      &&["READY","EMPTY","VERIFICATION_FAILED","UNTRUSTED","INVALID_PROVENANCE"].includes(value.code)
       &&value.ready===expected.ready
-      &&String(value.code??"")===String(expected.code??"");
+      &&value.code===expected.code;
   }
 
   function dimensionAuditDownloadHistoryExportReadinessSignature(readiness=dimensionAuditDownloadHistoryExportReadiness(),snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot()){
@@ -4012,10 +4014,12 @@
   }
 
   function dimensionAuditDownloadHistoryExportReadinessSignatureValid(signature=dimensionAuditDownloadHistoryExportReadinessSignature(),readiness=dimensionAuditDownloadHistoryExportReadiness(),snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot()){
+    if(typeof signature!=="string"||signature.length===0)return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportReadinessStateSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessStateSignatureValid(signature,readiness);
     }
-    return String(signature??"")===dimensionAuditDownloadHistoryExportReadinessSignature(readiness,snapshot);
+    return dimensionAuditDownloadHistoryExportReadinessStateValid(readiness,snapshot)
+      &&signature===dimensionAuditDownloadHistoryExportReadinessSignature(readiness,snapshot);
   }
 
   function dimensionAuditDownloadHistoryExportReadinessSnapshotSignature(snapshot={}){
@@ -4045,10 +4049,11 @@
 
   function dimensionAuditDownloadHistoryExportReadinessSnapshotSignatureValid(signature,snapshot={}){
     const value=snapshot??{};
+    if(typeof signature!=="string"||signature.length===0)return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportReadinessSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessSnapshotSignatureValid(signature,value);
     }
-    return String(signature??"")===dimensionAuditDownloadHistoryExportReadinessSnapshotSignature(value);
+    return signature===dimensionAuditDownloadHistoryExportReadinessSnapshotSignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportReadinessSnapshot(snapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot()){
@@ -4094,25 +4099,39 @@
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessSnapshotValid(current,readiness);
     }
     const expected=dimensionAuditDownloadHistoryExportReadinessSnapshot(snapshot);
-    return String(current.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportReadinessSnapshot.v1"
+    if(typeof current.schema!=="string"
+      ||typeof current.protocol_signature!=="string"
+      ||typeof current.state_schema!=="string"
+      ||typeof current.ready!=="boolean"
+      ||typeof current.code!=="string"
+      ||!Number.isInteger(current.attempt_count)
+      ||current.attempt_count<0
+      ||typeof current.verification_valid!=="boolean"
+      ||typeof current.trusted!=="boolean"
+      ||typeof current.provenance_valid!=="boolean"
+      ||typeof current.history_snapshot_signature!=="string"
+      ||typeof current.provenance_signature!=="string"
+      ||typeof current.signature!=="string"
+      ||typeof current.snapshot_signature!=="string")return false;
+    return current.schema==="TubeBender.DimensionAuditDownloadHistoryExportReadinessSnapshot.v1"
       &&dimensionAuditDownloadHistoryExportReadinessProtocolValid(current.protocol)
       &&dimensionAuditDownloadHistoryExportReadinessProtocolSignatureValid(current.protocol_signature,current.protocol)
       &&current.protocol_valid===true
       &&current.protocol_signature_valid===true
       &&dimensionAuditDownloadHistoryExportReadinessProtocolSignature(current.protocol)===dimensionAuditDownloadHistoryExportReadinessProtocolSignature(expected.protocol)
-      &&String(current.protocol_signature??"")===String(expected.protocol_signature??"")
-      &&String(current.state_schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportReadiness.v1"
+      &&current.protocol_signature===expected.protocol_signature
+      &&current.state_schema==="TubeBender.DimensionAuditDownloadHistoryExportReadiness.v1"
       &&current.ready===expected.ready
-      &&String(current.code??"")===String(expected.code??"")
-      &&Number(current.attempt_count)===Number(expected.attempt_count)
+      &&current.code===expected.code
+      &&current.attempt_count===expected.attempt_count
       &&current.verification_valid===expected.verification_valid
       &&current.trusted===expected.trusted
       &&current.provenance_valid===expected.provenance_valid
-      &&String(current.history_snapshot_signature??"")===String(expected.history_snapshot_signature??"")
-      &&String(current.provenance_signature??"")===String(expected.provenance_signature??"")
-      &&String(current.signature??"")===String(expected.signature??"")
+      &&current.history_snapshot_signature===expected.history_snapshot_signature
+      &&current.provenance_signature===expected.provenance_signature
+      &&current.signature===expected.signature
       &&current.signature_valid===true
-      &&String(current.snapshot_signature??"")===String(expected.snapshot_signature??"")
+      &&current.snapshot_signature===expected.snapshot_signature
       &&current.snapshot_signature_valid===true
       &&dimensionAuditDownloadHistoryExportReadinessSnapshotSignatureValid(current.snapshot_signature,current);
   }
