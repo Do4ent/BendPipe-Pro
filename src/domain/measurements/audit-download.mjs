@@ -2323,16 +2323,28 @@ export function dimensionAuditDownloadHistoryExportReadinessStateValid(state=dim
 
 export function dimensionAuditDownloadHistoryExportReadinessStateSignature(state=dimensionAuditDownloadHistoryExportReadinessState()){
   const value=state??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.ready!=="boolean"
+    ||typeof value.code!=="string"
+    ||!Number.isInteger(value.attempt_count)
+    ||value.attempt_count<0
+    ||typeof value.verification_valid!=="boolean"
+    ||typeof value.trusted!=="boolean"
+    ||typeof value.provenance_valid!=="boolean"
+    ||typeof value.history_snapshot_signature!=="string"
+    ||typeof value.provenance_signature!=="string"){
+    throw new TypeError("history export readiness state signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    ready:value.ready===true,
-    code:String(value.code??""),
-    attempt_count:Math.max(0,Math.trunc(Number(value.attempt_count)||0)),
-    verification_valid:value.verification_valid===true,
-    trusted:value.trusted===true,
-    provenance_valid:value.provenance_valid===true,
-    history_snapshot_signature:String(value.history_snapshot_signature??""),
-    provenance_signature:String(value.provenance_signature??"")
+    schema:value.schema,
+    ready:value.ready,
+    code:value.code,
+    attempt_count:value.attempt_count,
+    verification_valid:value.verification_valid,
+    trusted:value.trusted,
+    provenance_valid:value.provenance_valid,
+    history_snapshot_signature:value.history_snapshot_signature,
+    provenance_signature:value.provenance_signature
   });
 }
 
