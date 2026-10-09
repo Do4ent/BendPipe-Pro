@@ -481,6 +481,13 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventB
   return JSON.stringify(events.map(event=>String(event?.signature??"")));
 }
 
+export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignatureValid(signature,events=[]){
+  if(!Array.isArray(events))return false;
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignature(events);
+}
+
 export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignature(snapshot={}){
   const value=snapshot??{};
   return JSON.stringify({
