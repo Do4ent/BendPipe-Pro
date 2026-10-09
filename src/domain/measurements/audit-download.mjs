@@ -513,12 +513,19 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventB
 
 export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignature(snapshot={}){
   const value=snapshot??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.summary_signature!=="string"
+    ||typeof value.event_binding_signature!=="string"
+    ||typeof value.summary_valid!=="boolean"
+    ||typeof value.summary_signature_valid!=="boolean"){
+    throw new TypeError("history export evidence summary snapshot signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    summary_signature:String(value.summary_signature??""),
-    event_binding_signature:String(value.event_binding_signature??""),
-    summary_valid:value.summary_valid===true,
-    summary_signature_valid:value.summary_signature_valid===true
+    schema:value.schema,
+    summary_signature:value.summary_signature,
+    event_binding_signature:value.event_binding_signature,
+    summary_valid:value.summary_valid,
+    summary_signature_valid:value.summary_signature_valid
   });
 }
 
