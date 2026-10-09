@@ -4455,12 +4455,22 @@
     });
   }
   function dimensionAuditDownloadAttemptHistoryEnvelopeSignatureValid(signature,snapshot){
+    const value=snapshot??{};
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryEnvelopeSignatureValid){
-      return auditDownloadDomain.dimensionAuditDownloadHistoryEnvelopeSignatureValid(signature,snapshot??{});
+      return auditDownloadDomain.dimensionAuditDownloadHistoryEnvelopeSignatureValid(signature,value);
     }
     return typeof signature==="string"
       &&signature.length>0
-      &&signature===dimensionAuditDownloadAttemptHistoryEnvelopeSignature(snapshot??{});
+      &&typeof value.schema==="string"
+      &&typeof value.snapshot_signature==="string"
+      &&typeof value.protocol_state_signature==="string"
+      &&typeof value.protocol_binding_signature==="string"
+      &&typeof value.integrity_signature==="string"
+      &&typeof value.protocol_binding_valid==="boolean"
+      &&typeof value.attempts_valid==="boolean"
+      &&typeof value.summary_valid==="boolean"
+      &&typeof value.valid==="boolean"
+      &&signature===dimensionAuditDownloadAttemptHistoryEnvelopeSignature(value);
   }
   function dimensionAuditDownloadAttemptHistoryEnvelopeValid(snapshot){
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryEnvelopeValid){
