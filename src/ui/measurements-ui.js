@@ -3645,6 +3645,7 @@
   }
 
   function dimensionAuditDownloadHistoryExportEventLogEnvelope(historySnapshot=dimensionAuditDownloadHistoryExportEventHistorySnapshot(),evidenceSummarySnapshot=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshot(),events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
+    if(!Array.isArray(events))throw new TypeError("history export events must be an array");
     const history=historySnapshot??{};
     const evidence=evidenceSummarySnapshot??{};
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventLogEnvelope){
@@ -3705,6 +3706,7 @@
   }
 
   function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshot(envelope=dimensionAuditDownloadHistoryExportEventLogEnvelope(),events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
+    if(!Array.isArray(events))throw new TypeError("history export events must be an array");
     const value=envelope??{};
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshot){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshot(value,events);
