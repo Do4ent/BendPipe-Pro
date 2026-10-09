@@ -2334,14 +2334,30 @@
     });
   }
 
+  function dimensionAuditDownloadHistoryHealthCanonical(health={}){
+    const value=health??{};
+    return typeof value.schema==="string"
+      &&typeof value.valid==="boolean"
+      &&typeof value.code==="string"
+      &&Array.isArray(value.errors)
+      &&value.errors.every(code=>typeof code==="string")
+      &&typeof value.protocol_state_valid==="boolean"
+      &&typeof value.protocol_binding_valid==="boolean"
+      &&typeof value.protocol_binding_code==="string"
+      &&typeof value.integrity_valid==="boolean"
+      &&typeof value.integrity_code==="string"
+      &&typeof value.envelope_valid==="boolean";
+  }
+
   function dimensionAuditDownloadHistoryEmbeddedHealthValid(snapshot={}){
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryEmbeddedHealthValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryEmbeddedHealthValid(snapshot??{});
     }
     const value=snapshot??{};
     const embedded=value.health??null;
-    const signature=String(value.health_signature??"");
-    if(!embedded||!signature)return false;
+    const signature=value.health_signature;
+    if(!embedded||typeof signature!=="string"||signature.length===0)return false;
+    if(!dimensionAuditDownloadHistoryHealthCanonical(embedded))return false;
     const embeddedValid=dimensionAuditDownloadHistoryHealthSignature(embedded)===signature;
     const current=dimensionAuditDownloadHistoryHealth(value);
     const currentValid=dimensionAuditDownloadHistoryHealthSignature(current)===signature;
@@ -2354,12 +2370,17 @@
     }
     const value=snapshot??{};
     const embedded=value.health??null;
-    const signature=String(value.health_signature??"");
-    const present=!!embedded&&!!signature;
-    const signatureValid=present&&dimensionAuditDownloadHistoryHealthSignature(embedded)===signature;
+    const signaturePresent=value.health_signature!=null;
+    const signatureTypeValid=typeof value.health_signature==="string"&&value.health_signature.length>0;
+    const signature=signatureTypeValid?value.health_signature:"";
+    const present=!!embedded&&signaturePresent;
+    const signatureValid=present
+      &&signatureTypeValid
+      &&dimensionAuditDownloadHistoryHealthCanonical(embedded)
+      &&dimensionAuditDownloadHistoryHealthSignature(embedded)===signature;
     const current=dimensionAuditDownloadHistoryHealth(value);
     const currentSignature=dimensionAuditDownloadHistoryHealthSignature(current);
-    const currentValid=present&&currentSignature===signature;
+    const currentValid=signatureValid&&currentSignature===signature;
     const errors=[
       !present?"MISSING_HEALTH":null,
       present&&!signatureValid?"INVALID_HEALTH_SIGNATURE":null,
