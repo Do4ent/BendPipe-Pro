@@ -2784,9 +2784,11 @@
     const signature=value.attestation_signature;
     if(!embedded||typeof signature!=="string"||signature.length===0)return false;
     if(!dimensionAuditDownloadHistoryAttestationCanonical(embedded))return false;
-    const embeddedValid=dimensionAuditDownloadHistoryAttestationSignature(embedded)===signature;
+    const embeddedValid=dimensionAuditDownloadHistoryAttestationSignature(embedded)===signature
+      &&dimensionAuditDownloadHistoryAttestationSignatureValid(signature,embedded);
     const current=dimensionAuditDownloadHistoryAttestation(value);
-    const currentValid=dimensionAuditDownloadHistoryAttestationSignature(current)===signature;
+    const currentValid=dimensionAuditDownloadHistoryAttestationSignature(current)===signature
+      &&dimensionAuditDownloadHistoryAttestationSignatureValid(signature,current);
     return embeddedValid&&currentValid;
   }
 
