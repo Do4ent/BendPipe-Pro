@@ -3635,6 +3635,7 @@
       history_snapshot_signature:String(value.history_snapshot?.signature??""),
       evidence_summary_snapshot_signature:String(value.evidence_summary_snapshot?.snapshot_signature??""),
       evidence_event_binding_signature:String(value.evidence_summary_snapshot?.event_binding_signature??""),
+      history_event_signatures:(Array.isArray(value.history_snapshot?.events)?value.history_snapshot.events:[]).map(event=>String(event?.signature??"")),
       event_count:Number(value.history_snapshot?.event_count??0),
       evidence_event_count:Number(value.evidence_summary_snapshot?.summary?.total??0)
     });
