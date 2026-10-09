@@ -2974,6 +2974,7 @@
         const base={schema:"TubeBender.DimensionAuditDownloadAttempt.v1",...input};
         return {...base,signature:dimensionAuditDownloadAttemptSignature(base)};
       })();
+    Object.freeze(attempt);
     lastDimensionAuditDownloadAttempt=attempt;
     dimensionAuditDownloadAttemptHistory.push(attempt);
     while(dimensionAuditDownloadAttemptHistory.length>DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_HISTORY_LIMIT)dimensionAuditDownloadAttemptHistory.shift();
@@ -3006,6 +3007,7 @@
         const base={schema:"TubeBender.DimensionAuditDownloadAttempt.v1",...input};
         return {...base,signature:dimensionAuditDownloadAttemptSignature(base)};
       })();
+    Object.freeze(attempt);
     lastDimensionAuditDownloadAttempt=attempt;
     dimensionAuditDownloadAttemptHistory.push(attempt);
     while(dimensionAuditDownloadAttemptHistory.length>DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_HISTORY_LIMIT)dimensionAuditDownloadAttemptHistory.shift();
