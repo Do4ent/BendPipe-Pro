@@ -3078,9 +3078,9 @@
       &&(permitEvidenceComplete||permitEvidenceAbsent)
       &&(!successful||permitEvidenceComplete)
       &&codeOutcomeValid
-      &&!!String(value.history_snapshot_signature??"")
-      &&(()=>{const text=String(value.generated_at??"");const date=new Date(text);return !Number.isNaN(date.getTime())&&date.toISOString()===text;})()
-      &&!!String(value.signature??"")
+      &&value.history_snapshot_signature.length>0
+      &&(()=>{const text=value.generated_at;const date=new Date(text);return !Number.isNaN(date.getTime())&&date.toISOString()===text;})()
+      &&value.signature.length>0
       &&value.signature===dimensionAuditDownloadHistoryExportEventSignature(value);
   }
 
@@ -3208,10 +3208,10 @@
       &&Number.isInteger(value.download)&&value.download===expected.download
       &&Number.isInteger(value.valid)&&value.valid===expected.valid
       &&Number.isInteger(value.invalid)&&value.invalid===expected.invalid
-      &&String(value.latest_signature??"")===expected.latest_signature
-      &&String(value.latest_outcome??"")===expected.latest_outcome
-      &&String(value.latest_action??"")===expected.latest_action
-      &&String(value.latest_code??"")===expected.latest_code
+      &&value.latest_signature===expected.latest_signature
+      &&value.latest_outcome===expected.latest_outcome
+      &&value.latest_action===expected.latest_action
+      &&value.latest_code===expected.latest_code
       &&dimensionAuditDownloadHistoryExportEventSummarySignatureValid(value.signature,value);
   }
 
@@ -3295,7 +3295,7 @@
       &&value.signature_valid===true
       &&dimensionAuditDownloadHistoryExportEventSummaryValid(value.summary,events)
       &&dimensionAuditDownloadHistoryExportEventSummarySignatureValid(value.summary?.signature,value.summary)
-      &&(()=>{const text=String(value.generated_at??"");const date=new Date(text);if(Number.isNaN(date.getTime())||date.toISOString()!==text)return false;const times=events.map(event=>new Date(String(event?.generated_at??"")).getTime());for(let index=1;index<times.length;index++)if(times[index]<times[index-1])return false;return !times.some(time=>Number.isFinite(time)&&time>date.getTime());})()
+      &&(()=>{const text=value.generated_at;const date=new Date(text);if(Number.isNaN(date.getTime())||date.toISOString()!==text)return false;const times=events.map(event=>new Date(String(event?.generated_at??"")).getTime());for(let index=1;index<times.length;index++)if(times[index]<times[index-1])return false;return !times.some(time=>Number.isFinite(time)&&time>date.getTime());})()
       &&dimensionAuditDownloadHistoryExportEventHistorySignatureValid(value.signature,value);
   }
 
