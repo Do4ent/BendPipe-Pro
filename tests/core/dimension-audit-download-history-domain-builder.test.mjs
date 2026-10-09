@@ -17,7 +17,7 @@ function attempt(){
     runtime_signature:"runtime",
     protocol_signature:"protocol",
     error:null,
-    generated_at:"2099-01-01T00:00:00Z"
+    generated_at:"2099-01-01T00:00:00.000Z"
   };
   return {...base,signature:dimensionAuditDownloadAttemptSignature(base)};
 }
@@ -26,7 +26,7 @@ test("question 591: domain builds canonical signed and enveloped audit history s
   const snapshot=dimensionAuditDownloadHistorySnapshot({
     project_id:"p1",
     project_name:"Project",
-    generated_at:"2099-01-01T00:00:00Z",
+    generated_at:"2099-01-01T00:00:00.000Z",
     attempts:[attempt()]
   });
   assert.equal(snapshot.schema,"TubeBender.DimensionAuditDownloadHistory.v1");
