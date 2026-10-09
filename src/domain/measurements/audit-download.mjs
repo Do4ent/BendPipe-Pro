@@ -3131,7 +3131,11 @@ function dimensionAuditDownloadHistoryTrustCanonical(trust={}){
     &&typeof value.embedded_attestation_embedding_valid==="boolean";
 }
 
-export function dimensionAuditDownloadHistoryTrustSignatureValid(signature,trust=dimensionAuditDownloadHistoryTrust()){
+export function dimensionAuditDownloadHistoryTrustSignatureValid(signature,trust=dimensionAuditDownloadHistoryTrust(),snapshot=null){
+  if(snapshot!=null){
+    const expected=dimensionAuditDownloadHistoryTrust(snapshot);
+    if(dimensionAuditDownloadHistoryTrustSignature(trust)!==dimensionAuditDownloadHistoryTrustSignature(expected))return false;
+  }
   return typeof signature==="string"
     &&signature.length>0
     &&dimensionAuditDownloadHistoryTrustCanonical(trust)
