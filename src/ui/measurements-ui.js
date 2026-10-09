@@ -3218,6 +3218,7 @@
 
   function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummaryValid(summary=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummary(),events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
     if(!Array.isArray(events))return false;
+    if(!events.every(event=>dimensionAuditDownloadHistoryExportEventValid(event)))return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummaryValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummaryValid(summary??{},events);
     }
