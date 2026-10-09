@@ -4269,11 +4269,19 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignatureValid(signature,value);
     }
+    const envelope=value.envelope;
     return typeof signature==="string"
       &&signature.length>0
       &&typeof value.schema==="string"
+      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshot.v1"
       &&typeof value.envelope_signature==="string"
       &&typeof value.envelope_valid==="boolean"
+      &&!!envelope
+      &&typeof envelope==="object"
+      &&!Array.isArray(envelope)
+      &&typeof envelope.signature==="string"
+      &&value.envelope_signature===envelope.signature
+      &&dimensionAuditDownloadHistoryExportEventLogEnvelopeSignatureValid(value.envelope_signature,envelope)
       &&signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignature(value);
   }
 
