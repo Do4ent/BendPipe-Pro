@@ -439,6 +439,7 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummar
 }
 
 export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignatureValid(signature,summary={},events=[]){
+  if(!Array.isArray(events))return false;
   return typeof signature==="string"
     &&signature.length>0
     &&dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummaryValid(summary,events)
