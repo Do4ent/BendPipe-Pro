@@ -411,6 +411,7 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummar
 
 export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummaryValid(summary={},events=[]){
   if(!Array.isArray(events))return false;
+  if(!events.every(event=>dimensionAuditDownloadHistoryExportEventValid(event)))return false;
   const expected=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummary(events);
   const value=summary??{};
   return typeof value.schema==="string"
