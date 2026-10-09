@@ -2700,9 +2700,11 @@
     const signature=value.verification_embedding_signature;
     if(!embedded||typeof signature!=="string"||signature.length===0)return false;
     if(!dimensionAuditDownloadHistoryVerificationEmbeddingCanonical(embedded))return false;
-    const embeddedValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignature(embedded)===signature;
+    const embeddedValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignature(embedded)===signature
+      &&dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid(signature,embedded);
     const current=dimensionAuditDownloadHistoryVerificationEmbedding(value);
-    const currentValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignature(current)===signature;
+    const currentValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignature(current)===signature
+      &&dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid(signature,current);
     return embeddedValid&&currentValid;
   }
 
