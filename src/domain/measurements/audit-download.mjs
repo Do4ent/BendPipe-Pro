@@ -671,10 +671,15 @@ export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LOG_ENVELOPE_SNAPSHOT
 
 export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignature(snapshot={}){
   const value=snapshot??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.envelope_signature!=="string"
+    ||typeof value.envelope_valid!=="boolean"){
+    throw new TypeError("history export event-log envelope snapshot signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    envelope_signature:String(value.envelope_signature??""),
-    envelope_valid:value.envelope_valid===true
+    schema:value.schema,
+    envelope_signature:value.envelope_signature,
+    envelope_valid:value.envelope_valid
   });
 }
 
