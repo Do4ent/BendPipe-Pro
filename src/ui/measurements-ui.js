@@ -3092,6 +3092,9 @@
         const base={schema:"TubeBender.DimensionAuditDownloadHistoryExportEvent.v1",...input};
         return {...base,signature:dimensionAuditDownloadHistoryExportEventSignature(base)};
       })();
+    if(!dimensionAuditDownloadHistoryExportEventValid(event)){
+      throw new TypeError("invalid history export event");
+    }
     dimensionAuditDownloadHistoryExportEventHistory.push(event);
     while(dimensionAuditDownloadHistoryExportEventHistory.length>DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LIMIT){
       dimensionAuditDownloadHistoryExportEventHistory.shift();
