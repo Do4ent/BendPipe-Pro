@@ -3536,6 +3536,7 @@
       ||typeof value.snapshot_signature_valid!=="boolean")return false;
     return value.schema==="TubeBender.DimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshot.v1"
       &&value.event_binding_signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignature(events)
+      &&dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignatureValid(value.event_binding_signature,events)
       &&dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummaryValid(value.summary,events)
       &&value.summary_valid===true
       &&value.summary_signature_valid===true
