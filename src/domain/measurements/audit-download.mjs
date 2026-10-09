@@ -3054,12 +3054,22 @@ export function dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignatur
 
 export function dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignatureValid(signature,snapshot={}){
   const value=snapshot??{};
+  const authorization=value.authorization;
+  const authorizationPresent=!!authorization&&typeof authorization==="object"&&!Array.isArray(authorization);
+  const authorizationValid=authorizationPresent&&dimensionAuditDownloadHistoryExportAuthorizationValid(authorization);
+  const authorizationSignatureValid=authorizationPresent
+    &&typeof value.authorization_signature==="string"
+    &&dimensionAuditDownloadHistoryExportAuthorizationSignatureValid(value.authorization_signature,authorization);
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_AUTHORIZATION_SNAPSHOT_SCHEMA
     &&typeof value.authorization_signature==="string"
     &&typeof value.authorization_valid==="boolean"
     &&typeof value.authorization_signature_valid==="boolean"
+    &&authorizationPresent
+    &&value.authorization_valid===authorizationValid
+    &&value.authorization_signature_valid===authorizationSignatureValid
     &&signature===dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignature(value);
 }
 
