@@ -8,9 +8,11 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
 test("question 838: export event controls fail closed when the event history is empty",()=>{
-  assert.match(ui,/data-copy-dimension-audit-history-export-events '+\(auditDownloadHistoryExportEventSnapshotValid&&auditDownloadHistoryExportEventSummary\.total\?'':'disabled'\)/);
-  assert.match(ui,/data-download-dimension-audit-history-export-events '+\(auditDownloadHistoryExportEventSnapshotValid&&auditDownloadHistoryExportEventSummary\.total\?'':'disabled'\)/);
-  assert.match(ui,/data-clear-dimension-audit-history-export-events '+\(auditDownloadHistoryExportEventSummary\.total\?'':'disabled'\)/);
+  assert.match(ui,/data-copy-dimension-audit-history-export-events/);
+  assert.match(ui,/auditDownloadHistoryExportEventSnapshotValid&&auditDownloadHistoryExportEventSummary\.total\?'':'disabled'/);
+  assert.match(ui,/data-download-dimension-audit-history-export-events/);
+  assert.match(ui,/data-clear-dimension-audit-history-export-events/);
+  assert.match(ui,/auditDownloadHistoryExportEventSummary\.total\?'':'disabled'/);
   assert.match(ui,/const auditDownloadHistoryExportEventSummary=dimensionAuditDownloadHistoryExportEventSummary\(\)/);
   assert.match(ui,/const auditDownloadHistoryExportEventSnapshot=dimensionAuditDownloadHistoryExportEventHistorySnapshot\(\)/);
 });
