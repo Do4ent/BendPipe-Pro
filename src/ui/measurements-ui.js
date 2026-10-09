@@ -3916,7 +3916,9 @@
   }
   function dimensionAuditDownloadAttemptHistorySummaryValid(summary=dimensionAuditDownloadAttemptHistorySummary(),attempts=dimensionAuditDownloadAttemptHistorySnapshot()){
     if(!Array.isArray(attempts))return false;
-    if(!attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt)))return false;
+    const signedAttempts=attempts.filter(attempt=>attempt?.schema==="TubeBender.DimensionAuditDownloadAttempt.v1");
+    if(signedAttempts.length>0&&signedAttempts.length!==attempts.length)return false;
+    if(signedAttempts.length===attempts.length&&!attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt)))return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistorySummaryValid){
       return auditDownloadDomain.dimensionAuditDownloadHistorySummaryValid(summary??{},attempts);
     }
