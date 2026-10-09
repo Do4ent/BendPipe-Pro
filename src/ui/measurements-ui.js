@@ -3505,6 +3505,7 @@
 
   function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignatureValid(signature,events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
     if(!Array.isArray(events))return false;
+    if(!events.every(event=>typeof event?.signature==="string"))return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignatureValid(signature,events);
     }
