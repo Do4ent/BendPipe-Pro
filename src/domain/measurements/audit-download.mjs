@@ -914,6 +914,7 @@ export function dimensionAuditDownloadHistorySummary(attempts=[]){
 
 export function dimensionAuditDownloadHistorySummaryValid(summary={},attempts=[]){
   if(!Array.isArray(attempts))return false;
+  if(!attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt)))return false;
   const value=summary??{};
   const counts={blocked:0,downloaded:0,failed:0};
   for(const attempt of attempts){
