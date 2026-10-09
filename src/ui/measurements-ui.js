@@ -4025,7 +4025,8 @@
     const rawSignature=value.snapshot_signature;
     const snapshotSignatureTypeValid=rawSignature==null||typeof rawSignature==="string";
     const signature=typeof rawSignature==="string"?rawSignature:"";
-    const snapshotSignatureValid=snapshotSignatureTypeValid
+    const snapshotSignatureValid=snapshotSignatureTypeValid&&(!signature||signature===dimensionAuditDownloadAttemptHistoryAuditSignature(value));
+    const snapshotSignatureContractValid=snapshotSignatureTypeValid
       &&(!signature||dimensionAuditDownloadAttemptHistoryAuditSignatureValid(signature,value));
     const errors=[
       !historySchemaValid?"INVALID_HISTORY_SCHEMA":null,
@@ -4036,7 +4037,7 @@
       !summarySignatureValid?"INVALID_SUMMARY_SIGNATURE":null,
       !protocolStateValid?"INVALID_PROTOCOL_STATE":null,
       !protocolStateSignatureValid?"INVALID_PROTOCOL_STATE_SIGNATURE":null,
-      !snapshotSignatureValid?"INVALID_SNAPSHOT_SIGNATURE":null
+      !(snapshotSignatureValid&&snapshotSignatureContractValid)?"INVALID_SNAPSHOT_SIGNATURE":null
     ].filter(Boolean);
     return {
       schema:"TubeBender.DimensionAuditDownloadHistoryIntegrity.v1",
@@ -4051,7 +4052,7 @@
       summary_signature_valid:summarySignatureValid,
       protocol_state_valid:protocolStateValid,
       protocol_state_signature_valid:protocolStateSignatureValid,
-      snapshot_signature_valid:snapshotSignatureValid
+      snapshot_signature_valid:snapshotSignatureValid&&snapshotSignatureContractValid
     };
   }
 
