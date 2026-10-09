@@ -445,6 +445,54 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummar
     &&signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignature(summary);
 }
 
+export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_FINAL_STATE_EVIDENCE_SUMMARY_SNAPSHOT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshot.v1";
+
+export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignature(snapshot={}){
+  const value=snapshot??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    summary_signature:String(value.summary_signature??""),
+    summary_valid:value.summary_valid===true,
+    summary_signature_valid:value.summary_signature_valid===true
+  });
+}
+
+export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignatureValid(signature,snapshot={}){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignature(snapshot);
+}
+
+export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshot(summary=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummary(),events=[]){
+  const value=summary??{};
+  const signature=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignature(value);
+  const base={
+    schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_FINAL_STATE_EVIDENCE_SUMMARY_SNAPSHOT_SCHEMA,
+    summary:value,
+    summary_signature:signature,
+    summary_valid:dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummaryValid(value,events),
+    summary_signature_valid:dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignatureValid(signature,value,events)
+  };
+  const snapshotSignature=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignature(base);
+  return freeze({...base,snapshot_signature:snapshotSignature,snapshot_signature_valid:true});
+}
+
+export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotValid(snapshot={},events=[]){
+  const value=snapshot??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.summary_signature!=="string"
+    ||typeof value.summary_valid!=="boolean"
+    ||typeof value.summary_signature_valid!=="boolean"
+    ||typeof value.snapshot_signature!=="string"
+    ||typeof value.snapshot_signature_valid!=="boolean")return false;
+  if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_FINAL_STATE_EVIDENCE_SUMMARY_SNAPSHOT_SCHEMA)return false;
+  if(!dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummaryValid(value.summary,events))return false;
+  if(value.summary_valid!==true||value.summary_signature_valid!==true)return false;
+  if(!dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignatureValid(value.summary_signature,value.summary,events))return false;
+  if(value.snapshot_signature_valid!==true)return false;
+  return dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignatureValid(value.snapshot_signature,value);
+}
+
 export function dimensionAuditDownloadHistoryExportEventSignature(event={}){
   const value=event??{};
   const hasFinalStateEvidence=value.final_state_signature!=null
