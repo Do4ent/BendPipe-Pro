@@ -5302,11 +5302,17 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportDecisionSnapshotSignature){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(value);
     }
+    if(typeof value.schema!=="string"
+      ||typeof value.decision_signature!=="string"
+      ||typeof value.decision_valid!=="boolean"
+      ||typeof value.decision_signature_valid!=="boolean"){
+      throw new TypeError("history export decision snapshot signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      decision_signature:String(value.decision_signature??""),
-      decision_valid:value.decision_valid===true,
-      decision_signature_valid:value.decision_signature_valid===true
+      schema:value.schema,
+      decision_signature:value.decision_signature,
+      decision_valid:value.decision_valid,
+      decision_signature_valid:value.decision_signature_valid
     });
   }
 
