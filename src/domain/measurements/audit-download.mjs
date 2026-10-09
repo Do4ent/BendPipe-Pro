@@ -1302,6 +1302,12 @@ export function dimensionAuditDownloadHistoryEnvelopeSignature(snapshot={}){
   });
 }
 
+export function dimensionAuditDownloadHistoryEnvelopeSignatureValid(signature,snapshot={}){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistoryEnvelopeSignature(snapshot);
+}
+
 export function dimensionAuditDownloadHistoryEnvelopeValid(snapshot={}){
   const value=snapshot??{};
   const coreIntegrity=dimensionAuditDownloadHistoryIntegrity(value);
