@@ -14,6 +14,5 @@ test("question 865: UI fallback validates signed export-event summary",()=>{
   const fn=ui.slice(start,end);
   assert.match(fn,/const expected=dimensionAuditDownloadHistoryExportEventSummary\(list\)/);
   assert.match(fn,/String\(value\.latest_code\?\?""\)===expected\.latest_code/);
-  assert.match(fn,/!!String\(value\.signature\?\?""\)/);
-  assert.match(fn,/String\(value\.signature\)===dimensionAuditDownloadHistoryExportEventSummarySignature\(value\)/);
+  assert.match(fn,/dimensionAuditDownloadHistoryExportEventSummarySignatureValid\(value\.signature,value\)/);
 });
