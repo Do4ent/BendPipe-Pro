@@ -3659,6 +3659,7 @@
   }
 
   function dimensionAuditDownloadHistoryExportEventLogEnvelopeValid(envelope={},events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
+    if(!Array.isArray(events))return false;
     const value=envelope??{};
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventLogEnvelopeValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventLogEnvelopeValid(value,events);
@@ -3717,6 +3718,7 @@
   }
 
   function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotValid(snapshot={},events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
+    if(!Array.isArray(events))return false;
     const value=snapshot??{};
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotValid(value,events);
