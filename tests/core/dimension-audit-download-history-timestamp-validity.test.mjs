@@ -29,7 +29,9 @@ test("question 673: audit history integrity validates generated_at semantics",()
   assert.ok(integrity.errors.includes("INVALID_GENERATED_AT"));
 
   const fn=ui.match(/function dimensionAuditDownloadAttemptHistoryIntegrity\(snapshot\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/const generatedAtValid=value\.generated_at==null\|\|\(/);\n  assert.match(fn,/typeof value\.generated_at==="string"/);\n  assert.match(fn,/date\.toISOString\(\)===value\.generated_at/);
+  assert.match(fn,/const generatedAtValid=value\.generated_at==null\|\|\(/);
+  assert.match(fn,/typeof value\.generated_at==="string"/);
+  assert.match(fn,/date\.toISOString\(\)===value\.generated_at/);
   assert.match(fn,/!generatedAtValid\?"INVALID_GENERATED_AT":null/);
   assert.match(fn,/generated_at_valid:generatedAtValid/);
 });
