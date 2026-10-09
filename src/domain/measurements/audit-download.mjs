@@ -493,15 +493,15 @@ export function dimensionAuditDownloadHistoryExportEventSummaryValid(summary={},
   const expected=dimensionAuditDownloadHistoryExportEventSummary(events);
   const value=summary??{};
   return String(value.schema??"")===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_SUMMARY_SCHEMA
-    &&Number(value.total)===expected.total
-    &&Number(value.blocked)===expected.blocked
-    &&Number(value.copied)===expected.copied
-    &&Number(value.downloaded)===expected.downloaded
-    &&Number(value.failed)===expected.failed
-    &&Number(value.copy)===expected.copy
-    &&Number(value.download)===expected.download
-    &&Number(value.valid)===expected.valid
-    &&Number(value.invalid)===expected.invalid
+    &&Number.isInteger(value.total)&&value.total===expected.total
+    &&Number.isInteger(value.blocked)&&value.blocked===expected.blocked
+    &&Number.isInteger(value.copied)&&value.copied===expected.copied
+    &&Number.isInteger(value.downloaded)&&value.downloaded===expected.downloaded
+    &&Number.isInteger(value.failed)&&value.failed===expected.failed
+    &&Number.isInteger(value.copy)&&value.copy===expected.copy
+    &&Number.isInteger(value.download)&&value.download===expected.download
+    &&Number.isInteger(value.valid)&&value.valid===expected.valid
+    &&Number.isInteger(value.invalid)&&value.invalid===expected.invalid
     &&String(value.latest_signature??"")===expected.latest_signature
     &&String(value.latest_outcome??"")===expected.latest_outcome
     &&String(value.latest_action??"")===expected.latest_action
@@ -571,7 +571,7 @@ export function dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(sna
   const value=snapshot??{};
   const events=Array.isArray(value.events)?value.events:null;
   if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_HISTORY_SCHEMA||!events)return false;
-  if(Number(value.event_count)!==events.length)return false;
+  if(!Number.isInteger(value.event_count)||value.event_count!==events.length)return false;
   if(value.events_valid!==events.every(event=>dimensionAuditDownloadHistoryExportEventValid(event)))return false;
   if(value.events_valid!==true)return false;
   if(!dimensionAuditDownloadHistoryExportEventSummaryValid(value.summary,events))return false;
