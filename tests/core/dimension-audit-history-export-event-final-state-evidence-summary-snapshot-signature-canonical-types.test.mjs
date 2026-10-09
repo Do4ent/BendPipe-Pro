@@ -20,6 +20,22 @@ test("question 1137: evidence summary snapshot signature rejects coercible non-c
   const summary=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummary(events);
   const snapshot=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshot(summary,events);
   const malformed={...snapshot,summary_signature:{toString:()=>snapshot.summary_signature}};
-  const forged=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignature(malformed);
-  assert.equal(dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignatureValid(forged,malformed),false);
+  assert.throws(
+    ()=>dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignature(malformed),
+    {name:"TypeError",message:"history export evidence summary snapshot signature fields must be canonical"}
+  );
+});
+
+test("question 1161: evidence snapshot signature validator remains fail-closed if malformed input bypasses the builder",()=>{
+  const malformed={
+    schema:"TubeBender.DimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshot.v1",
+    summary_signature:{toString:()=>"s"},
+    event_binding_signature:'["e"]',
+    summary_valid:true,
+    summary_signature_valid:true
+  };
+  assert.equal(
+    dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignatureValid("forged",malformed),
+    false
+  );
 });
