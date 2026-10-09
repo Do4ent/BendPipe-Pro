@@ -25,7 +25,7 @@ test("question 1912: active reason exposes copy reason-audit control",()=>has("d
 test("question 1913: active reason exposes download reason-audit control",()=>has("data-download-dimension-review-reason-audit"));
 test("question 1914: full review queue exposes exit control",()=>has("data-dimension-review-queue-exit"));
 test("question 1915: search toolbar is marked with audit-search attribute",()=>has("data-dimension-audit-search"));
-test("question 1916: search input persists current manager search",()=>has('data-dimension-search value="'+esc(dimensionManagerSearch)+'"'));
+test("question 1916: search input persists current manager search",()=>has("data-dimension-search value=\"'+esc(dimensionManagerSearch)+'\""));
 test("question 1917: search input documents supported search dimensions",()=>has("Search ID, kind, source, stale reason"));
 test("question 1918: search apply control is available",()=>has("data-dimension-search-apply"));
 test("question 1919: search clear control is available",()=>has("data-dimension-search-clear"));
