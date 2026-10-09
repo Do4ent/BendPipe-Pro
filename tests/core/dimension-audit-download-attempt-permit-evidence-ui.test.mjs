@@ -14,6 +14,6 @@ test("question 819: UI fallback download-attempt signature and validation includ
   assert.match(ui,/export_action:String\(value\.export_action\?\?""\)/);
   assert.match(ui,/action_permit_signature:String\(value\.action_permit_signature\?\?""\)/);
   assert.match(ui,/action_permit_snapshot_signature:String\(value\.action_permit_snapshot_signature\?\?""\)/);
-  assert.match(ui,/\["copy","download"\]\.includes\(String\(value\.export_action\?\?""\)\)/);
-  assert.match(ui,/permitEvidenceValid/);
+  assert.match(ui,/\["copy","download"\]\.includes\(value\.export_action\)/);
+  assert.match(ui,/typeof value\.export_action!=="string"/);\n  assert.match(ui,/permitEvidenceValid/);
 });
