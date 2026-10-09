@@ -511,7 +511,9 @@ export function dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(sna
   if(value.events_valid!==true)return false;
   if(!dimensionAuditDownloadHistoryExportEventSummaryValid(value.summary,events))return false;
   if(value.summary_valid!==true)return false;
-  if(Number.isNaN(new Date(String(value.generated_at??"")).getTime()))return false;
+  const generatedAtText=String(value.generated_at??"");
+  const generatedAt=new Date(generatedAtText);
+  if(Number.isNaN(generatedAt.getTime())||generatedAt.toISOString()!==generatedAtText)return false;
   return !!String(value.signature??"")
     &&String(value.signature)===dimensionAuditDownloadHistoryExportEventHistorySignature(value);
 }
