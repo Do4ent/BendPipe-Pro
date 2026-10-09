@@ -970,6 +970,12 @@ export function dimensionAuditDownloadHistorySignature(snapshot={}){
   });
 }
 
+export function dimensionAuditDownloadHistorySignatureValid(signature,snapshot={}){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistorySignature(snapshot);
+}
+
 export function dimensionAuditDownloadHistoryIntegrity(snapshot={}){
   const value=snapshot??{};
   const attemptsArrayValid=Array.isArray(value.attempts);
