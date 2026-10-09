@@ -13,6 +13,18 @@ test("question 1145: gate snapshot signature validation rejects coercible non-ca
     gate_signature_valid:true
   };
   const malformed={...snapshot,gate_valid:1};
-  const forged=dimensionAuditDownloadHistoryExportGateSnapshotSignature(malformed);
-  assert.equal(dimensionAuditDownloadHistoryExportGateSnapshotSignatureValid(forged,malformed),false);
+  assert.throws(
+    ()=>dimensionAuditDownloadHistoryExportGateSnapshotSignature(malformed),
+    {name:"TypeError",message:"history export gate snapshot signature fields must be canonical"}
+  );
+});
+
+test("question 1197: gate snapshot signature validator remains fail-closed if malformed input bypasses the strict builder",()=>{
+  const malformed={
+    schema:"s",
+    gate_signature:"g",
+    gate_valid:1,
+    gate_signature_valid:true
+  };
+  assert.equal(dimensionAuditDownloadHistoryExportGateSnapshotSignatureValid("forged",malformed),false);
 });
