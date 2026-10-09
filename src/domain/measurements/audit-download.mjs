@@ -865,9 +865,24 @@ export function dimensionAuditDownloadHistoryExportEventSummarySignature(summary
 }
 
 export function dimensionAuditDownloadHistoryExportEventSummarySignatureValid(signature,summary={}){
+  const value=summary??{};
   return typeof signature==="string"
     &&signature.length>0
-    &&signature===dimensionAuditDownloadHistoryExportEventSummarySignature(summary);
+    &&typeof value.schema==="string"
+    &&Number.isInteger(value.total)
+    &&Number.isInteger(value.blocked)
+    &&Number.isInteger(value.copied)
+    &&Number.isInteger(value.downloaded)
+    &&Number.isInteger(value.failed)
+    &&Number.isInteger(value.copy)
+    &&Number.isInteger(value.download)
+    &&Number.isInteger(value.valid)
+    &&Number.isInteger(value.invalid)
+    &&typeof value.latest_signature==="string"
+    &&typeof value.latest_outcome==="string"
+    &&typeof value.latest_action==="string"
+    &&typeof value.latest_code==="string"
+    &&signature===dimensionAuditDownloadHistoryExportEventSummarySignature(value);
 }
 
 export function dimensionAuditDownloadHistoryExportEventSummary(events=[]){
