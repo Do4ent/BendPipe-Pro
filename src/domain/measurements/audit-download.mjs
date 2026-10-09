@@ -485,6 +485,7 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummar
 }
 
 export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotValid(snapshot={},events=[]){
+  if(!Array.isArray(events))return false;
   const value=snapshot??{};
   if(typeof value.schema!=="string"
     ||typeof value.summary_signature!=="string"
