@@ -4362,13 +4362,21 @@
       return auditDownloadDomain.dimensionAuditDownloadHistorySummarySignature(summary??{});
     }
     const value=summary??{};
+    if(typeof value.schema!=="string"
+      ||!Number.isInteger(value.total)
+      ||!Number.isInteger(value.blocked)
+      ||!Number.isInteger(value.downloaded)
+      ||!Number.isInteger(value.failed)
+      ||typeof value.latest_signature!=="string"){
+      throw new TypeError("audit download history summary signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      total:Number(value.total??0),
-      blocked:Number(value.blocked??0),
-      downloaded:Number(value.downloaded??0),
-      failed:Number(value.failed??0),
-      latest_signature:String(value.latest_signature??"")
+      schema:value.schema,
+      total:value.total,
+      blocked:value.blocked,
+      downloaded:value.downloaded,
+      failed:value.failed,
+      latest_signature:value.latest_signature
     });
   }
 
