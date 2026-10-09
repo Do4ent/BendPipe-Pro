@@ -423,6 +423,7 @@ export function dimensionAuditDownloadHistoryExportEventValid(event={}){
     &&errorValid
     &&(permitEvidenceComplete||permitEvidenceAbsent)
     &&successPermitValid
+    &&!!String(value.history_snapshot_signature??"")
     &&!Number.isNaN(timestamp.getTime())
     &&timestamp.toISOString()===String(value.generated_at??"")
     &&!!String(value.signature??"")
