@@ -17,7 +17,7 @@ function signed(status,error){
     runtime_signature:"runtime",
     protocol_signature:"protocol",
     error,
-    generated_at:"2099-01-01T00:00:00Z"
+    generated_at:"2099-01-01T00:00:00.000Z"
   };
   return {...base,signature:dimensionAuditDownloadAttemptSignature(base)};
 }
