@@ -439,6 +439,26 @@ export function dimensionAuditDownloadHistoryExportEventValid(event={}){
     &&String(value.signature)===dimensionAuditDownloadHistoryExportEventSignature(value);
 }
 
+export function dimensionAuditDownloadHistoryExportEventSummarySignature(summary={}){
+  const value=summary??{};
+  return JSON.stringify({
+    schema:String(value.schema??""),
+    total:Number(value.total??0),
+    blocked:Number(value.blocked??0),
+    copied:Number(value.copied??0),
+    downloaded:Number(value.downloaded??0),
+    failed:Number(value.failed??0),
+    copy:Number(value.copy??0),
+    download:Number(value.download??0),
+    valid:Number(value.valid??0),
+    invalid:Number(value.invalid??0),
+    latest_signature:String(value.latest_signature??""),
+    latest_outcome:String(value.latest_outcome??""),
+    latest_action:String(value.latest_action??""),
+    latest_code:String(value.latest_code??"")
+  });
+}
+
 export function dimensionAuditDownloadHistoryExportEventSummary(events=[]){
   if(!Array.isArray(events))throw new TypeError("history export events must be an array");
   let blocked=0,copied=0,downloaded=0,failed=0,copy=0,download=0,valid=0,invalid=0;
