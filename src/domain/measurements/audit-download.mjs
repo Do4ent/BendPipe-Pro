@@ -1127,27 +1127,32 @@ export function dimensionAuditDownloadHistoryExportEventHistorySignature(snapsho
 
 export function dimensionAuditDownloadHistoryExportEventHistorySignatureValid(signature,snapshot={}){
   const value=snapshot??{};
+  const events=Array.isArray(value.events)?value.events:null;
+  const generatedAt=typeof value.generated_at==="string"?new Date(value.generated_at):null;
+  const generatedAtValid=!!generatedAt&&!Number.isNaN(generatedAt.getTime())&&generatedAt.toISOString()===value.generated_at;
+  const eventTimes=events?events.map(event=>new Date(String(event?.generated_at??"")).getTime()):[];
+  const chronological=events?eventTimes.every((time,index)=>index===0||time>=eventTimes[index-1]):false;
+  const snapshotAfterEvents=generatedAtValid&&eventTimes.every(time=>Number.isFinite(time)&&time<=generatedAt.getTime());
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_HISTORY_SCHEMA
     &&Number.isInteger(value.event_count)
-    &&Array.isArray(value.events)
-    &&value.events.every(event=>typeof event?.signature==="string")
+    &&!!events
+    &&value.event_count===events.length
+    &&events.every(event=>dimensionAuditDownloadHistoryExportEventValid(event))
     &&!!value.summary
     &&typeof value.summary==="object"
     &&!Array.isArray(value.summary)
-    &&typeof value.summary.schema==="string"
-    &&typeof value.summary.signature==="string"
-    &&Number.isInteger(value.summary.total)
-    &&typeof value.summary.latest_signature==="string"
-    &&typeof value.summary.latest_action==="string"
-    &&typeof value.summary.latest_outcome==="string"
-    &&typeof value.summary.latest_code==="string"
-    &&typeof value.events_valid==="boolean"
-    &&typeof value.summary_valid==="boolean"
-    &&typeof value.summary_signature_valid==="boolean"
-    &&typeof value.signature_valid==="boolean"
-    &&typeof value.generated_at==="string"
+    &&dimensionAuditDownloadHistoryExportEventSummaryValid(value.summary,events)
+    &&dimensionAuditDownloadHistoryExportEventSummarySignatureValid(value.summary.signature,value.summary)
+    &&value.events_valid===true
+    &&value.summary_valid===true
+    &&value.summary_signature_valid===true
+    &&value.signature_valid===true
+    &&generatedAtValid
+    &&chronological
+    &&snapshotAfterEvents
     &&signature===dimensionAuditDownloadHistoryExportEventHistorySignature(value);
 }
 
