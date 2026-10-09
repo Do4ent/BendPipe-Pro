@@ -770,6 +770,7 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSigna
     &&typeof value.envelope_signature==="string"
     &&typeof value.envelope_valid==="boolean"
     &&envelopeSignatureValid
+    &&value.envelope_valid===envelopeSignatureValid
     &&signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignature(value);
 }
 
