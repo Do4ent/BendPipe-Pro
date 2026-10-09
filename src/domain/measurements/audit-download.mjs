@@ -2345,9 +2345,14 @@ export function dimensionAuditDownloadHistoryExportGateSnapshotSignature(snapsho
 }
 
 export function dimensionAuditDownloadHistoryExportGateSnapshotSignatureValid(signature,snapshot={}){
+  const value=snapshot??{};
   return typeof signature==="string"
     &&signature.length>0
-    &&signature===dimensionAuditDownloadHistoryExportGateSnapshotSignature(snapshot);
+    &&typeof value.schema==="string"
+    &&typeof value.gate_signature==="string"
+    &&typeof value.gate_valid==="boolean"
+    &&typeof value.gate_signature_valid==="boolean"
+    &&signature===dimensionAuditDownloadHistoryExportGateSnapshotSignature(value);
 }
 
 export function dimensionAuditDownloadHistoryExportGateSnapshot(gate=dimensionAuditDownloadHistoryExportGate()){
