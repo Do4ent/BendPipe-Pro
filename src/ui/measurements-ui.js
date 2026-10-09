@@ -4289,15 +4289,21 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportDecisionValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportDecisionValid(value);
     }
+    if(typeof value.schema!=="string"
+      ||typeof value.allowed!=="boolean"
+      ||typeof value.code!=="string"
+      ||typeof value.gate_snapshot_valid!=="boolean"
+      ||typeof value.gate_code!=="string"
+      ||typeof value.gate_allowed!=="boolean")return false;
     const decisionCodes=["READY","EMPTY","VERIFICATION_FAILED","UNTRUSTED","INVALID_PROVENANCE","INVALID_PROTOCOL","INVALID_PROTOCOL_SIGNATURE","INVALID_STATE","INVALID_STATE_SIGNATURE","INVALID_SNAPSHOT_SIGNATURE","INVALID_SNAPSHOT","INVALID_GATE_SNAPSHOT"];
     const gateCodes=decisionCodes.filter(code=>code!=="INVALID_GATE_SNAPSHOT");
-    const code=String(value.code??"");
-    const gateCode=String(value.gate_code??"");
-    if(String(value.schema??"")!=="TubeBender.DimensionAuditDownloadHistoryExportDecision.v1")return false;
+    const code=value.code;
+    const gateCode=value.gate_code;
+    if(value.schema!=="TubeBender.DimensionAuditDownloadHistoryExportDecision.v1")return false;
     if(!decisionCodes.includes(code))return false;
-    if((value.allowed===true)!==(code==="READY"))return false;
-    if(code==="INVALID_GATE_SNAPSHOT")return value.gate_snapshot_valid===false&&value.allowed!==true;
-    return gateCodes.includes(gateCode)&&value.gate_snapshot_valid===true&&gateCode===code&&(value.gate_allowed===true)===(code==="READY");
+    if(value.allowed!==(code==="READY"))return false;
+    if(code==="INVALID_GATE_SNAPSHOT")return value.gate_snapshot_valid===false&&value.allowed===false;
+    return gateCodes.includes(gateCode)&&value.gate_snapshot_valid===true&&gateCode===code&&value.gate_allowed===(code==="READY");
   }
 
   function dimensionAuditDownloadHistoryExportDecisionSignature(decision=dimensionAuditDownloadHistoryExportDecision()){
@@ -4317,11 +4323,12 @@
 
   function dimensionAuditDownloadHistoryExportDecisionSignatureValid(signature=dimensionAuditDownloadHistoryExportDecisionSignature(),decision=dimensionAuditDownloadHistoryExportDecision()){
     const value=decision??{};
+    if(typeof signature!=="string"||signature.length===0)return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportDecisionSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportDecisionSignatureValid(signature,value);
     }
     return dimensionAuditDownloadHistoryExportDecisionValid(value)
-      &&String(signature??"")===dimensionAuditDownloadHistoryExportDecisionSignature(value);
+      &&signature===dimensionAuditDownloadHistoryExportDecisionSignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(snapshot={}){
@@ -4339,10 +4346,11 @@
 
   function dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid(signature,snapshot={}){
     const value=snapshot??{};
+    if(typeof signature!=="string"||signature.length===0)return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportDecisionSnapshotSignatureValid(signature,value);
     }
-    return String(signature??"")===dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(value);
+    return signature===dimensionAuditDownloadHistoryExportDecisionSnapshotSignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportDecisionSnapshot(decision=dimensionAuditDownloadHistoryExportDecision()){
@@ -4367,7 +4375,13 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportDecisionSnapshotValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportDecisionSnapshotValid(value);
     }
-    return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportDecisionSnapshot.v1"
+    if(typeof value.schema!=="string"
+      ||typeof value.decision_signature!=="string"
+      ||typeof value.decision_valid!=="boolean"
+      ||typeof value.decision_signature_valid!=="boolean"
+      ||typeof value.snapshot_signature!=="string"
+      ||typeof value.snapshot_signature_valid!=="boolean")return false;
+    return value.schema==="TubeBender.DimensionAuditDownloadHistoryExportDecisionSnapshot.v1"
       &&dimensionAuditDownloadHistoryExportDecisionValid(value.decision)
       &&value.decision_valid===true
       &&value.decision_signature_valid===true
