@@ -1310,8 +1310,8 @@ export function dimensionAuditDownloadHistoryEnvelopeValid(snapshot={}){
   const embeddedIntegritySignature=embeddedIntegritySignatureValid?value.integrity_signature:"";
   const embeddedIntegrityValid=!!embeddedIntegrity
     &&embeddedIntegritySignatureValid
-    &&dimensionAuditDownloadHistoryIntegritySignature(embeddedIntegrity)===embeddedIntegritySignature
-    &&dimensionAuditDownloadHistoryIntegritySignature(coreIntegrity)===embeddedIntegritySignature;
+    &&dimensionAuditDownloadHistoryIntegritySignatureValid(embeddedIntegritySignature,embeddedIntegrity)
+    &&dimensionAuditDownloadHistoryIntegritySignatureValid(embeddedIntegritySignature,coreIntegrity);
   const embeddedBinding=value.protocol_binding??null;
   const embeddedBindingSignatureValid=typeof value.protocol_binding_signature==="string";
   const embeddedBindingSignature=embeddedBindingSignatureValid?value.protocol_binding_signature:"";
