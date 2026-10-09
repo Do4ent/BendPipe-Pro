@@ -581,13 +581,21 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummar
 
 export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignatureValid(signature,snapshot={}){
   const value=snapshot??{};
+  const summary=value.summary;
+  const summarySignatureValid=!!summary
+    &&typeof summary==="object"
+    &&!Array.isArray(summary)
+    &&typeof value.summary_signature==="string"
+    &&value.summary_signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignature(summary);
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
-    &&typeof value.summary_signature==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_FINAL_STATE_EVIDENCE_SUMMARY_SNAPSHOT_SCHEMA
+    &&summarySignatureValid
     &&typeof value.event_binding_signature==="string"
     &&typeof value.summary_valid==="boolean"
     &&typeof value.summary_signature_valid==="boolean"
+    &&value.summary_valid===value.summary_signature_valid
     &&signature===dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignature(value);
 }
 
