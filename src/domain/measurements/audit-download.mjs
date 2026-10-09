@@ -3200,9 +3200,14 @@ export function dimensionAuditDownloadHistoryExportFinalStateSnapshotSignature(s
 }
 
 export function dimensionAuditDownloadHistoryExportFinalStateSnapshotSignatureValid(signature,snapshot={}){
+  const value=snapshot??{};
   return typeof signature==="string"
     &&signature.length>0
-    &&signature===dimensionAuditDownloadHistoryExportFinalStateSnapshotSignature(snapshot);
+    &&typeof value.schema==="string"
+    &&typeof value.state_signature==="string"
+    &&typeof value.state_valid==="boolean"
+    &&typeof value.state_signature_valid==="boolean"
+    &&signature===dimensionAuditDownloadHistoryExportFinalStateSnapshotSignature(value);
 }
 
 export function dimensionAuditDownloadHistoryExportFinalStateSnapshot(state=dimensionAuditDownloadHistoryExportFinalState(),action="copy",statusSnapshot=dimensionAuditDownloadHistoryExportActionStatusSnapshot(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
