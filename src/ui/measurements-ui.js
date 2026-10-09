@@ -5811,6 +5811,7 @@
     window.addEventListener("tubebender-section-view-change",()=>invalidateSectionDerivedDimensions("Section View changed"));
     window.addEventListener("tubebender-dimension-change",()=>{if(panel?.classList.contains("open"))render();});
     window.addEventListener("tubebender-dimension-audit-download",()=>{if(panel?.classList.contains("open"))render();});
+    window.addEventListener("tubebender-dimension-audit-history-export",()=>{if(panel?.classList.contains("open"))render();});
     window.addEventListener("tubebender-dimension-audit-history-export-clear",()=>{if(panel?.classList.contains("open"))render();});
     window.addEventListener("tubebender-history-change",()=>{if(panel?.classList.contains("open"))render();});
     window.addEventListener("tubebender-snap-change",onQuickSnapChange);
