@@ -13,6 +13,6 @@ test("questions 1038-1041: manager and buttons gate event-log export on signed e
   assert.match(ui,/data-history-export-event-log-envelope-schema="/);
   assert.match(ui,/data-history-export-event-log-envelope-valid="/);
   assert.match(ui,/data-history-export-event-log-envelope-signature="/);
-  assert.match(ui,/data-copy-dimension-audit-history-export-events '\+\(auditDownloadHistoryExportEventLogEnvelopeValid&&auditDownloadHistoryExportEventSummary\.total\?'':'disabled'\)/);
-  assert.match(ui,/data-download-dimension-audit-history-export-events '\+\(auditDownloadHistoryExportEventLogEnvelopeValid&&auditDownloadHistoryExportEventSummary\.total\?'':'disabled'\)/);
+  assert.match(ui,/data-copy-dimension-audit-history-export-events '\+\(auditDownloadHistoryExportEventLogEnvelopeSnapshotValid&&auditDownloadHistoryExportEventSummary\.total\?'':'disabled'\)/);
+  assert.match(ui,/data-download-dimension-audit-history-export-events '\+\(auditDownloadHistoryExportEventLogEnvelopeSnapshotValid&&auditDownloadHistoryExportEventSummary\.total\?'':'disabled'\)/);
 });
