@@ -261,10 +261,22 @@ export function dimensionAuditDownloadAttemptSignatureValid(signature,attempt={}
   const hasPermitEvidence=value.export_action!=null
     ||value.action_permit_signature!=null
     ||value.action_permit_snapshot_signature!=null;
+  const timestamp=typeof value.generated_at==="string"?new Date(value.generated_at):null;
+  const generatedAtValid=!!timestamp&&!Number.isNaN(timestamp.getTime())&&timestamp.toISOString()===value.generated_at;
+  const outcomeValid=value.status==="failed"?typeof value.error==="string"&&value.error.length>0:value.error===null;
+  const permitEvidenceValid=!hasPermitEvidence||(
+    ["copy","download"].includes(value.export_action)
+    &&typeof value.action_permit_signature==="string"
+    &&value.action_permit_signature.length>0
+    &&typeof value.action_permit_snapshot_signature==="string"
+    &&value.action_permit_snapshot_signature.length>0
+  );
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA
     &&typeof value.status==="string"
+    &&["blocked","downloaded","failed"].includes(value.status)
     &&typeof value.filename==="string"
     &&(value.snapshot_schema===null||typeof value.snapshot_schema==="string")
     &&typeof value.code==="string"
@@ -272,12 +284,9 @@ export function dimensionAuditDownloadAttemptSignatureValid(signature,attempt={}
     &&typeof value.runtime_signature==="string"
     &&typeof value.protocol_signature==="string"
     &&(value.error===null||typeof value.error==="string")
-    &&typeof value.generated_at==="string"
-    &&(!hasPermitEvidence||(
-      typeof value.export_action==="string"
-      &&typeof value.action_permit_signature==="string"
-      &&typeof value.action_permit_snapshot_signature==="string"
-    ))
+    &&generatedAtValid
+    &&outcomeValid
+    &&permitEvidenceValid
     &&signature===dimensionAuditDownloadAttemptSignature(value);
 }
 
