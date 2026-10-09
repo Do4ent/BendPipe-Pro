@@ -459,6 +459,11 @@ export function dimensionAuditDownloadHistoryExportEventSummarySignature(summary
   });
 }
 
+export function dimensionAuditDownloadHistoryExportEventSummarySignatureValid(signature,summary={}){
+  return !!String(signature??"")
+    &&String(signature)===dimensionAuditDownloadHistoryExportEventSummarySignature(summary);
+}
+
 export function dimensionAuditDownloadHistoryExportEventSummary(events=[]){
   if(!Array.isArray(events))throw new TypeError("history export events must be an array");
   let blocked=0,copied=0,downloaded=0,failed=0,copy=0,download=0,valid=0,invalid=0;
