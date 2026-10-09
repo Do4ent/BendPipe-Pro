@@ -3821,12 +3821,30 @@ export function dimensionAuditDownloadHistoryExportFinalStateSnapshotSignature(s
 
 export function dimensionAuditDownloadHistoryExportFinalStateSnapshotSignatureValid(signature,snapshot={}){
   const value=snapshot??{};
+  const state=value.state;
+  const stateCanonical=!!state
+    &&typeof state==="object"
+    &&!Array.isArray(state)
+    &&typeof state.schema==="string"
+    &&typeof state.action==="string"
+    &&typeof state.ready==="boolean"
+    &&typeof state.code==="string"
+    &&typeof state.action_valid==="boolean"
+    &&typeof state.permit_snapshot_valid==="boolean"
+    &&typeof state.permit_ready==="boolean"
+    &&typeof state.permit_snapshot_signature==="string";
+  const stateSignatureValid=stateCanonical
+    &&typeof value.state_signature==="string"
+    &&value.state_signature===dimensionAuditDownloadHistoryExportFinalStateSignature(state);
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_FINAL_STATE_SNAPSHOT_SCHEMA
     &&typeof value.state_signature==="string"
     &&typeof value.state_valid==="boolean"
     &&typeof value.state_signature_valid==="boolean"
+    &&stateSignatureValid
+    &&value.state_valid===value.state_signature_valid
     &&signature===dimensionAuditDownloadHistoryExportFinalStateSnapshotSignature(value);
 }
 
