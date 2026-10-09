@@ -4007,6 +4007,9 @@
     }
     return typeof signature==="string"
       &&signature.length>0
+      &&typeof value.schema==="string"
+      &&typeof value.envelope_signature==="string"
+      &&typeof value.envelope_valid==="boolean"
       &&signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignature(value);
   }
 
