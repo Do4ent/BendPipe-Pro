@@ -2424,9 +2424,11 @@
     const signature=value.health_signature;
     if(!embedded||typeof signature!=="string"||signature.length===0)return false;
     if(!dimensionAuditDownloadHistoryHealthCanonical(embedded))return false;
-    const embeddedValid=dimensionAuditDownloadHistoryHealthSignature(embedded)===signature;
+    const embeddedValid=dimensionAuditDownloadHistoryHealthSignature(embedded)===signature
+      &&dimensionAuditDownloadHistoryHealthSignatureValid(signature,embedded);
     const current=dimensionAuditDownloadHistoryHealth(value);
-    const currentValid=dimensionAuditDownloadHistoryHealthSignature(current)===signature;
+    const currentValid=dimensionAuditDownloadHistoryHealthSignature(current)===signature
+      &&dimensionAuditDownloadHistoryHealthSignatureValid(signature,current);
     return embeddedValid&&currentValid;
   }
 
