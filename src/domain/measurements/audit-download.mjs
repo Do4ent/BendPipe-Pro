@@ -2952,9 +2952,14 @@ export function dimensionAuditDownloadHistoryExportActionStatusSnapshotSignature
 }
 
 export function dimensionAuditDownloadHistoryExportActionStatusSnapshotSignatureValid(signature,snapshot={}){
+  const value=snapshot??{};
   return typeof signature==="string"
     &&signature.length>0
-    &&signature===dimensionAuditDownloadHistoryExportActionStatusSnapshotSignature(snapshot);
+    &&typeof value.schema==="string"
+    &&typeof value.status_signature==="string"
+    &&typeof value.status_valid==="boolean"
+    &&typeof value.status_signature_valid==="boolean"
+    &&signature===dimensionAuditDownloadHistoryExportActionStatusSnapshotSignature(value);
 }
 
 export function dimensionAuditDownloadHistoryExportActionStatusSnapshot(status=dimensionAuditDownloadHistoryExportActionStatus(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot={},chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
