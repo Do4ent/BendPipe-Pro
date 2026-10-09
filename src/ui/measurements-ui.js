@@ -3171,6 +3171,7 @@
       summary_schema:String(value.summary?.schema??""),
       summary_total:Number(value.summary?.total??0),
       summary_latest_signature:String(value.summary?.latest_signature??""),
+      summary_latest_code:String(value.summary?.latest_code??""),
       events_valid:value.events_valid===true,
       summary_valid:value.summary_valid===true,
       generated_at:String(value.generated_at??"")
