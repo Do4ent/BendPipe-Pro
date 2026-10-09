@@ -20,7 +20,15 @@ test("question 819: UI fallback download-attempt signature and validation includ
 });
 
 test("question 1183: UI permit-evidence signature fallback uses canonical fields without coercion",()=>{
-  assert.doesNotMatch(ui,/export_action:String\(value\.export_action/);
-  assert.doesNotMatch(ui,/action_permit_signature:String\(value\.action_permit_signature/);
-  assert.doesNotMatch(ui,/action_permit_snapshot_signature:String\(value\.action_permit_snapshot_signature/);
+  const fn=ui.match(/function dimensionAuditDownloadAttemptSignature\(attempt\)\{([\s\S]*?)\n  \}/)?.[1]??"";
+  assert.doesNotMatch(fn,/export_action:String\(value\.export_action/);
+  assert.doesNotMatch(fn,/action_permit_signature:String\(value\.action_permit_signature/);
+  assert.doesNotMatch(fn,/action_permit_snapshot_signature:String\(value\.action_permit_snapshot_signature/);
+});
+
+test("question 1186: permit-evidence coercion check is scoped to the attempt signature fallback",()=>{
+  const fn=ui.match(/function dimensionAuditDownloadAttemptSignature\(attempt\)\{([\s\S]*?)\n  \}/)?.[1]??"";
+  assert.match(fn,/export_action:value\.export_action/);
+  assert.match(fn,/action_permit_signature:value\.action_permit_signature/);
+  assert.match(fn,/action_permit_snapshot_signature:value\.action_permit_snapshot_signature/);
 });
