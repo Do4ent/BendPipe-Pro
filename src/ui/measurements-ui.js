@@ -2515,9 +2515,11 @@
     const signature=value.health_embedding_signature;
     if(!embedded||typeof signature!=="string"||signature.length===0)return false;
     if(!dimensionAuditDownloadHistoryHealthEmbeddingCanonical(embedded))return false;
-    const embeddedValid=dimensionAuditDownloadHistoryHealthEmbeddingSignature(embedded)===signature;
+    const embeddedValid=dimensionAuditDownloadHistoryHealthEmbeddingSignature(embedded)===signature
+      &&dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid(signature,embedded);
     const current=dimensionAuditDownloadHistoryHealthEmbedding(value);
-    const currentValid=dimensionAuditDownloadHistoryHealthEmbeddingSignature(current)===signature;
+    const currentValid=dimensionAuditDownloadHistoryHealthEmbeddingSignature(current)===signature
+      &&dimensionAuditDownloadHistoryHealthEmbeddingSignatureValid(signature,current);
     return embeddedValid&&currentValid;
   }
 
