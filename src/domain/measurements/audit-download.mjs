@@ -1259,6 +1259,21 @@ export function dimensionAuditDownloadHistoryProtocolBindingSignature(binding=di
   });
 }
 
+export function dimensionAuditDownloadHistoryProtocolBindingSignatureValid(signature,binding=dimensionAuditDownloadHistoryProtocolBinding()){
+  const value=binding??{};
+  return typeof signature==="string"
+    &&signature.length>0
+    &&typeof value.schema==="string"
+    &&typeof value.valid==="boolean"
+    &&typeof value.code==="string"
+    &&Array.isArray(value.errors)
+    &&value.errors.every(code=>typeof code==="string")
+    &&typeof value.state_present==="boolean"
+    &&typeof value.state_valid==="boolean"
+    &&typeof value.signature_valid==="boolean"
+    &&signature===dimensionAuditDownloadHistoryProtocolBindingSignature(value);
+}
+
 export function dimensionAuditDownloadHistoryEnvelopeSignature(snapshot={}){
   const value=snapshot??{};
   return JSON.stringify({
