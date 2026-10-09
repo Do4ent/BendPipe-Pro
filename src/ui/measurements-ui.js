@@ -4852,13 +4852,14 @@
   }
 
   function dimensionAuditDownloadAttemptHistoryAuditValid(snapshot){
-    const value=snapshot??{};
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryValid){
-      return auditDownloadDomain.dimensionAuditDownloadHistoryValid(value);
+      return auditDownloadDomain.dimensionAuditDownloadHistoryValid(snapshot??{});
     }
+    const value=snapshot??{};
     const integrityValid=dimensionAuditDownloadAttemptHistoryIntegrity(value).valid;
     const hasEnvelope=value.envelope_signature!=null||value.integrity!=null||value.protocol_binding!=null;
-    return integrityValid&&(!hasEnvelope||dimensionAuditDownloadAttemptHistoryEnvelopeValid(value));
+    if(hasEnvelope)return integrityValid&&dimensionAuditDownloadAttemptHistoryEnvelopeValid(value);
+    return dimensionAuditDownloadAttemptHistoryIntegrity(snapshot).valid;
   }
 
   function dimensionAuditDownloadAttemptHistoryAuditSnapshotSource(){
