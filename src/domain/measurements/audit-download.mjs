@@ -223,6 +223,12 @@ export function dimensionAuditDownloadAttemptSignature(attempt={}){
   return JSON.stringify(signed);
 }
 
+export function dimensionAuditDownloadAttemptSignatureValid(signature,attempt={}){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadAttemptSignature(attempt);
+}
+
 export function dimensionAuditDownloadAttemptPermitEvidence(attempt={}){
   const value=attempt??{};
   const present=value.export_action!=null
