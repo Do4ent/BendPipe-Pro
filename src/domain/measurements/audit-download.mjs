@@ -662,9 +662,24 @@ export function dimensionAuditDownloadHistoryExportEventSignature(event={}){
 }
 
 export function dimensionAuditDownloadHistoryExportEventSignatureValid(signature,event={}){
+  const value=event??{};
+  const hasFinalStateEvidence=value.final_state_signature!=null||value.final_state_snapshot_signature!=null;
   return typeof signature==="string"
     &&signature.length>0
-    &&signature===dimensionAuditDownloadHistoryExportEventSignature(event);
+    &&typeof value.schema==="string"
+    &&typeof value.action==="string"
+    &&typeof value.outcome==="string"
+    &&typeof value.code==="string"
+    &&typeof value.history_snapshot_signature==="string"
+    &&typeof value.action_permit_signature==="string"
+    &&typeof value.action_permit_snapshot_signature==="string"
+    &&(!hasFinalStateEvidence||(
+      typeof value.final_state_signature==="string"
+      &&typeof value.final_state_snapshot_signature==="string"
+    ))
+    &&(value.error===null||typeof value.error==="string")
+    &&typeof value.generated_at==="string"
+    &&signature===dimensionAuditDownloadHistoryExportEventSignature(value);
 }
 
 export function buildDimensionAuditDownloadHistoryExportEvent({
