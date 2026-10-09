@@ -1674,9 +1674,9 @@ export function dimensionAuditDownloadHistoryEmbeddedVerificationEmbeddingValid(
   const signature=value.verification_embedding_signature;
   if(!embedded||typeof signature!=="string"||signature.length===0)return false;
   if(!dimensionAuditDownloadHistoryVerificationEmbeddingCanonical(embedded))return false;
-  const embeddedValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignature(embedded)===signature;
+  const embeddedValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid(signature,embedded);
   const current=dimensionAuditDownloadHistoryVerificationEmbedding(value);
-  const currentValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignature(current)===signature;
+  const currentValid=dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid(signature,current);
   return embeddedValid&&currentValid;
 }
 
