@@ -4678,19 +4678,35 @@
     }
     const chain=chain_snapshot.chain??{};
     const readiness=chain.readiness_state??{};
-    const historySignature=String(history.snapshot_signature??"");
-    return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportPayloadBinding.v1"
+    if(typeof value.schema!=="string"
+      ||typeof value.history_snapshot_signature!=="string"
+      ||typeof value.chain_snapshot_signature!=="string"
+      ||!Number.isInteger(value.attempt_count)
+      ||value.attempt_count<0
+      ||!Number.isInteger(value.chain_attempt_count)
+      ||value.chain_attempt_count<0
+      ||typeof value.allowed!=="boolean"
+      ||typeof value.code!=="string"
+      ||typeof value.history_signature_matches_chain!=="boolean")return false;
+    if(typeof history.snapshot_signature!=="string"||history.snapshot_signature.length===0)return false;
+    if(!Number.isInteger(history.attempt_count)||history.attempt_count<0)return false;
+    if(typeof chain_snapshot.snapshot_signature!=="string"||chain_snapshot.snapshot_signature.length===0)return false;
+    if(typeof readiness.history_snapshot_signature!=="string"
+      ||!Number.isInteger(readiness.attempt_count)
+      ||readiness.attempt_count<0
+      ||typeof chain.allowed!=="boolean"
+      ||typeof chain.code!=="string")return false;
+    return value.schema==="TubeBender.DimensionAuditDownloadHistoryExportPayloadBinding.v1"
       &&dimensionAuditDownloadHistoryExportChainSnapshotValid(chain_snapshot)
-      &&!!historySignature
-      &&String(value.history_snapshot_signature??"")===historySignature
-      &&String(value.chain_snapshot_signature??"")===String(chain_snapshot.snapshot_signature??"")
-      &&String(readiness.history_snapshot_signature??"")===historySignature
+      &&value.history_snapshot_signature===history.snapshot_signature
+      &&value.chain_snapshot_signature===chain_snapshot.snapshot_signature
+      &&readiness.history_snapshot_signature===history.snapshot_signature
       &&value.history_signature_matches_chain===true
-      &&Number(value.attempt_count)===Math.max(0,Number(history.attempt_count)||0)
-      &&Number(value.chain_attempt_count)===Math.max(0,Number(readiness.attempt_count)||0)
-      &&Number(value.attempt_count)===Number(value.chain_attempt_count)
-      &&(value.allowed===true)===(chain.allowed===true)
-      &&String(value.code??"")===String(chain.code??"");
+      &&value.attempt_count===history.attempt_count
+      &&value.chain_attempt_count===readiness.attempt_count
+      &&value.attempt_count===value.chain_attempt_count
+      &&value.allowed===chain.allowed
+      &&value.code===chain.code;
   }
 
   function dimensionAuditDownloadHistoryExportPayloadBindingSignature(binding=dimensionAuditDownloadHistoryExportPayloadBinding()){
@@ -4712,11 +4728,12 @@
 
   function dimensionAuditDownloadHistoryExportPayloadBindingSignatureValid(signature=dimensionAuditDownloadHistoryExportPayloadBindingSignature(),binding=dimensionAuditDownloadHistoryExportPayloadBinding(),historySnapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot(),chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
     const value=binding??{};
+    if(typeof signature!=="string"||signature.length===0)return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportPayloadBindingSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportPayloadBindingSignatureValid(signature,value,historySnapshot,chainSnapshot);
     }
     return dimensionAuditDownloadHistoryExportPayloadBindingValid(value,historySnapshot,chainSnapshot)
-      &&String(signature??"")===dimensionAuditDownloadHistoryExportPayloadBindingSignature(value);
+      &&signature===dimensionAuditDownloadHistoryExportPayloadBindingSignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignature(snapshot={}){
@@ -4734,10 +4751,11 @@
 
   function dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignatureValid(signature,snapshot={}){
     const value=snapshot??{};
+    if(typeof signature!=="string"||signature.length===0)return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignatureValid(signature,value);
     }
-    return String(signature??"")===dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignature(value);
+    return signature===dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(binding=dimensionAuditDownloadHistoryExportPayloadBinding(),historySnapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot(),chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
@@ -4762,7 +4780,13 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportPayloadBindingSnapshotValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportPayloadBindingSnapshotValid(value,historySnapshot,chainSnapshot);
     }
-    return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportPayloadBindingSnapshot.v1"
+    if(typeof value.schema!=="string"
+      ||typeof value.binding_signature!=="string"
+      ||typeof value.binding_valid!=="boolean"
+      ||typeof value.binding_signature_valid!=="boolean"
+      ||typeof value.snapshot_signature!=="string"
+      ||typeof value.snapshot_signature_valid!=="boolean")return false;
+    return value.schema==="TubeBender.DimensionAuditDownloadHistoryExportPayloadBindingSnapshot.v1"
       &&dimensionAuditDownloadHistoryExportPayloadBindingValid(value.binding,historySnapshot,chainSnapshot)
       &&value.binding_valid===true
       &&value.binding_signature_valid===true
