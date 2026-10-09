@@ -3147,7 +3147,8 @@
   }
 
   function dimensionAuditDownloadHistoryExportEventSummary(events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
-    const list=Array.isArray(events)?events:[];
+    if(!Array.isArray(events))throw new TypeError("history export events must be an array");
+    const list=events;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventSummary){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventSummary(list);
     }
