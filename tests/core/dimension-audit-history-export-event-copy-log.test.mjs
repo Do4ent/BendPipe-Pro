@@ -9,9 +9,9 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 
 test("question 836: export event history copy is fail-closed on invalid or empty snapshot",()=>{
   const fn=ui.match(/async function copyDimensionAuditHistoryExportEvents\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(fn,/dimensionAuditDownloadHistoryExportEventHistorySnapshot\(\)/);
+  assert.match(fn,/dimensionAuditDownloadHistoryExportEventHistorySnapshot\(events\)/);
   assert.match(fn,/dimensionAuditDownloadHistoryExportEventHistorySnapshotValid\(snapshot\)/);
   assert.match(fn,/if\(snapshot\.event_count===0\)/);
   assert.match(fn,/navigator\?\.clipboard\?\.writeText/);
-  assert.match(fn,/JSON\.stringify\(snapshot,null,2\)/);
+  assert.match(fn,/JSON\.stringify\(envelope,null,2\)/);
 });
