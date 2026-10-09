@@ -1727,6 +1727,13 @@ export function dimensionAuditDownloadHistoryAttestationSignature(attestation=di
   });
 }
 
+export function dimensionAuditDownloadHistoryAttestationSignatureValid(signature,attestation=dimensionAuditDownloadHistoryAttestation()){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryAttestationCanonical(attestation)
+    &&signature===dimensionAuditDownloadHistoryAttestationSignature(attestation);
+}
+
 function dimensionAuditDownloadHistoryAttestationCanonical(attestation={}){
   const value=attestation??{};
   return typeof value.schema==="string"
