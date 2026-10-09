@@ -3155,7 +3155,8 @@
       &&Number(value.invalid)===expected.invalid
       &&String(value.latest_signature??"")===expected.latest_signature
       &&String(value.latest_outcome??"")===expected.latest_outcome
-      &&String(value.latest_action??"")===expected.latest_action;
+      &&String(value.latest_action??"")===expected.latest_action
+      &&String(value.latest_code??"")===expected.latest_code;
   }
 
   function dimensionAuditDownloadHistoryExportEventHistorySignature(snapshot={}){
