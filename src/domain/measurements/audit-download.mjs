@@ -2756,13 +2756,21 @@ export function dimensionAuditDownloadHistoryExportAuthorizationValid(authorizat
 
 export function dimensionAuditDownloadHistoryExportAuthorizationSignature(authorization=dimensionAuditDownloadHistoryExportAuthorization()){
   const value=authorization??{};
+  if(typeof value.schema!=="string"
+    ||typeof value.allowed!=="boolean"
+    ||typeof value.code!=="string"
+    ||typeof value.decision_snapshot_valid!=="boolean"
+    ||typeof value.decision_code!=="string"
+    ||typeof value.decision_allowed!=="boolean"){
+    throw new TypeError("history export authorization signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    allowed:value.allowed===true,
-    code:String(value.code??""),
-    decision_snapshot_valid:value.decision_snapshot_valid===true,
-    decision_code:String(value.decision_code??""),
-    decision_allowed:value.decision_allowed===true
+    schema:value.schema,
+    allowed:value.allowed,
+    code:value.code,
+    decision_snapshot_valid:value.decision_snapshot_valid,
+    decision_code:value.decision_code,
+    decision_allowed:value.decision_allowed
   });
 }
 
