@@ -3060,7 +3060,17 @@
     const successful=["copied","downloaded"].includes(outcome);
     const code=String(value.code??"");
     const codeOutcomeValid=successful?code==="READY":!!code&&code!=="READY";
-    return String(value.schema??"")==="TubeBender.DimensionAuditDownloadHistoryExportEvent.v1"
+    return typeof value.schema==="string"
+      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportEvent.v1"
+      &&typeof value.action==="string"
+      &&typeof value.outcome==="string"
+      &&typeof value.code==="string"
+      &&typeof value.history_snapshot_signature==="string"
+      &&typeof value.action_permit_signature==="string"
+      &&typeof value.action_permit_snapshot_signature==="string"
+      &&(value.error===null||typeof value.error==="string")
+      &&typeof value.generated_at==="string"
+      &&typeof value.signature==="string"
       &&["copy","download"].includes(action)
       &&["blocked","copied","downloaded","failed"].includes(outcome)
       &&((action==="copy"&&outcome!=="downloaded")||(action==="download"&&outcome!=="copied"))
