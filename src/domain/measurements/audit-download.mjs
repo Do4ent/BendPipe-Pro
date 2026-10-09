@@ -531,7 +531,7 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummar
     ||typeof value.snapshot_signature!=="string"
     ||typeof value.snapshot_signature_valid!=="boolean")return false;
   if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_FINAL_STATE_EVIDENCE_SUMMARY_SNAPSHOT_SCHEMA)return false;
-  if(value.event_binding_signature!==dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignature(events))return false;
+  if(!dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignatureValid(value.event_binding_signature,events))return false;
   if(!dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummaryValid(value.summary,events))return false;
   if(value.summary_valid!==true||value.summary_signature_valid!==true)return false;
   if(!dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignatureValid(value.summary_signature,value.summary,events))return false;
