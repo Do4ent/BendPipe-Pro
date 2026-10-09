@@ -586,7 +586,8 @@ export function dimensionAuditDownloadHistoryExportEventHistorySnapshot(events=[
 export function dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(snapshot={}){
   const value=snapshot??{};
   const events=Array.isArray(value.events)?value.events:null;
-  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_HISTORY_SCHEMA||!events)return false;
+  if(typeof value.schema!=="string"||value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_HISTORY_SCHEMA||!events)return false;
+  if(typeof value.generated_at!=="string"||typeof value.signature!=="string")return false;
   if(!Number.isInteger(value.event_count)||value.event_count!==events.length)return false;
   if(value.events_valid!==events.every(event=>dimensionAuditDownloadHistoryExportEventValid(event)))return false;
   if(value.events_valid!==true)return false;
