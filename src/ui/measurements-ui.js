@@ -3926,20 +3926,30 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventSummarySignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventSummarySignatureValid(signature,value);
     }
+    const counters=[
+      value.total,value.blocked,value.copied,value.downloaded,value.failed,
+      value.copy,value.download,value.valid,value.invalid
+    ];
+    const countersValid=counters.every(count=>Number.isInteger(count)&&count>=0);
+    const totalsValid=countersValid
+      &&value.blocked+value.copied+value.downloaded+value.failed===value.total
+      &&value.copy+value.download===value.total
+      &&value.valid+value.invalid===value.total;
+    const latestValid=value.total===0
+      ?value.latest_signature===""&&value.latest_outcome===""&&value.latest_action===""&&value.latest_code===""
+      :value.latest_signature.length>0
+        &&["blocked","copied","downloaded","failed"].includes(value.latest_outcome)
+        &&["copy","download"].includes(value.latest_action)
+        &&value.latest_code.length>0;
     return typeof value.schema==="string"
-      &&Number.isInteger(value.total)
-      &&Number.isInteger(value.blocked)
-      &&Number.isInteger(value.copied)
-      &&Number.isInteger(value.downloaded)
-      &&Number.isInteger(value.failed)
-      &&Number.isInteger(value.copy)
-      &&Number.isInteger(value.download)
-      &&Number.isInteger(value.valid)
-      &&Number.isInteger(value.invalid)
+      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportEventSummary.v1"
+      &&countersValid
       &&typeof value.latest_signature==="string"
       &&typeof value.latest_outcome==="string"
       &&typeof value.latest_action==="string"
       &&typeof value.latest_code==="string"
+      &&totalsValid
+      &&latestValid
       &&signature===dimensionAuditDownloadHistoryExportEventSummarySignature(value);
   }
 
