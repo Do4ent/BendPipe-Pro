@@ -8,9 +8,15 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const domain=fs.readFileSync(path.join(root,"src","domain","measurements","audit-download.mjs"),"utf8");
 const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
 
-test("question 915: export-event validators compare canonical signature directly",()=>{
-  assert.match(domain,/&&value\.signature===dimensionAuditDownloadHistoryExportEventSignature\(value\);/);
-  assert.match(ui,/&&value\.signature===dimensionAuditDownloadHistoryExportEventSignature\(value\);/);
+test("question 915: export-event validators use canonical signature validation without coercion",()=>{
+  assert.match(
+    domain,
+    /dimensionAuditDownloadHistoryExportEventSignatureValid\(value\.signature,value\)/
+  );
+  assert.match(
+    ui,
+    /dimensionAuditDownloadHistoryExportEventSignatureValid\(value\.signature,value\)/
+  );
   assert.doesNotMatch(domain,/String\(value\.signature\)===dimensionAuditDownloadHistoryExportEventSignature\(value\)/);
   assert.doesNotMatch(ui,/String\(value\.signature\)===dimensionAuditDownloadHistoryExportEventSignature\(value\)/);
 });
