@@ -815,16 +815,23 @@ export function dimensionAuditDownloadHistoryProtocolSignature(protocol=dimensio
 
 export function dimensionAuditDownloadHistoryProtocolValidation(protocol=dimensionAuditDownloadHistoryProtocol()){
   const value=protocol??{};
+  const scalarValid=(field,expected)=>typeof field==="string"&&field===expected;
+  const integrityCodesValid=Array.isArray(value.integrity_codes)
+    &&value.integrity_codes.every(code=>typeof code==="string")
+    &&JSON.stringify(value.integrity_codes)===JSON.stringify([...DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_CODES]);
+  const validationCodesValid=Array.isArray(value.validation_codes)
+    &&value.validation_codes.every(code=>typeof code==="string")
+    &&JSON.stringify(value.validation_codes)===JSON.stringify([...DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_CODES]);
   const errors=[
-    String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_SCHEMA?"INVALID_PROTOCOL_SCHEMA":null,
-    String(value.attempt_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA?"INVALID_ATTEMPT_SCHEMA":null,
-    String(value.history_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA?"INVALID_HISTORY_SCHEMA":null,
-    String(value.summary_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_SUMMARY_SCHEMA?"INVALID_SUMMARY_SCHEMA":null,
-    String(value.integrity_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_SCHEMA?"INVALID_INTEGRITY_SCHEMA":null,
-    JSON.stringify([...(value.integrity_codes??[])].map(code=>String(code)))!==JSON.stringify([...DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_CODES])?"INVALID_INTEGRITY_CODES":null,
-    String(value.envelope_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_ENVELOPE_SCHEMA?"INVALID_ENVELOPE_SCHEMA":null,
-    String(value.validation_schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_SCHEMA?"INVALID_PROTOCOL_VALIDATION_SCHEMA":null,
-    JSON.stringify([...(value.validation_codes??[])].map(code=>String(code)))!==JSON.stringify([...DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_CODES])?"INVALID_PROTOCOL_VALIDATION_CODES":null
+    !scalarValid(value.schema,DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_SCHEMA)?"INVALID_PROTOCOL_SCHEMA":null,
+    !scalarValid(value.attempt_schema,DIMENSION_AUDIT_DOWNLOAD_ATTEMPT_SCHEMA)?"INVALID_ATTEMPT_SCHEMA":null,
+    !scalarValid(value.history_schema,DIMENSION_AUDIT_DOWNLOAD_HISTORY_SCHEMA)?"INVALID_HISTORY_SCHEMA":null,
+    !scalarValid(value.summary_schema,DIMENSION_AUDIT_DOWNLOAD_HISTORY_SUMMARY_SCHEMA)?"INVALID_SUMMARY_SCHEMA":null,
+    !scalarValid(value.integrity_schema,DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_SCHEMA)?"INVALID_INTEGRITY_SCHEMA":null,
+    !integrityCodesValid?"INVALID_INTEGRITY_CODES":null,
+    !scalarValid(value.envelope_schema,DIMENSION_AUDIT_DOWNLOAD_HISTORY_ENVELOPE_SCHEMA)?"INVALID_ENVELOPE_SCHEMA":null,
+    !scalarValid(value.validation_schema,DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_SCHEMA)?"INVALID_PROTOCOL_VALIDATION_SCHEMA":null,
+    !validationCodesValid?"INVALID_PROTOCOL_VALIDATION_CODES":null
   ].filter(Boolean);
   return freeze({
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_PROTOCOL_VALIDATION_SCHEMA,
