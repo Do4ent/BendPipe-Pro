@@ -3195,6 +3195,7 @@
       event_count:Number(value.event_count??0),
       event_signatures:(Array.isArray(value.events)?value.events:[]).map(event=>String(event?.signature??"")),
       summary_schema:String(value.summary?.schema??""),
+      summary_signature:String(value.summary?.signature??""),
       summary_total:Number(value.summary?.total??0),
       summary_latest_signature:String(value.summary?.latest_signature??""),
       summary_latest_action:String(value.summary?.latest_action??""),
