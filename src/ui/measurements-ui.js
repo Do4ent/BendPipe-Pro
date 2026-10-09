@@ -4926,11 +4926,16 @@
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessStateSignature(value);
     }
     const current=snapshot??{};
+    if(typeof value.ready!=="boolean"
+      ||typeof value.code!=="string"
+      ||typeof current.snapshot_signature!=="string"){
+      throw new TypeError("history export readiness signature fields must be canonical");
+    }
     const provenance=dimensionAuditDownloadAttemptHistorySnapshotProvenance(current);
     return JSON.stringify({
-      ready:value.ready===true,
-      code:String(value.code??""),
-      snapshot_signature:String(current.snapshot_signature??""),
+      ready:value.ready,
+      code:value.code,
+      snapshot_signature:current.snapshot_signature,
       provenance_signature:dimensionAuditDownloadAttemptHistorySnapshotProvenanceSignature(provenance)
     });
   }
