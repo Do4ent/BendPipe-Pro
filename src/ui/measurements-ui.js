@@ -3149,11 +3149,11 @@
 
   function dimensionAuditDownloadHistoryExportEventSummarySignatureValid(signature,summary={}){
     const value=summary??{};
+    if(typeof signature!=="string"||signature.length===0)return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventSummarySignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventSummarySignatureValid(signature,value);
     }
-    return !!String(signature??"")
-      &&String(signature)===dimensionAuditDownloadHistoryExportEventSummarySignature(value);
+    return signature===dimensionAuditDownloadHistoryExportEventSummarySignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportEventSummary(events=dimensionAuditDownloadHistoryExportEventListSnapshot()){
@@ -3241,11 +3241,11 @@
 
   function dimensionAuditDownloadHistoryExportEventHistorySignatureValid(signature,snapshot={}){
     const value=snapshot??{};
+    if(typeof signature!=="string"||signature.length===0)return false;
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventHistorySignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventHistorySignatureValid(signature,value);
     }
-    return !!String(signature??"")
-      &&String(signature)===dimensionAuditDownloadHistoryExportEventHistorySignature(value);
+    return signature===dimensionAuditDownloadHistoryExportEventHistorySignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportEventHistorySnapshot(events=dimensionAuditDownloadHistoryExportEventListSnapshot(),generatedAt=new Date()){
