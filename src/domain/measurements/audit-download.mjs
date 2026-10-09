@@ -1156,6 +1156,13 @@ export function dimensionAuditDownloadHistoryProtocolStateSignature(state=dimens
   });
 }
 
+export function dimensionAuditDownloadHistoryProtocolStateSignatureValid(signature,state=dimensionAuditDownloadHistoryProtocolState()){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryProtocolStateValid(state)
+    &&signature===dimensionAuditDownloadHistoryProtocolStateSignature(state);
+}
+
 export function dimensionAuditDownloadHistoryProtocolStateValid(state=dimensionAuditDownloadHistoryProtocolState()){
   const value=state??{};
   const protocol=value.protocol??{};
