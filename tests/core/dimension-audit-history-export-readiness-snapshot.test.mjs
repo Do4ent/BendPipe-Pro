@@ -15,5 +15,5 @@ test("question 694: audit history export readiness has a versioned snapshot",()=
   assert.match(ui,/provenance_signature:dimensionAuditDownloadAttemptHistorySnapshotProvenanceSignature\(provenance\)/);
   assert.match(ui,/signature_valid:dimensionAuditDownloadHistoryExportReadinessSignatureValid\(signature,readiness,current\)/);
   assert.match(ui,/data-history-export-state-schema="'\+esc\(auditDownloadHistoryExportReadinessSnapshot\.schema\)\+'"/);
-  assert.match(ui,/currentDimensionAuditDownloadHistoryExportReadinessSnapshot:\(\)=>dimensionAuditDownloadHistoryExportReadinessSnapshot\(\)/);
+  assert.match(ui,/currentDimensionAuditDownloadHistoryExportReadinessSnapshot:\(\)=>\{const history=dimensionAuditDownloadAttemptHistoryAuditSnapshot\(\);return dimensionAuditDownloadHistoryExportReadinessSnapshot\(history\);\}/);
 });
