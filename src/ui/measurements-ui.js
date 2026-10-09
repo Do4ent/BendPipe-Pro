@@ -3740,21 +3740,37 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventSummarySignature){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventSummarySignature(value);
     }
+    if(typeof value.schema!=="string"
+      ||!Number.isInteger(value.total)
+      ||!Number.isInteger(value.blocked)
+      ||!Number.isInteger(value.copied)
+      ||!Number.isInteger(value.downloaded)
+      ||!Number.isInteger(value.failed)
+      ||!Number.isInteger(value.copy)
+      ||!Number.isInteger(value.download)
+      ||!Number.isInteger(value.valid)
+      ||!Number.isInteger(value.invalid)
+      ||typeof value.latest_signature!=="string"
+      ||typeof value.latest_outcome!=="string"
+      ||typeof value.latest_action!=="string"
+      ||typeof value.latest_code!=="string"){
+      throw new TypeError("history export event summary signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      total:Number(value.total??0),
-      blocked:Number(value.blocked??0),
-      copied:Number(value.copied??0),
-      downloaded:Number(value.downloaded??0),
-      failed:Number(value.failed??0),
-      copy:Number(value.copy??0),
-      download:Number(value.download??0),
-      valid:Number(value.valid??0),
-      invalid:Number(value.invalid??0),
-      latest_signature:String(value.latest_signature??""),
-      latest_outcome:String(value.latest_outcome??""),
-      latest_action:String(value.latest_action??""),
-      latest_code:String(value.latest_code??"")
+      schema:value.schema,
+      total:value.total,
+      blocked:value.blocked,
+      copied:value.copied,
+      downloaded:value.downloaded,
+      failed:value.failed,
+      copy:value.copy,
+      download:value.download,
+      valid:value.valid,
+      invalid:value.invalid,
+      latest_signature:value.latest_signature,
+      latest_outcome:value.latest_outcome,
+      latest_action:value.latest_action,
+      latest_code:value.latest_code
     });
   }
 
