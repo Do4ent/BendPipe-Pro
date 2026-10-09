@@ -1753,9 +1753,9 @@ export function dimensionAuditDownloadHistoryEmbeddedAttestationValid(snapshot={
   const signature=value.attestation_signature;
   if(!embedded||typeof signature!=="string"||signature.length===0)return false;
   if(!dimensionAuditDownloadHistoryAttestationCanonical(embedded))return false;
-  const embeddedValid=dimensionAuditDownloadHistoryAttestationSignature(embedded)===signature;
+  const embeddedValid=dimensionAuditDownloadHistoryAttestationSignatureValid(signature,embedded);
   const current=dimensionAuditDownloadHistoryAttestation(value);
-  const currentValid=dimensionAuditDownloadHistoryAttestationSignature(current)===signature;
+  const currentValid=dimensionAuditDownloadHistoryAttestationSignatureValid(signature,current);
   return embeddedValid&&currentValid;
 }
 
