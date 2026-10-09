@@ -653,9 +653,13 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSigna
 }
 
 export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignatureValid(signature,snapshot={}){
+  const value=snapshot??{};
   return typeof signature==="string"
     &&signature.length>0
-    &&signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignature(snapshot);
+    &&typeof value.schema==="string"
+    &&typeof value.envelope_signature==="string"
+    &&typeof value.envelope_valid==="boolean"
+    &&signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotSignature(value);
 }
 
 export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshot(envelope=dimensionAuditDownloadHistoryExportEventLogEnvelope(),events=[]){
