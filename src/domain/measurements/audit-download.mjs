@@ -510,6 +510,7 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(env
     schema:String(value.schema??""),
     history_snapshot_signature:String(value.history_snapshot?.signature??""),
     evidence_summary_snapshot_signature:String(value.evidence_summary_snapshot?.snapshot_signature??""),
+    evidence_summary_signature:String(value.evidence_summary_snapshot?.summary_signature??value.evidence_summary_snapshot?.summary?.signature??""),
     evidence_event_binding_signature:String(value.evidence_summary_snapshot?.event_binding_signature??""),
     history_event_signatures:(Array.isArray(value.history_snapshot?.events)?value.history_snapshot.events:[]).map(event=>String(event?.signature??"")),
     event_count:Number(value.history_snapshot?.event_count??0),
