@@ -3073,6 +3073,26 @@ export function dimensionAuditDownloadHistoryTrustSignature(trust=dimensionAudit
   });
 }
 
+function dimensionAuditDownloadHistoryTrustCanonical(trust={}){
+  const value=trust??{};
+  return typeof value.schema==="string"
+    &&typeof value.trusted==="boolean"
+    &&typeof value.code==="string"
+    &&Array.isArray(value.errors)
+    &&value.errors.every(code=>typeof code==="string")
+    &&typeof value.attestation_valid==="boolean"
+    &&typeof value.embedded_attestation_valid==="boolean"
+    &&typeof value.attestation_embedding_valid==="boolean"
+    &&typeof value.embedded_attestation_embedding_valid==="boolean";
+}
+
+export function dimensionAuditDownloadHistoryTrustSignatureValid(signature,trust=dimensionAuditDownloadHistoryTrust()){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryTrustCanonical(trust)
+    &&signature===dimensionAuditDownloadHistoryTrustSignature(trust);
+}
+
 export function dimensionAuditDownloadHistorySnapshot({
   project_id="",
   project_name="",
