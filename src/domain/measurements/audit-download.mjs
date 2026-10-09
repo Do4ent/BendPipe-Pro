@@ -532,6 +532,7 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelope(historySnaps
 }
 
 export function dimensionAuditDownloadHistoryExportEventLogEnvelopeValid(envelope={},events=[]){
+  if(!Array.isArray(events))return false;
   const value=envelope??{};
   if(typeof value.schema!=="string"
     ||typeof value.history_snapshot_valid!=="boolean"
@@ -579,6 +580,7 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshot(enve
 }
 
 export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSnapshotValid(snapshot={},events=[]){
+  if(!Array.isArray(events))return false;
   const value=snapshot??{};
   if(typeof value.schema!=="string"
     ||typeof value.envelope_signature!=="string"
