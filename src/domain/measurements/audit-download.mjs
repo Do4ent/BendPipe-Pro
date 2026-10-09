@@ -999,7 +999,8 @@ export function dimensionAuditDownloadHistoryIntegrity(snapshot={}){
   const rawSignature=value.snapshot_signature;
   const snapshotSignatureTypeValid=rawSignature==null||typeof rawSignature==="string";
   const signature=typeof rawSignature==="string"?rawSignature:"";
-  const snapshotSignatureValid=snapshotSignatureTypeValid&&(!signature||signature===dimensionAuditDownloadHistorySignature(value));
+  const snapshotSignatureValid=snapshotSignatureTypeValid
+    &&(!signature||dimensionAuditDownloadHistorySignatureValid(signature,value));
   const errors=[
     !historySchemaValid?"INVALID_HISTORY_SCHEMA":null,
     !generatedAtValid?"INVALID_GENERATED_AT":null,
