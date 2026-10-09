@@ -4018,7 +4018,8 @@
     const rawSignature=value.snapshot_signature;
     const snapshotSignatureTypeValid=rawSignature==null||typeof rawSignature==="string";
     const signature=typeof rawSignature==="string"?rawSignature:"";
-    const snapshotSignatureValid=snapshotSignatureTypeValid&&(!signature||signature===dimensionAuditDownloadAttemptHistoryAuditSignature(value));
+    const snapshotSignatureValid=snapshotSignatureTypeValid
+      &&(!signature||dimensionAuditDownloadAttemptHistoryAuditSignatureValid(signature,value));
     const errors=[
       !historySchemaValid?"INVALID_HISTORY_SCHEMA":null,
       !generatedAtValid?"INVALID_GENERATED_AT":null,
