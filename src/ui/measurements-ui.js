@@ -5661,7 +5661,11 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportActionStatusSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportActionStatusSnapshotSignatureValid(signature,value);
     }
-    return signature===dimensionAuditDownloadHistoryExportActionStatusSnapshotSignature(value);
+    return typeof value.schema==="string"
+      &&typeof value.status_signature==="string"
+      &&typeof value.status_valid==="boolean"
+      &&typeof value.status_signature_valid==="boolean"
+      &&signature===dimensionAuditDownloadHistoryExportActionStatusSnapshotSignature(value);
   }
 
   function dimensionAuditDownloadHistoryExportActionStatusSnapshot(status=dimensionAuditDownloadHistoryExportActionStatus(),bindingSnapshot=dimensionAuditDownloadHistoryExportPayloadBindingSnapshot(),historySnapshot=dimensionAuditDownloadAttemptHistoryAuditSnapshot(),chainSnapshot=dimensionAuditDownloadHistoryExportChainSnapshot()){
