@@ -669,26 +669,23 @@ export function dimensionAuditDownloadHistoryExportEventLogEnvelopeSignatureVali
   const value=envelope??{};
   const history=value.history_snapshot;
   const evidence=value.evidence_summary_snapshot;
-  return typeof signature==="string"
-    &&signature.length>0
-    &&typeof value.schema==="string"
-    &&!!history
+  const events=Array.isArray(history?.events)?history.events:null;
+  const historyValid=!!history
     &&typeof history==="object"
     &&!Array.isArray(history)
-    &&typeof history.signature==="string"
-    &&Array.isArray(history.events)
-    &&history.events.every(event=>typeof event?.signature==="string")
-    &&Number.isInteger(history.event_count)
+    &&!!events
+    &&dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(history);
+  const evidenceValid=historyValid
     &&!!evidence
     &&typeof evidence==="object"
     &&!Array.isArray(evidence)
-    &&typeof evidence.snapshot_signature==="string"
-    &&typeof evidence.summary_signature==="string"
-    &&typeof evidence.event_binding_signature==="string"
-    &&!!evidence.summary
-    &&typeof evidence.summary==="object"
-    &&!Array.isArray(evidence.summary)
-    &&Number.isInteger(evidence.summary.total)
+    &&dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotValid(evidence,events);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_LOG_ENVELOPE_SCHEMA
+    &&historyValid
+    &&evidenceValid
     &&signature===dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(value);
 }
 
