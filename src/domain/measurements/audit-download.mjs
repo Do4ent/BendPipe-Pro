@@ -987,22 +987,42 @@ export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_HISTORY_SCHEMA="TubeB
 
 export function dimensionAuditDownloadHistoryExportEventHistorySignature(snapshot={}){
   const value=snapshot??{};
+  const summary=value.summary;
+  if(typeof value.schema!=="string"
+    ||!Number.isInteger(value.event_count)
+    ||!Array.isArray(value.events)
+    ||!value.events.every(event=>typeof event?.signature==="string")
+    ||!summary||typeof summary!=="object"||Array.isArray(summary)
+    ||typeof summary.schema!=="string"
+    ||typeof summary.signature!=="string"
+    ||!Number.isInteger(summary.total)
+    ||typeof summary.latest_signature!=="string"
+    ||typeof summary.latest_action!=="string"
+    ||typeof summary.latest_outcome!=="string"
+    ||typeof summary.latest_code!=="string"
+    ||typeof value.events_valid!=="boolean"
+    ||typeof value.summary_valid!=="boolean"
+    ||typeof value.summary_signature_valid!=="boolean"
+    ||typeof value.signature_valid!=="boolean"
+    ||typeof value.generated_at!=="string"){
+    throw new TypeError("history export event history signature fields must be canonical");
+  }
   return JSON.stringify({
-    schema:String(value.schema??""),
-    event_count:Number(value.event_count??0),
-    event_signatures:(Array.isArray(value.events)?value.events:[]).map(event=>String(event?.signature??"")),
-    summary_schema:String(value.summary?.schema??""),
-    summary_signature:String(value.summary?.signature??""),
-    summary_total:Number(value.summary?.total??0),
-    summary_latest_signature:String(value.summary?.latest_signature??""),
-    summary_latest_action:String(value.summary?.latest_action??""),
-    summary_latest_outcome:String(value.summary?.latest_outcome??""),
-    summary_latest_code:String(value.summary?.latest_code??""),
-    events_valid:value.events_valid===true,
-    summary_valid:value.summary_valid===true,
-    summary_signature_valid:value.summary_signature_valid===true,
-    signature_valid:value.signature_valid===true,
-    generated_at:String(value.generated_at??"")
+    schema:value.schema,
+    event_count:value.event_count,
+    event_signatures:value.events.map(event=>event.signature),
+    summary_schema:summary.schema,
+    summary_signature:summary.signature,
+    summary_total:summary.total,
+    summary_latest_signature:summary.latest_signature,
+    summary_latest_action:summary.latest_action,
+    summary_latest_outcome:summary.latest_outcome,
+    summary_latest_code:summary.latest_code,
+    events_valid:value.events_valid,
+    summary_valid:value.summary_valid,
+    summary_signature_valid:value.summary_signature_valid,
+    signature_valid:value.signature_valid,
+    generated_at:value.generated_at
   });
 }
 
