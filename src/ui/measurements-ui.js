@@ -3626,9 +3626,16 @@
   }
 
   async function copyDimensionAuditHistoryExportEvents(){
-    const snapshot=dimensionAuditDownloadHistoryExportEventHistorySnapshot();
+    const events=dimensionAuditDownloadHistoryExportEventListSnapshot();
+    const snapshot=dimensionAuditDownloadHistoryExportEventHistorySnapshot(events);
     if(!dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(snapshot)){
       toast("History export event log invalid");
+      return false;
+    }
+    const evidenceSummary=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummary(events);
+    const evidenceSummarySnapshot=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshot(evidenceSummary,events);
+    if(!dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotValid(evidenceSummarySnapshot,events)){
+      toast("History export event evidence invalid");
       return false;
     }
     if(snapshot.event_count===0){
@@ -3651,9 +3658,16 @@
   }
 
   function downloadDimensionAuditHistoryExportEvents(){
-    const snapshot=dimensionAuditDownloadHistoryExportEventHistorySnapshot();
+    const events=dimensionAuditDownloadHistoryExportEventListSnapshot();
+    const snapshot=dimensionAuditDownloadHistoryExportEventHistorySnapshot(events);
     if(!dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(snapshot)){
       toast("History export event log invalid");
+      return false;
+    }
+    const evidenceSummary=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummary(events);
+    const evidenceSummarySnapshot=dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshot(evidenceSummary,events);
+    if(!dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotValid(evidenceSummarySnapshot,events)){
+      toast("History export event evidence invalid");
       return false;
     }
     if(snapshot.event_count===0){
