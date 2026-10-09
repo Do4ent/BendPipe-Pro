@@ -976,18 +976,24 @@ export function dimensionAuditDownloadHistoryEnvelopeValid(snapshot={}){
   const value=snapshot??{};
   const coreIntegrity=dimensionAuditDownloadHistoryIntegrity(value);
   const embeddedIntegrity=value.integrity??null;
-  const embeddedIntegritySignature=String(value.integrity_signature??"");
+  const embeddedIntegritySignatureValid=typeof value.integrity_signature==="string";
+  const embeddedIntegritySignature=embeddedIntegritySignatureValid?value.integrity_signature:"";
   const embeddedIntegrityValid=!!embeddedIntegrity
+    &&embeddedIntegritySignatureValid
     &&dimensionAuditDownloadHistoryIntegritySignature(embeddedIntegrity)===embeddedIntegritySignature
     &&dimensionAuditDownloadHistoryIntegritySignature(coreIntegrity)===embeddedIntegritySignature;
   const embeddedBinding=value.protocol_binding??null;
-  const embeddedBindingSignature=String(value.protocol_binding_signature??"");
+  const embeddedBindingSignatureValid=typeof value.protocol_binding_signature==="string";
+  const embeddedBindingSignature=embeddedBindingSignatureValid?value.protocol_binding_signature:"";
   const coreBinding=dimensionAuditDownloadHistoryProtocolBinding(value);
   const embeddedBindingValid=!!embeddedBinding
+    &&embeddedBindingSignatureValid
     &&dimensionAuditDownloadHistoryProtocolBindingSignature(embeddedBinding)===embeddedBindingSignature
     &&dimensionAuditDownloadHistoryProtocolBindingSignature(coreBinding)===embeddedBindingSignature;
-  const envelopeSignature=String(value.envelope_signature??"");
-  const envelopeSignatureValid=!envelopeSignature||envelopeSignature===dimensionAuditDownloadHistoryEnvelopeSignature(value);
+  const rawEnvelopeSignature=value.envelope_signature;
+  const envelopeSignatureTypeValid=rawEnvelopeSignature==null||typeof rawEnvelopeSignature==="string";
+  const envelopeSignature=typeof rawEnvelopeSignature==="string"?rawEnvelopeSignature:"";
+  const envelopeSignatureValid=envelopeSignatureTypeValid&&(!envelopeSignature||envelopeSignature===dimensionAuditDownloadHistoryEnvelopeSignature(value));
   return coreIntegrity.valid
     &&embeddedIntegrityValid
     &&embeddedBindingValid
