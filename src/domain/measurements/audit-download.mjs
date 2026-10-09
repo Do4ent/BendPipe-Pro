@@ -578,6 +578,7 @@ export function dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(sna
   if(value.summary_valid!==true)return false;
   if(value.summary_signature_valid!==true)return false;
   if(!dimensionAuditDownloadHistoryExportEventSummarySignatureValid(value.summary?.signature,value.summary))return false;
+  if(value.signature_valid!==true)return false;
   const generatedAtText=String(value.generated_at??"");
   const generatedAt=new Date(generatedAtText);
   if(Number.isNaN(generatedAt.getTime())||generatedAt.toISOString()!==generatedAtText)return false;
