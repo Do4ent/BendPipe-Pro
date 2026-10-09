@@ -3507,12 +3507,28 @@ export function dimensionAuditDownloadHistoryExportActionStatusSnapshotSignature
 
 export function dimensionAuditDownloadHistoryExportActionStatusSnapshotSignatureValid(signature,snapshot={}){
   const value=snapshot??{};
+  const status=value.status;
+  const statusCanonical=!!status
+    &&typeof status==="object"
+    &&!Array.isArray(status)
+    &&typeof status.schema==="string"
+    &&typeof status.ready==="boolean"
+    &&typeof status.code==="string"
+    &&typeof status.payload_binding_snapshot_valid==="boolean"
+    &&typeof status.payload_binding_allowed==="boolean"
+    &&typeof status.payload_binding_snapshot_signature==="string";
+  const statusSignatureValid=statusCanonical
+    &&typeof value.status_signature==="string"
+    &&value.status_signature===dimensionAuditDownloadHistoryExportActionStatusSignature(status);
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_ACTION_STATUS_SNAPSHOT_SCHEMA
     &&typeof value.status_signature==="string"
     &&typeof value.status_valid==="boolean"
     &&typeof value.status_signature_valid==="boolean"
+    &&statusSignatureValid
+    &&value.status_valid===value.status_signature_valid
     &&signature===dimensionAuditDownloadHistoryExportActionStatusSnapshotSignature(value);
 }
 
