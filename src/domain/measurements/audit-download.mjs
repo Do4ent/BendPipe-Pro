@@ -1812,6 +1812,13 @@ export function dimensionAuditDownloadHistoryAttestationEmbeddingSignature(embed
   });
 }
 
+export function dimensionAuditDownloadHistoryAttestationEmbeddingSignatureValid(signature,embedding=dimensionAuditDownloadHistoryAttestationEmbedding()){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryAttestationEmbeddingCanonical(embedding)
+    &&signature===dimensionAuditDownloadHistoryAttestationEmbeddingSignature(embedding);
+}
+
 function dimensionAuditDownloadHistoryAttestationEmbeddingCanonical(embedding={}){
   const value=embedding??{};
   return typeof value.schema==="string"
