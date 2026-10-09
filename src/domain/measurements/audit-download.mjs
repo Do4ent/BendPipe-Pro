@@ -1425,22 +1425,30 @@ export function dimensionAuditDownloadHistoryIntegritySignature(integrity={}){
 
 export function dimensionAuditDownloadHistoryIntegritySignatureValid(signature,integrity={}){
   const value=integrity??{};
+  const fields=[
+    ["history_schema_valid","INVALID_HISTORY_SCHEMA"],
+    ["generated_at_valid","INVALID_GENERATED_AT"],
+    ["attempt_count_valid","INVALID_ATTEMPT_COUNT"],
+    ["attempts_valid","INVALID_ATTEMPTS"],
+    ["summary_valid","INVALID_SUMMARY"],
+    ["summary_signature_valid","INVALID_SUMMARY_SIGNATURE"],
+    ["protocol_state_valid","INVALID_PROTOCOL_STATE"],
+    ["protocol_state_signature_valid","INVALID_PROTOCOL_STATE_SIGNATURE"],
+    ["snapshot_signature_valid","INVALID_SNAPSHOT_SIGNATURE"]
+  ];
+  const canonicalErrors=fields.filter(([field])=>value[field]===false).map(([,code])=>code);
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_INTEGRITY_SCHEMA
     &&typeof value.valid==="boolean"
     &&typeof value.code==="string"
     &&Array.isArray(value.errors)
     &&value.errors.every(code=>typeof code==="string")
-    &&typeof value.history_schema_valid==="boolean"
-    &&typeof value.generated_at_valid==="boolean"
-    &&typeof value.attempt_count_valid==="boolean"
-    &&typeof value.attempts_valid==="boolean"
-    &&typeof value.summary_valid==="boolean"
-    &&typeof value.summary_signature_valid==="boolean"
-    &&typeof value.protocol_state_valid==="boolean"
-    &&typeof value.protocol_state_signature_valid==="boolean"
-    &&typeof value.snapshot_signature_valid==="boolean"
+    &&fields.every(([field])=>typeof value[field]==="boolean")
+    &&JSON.stringify(value.errors)===JSON.stringify(canonicalErrors)
+    &&value.valid===(canonicalErrors.length===0)
+    &&value.code===(canonicalErrors[0]??"OK")
     &&signature===dimensionAuditDownloadHistoryIntegritySignature(value);
 }
 
