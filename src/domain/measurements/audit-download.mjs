@@ -2765,12 +2765,22 @@ export function dimensionAuditDownloadHistoryExportGateSnapshotSignature(snapsho
 
 export function dimensionAuditDownloadHistoryExportGateSnapshotSignatureValid(signature,snapshot={}){
   const value=snapshot??{};
+  const gate=value.gate;
+  const gatePresent=!!gate&&typeof gate==="object"&&!Array.isArray(gate);
+  const gateValid=gatePresent&&dimensionAuditDownloadHistoryExportGateValid(gate);
+  const gateSignatureValid=gatePresent
+    &&typeof value.gate_signature==="string"
+    &&dimensionAuditDownloadHistoryExportGateSignatureValid(value.gate_signature,gate);
   return typeof signature==="string"
     &&signature.length>0
     &&typeof value.schema==="string"
+    &&value.schema===DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_GATE_SNAPSHOT_SCHEMA
     &&typeof value.gate_signature==="string"
     &&typeof value.gate_valid==="boolean"
     &&typeof value.gate_signature_valid==="boolean"
+    &&gatePresent
+    &&value.gate_valid===gateValid
+    &&value.gate_signature_valid===gateSignatureValid
     &&signature===dimensionAuditDownloadHistoryExportGateSnapshotSignature(value);
 }
 
