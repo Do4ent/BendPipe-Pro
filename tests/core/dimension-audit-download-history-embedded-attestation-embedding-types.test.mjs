@@ -16,10 +16,14 @@ test("questions 952-953: embedded attestation embedding rejects boxed signature 
   );
 
   const boxed={...snapshot.attestation_embedding,current_signature:new String(snapshot.attestation_embedding.current_signature)};
+  assert.throws(
+    ()=>dimensionAuditDownloadHistoryAttestationEmbeddingSignature(boxed),
+    {name:"TypeError",message:"audit download history attestation embedding signature fields must be canonical"}
+  );
   const tampered={
     ...snapshot,
     attestation_embedding:boxed,
-    attestation_embedding_signature:dimensionAuditDownloadHistoryAttestationEmbeddingSignature(boxed)
+    attestation_embedding_signature:snapshot.attestation_embedding_signature
   };
   assert.equal(dimensionAuditDownloadHistoryEmbeddedAttestationEmbeddingValid(tampered),false);
 });
