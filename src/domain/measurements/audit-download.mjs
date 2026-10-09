@@ -447,11 +447,17 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummar
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_FINAL_STATE_EVIDENCE_SUMMARY_SNAPSHOT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshot.v1";
 
+export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignature(events=[]){
+  if(!Array.isArray(events))throw new TypeError("history export events must be an array");
+  return JSON.stringify(events.map(event=>String(event?.signature??"")));
+}
+
 export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySnapshotSignature(snapshot={}){
   const value=snapshot??{};
   return JSON.stringify({
     schema:String(value.schema??""),
     summary_signature:String(value.summary_signature??""),
+    event_binding_signature:String(value.event_binding_signature??""),
     summary_valid:value.summary_valid===true,
     summary_signature_valid:value.summary_signature_valid===true
   });
@@ -470,6 +476,7 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummar
     schema:DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_FINAL_STATE_EVIDENCE_SUMMARY_SNAPSHOT_SCHEMA,
     summary:value,
     summary_signature:signature,
+    event_binding_signature:dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignature(events),
     summary_valid:dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummaryValid(value,events),
     summary_signature_valid:dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignatureValid(signature,value,events)
   };
@@ -481,11 +488,13 @@ export function dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummar
   const value=snapshot??{};
   if(typeof value.schema!=="string"
     ||typeof value.summary_signature!=="string"
+    ||typeof value.event_binding_signature!=="string"
     ||typeof value.summary_valid!=="boolean"
     ||typeof value.summary_signature_valid!=="boolean"
     ||typeof value.snapshot_signature!=="string"
     ||typeof value.snapshot_signature_valid!=="boolean")return false;
   if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_EVENT_FINAL_STATE_EVIDENCE_SUMMARY_SNAPSHOT_SCHEMA)return false;
+  if(value.event_binding_signature!==dimensionAuditDownloadHistoryExportEventFinalStateEvidenceEventBindingSignature(events))return false;
   if(!dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummaryValid(value.summary,events))return false;
   if(value.summary_valid!==true||value.summary_signature_valid!==true)return false;
   if(!dimensionAuditDownloadHistoryExportEventFinalStateEvidenceSummarySignatureValid(value.summary_signature,value.summary,events))return false;
