@@ -11,7 +11,7 @@ test("question 829: download history records upper-gate blocks and unified downl
   const fn=ui.match(/function downloadDimensionAuditDownloadHistory\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(fn,/const recordBlocked=\(code\)=>recordDimensionAuditDownloadHistoryExportEvent\("download","blocked",code,snapshot\)/);
   const blocked=[...fn.matchAll(/recordBlocked\(blockCode\)/g)];
-  assert.equal(blocked.length,10);
+  assert.equal(blocked.length,11);
   assert.match(fn,/const result=downloadDimensionAuditJsonWithPermitEvidence\(/);
   assert.match(fn,/const attempt=dimensionAuditDownloadLastAttempt\(\)/);
   assert.match(fn,/const outcome=attempt\?\.status==="downloaded"\?"downloaded":attempt\?\.status==="failed"\?"failed":"blocked"/);
