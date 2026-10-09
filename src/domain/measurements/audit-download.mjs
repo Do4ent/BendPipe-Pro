@@ -1648,6 +1648,13 @@ export function dimensionAuditDownloadHistoryVerificationEmbeddingSignature(embe
   });
 }
 
+export function dimensionAuditDownloadHistoryVerificationEmbeddingSignatureValid(signature,embedding=dimensionAuditDownloadHistoryVerificationEmbedding()){
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryVerificationEmbeddingCanonical(embedding)
+    &&signature===dimensionAuditDownloadHistoryVerificationEmbeddingSignature(embedding);
+}
+
 function dimensionAuditDownloadHistoryVerificationEmbeddingCanonical(embedding={}){
   const value=embedding??{};
   return typeof value.schema==="string"
