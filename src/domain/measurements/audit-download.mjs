@@ -1965,16 +1965,22 @@ export function dimensionAuditDownloadHistoryExportAuthorization(decisionSnapsho
 
 export function dimensionAuditDownloadHistoryExportAuthorizationValid(authorization=dimensionAuditDownloadHistoryExportAuthorization()){
   const value=authorization??{};
-  const code=String(value.code??"");
-  const decisionCode=String(value.decision_code??"");
-  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_AUTHORIZATION_SCHEMA)return false;
+  if(typeof value.schema!=="string"
+    ||typeof value.allowed!=="boolean"
+    ||typeof value.code!=="string"
+    ||typeof value.decision_snapshot_valid!=="boolean"
+    ||typeof value.decision_code!=="string"
+    ||typeof value.decision_allowed!=="boolean")return false;
+  const code=value.code;
+  const decisionCode=value.decision_code;
+  if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_AUTHORIZATION_SCHEMA)return false;
   if(!DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_AUTHORIZATION_CODES.includes(code))return false;
-  if((value.allowed===true)!==(code==="READY"))return false;
+  if(value.allowed!==(code==="READY"))return false;
   if(code==="INVALID_DECISION_SNAPSHOT"){
-    return value.decision_snapshot_valid===false&&value.allowed!==true;
+    return value.decision_snapshot_valid===false&&value.allowed===false;
   }
   if(!DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_DECISION_CODES.includes(decisionCode))return false;
-  return value.decision_snapshot_valid===true&&decisionCode===code&&(value.decision_allowed===true)===(code==="READY");
+  return value.decision_snapshot_valid===true&&decisionCode===code&&value.decision_allowed===(code==="READY");
 }
 
 export function dimensionAuditDownloadHistoryExportAuthorizationSignature(authorization=dimensionAuditDownloadHistoryExportAuthorization()){
@@ -1990,8 +1996,10 @@ export function dimensionAuditDownloadHistoryExportAuthorizationSignature(author
 }
 
 export function dimensionAuditDownloadHistoryExportAuthorizationSignatureValid(signature,authorization=dimensionAuditDownloadHistoryExportAuthorization()){
-  return dimensionAuditDownloadHistoryExportAuthorizationValid(authorization)
-    &&String(signature??"")===dimensionAuditDownloadHistoryExportAuthorizationSignature(authorization);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistoryExportAuthorizationValid(authorization)
+    &&signature===dimensionAuditDownloadHistoryExportAuthorizationSignature(authorization);
 }
 
 export const DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_AUTHORIZATION_SNAPSHOT_SCHEMA="TubeBender.DimensionAuditDownloadHistoryExportAuthorizationSnapshot.v1";
@@ -2007,7 +2015,9 @@ export function dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignatur
 }
 
 export function dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignatureValid(signature,snapshot={}){
-  return String(signature??"")===dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignature(snapshot);
+  return typeof signature==="string"
+    &&signature.length>0
+    &&signature===dimensionAuditDownloadHistoryExportAuthorizationSnapshotSignature(snapshot);
 }
 
 export function dimensionAuditDownloadHistoryExportAuthorizationSnapshot(authorization=dimensionAuditDownloadHistoryExportAuthorization()){
@@ -2030,7 +2040,13 @@ export function dimensionAuditDownloadHistoryExportAuthorizationSnapshot(authori
 
 export function dimensionAuditDownloadHistoryExportAuthorizationSnapshotValid(snapshot=dimensionAuditDownloadHistoryExportAuthorizationSnapshot()){
   const value=snapshot??{};
-  if(String(value.schema??"")!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_AUTHORIZATION_SNAPSHOT_SCHEMA)return false;
+  if(typeof value.schema!=="string"
+    ||typeof value.authorization_signature!=="string"
+    ||typeof value.authorization_valid!=="boolean"
+    ||typeof value.authorization_signature_valid!=="boolean"
+    ||typeof value.snapshot_signature!=="string"
+    ||typeof value.snapshot_signature_valid!=="boolean")return false;
+  if(value.schema!==DIMENSION_AUDIT_DOWNLOAD_HISTORY_EXPORT_AUTHORIZATION_SNAPSHOT_SCHEMA)return false;
   if(!dimensionAuditDownloadHistoryExportAuthorizationValid(value.authorization))return false;
   if(value.authorization_valid!==true||value.authorization_signature_valid!==true)return false;
   if(!dimensionAuditDownloadHistoryExportAuthorizationSignatureValid(value.authorization_signature,value.authorization))return false;
