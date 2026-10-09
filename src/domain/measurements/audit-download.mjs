@@ -1122,7 +1122,7 @@ export function dimensionAuditDownloadHistorySignatureValid(signature,snapshot={
     &&typeof value.schema==="string"
     &&typeof value.project_id==="string"
     &&typeof value.project_name==="string"
-    &&typeof value.generated_at==="string"
+    &&(value.generated_at==null||typeof value.generated_at==="string")
     &&typeof value.summary_signature==="string"
     &&typeof value.protocol_state_signature==="string"
     &&Number.isInteger(value.attempt_count)
