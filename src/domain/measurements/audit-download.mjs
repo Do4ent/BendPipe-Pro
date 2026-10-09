@@ -526,6 +526,7 @@ export function dimensionAuditDownloadHistoryExportEventHistorySignature(snapsho
     summary_latest_code:String(value.summary?.latest_code??""),
     events_valid:value.events_valid===true,
     summary_valid:value.summary_valid===true,
+    summary_signature_valid:value.summary_signature_valid===true,
     generated_at:String(value.generated_at??"")
   });
 }
