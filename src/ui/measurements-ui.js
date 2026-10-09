@@ -4396,16 +4396,26 @@
       return auditDownloadDomain.dimensionAuditDownloadHistorySignature(snapshot??{});
     }
     const value=snapshot??{};
-    const attempts=Array.isArray(value.attempts)?value.attempts:[];
+    if(typeof value.schema!=="string"
+      ||typeof value.project_id!=="string"
+      ||typeof value.project_name!=="string"
+      ||!(value.generated_at==null||typeof value.generated_at==="string")
+      ||typeof value.summary_signature!=="string"
+      ||typeof value.protocol_state_signature!=="string"
+      ||!Number.isInteger(value.attempt_count)
+      ||!Array.isArray(value.attempts)
+      ||!value.attempts.every(attempt=>typeof attempt?.signature==="string")){
+      throw new TypeError("audit download history signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      project_id:String(value.project_id??""),
-      project_name:String(value.project_name??""),
-      generated_at:String(value.generated_at??""),
-      summary_signature:String(value.summary_signature??""),
-      protocol_state_signature:String(value.protocol_state_signature??""),
-      attempt_count:Number(value.attempt_count??0),
-      attempt_signatures:attempts.map(attempt=>String(attempt?.signature??""))
+      schema:value.schema,
+      project_id:value.project_id,
+      project_name:value.project_name,
+      generated_at:value.generated_at??"",
+      summary_signature:value.summary_signature,
+      protocol_state_signature:value.protocol_state_signature,
+      attempt_count:value.attempt_count,
+      attempt_signatures:value.attempts.map(attempt=>attempt.signature)
     });
   }
   function dimensionAuditDownloadAttemptHistoryAuditSignatureValid(signature,snapshot){
