@@ -202,25 +202,42 @@ export function dimensionAuditDownloadProtocolSignatureValid(signature,state=dim
 
 export function dimensionAuditDownloadAttemptSignature(attempt={}){
   const value=attempt??{};
-  const signed={
-    schema:String(value.schema??""),
-    status:String(value.status??""),
-    filename:String(value.filename??""),
-    snapshot_schema:value.snapshot_schema==null?null:String(value.snapshot_schema),
-    code:String(value.code??""),
-    preflight_signature:String(value.preflight_signature??""),
-    runtime_signature:String(value.runtime_signature??""),
-    protocol_signature:String(value.protocol_signature??""),
-    error:value.error==null?null:String(value.error),
-    generated_at:String(value.generated_at??"")
-  };
   const hasPermitEvidence=value.export_action!=null
     ||value.action_permit_signature!=null
     ||value.action_permit_snapshot_signature!=null;
+  if(typeof value.schema!=="string"
+    ||typeof value.status!=="string"
+    ||typeof value.filename!=="string"
+    ||!(value.snapshot_schema===null||typeof value.snapshot_schema==="string")
+    ||typeof value.code!=="string"
+    ||typeof value.preflight_signature!=="string"
+    ||typeof value.runtime_signature!=="string"
+    ||typeof value.protocol_signature!=="string"
+    ||!(value.error===null||typeof value.error==="string")
+    ||typeof value.generated_at!=="string"
+    ||(hasPermitEvidence&&(
+      typeof value.export_action!=="string"
+      ||typeof value.action_permit_signature!=="string"
+      ||typeof value.action_permit_snapshot_signature!=="string"
+    ))){
+    throw new TypeError("audit download attempt signature fields must be canonical");
+  }
+  const signed={
+    schema:value.schema,
+    status:value.status,
+    filename:value.filename,
+    snapshot_schema:value.snapshot_schema,
+    code:value.code,
+    preflight_signature:value.preflight_signature,
+    runtime_signature:value.runtime_signature,
+    protocol_signature:value.protocol_signature,
+    error:value.error,
+    generated_at:value.generated_at
+  };
   if(hasPermitEvidence){
-    signed.export_action=String(value.export_action??"");
-    signed.action_permit_signature=String(value.action_permit_signature??"");
-    signed.action_permit_snapshot_signature=String(value.action_permit_snapshot_signature??"");
+    signed.export_action=value.export_action;
+    signed.action_permit_signature=value.action_permit_signature;
+    signed.action_permit_snapshot_signature=value.action_permit_snapshot_signature;
   }
   return JSON.stringify(signed);
 }
