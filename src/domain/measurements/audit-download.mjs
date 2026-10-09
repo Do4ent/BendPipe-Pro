@@ -582,8 +582,7 @@ export function dimensionAuditDownloadHistoryExportEventHistorySnapshotValid(sna
   const eventTimes=events.map(event=>new Date(String(event?.generated_at??"")).getTime());
   for(let index=1;index<eventTimes.length;index++)if(eventTimes[index]<eventTimes[index-1])return false;
   if(eventTimes.some(time=>Number.isFinite(time)&&time>generatedAt.getTime()))return false;
-  return !!String(value.signature??"")
-    &&String(value.signature)===dimensionAuditDownloadHistoryExportEventHistorySignature(value);
+  return dimensionAuditDownloadHistoryExportEventHistorySignatureValid(value.signature,value);
 }
 
 export function dimensionAuditDownloadHistorySummary(attempts=[]){
