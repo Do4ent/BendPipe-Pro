@@ -947,6 +947,14 @@ export function dimensionAuditDownloadHistorySummarySignature(summary={}){
   });
 }
 
+export function dimensionAuditDownloadHistorySummarySignatureValid(signature,summary={},attempts=[]){
+  if(!Array.isArray(attempts))return false;
+  return typeof signature==="string"
+    &&signature.length>0
+    &&dimensionAuditDownloadHistorySummaryValid(summary,attempts)
+    &&signature===dimensionAuditDownloadHistorySummarySignature(summary);
+}
+
 export function dimensionAuditDownloadHistorySignature(snapshot={}){
   const value=snapshot??{};
   const attempts=Array.isArray(value.attempts)?value.attempts:[];
