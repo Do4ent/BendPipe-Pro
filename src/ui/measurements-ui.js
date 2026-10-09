@@ -5178,7 +5178,30 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportReadinessSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportReadinessSnapshotSignatureValid(signature,value);
     }
+    const state={
+      schema:value.state_schema,
+      ready:value.ready,
+      code:value.code,
+      attempt_count:value.attempt_count,
+      verification_valid:value.verification_valid,
+      trusted:value.trusted,
+      provenance_valid:value.provenance_valid,
+      history_snapshot_signature:value.history_snapshot_signature,
+      provenance_signature:value.provenance_signature
+    };
+    const protocol=value.protocol;
+    const protocolValid=!!protocol
+      &&typeof protocol==="object"
+      &&!Array.isArray(protocol)
+      &&dimensionAuditDownloadHistoryExportReadinessProtocolValid(protocol);
+    const protocolSignatureValid=protocolValid
+      &&typeof value.protocol_signature==="string"
+      &&dimensionAuditDownloadHistoryExportReadinessProtocolSignatureValid(value.protocol_signature,protocol);
+    const stateValid=dimensionAuditDownloadHistoryExportReadinessStateValid(state);
+    const stateSignatureValid=typeof value.signature==="string"
+      &&dimensionAuditDownloadHistoryExportReadinessStateSignatureValid(value.signature,state);
     return typeof value.schema==="string"
+      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportReadinessSnapshot.v1"
       &&typeof value.protocol_signature==="string"
       &&typeof value.protocol_valid==="boolean"
       &&typeof value.protocol_signature_valid==="boolean"
@@ -5187,6 +5210,7 @@
       &&typeof value.ready==="boolean"
       &&typeof value.code==="string"
       &&Number.isInteger(value.attempt_count)
+      &&value.attempt_count>=0
       &&typeof value.verification_valid==="boolean"
       &&typeof value.trusted==="boolean"
       &&typeof value.provenance_valid==="boolean"
@@ -5194,6 +5218,11 @@
       &&typeof value.provenance_signature==="string"
       &&typeof value.signature==="string"
       &&typeof value.signature_valid==="boolean"
+      &&value.protocol_valid===protocolValid
+      &&value.protocol_signature_valid===protocolSignatureValid
+      &&value.state_valid===stateValid
+      &&value.signature===dimensionAuditDownloadHistoryExportReadinessStateSignature(state)
+      &&value.signature_valid===stateSignatureValid
       &&signature===dimensionAuditDownloadHistoryExportReadinessSnapshotSignature(value);
   }
 
