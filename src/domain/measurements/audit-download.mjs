@@ -1329,7 +1329,8 @@ export function dimensionAuditDownloadHistoryEnvelopeValid(snapshot={}){
   const rawEnvelopeSignature=value.envelope_signature;
   const envelopeSignatureTypeValid=rawEnvelopeSignature==null||typeof rawEnvelopeSignature==="string";
   const envelopeSignature=typeof rawEnvelopeSignature==="string"?rawEnvelopeSignature:"";
-  const envelopeSignatureValid=envelopeSignatureTypeValid&&(!envelopeSignature||envelopeSignature===dimensionAuditDownloadHistoryEnvelopeSignature(value));
+  const envelopeSignatureValid=envelopeSignatureTypeValid
+    &&(!envelopeSignature||dimensionAuditDownloadHistoryEnvelopeSignatureValid(envelopeSignature,value));
   return coreIntegrity.valid
     &&embeddedIntegrityValid
     &&embeddedBindingValid
