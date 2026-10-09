@@ -3941,15 +3941,31 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportEventLogEnvelopeSignature(value);
     }
+    const history=value.history_snapshot;
+    const evidence=value.evidence_summary_snapshot;
+    if(typeof value.schema!=="string"
+      ||!history||typeof history!=="object"||Array.isArray(history)
+      ||typeof history.signature!=="string"
+      ||!Array.isArray(history.events)
+      ||!history.events.every(event=>typeof event?.signature==="string")
+      ||!Number.isInteger(history.event_count)
+      ||!evidence||typeof evidence!=="object"||Array.isArray(evidence)
+      ||typeof evidence.snapshot_signature!=="string"
+      ||typeof evidence.summary_signature!=="string"
+      ||typeof evidence.event_binding_signature!=="string"
+      ||!evidence.summary||typeof evidence.summary!=="object"||Array.isArray(evidence.summary)
+      ||!Number.isInteger(evidence.summary.total)){
+      throw new TypeError("history export event-log envelope signature fields must be canonical");
+    }
     return JSON.stringify({
-      schema:String(value.schema??""),
-      history_snapshot_signature:String(value.history_snapshot?.signature??""),
-      evidence_summary_snapshot_signature:String(value.evidence_summary_snapshot?.snapshot_signature??""),
-      evidence_summary_signature:String(value.evidence_summary_snapshot?.summary_signature??value.evidence_summary_snapshot?.summary?.signature??""),
-      evidence_event_binding_signature:String(value.evidence_summary_snapshot?.event_binding_signature??""),
-      history_event_signatures:(Array.isArray(value.history_snapshot?.events)?value.history_snapshot.events:[]).map(event=>String(event?.signature??"")),
-      event_count:Number(value.history_snapshot?.event_count??0),
-      evidence_event_count:Number(value.evidence_summary_snapshot?.summary?.total??0)
+      schema:value.schema,
+      history_snapshot_signature:history.signature,
+      evidence_summary_snapshot_signature:evidence.snapshot_signature,
+      evidence_summary_signature:evidence.summary_signature,
+      evidence_event_binding_signature:evidence.event_binding_signature,
+      history_event_signatures:history.events.map(event=>event.signature),
+      event_count:history.event_count,
+      evidence_event_count:evidence.summary.total
     });
   }
 
