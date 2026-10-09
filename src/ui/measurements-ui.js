@@ -3110,6 +3110,7 @@
   function clearDimensionAuditDownloadHistoryExportEventHistory(){
     const count=dimensionAuditDownloadHistoryExportEventHistory.length;
     dimensionAuditDownloadHistoryExportEventHistory.splice(0,count);
+    try{window.dispatchEvent(new CustomEvent("tubebender-dimension-audit-history-export-clear",{detail:{cleared_count:count}}));}catch{}
     return count;
   }
 
@@ -5810,6 +5811,7 @@
     window.addEventListener("tubebender-section-view-change",()=>invalidateSectionDerivedDimensions("Section View changed"));
     window.addEventListener("tubebender-dimension-change",()=>{if(panel?.classList.contains("open"))render();});
     window.addEventListener("tubebender-dimension-audit-download",()=>{if(panel?.classList.contains("open"))render();});
+    window.addEventListener("tubebender-dimension-audit-history-export-clear",()=>{if(panel?.classList.contains("open"))render();});
     window.addEventListener("tubebender-history-change",()=>{if(panel?.classList.contains("open"))render();});
     window.addEventListener("tubebender-snap-change",onQuickSnapChange);
     document.getElementById("threeCanvas")?.addEventListener("click",onQuickCanvasClick,true);
