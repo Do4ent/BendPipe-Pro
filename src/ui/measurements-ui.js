@@ -6057,10 +6057,28 @@
     if(auditDownloadDomain?.dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignatureValid){
       return auditDownloadDomain.dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignatureValid(signature,value);
     }
+    const binding=value.binding;
+    const bindingCanonical=!!binding
+      &&typeof binding==="object"
+      &&!Array.isArray(binding)
+      &&typeof binding.schema==="string"
+      &&typeof binding.history_snapshot_signature==="string"
+      &&typeof binding.chain_snapshot_signature==="string"
+      &&Number.isInteger(binding.attempt_count)
+      &&Number.isInteger(binding.chain_attempt_count)
+      &&typeof binding.allowed==="boolean"
+      &&typeof binding.code==="string"
+      &&typeof binding.history_signature_matches_chain==="boolean";
+    const bindingSignatureValid=bindingCanonical
+      &&typeof value.binding_signature==="string"
+      &&value.binding_signature===dimensionAuditDownloadHistoryExportPayloadBindingSignature(binding);
     return typeof value.schema==="string"
+      &&value.schema==="TubeBender.DimensionAuditDownloadHistoryExportPayloadBindingSnapshot.v1"
       &&typeof value.binding_signature==="string"
       &&typeof value.binding_valid==="boolean"
       &&typeof value.binding_signature_valid==="boolean"
+      &&bindingSignatureValid
+      &&value.binding_valid===value.binding_signature_valid
       &&signature===dimensionAuditDownloadHistoryExportPayloadBindingSnapshotSignature(value);
   }
 
