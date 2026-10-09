@@ -11,10 +11,17 @@ test("question 610: UI audit history fallback binds and validates protocol state
   const signature=ui.match(/function dimensionAuditDownloadAttemptHistoryAuditSignature\(snapshot\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   const integrity=ui.match(/function dimensionAuditDownloadAttemptHistoryIntegrity\(snapshot\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   const snapshot=ui.match(/function dimensionAuditDownloadAttemptHistoryAuditSnapshot\(\)\{([\s\S]*?)\n  \}/)?.[1]??"";
-  assert.match(signature,/protocol_state_signature:String\(value\.protocol_state_signature\?\?""\)/);
+  assert.match(signature,/protocol_state_signature:value\.protocol_state_signature/);
+  assert.match(signature,/typeof value\.protocol_state_signature!=="string"/);
+  assert.doesNotMatch(signature,/protocol_state_signature:String\(/);
   assert.match(integrity,/INVALID_PROTOCOL_STATE/);
   assert.match(integrity,/INVALID_PROTOCOL_STATE_SIGNATURE/);
   assert.match(integrity,/protocol_state_valid:protocolStateValid/);
   assert.match(snapshot,/protocol_state:protocolState/);
   assert.match(snapshot,/protocol_state_signature:dimensionAuditDownloadHistoryProtocolStateSignature\(protocolState\)/);
+});
+
+test("question 1175: UI protocol-state signature binding remains canonical",()=>{
+  const signature=ui.match(/function dimensionAuditDownloadAttemptHistoryAuditSignature\(snapshot\)\{([\s\S]*?)\n  \}/)?.[1]??"";
+  assert.doesNotMatch(signature,/String\(value\.protocol_state_signature/);
 });
