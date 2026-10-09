@@ -10,6 +10,14 @@ const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8")
 test("question 540: audit download attempt history summary is deterministically signed",()=>{
   const fn=ui.match(/function dimensionAuditDownloadAttemptHistorySummarySignature\(summary=dimensionAuditDownloadAttemptHistorySummary\(\)\)\{([\s\S]*?)\n  \}/)?.[1]??"";
   assert.match(fn,/return JSON\.stringify\(\{/);
-  assert.match(fn,/latest_signature:String\(value\.latest_signature\?\?""\)/);
+  assert.match(fn,/latest_signature:value\.latest_signature/);
+  assert.match(fn,/typeof value\.latest_signature!=="string"/);
+  assert.doesNotMatch(fn,/latest_signature:String\(/);
   assert.doesNotMatch(fn,/generated_at|Date\(/);
+});
+
+test("question 1172: history summary signature fallback uses canonical fields without coercion",()=>{
+  const fn=ui.match(/function dimensionAuditDownloadAttemptHistorySummarySignature\(summary=dimensionAuditDownloadAttemptHistorySummary\(\)\)\{([\s\S]*?)\n  \}/)?.[1]??"";
+  assert.match(fn,/Number\.isInteger\(value\.total\)/);
+  assert.doesNotMatch(fn,/total:Number\(/);
 });
