@@ -4000,6 +4000,7 @@
     const attemptsValid=attemptsArrayValid&&attempts.every(attempt=>dimensionAuditDownloadAttemptValid(attempt));
     const summaryValid=attemptsArrayValid&&dimensionAuditDownloadAttemptHistorySummaryValid(summary,attempts);
     const summarySignatureValid=attemptsArrayValid
+      &&typeof value.summary_signature==="string"
       &&dimensionAuditDownloadAttemptHistorySummarySignatureValid(value.summary_signature,summary,attempts);
     const protocolState=value.protocol_state??null;
     const protocolStateSignatureValid=!!protocolState
