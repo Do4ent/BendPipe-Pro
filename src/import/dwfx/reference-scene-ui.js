@@ -393,6 +393,7 @@
   }
 
   function moveEditableMeshInstance(project,instanceId,deltaMm){
+    bumpRevision("geometry");
     const instance=meshInstanceById(project,instanceId);
     if(!instance)throw new Error("Editable mesh instance not found");
     const p=instance.transform?.position_mm??{x:0,y:0,z:0};
@@ -432,6 +433,7 @@
   }
 
   function rotateEditableMeshInstanceAxis(project,instanceId,{axis,angle_deg}={}){
+    bumpRevision("geometry");
     const instance=meshInstanceById(project,instanceId);
     if(!instance)throw new Error("Editable mesh instance not found");
     const current=instance.transform?.rotation_quaternion??{x:0,y:0,z:0,w:1};
@@ -444,6 +446,7 @@
   }
 
   function rotateEditableMeshInstance(project,instanceId,deltaDeg){
+    bumpRevision("geometry");
     const instance=meshInstanceById(project,instanceId);
     if(!instance)throw new Error("Editable mesh instance not found");
     const r=instance.transform?.rotation_deg??{x:0,y:0,z:0};
@@ -459,6 +462,7 @@
   }
 
   function copyEditableMeshInstance(project,instanceId,{offset_mm={x:0,y:0,z:0},name=null}={}){
+    bumpRevision("geometry");
     const source=meshInstanceById(project,instanceId);
     if(!source)throw new Error("Editable mesh instance not found");
     const p=source.transform?.position_mm??{x:0,y:0,z:0};
@@ -480,6 +484,7 @@
   }
 
   function arrayEditableMeshInstance(project,instanceId,{count=2,step_mm={x:0,y:0,z:0}}={}){
+    bumpRevision("geometry");
     const n=Math.trunc(Number(count));
     if(!(n>=2))throw new RangeError("Array count must be >= 2");
     const created=[];
@@ -531,6 +536,7 @@
   }
 
   function breakEditableMeshInstanceLink(project,instanceId){
+    bumpRevision("geometry");
     const instance=meshInstanceById(project,instanceId);
     if(!instance)throw new Error("Editable mesh instance not found");
     if(instance.link_status==="detached")return instance;
@@ -1583,6 +1589,7 @@
   }
 
   function toggleSceneSelection(scene,checked){
+    bumpRevision("selection");
     for(const node of collectSelectableNodes(scene?.tree??[])){
       const key=selectionKey(scene.id,node.id);
       if(checked)bulkSelected.add(key);else bulkSelected.delete(key);
@@ -1590,6 +1597,7 @@
   }
 
   function toggleNodeSelection(scene,node,checked){
+    bumpRevision("selection");
     for(const item of collectSelectableSubtree(node)){
       const key=selectionKey(scene.id,item.id);
       if(checked)bulkSelected.add(key);else bulkSelected.delete(key);
@@ -1597,6 +1605,7 @@
   }
 
   function applyBulkVisibility(project,visible){
+    bumpRevision("display");
     for(const {scene,node} of selectedEntries(project)){
       const hidden=hiddenSet(scene);
       if(visible){
@@ -1610,6 +1619,7 @@
   }
 
   function isolateSelection(project){
+    bumpRevision("display");
     const selectedTop=selectedTopLevelEntries(project);
     const selectedByScene=new Map();
     for(const {scene,node} of selectedTop){
@@ -1655,6 +1665,7 @@
   }
 
   function showAll(project){
+    bumpRevision("display");
     let changed=0;
     for(const scene of project?.referenceScenes??[]){
       if(scene?.visible===false)changed+=1;
@@ -1666,6 +1677,7 @@
   }
 
   function applyBulkTransparency(project){
+    bumpRevision("display");
     const entries=selectedEntries(project);
     if(!entries.length)return;
     const allTransparent=entries.every(({scene,node})=>
@@ -1813,6 +1825,7 @@
     const additive=!!(ctrlKey||metaKey);
     const target=sceneNodeFromKey(project,targetKey);
     if(!target||!selectableNode(target.node))return selectedCount(project);
+    bumpRevision("selection");
 
     if(shiftKey){
       const keys=Array.isArray(orderedKeys)?orderedKeys.map(String):[];
@@ -1873,6 +1886,7 @@
   }
 
   function selectOnlyNode(project,sceneId,nodeId){
+    bumpRevision("selection");
     bulkSelected.clear();
     const scene=findScene(project,sceneId);
     const node=findNode(scene?.tree,nodeId);
@@ -1898,6 +1912,7 @@
   }
 
   function moveSelection(project,deltaMm){
+    bumpRevision("geometry");
     const delta={
       x:Number(deltaMm?.x)||0,
       y:Number(deltaMm?.y)||0,
@@ -2153,6 +2168,7 @@
         const scene=findScene(project,button.dataset.refSceneEye);
         if(!scene)return;
         scene.visible=scene.visible===false;
+        bumpRevision("display");
         save?.();
         renderAll?.();
       });
@@ -2183,6 +2199,7 @@
         const set=new Set(Array.isArray(scene.hiddenNodeIds)?scene.hiddenNodeIds.map(String):[]);
         if(set.has(id))set.delete(id);else set.add(id);
         scene.hiddenNodeIds=[...set];
+        bumpRevision("display");
         save?.();
         renderAll?.();
       });
