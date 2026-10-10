@@ -56,6 +56,112 @@ export function createFrameCoalescer({requestFrame,cancelFrame=()=>{},render,onE
 }
 
 /**
+ * PERF-001: one stale DWFx recovery per animation frame, targeting only the
+ * latest still-active project. A regular scene render can cancel an obsolete
+ * retry. Epoch checks also guard against ineffective cancelFrame adapters.
+ */
+export function createSceneRecoveryCoalescer({
+  requestFrame,cancelFrame=()=>{},isCurrent,render,onError=()=>{}
+}){
+  if(typeof requestFrame!=="function"||typeof isCurrent!=="function"||
+     typeof render!=="function"){
+    throw new TypeError("requestFrame, isCurrent and render are required");
+  }
+  let frameId=null,latestProject=null,epoch=0,disposed=false;
+  const stats={requests:0,frames:0,coalesced:0,cancelled:0,skipped:0,rendered:0,failures:0};
+  const report=(error)=>{
+    stats.failures++;
+    try{onError(error);}catch{}
+  };
+  function run(token){
+    if(disposed||token!==epoch||frameId===null)return;
+    frameId=null;
+    const project=latestProject;
+    latestProject=null;
+    let current=false;
+    try{current=isCurrent(project);}
+    catch(error){report(error);return;}
+    if(!current){stats.skipped++;return;}
+    try{render(project);stats.rendered++;}
+    catch(error){report(error);}
+  }
+  function cancel(){
+    if(frameId===null)return false;
+    epoch++;
+    const id=frameId;
+    frameId=null;latestProject=null;
+    stats.cancelled++;
+    try{cancelFrame(id);}catch(error){report(error);}
+    return true;
+  }
+  return Object.freeze({
+    schedule(project){
+      if(disposed||project==null)return false;
+      stats.requests++;
+      // An obsolete project must not displace a queued recovery for the
+      // current project if stale notifications arrive out of order.
+      let current=false;
+      try{current=isCurrent(project);}
+      catch(error){report(error);return false;}
+      if(!current){stats.skipped++;return false;}
+      latestProject=project;
+      if(frameId!==null){stats.coalesced++;return true;}
+      const token=++epoch;
+      try{frameId=requestFrame(()=>run(token));stats.frames++;}
+      catch(error){frameId=null;latestProject=null;report(error);return false;}
+      return true;
+    },
+    cancel,
+    dispose(){cancel();disposed=true;},
+    get pending(){return frameId!==null;},
+    get stats(){return {...stats};}
+  });
+}
+
+/**
+ * PERF-001: cancel either half of a rAF -> timer task. Returning a real
+ * cancellation token prevents discarded geometry batches from waking up
+ * after the current scene has already been superseded.
+ */
+export function createCancellableFrameTaskScheduler({
+  requestFrame,cancelFrame=()=>{},postTask,cancelTask=()=>{},onError=()=>{}
+}){
+  if(typeof requestFrame!=="function"||typeof postTask!=="function")
+    throw new TypeError("requestFrame and postTask are required");
+  return Object.freeze({
+    post(callback){
+      if(typeof callback!=="function")throw new TypeError("task callback required");
+      const handle={frame:null,timer:null,cancelled:false,completed:false};
+      const run=()=>{
+        handle.timer=null;
+        if(handle.cancelled)return;
+        handle.completed=true;
+        callback();
+      };
+      handle.frame=requestFrame(()=>{
+        handle.frame=null;
+        if(handle.cancelled)return;
+        try{handle.timer=postTask(run);}
+        catch(error){
+          try{onError(error);}catch{}
+          // A timer service failure must not strand the cooperative queue.
+          run();
+        }
+      });
+      return handle;
+    },
+    cancel(handle){
+      if(!handle||handle.cancelled||handle.completed)return false;
+      handle.cancelled=true;
+      if(handle.frame!==null)try{cancelFrame(handle.frame);}catch{}
+      if(handle.timer!==null)try{cancelTask(handle.timer);}catch{}
+      handle.frame=null;handle.timer=null;
+      return true;
+    }
+  });
+}
+
+/**
  * PERF-003: one failing optional initialization step cannot prevent bind() or
  * the remaining startup phases from being attempted.
  */

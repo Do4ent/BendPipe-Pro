@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderMobileViewportStyle } from "../src/ui/mobile-viewport.mjs";
-import { createFrameCoalescer, runIsolatedStartup, scheduleInitialSceneAfterPaint } from "../src/domain/performance/render-startup.mjs";
+import { createFrameCoalescer, createSceneRecoveryCoalescer, createCancellableFrameTaskScheduler, runIsolatedStartup, scheduleInitialSceneAfterPaint } from "../src/domain/performance/render-startup.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourcePath = path.join(
@@ -1979,7 +1979,7 @@ if (!output.includes(referenceRenderAnchor)) {
 output = output.replace(
   referenceRenderAnchor,
   referenceRenderAnchor +
-  `\n  try{\n    const referenceUi=window.TubeBenderReferenceSceneUi;\n    const referenceProject=activeProject();\n    if(referenceUi?.render3DCooperative){\n      referenceUi.render3DCooperative({\n        parent:pipeGroup,project:referenceProject,THREE:window.THREE,\n        geomScale:GEOM_SCALE,batchSize:8,progressive:true,\n        postTask:fn=>requestAnimationFrame(()=>setTimeout(fn,0)),\n        onProgress:()=>{\n          if(typeof renderer!=='undefined'&&typeof scene!=='undefined'&&typeof camera!=='undefined')\n            renderer.render(scene,camera);\n        },\n        onCommit:()=>{\n          if(typeof renderer!=='undefined'&&typeof scene!=='undefined'&&typeof camera!=='undefined')\n            renderer.render(scene,camera);\n        },\n        onError:(error,index)=>console.warn('DWFx batch '+index,error)\n      });\n    }else{\n      referenceUi?.render3D?.({\n        parent:pipeGroup,project:referenceProject,THREE:window.THREE,geomScale:GEOM_SCALE\n      });\n    }\n  }catch(error){\n    console.warn('DWFx reference geometry render:',error);\n  }`
+  `\n  tbDwfSceneRecovery.cancel();\n  try{\n    const referenceUi=window.TubeBenderReferenceSceneUi;\n    const referenceProject=activeProject();\n    if(referenceUi?.render3DCooperative){\n      referenceUi.render3DCooperative({\n        parent:pipeGroup,project:referenceProject,THREE:window.THREE,\n        geomScale:GEOM_SCALE,batchSize:8,progressive:true,\n        postTask:fn=>tbDwfTaskScheduler.post(fn),\n        cancelTask:task=>tbDwfTaskScheduler.cancel(task),\n        onProgress:()=>{\n          if(typeof renderer!=='undefined'&&typeof scene!=='undefined'&&typeof camera!=='undefined')\n            renderer.render(scene,camera);\n        },\n        onCommit:()=>{\n          if(typeof renderer!=='undefined'&&typeof scene!=='undefined'&&typeof camera!=='undefined')\n            renderer.render(scene,camera);\n        },\n        onStale:()=>tbDwfSceneRecovery.schedule(referenceProject),\n        onError:(error,index)=>console.warn('DWFx batch '+index,error)\n      });\n    }else{\n      referenceUi?.render3D?.({\n        parent:pipeGroup,project:referenceProject,THREE:window.THREE,geomScale:GEOM_SCALE\n      });\n    }\n  }catch(error){\n    console.warn('DWFx reference geometry render:',error);\n  }`
 );
 
 const referenceTreeHtmlAnchor =
@@ -3129,6 +3129,24 @@ const perfCoalescerSource =
   "window.TubeBenderRenderPerformance=Object.freeze({\n" +
   "  get pending(){return tbViewerFrameCoalescer.pending;},\n" +
   "  get stats(){return tbViewerFrameCoalescer.stats;}\n" +
+  "});\n" +
+  "const tbDwfTaskScheduler=(" + createCancellableFrameTaskScheduler.toString() + ")({\n" +
+  "  requestFrame: callback=>requestAnimationFrame(callback),\n" +
+  "  cancelFrame: id=>cancelAnimationFrame(id),\n" +
+  "  postTask: callback=>setTimeout(callback,0),\n" +
+  "  cancelTask: id=>clearTimeout(id),\n" +
+  "  onError: error=>console.warn('PERF-001 deferred DWFx task',error)\n" +
+  "});\n" +
+  "const tbDwfSceneRecovery=(" + createSceneRecoveryCoalescer.toString() + ")({\n" +
+  "  requestFrame: callback=>requestAnimationFrame(callback),\n" +
+  "  cancelFrame: id=>cancelAnimationFrame(id),\n" +
+  "  isCurrent: project=>activeProject()===project,\n" +
+  "  render:()=>renderAll(),\n" +
+  "  onError: error=>console.warn('PERF-001 DWFx stale recovery',error)\n" +
+  "});\n" +
+  "window.TubeBenderDwfRecovery=Object.freeze({\n" +
+  "  get pending(){return tbDwfSceneRecovery.pending;},\n" +
+  "  get stats(){return tbDwfSceneRecovery.stats;}\n" +
   "});\n";
 output=output.replace(perfCoreStart,perfCoalescerSource+perfCoreStart);
 output=output.replace(perfOldViewerCall,
@@ -3148,7 +3166,7 @@ if(!output.includes(perfPickerAnchor)){
 }
 output=output.replace(perfPickerAnchor,
   "  tbRunIsolatedStartup([\n" +
-  "    ['buildViewPicker',()=>buildViewPicker()],\n" +
+  "    ['buildViewPicker',()=>{if(window.__TB_TEST_PERF003_FAIL_OPTIONAL__===true)throw new Error('PERF-003 injected optional picker failure');buildViewPicker();}],\n" +
   "    ['buildBendPicker',()=>buildBendPicker()],\n" +
   "    ['setupMiniAxisClickHandlers',()=>setupMiniAxisClickHandlers()]\n" +
   "  ],(name,error)=>console.warn('Optional picker initialization: '+name,error));");
@@ -3175,7 +3193,9 @@ const perfBootstrapSource =
   "    ['ensureCurrentTubeVisible',()=>ensureCurrentTubeVisible()],\n" +
   "    ['bind',()=>bind()]\n" +
   "  ],onError));\n" +
-  "  status.booted=true;status.starting=false;\n" +
+  "  status.booted=status.phases.some(phase=>phase.name===\'bind\'&&phase.status===\'ok\');status.starting=false;\n" +
+  "  // A failed core bind must never appear as a successful startup.\n" +
+  "  if(!status.booted)return;\n" +
   "  // Let bound controls paint before building the potentially large scene.\n" +
   "  status.cancelInitialScene=tbScheduleInitialSceneAfterPaint({\n" +
   "    requestFrame:callback=>requestAnimationFrame(callback),\n" +

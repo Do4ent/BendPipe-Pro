@@ -8,10 +8,10 @@ test("large DWFx mesh prepares vertex and index buffers across multiple tasks",(
   const window={};vm.runInNewContext(source,{window,setTimeout,clearTimeout,globalThis:{}});
   class Group{
     constructor(){this.children=[];this.userData={};this.scale={setScalar(){}};this.position={set(){}};}
-    add(v){this.children.push(v);}
+    add(v){this.children.push(v);v.parent=this;}
     clear(){this.children=[];}
     updateMatrixWorld(){}
-    clone(){return new Group();}
+    clone(){const copy=new Group();for(const item of this.children)copy.add(item.clone(true));return copy;}
   }
   class BufferGeometry{
     setAttribute(name,value){this[name]=value;return this;}
@@ -21,7 +21,7 @@ test("large DWFx mesh prepares vertex and index buffers across multiple tasks",(
   class BufferAttribute{constructor(array,itemSize){this.array=array;this.itemSize=itemSize;}}
   class Mesh{
     constructor(geometry){this.geometry=geometry;this.userData={};this.matrix={fromArray(){}};}
-    clone(){return this;}
+    clone(){return new Mesh(this.geometry);}
   }
   const THREE={Group,BufferGeometry,BufferAttribute,Mesh,MeshStandardMaterial:class{},DoubleSide:2};
   const count=5000;
@@ -38,7 +38,15 @@ test("large DWFx mesh prepares vertex and index buffers across multiple tasks",(
   assert.equal(h.status.committed,true);
   assert.ok(ticks>4,"large mesh must yield across multiple scheduled tasks");
   assert.equal(parent.children.length,1);
-  const buffer=parent.children[0].children[0].children[0].children[0].children[0].geometry;
+  // Find the actual mesh rather than relying on a brittle group depth.
+  const geometries=[];
+  const visit=node=>{
+    if(node?.geometry)geometries.push(node.geometry);
+    for(const child of node?.children??[])visit(child);
+  };
+  visit(parent);
+  assert.equal(geometries.length,1);
+  const buffer=geometries[0];
   assert.equal(buffer.position.array.length,count*3);
   assert.equal(buffer.indices.array.length,(count-2)*3);
   assert.equal(buffer.position.array[3],1);
@@ -46,5 +54,5 @@ test("large DWFx mesh prepares vertex and index buffers across multiple tasks",(
   assert.equal(buffer.position.array.length,15000);
   assert.equal(buffer.normal.array.length,15000);
   assert.ok(Number.isFinite(buffer.normal.array[2]));
-  assert.equal(parent.children[0].children[0].children[0].children[0].children[0].geometry.positions.itemSize,3);
+  assert.equal(buffer.position.itemSize,3);
 });

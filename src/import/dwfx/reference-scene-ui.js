@@ -250,10 +250,85 @@
     );
   }
 
-  function meshSourceDisplayState(project,scene,node){
-    const instances=meshInstancesForSource(project,scene?.id,node?.id);
+  // PERF-001: build source-link and mesh-instance lookups once per rendered
+  // reference scene rather than rescanning the entire project for every node.
+  // This index is deliberately short-lived: conservative signature checks still
+  // detect direct writes from legacy modules between render requests.
+  // Build one project-wide snapshot for an entire synchronous or cooperative
+  // DWFx render pass. Do not memoize it across renders: legacy source writers
+  // can mutate links without revision bumps, and the conservative signature
+  // must remain the authoritative reuse guard.
+  function buildProjectSourceRenderIndex(project){
+    const byScene=new Map();
+    const ensureScene=(sceneId)=>{
+      const key=String(sceneId??"");
+      let entry=byScene.get(key);
+      if(!entry){
+        entry={firstLinked:new Map(),firstAny:new Map(),meshByNode:new Map()};
+        byScene.set(key,entry);
+      }
+      return entry;
+    };
+    // Collect editable part identifiers and original-source links together.
+    // This replaces linkedEditableTubes() + editablePartSet() rescans while
+    // retaining all four accepted part-number spellings and link precedence.
+    const editableParts=new Set();
+    for(const tube of project?.tubes??[]){
+      const importData=tube?.currentProjectImport;
+      for(const value of [
+        tube?.partNumber,tube?.part_number,
+        tube?.importEvidence?.part_number,importData?.part_number
+      ]){
+        if(value!=null&&String(value)!=="")editableParts.add(String(value));
+      }
+      const link=importData?.source_link;
+      if(!link||typeof link!=="object")continue;
+      const scene=ensureScene(link.scene_id);
+      const nodeId=String(link.node_id??"");
+      if(!scene.firstAny.has(nodeId))scene.firstAny.set(nodeId,tube);
+      if(link.detached!==true&&!scene.firstLinked.has(nodeId))
+        scene.firstLinked.set(nodeId,tube);
+    }
+    for(const instance of editableMeshInstanceList(project,{create:false})){
+      if(instance?.link_status==="detached")continue;
+      const scene=ensureScene(instance?.source?.scene_id);
+      const nodeId=String(instance?.source?.node_id??"");
+      if(!scene.meshByNode.has(nodeId))scene.meshByNode.set(nodeId,[]);
+      scene.meshByNode.get(nodeId).push(instance);
+    }
+    let entries=[];
+    try{entries=window.TubeBenderObjectContext?.selectionEntries?.()??[];}
+    catch{}
+    if(!Array.isArray(entries))entries=[];
+    const selectedTubeIds=new Set(entries.filter(entry=>entry?.kind==="tube")
+      .map(entry=>String(entry.tubeId)));
+    const selectedInstanceIds=new Set(entries.filter(entry=>entry?.kind==="mesh-instance")
+      .map(entry=>String(entry.instanceId)));
+    const common={
+      selectedTubeIds,selectedInstanceIds,
+      editableParts,
+      selectedKeys:selectedKeySet()
+    };
+    const empty={firstLinked:new Map(),firstAny:new Map(),meshByNode:new Map()};
+    sceneReuseStats.sourceIndexBuilds++;
+    return {
+      forScene(sceneId){
+        return {...(byScene.get(String(sceneId??""))??empty),...common};
+      }
+    };
+  }
+
+  // Preserves the existing single-scene adapter for callers and test helpers.
+  function buildSourceRenderIndex(project,sceneId){
+    return buildProjectSourceRenderIndex(project).forScene(sceneId);
+  }
+
+  function meshSourceDisplayState(project,scene,node,lookup=null){
+    const instances=lookup
+      ? (lookup.meshByNode.get(String(node?.id??""))??[])
+      : meshInstancesForSource(project,scene?.id,node?.id);
     if(!instances.length)return null;
-    const selectedInstanceIds=new Set(
+    const selectedInstanceIds=lookup?.selectedInstanceIds??new Set(
       (window.TubeBenderObjectContext?.selectionEntries?.()??[])
         .filter((entry)=>entry?.kind==="mesh-instance")
         .map((entry)=>String(entry.instanceId))
@@ -270,11 +345,13 @@
     };
   }
 
-  function sourceDisplayState(project,scene,node){
-    const linked=linkedTubeForSource(project,scene?.id,node?.id);
+  function sourceDisplayState(project,scene,node,lookup=null){
+    const linked=lookup
+      ? (lookup.firstLinked.get(String(node?.id??""))??null)
+      : linkedTubeForSource(project,scene?.id,node?.id);
     if(!linked)return null;
     const link=sourceLink(linked);
-    const selectedEditable=selectedEditableTubeIds().has(String(linked.id));
+    const selectedEditable=(lookup?.selectedTubeIds??selectedEditableTubeIds()).has(String(linked.id));
     const display=String(link?.display??"hidden");
     return {
       tube:linked,
@@ -795,7 +872,8 @@
     runtime,
     project,
     THREE,
-    geomScale
+    geomScale,
+    sourceLookup=null
   }){
     if(sceneMeta?.visible===false)return;
     const sceneGroup=new THREE.Group();
@@ -808,8 +886,9 @@
 
     const hidden=hiddenSet(sceneMeta);
     const transparent=transparentSet(sceneMeta);
-    const editable=editablePartSet(project);
-    const selectedKeys=selectedKeySet();
+    const renderLookup=sourceLookup??buildSourceRenderIndex(project,sceneMeta.id);
+    const editable=renderLookup.editableParts;
+    const selectedKeys=renderLookup.selectedKeys;
     const selectedGroups=[];
 
     const visit=(
@@ -824,9 +903,9 @@
       const translation=addTranslationMm(parentTranslation,nodeTranslationMm(node));
 
       const recognizedPart=String(node.editable_part_number??"");
-      const linkedState=sourceDisplayState(project,sceneMeta,node);
-      const meshState=meshSourceDisplayState(project,sceneMeta,node);
-      const sourceTube=anyEditableTubeForSource(project,sceneMeta.id,node.id);
+      const linkedState=sourceDisplayState(project,sceneMeta,node,renderLookup);
+      const meshState=meshSourceDisplayState(project,sceneMeta,node,renderLookup);
+      const sourceTube=renderLookup.firstAny.get(String(node.id))??null;
       const detachedSource=sourceLink(sourceTube)?.detached===true;
       const suppressEditable=meshState
         ? !meshState.visible
@@ -1023,6 +1102,7 @@
   function render3D({parent,project,THREE,geomScale}){
     if(!parent||!project||!THREE)return 0;
     let count=0;
+    let sourceIndex=null;
     for(const sceneMeta of project.referenceScenes??[]){
       let runtime=runtimes.get(runtimeKey(sceneMeta));
       if(!runtime&&sceneMeta?.display_runtime){
@@ -1030,7 +1110,11 @@
         runtime=runtimes.get(runtimeKey(sceneMeta));
       }
       if(!runtime)continue;
-      renderSceneTree({parent,sceneMeta,runtime,project,THREE,geomScale});
+      if(!sourceIndex)sourceIndex=buildProjectSourceRenderIndex(project);
+      renderSceneTree({
+        parent,sceneMeta,runtime,project,THREE,geomScale,
+        sourceLookup:sourceIndex.forScene(sceneMeta.id)
+      });
       count+=1;
     }
     count+=renderEditableMeshInstances({parent,project,THREE,geomScale});
@@ -1056,12 +1140,18 @@
     bumpRevision(kind);
     invalidateSceneCache();
   }
-  const sceneReuseStats={hits:0,misses:0,invalidations:0};
+  const sceneReuseStats={hits:0,misses:0,invalidations:0,signatureCalls:0,signatureTimeMs:0,maxSignatureTimeMs:0,lastSignatureTimeMs:0,lastSignatureBytes:0,emptyFastPaths:0,lastLinksTimeMs:0,lastSerializeTimeMs:0,sourceIndexBuilds:0,staleBuilds:0};
   // Explicit invalidation for import/replacement and renderer disposal.
   // Uninstrumented mutation paths still use the conservative source signature.
   function invalidateSceneCache(){
     cooperativeGeneration++;
-    if(activeCooperativeHandle)activeCooperativeHandle.cancel();
+    // External scene mutations invalidate an in-flight build and request
+    // recovery; ordinary render supersession uses cancel() without a retry.
+    if(activeCooperativeHandle){
+      if(typeof activeCooperativeHandle.invalidate==="function")
+        activeCooperativeHandle.invalidate();
+      else activeCooperativeHandle.cancel();
+    }
     activeCooperativeHandle=null;
     cachedScene=null;
     sceneReuseStats.invalidations++;
@@ -1069,6 +1159,15 @@
   // Only source/reference properties influence the cache key. Ordinary tube
   // bend/length edits do not, but source link/visibility edits do.
   function referenceSignature(project,geomScale){
+    // Empty reference projects have no DWFx geometry to rebuild. Avoid walking
+    // potentially large tube arrays on every ordinary editing frame.
+    if(!(project?.referenceScenes?.length) && !(project?.editable_mesh_instances?.length)){
+      sceneReuseStats.emptyFastPaths++;
+      return "empty-reference-scenes";
+    }
+    // Include link collection in measured time: it can dominate serialization
+    // for projects with many editable tubes. Legacy mutation safety is unchanged.
+    const started=meshNow();
     const sourceLinks=(project?.tubes??[]).map(tube=>({
       id:tube?.id,
       partNumber:tube?.partNumber??tube?.part_number,
@@ -1076,7 +1175,8 @@
       sourceFormat:tube?.currentProjectImport?.source_format,
       importedPart:tube?.currentProjectImport?.part_number
     }));
-    return JSON.stringify({
+    const linksFinished=meshNow();
+    const signature=JSON.stringify({
       scenes:project?.referenceScenes??[],
       meshInstances:project?.editable_mesh_instances??[],
       links:sourceLinks,
@@ -1085,6 +1185,16 @@
       geomScale,
       revisions:revisionSnapshot()
     });
+    const finished=meshNow();
+    const elapsed=Math.max(0,finished-started);
+    sceneReuseStats.lastLinksTimeMs=Math.max(0,linksFinished-started);
+    sceneReuseStats.lastSerializeTimeMs=Math.max(0,finished-linksFinished);
+    sceneReuseStats.signatureCalls++;
+    sceneReuseStats.signatureTimeMs+=elapsed;
+    sceneReuseStats.lastSignatureTimeMs=elapsed;
+    sceneReuseStats.maxSignatureTimeMs=Math.max(sceneReuseStats.maxSignatureTimeMs,elapsed);
+    sceneReuseStats.lastSignatureBytes=signature.length;
+    return signature;
   }
 
   // Preserve shared imported scene across disposal of the old CAD parent group.
@@ -1110,15 +1220,24 @@
     onCommit=()=>{},
     onError=()=>{},
     progressive=false,
-    onProgress=()=>{}
+    onProgress=()=>{},
+    onStale=()=>{}
   }){
     if(!parent||!project||!THREE)throw new TypeError("3D parent, project and THREE required");
     if(!Number.isSafeInteger(batchSize)||batchSize<1)throw new RangeError("Invalid batch size");
     const generation=++cooperativeGeneration;
     if(activeCooperativeHandle)activeCooperativeHandle.cancel();
+    // Lazy runtime registration bumps geometry revision. Resolve loaded
+    // reference runtimes before taking the cache signature, so a first render
+    // is reusable immediately after its cooperative build commits.
+    for(const scene of project.referenceScenes??[]){
+      if(scene?.visible!==false&&scene?.display_runtime&&
+         !runtimes.has(runtimeKey(scene)))runtimeForScene(scene);
+    }
     // A previously completed staging group is referenced only by cachedScene.
     // No geometry/material is disposed here: templates are shared by design.
     const signature=referenceSignature(project,geomScale);
+    const snapshot=revisionSnapshot();
     if(cachedScene?.signature===signature&&cachedScene.project===project&&
        cachedScene.THREE===THREE&&cachedScene.group){
       if(cachedScene.group.parent!==parent)parent.add(cachedScene.group);
@@ -1135,6 +1254,7 @@
     }
     sceneReuseStats.misses++;
     const staging=new THREE.Group();
+    let sourceIndex=null;
     staging.name="DWFx cooperative geometry";
     const work=[];
     for(const sceneMeta of project.referenceScenes??[]){
@@ -1169,18 +1289,30 @@
       if(attached)return;
       parent.add(staging);attached=true;
     };
-    const result={total:work.length,processed:0,failures:0,committed:false};
+    const result={total:work.length,processed:0,failures:0,committed:false,stale:false};
+    const revisionChanged=()=>Object.keys(snapshot).some(key=>revisions[key]!==snapshot[key]);
     const stop=()=>{
       if(done)return;
       done=true;
       if(pending!==null){try{cancelTask(pending);}catch{}pending=null;}
-      // Staging is never attached until commit, so stale scene geometry cannot leak.
+      // Progressive staging might already be attached; remove it on cancel.
       if(attached&&staging.parent)staging.parent.remove(staging);
       staging.clear();
+    };
+    const discardStale=()=>{
+      if(done)return;
+      result.stale=true;
+      sceneReuseStats.staleBuilds++;
+      stop();
+      try{onStale({...result,pending:false});}catch(error){
+        try{onError(error,index);}catch{}
+      }
     };
     function step(){
       pending=null;
       if(done||generation!==cooperativeGeneration){stop();return;}
+      // O(1) counter checks on each task: no full project scan per mesh batch.
+      if(revisionChanged()){discardStale();return;}
       if(meshJobIndex<meshJobs.length){
         let remaining=2048;
         while(remaining>0&&meshJobIndex<meshJobs.length){
@@ -1241,10 +1373,12 @@
       for(;index<limit;index++){
         const {sceneMeta,runtime,root}=work[index];
         try{
+          if(!sourceIndex)sourceIndex=buildProjectSourceRenderIndex(project);
+          const sourceLookup=sourceIndex.forScene(sceneMeta.id);
           renderSceneTree({
             parent:staging,
             sceneMeta:{...sceneMeta,tree:[root]},
-            runtime,project,THREE,geomScale
+            runtime,project,THREE,geomScale,sourceLookup
           });
         }catch(error){
           failures++;
@@ -1253,6 +1387,7 @@
         result.processed++;
       }
       result.failures=failures;
+      if(revisionChanged()){discardStale();return;}
       if(progressive&&index>0&&index<work.length){
         attach();
         try{onProgress({...result,committed:false});}catch{}
@@ -1263,6 +1398,12 @@
         return;
       }
       if(done||generation!==cooperativeGeneration){stop();return;}
+      // Direct writes from legacy modules may not bump revisions; perform
+      // one conservative signature comparison before the final scene commit.
+      if(revisionChanged()||referenceSignature(project,geomScale)!==signature){
+        discardStale();
+        return;
+      }
       try{renderEditableMeshInstances({parent:staging,project,THREE,geomScale});}
       catch(error){failures++;try{onError(error,index);}catch{}}
       result.failures=failures;
@@ -1276,6 +1417,7 @@
     catch(error){try{onError(error,0);}catch{}stop();}
     const handle=Object.freeze({
       cancel:stop,
+      invalidate:discardStale,
       get status(){return {...result,pending:!done};},
       get group(){return attached?staging:null;}
     });

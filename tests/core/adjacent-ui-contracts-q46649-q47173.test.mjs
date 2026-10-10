@@ -6,11 +6,12 @@ import { fileURLToPath } from "node:url";
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const files=["src/ui/object-selection-context-ui.js","src/ui/editing-ui.js","src/import/dwfx/reference-scene-ui.js","src/ui/assemblies-runtime.js","src/ui/equipment-library-ui.js"];
 const normalized=files.map(rel=>fs.readFileSync(path.join(root,rel),"utf8").split(/\r?\n/).map(s=>s.trim()).filter(s=>s.length>=8&&!s.startsWith("//")&&s!=="{"&&s!=="}"&&s!=="};").join("\n"));
+// DWFx adjacent pairs were intentionally rebased after indexed scene rendering (PERF-001).
 const has=(fileIndex,pair)=>assert.ok(normalized[fileIndex].includes(pair));
 test("question 46649: preserves adjacent source contract",()=>has(2,"event.stopPropagation();\nconst scene=findScene(project,button.dataset.refSceneEye);"));
 test("question 46650: preserves adjacent source contract",()=>has(2,"const scene=findScene(project,button.dataset.refSceneEye);\nif(!scene)return;"));
 test("question 46651: preserves adjacent source contract",()=>has(2,"if(!scene)return;\nscene.visible=scene.visible===false;"));
-test("question 46652: preserves adjacent source contract",()=>has(2,"scene.visible=scene.visible===false;\nsave?.();"));
+test("question 46652: preserves adjacent source contract",()=>has(2,"scene.visible=scene.visible===false;\nbumpRevision(\"display\");"));
 test("question 46653: preserves adjacent source contract",()=>has(2,"renderAll?.();\nhost.querySelectorAll(\"[data-ref-toggle]\").forEach((button)=>{"));
 test("question 46654: preserves adjacent source contract",()=>has(2,"host.querySelectorAll(\"[data-ref-toggle]\").forEach((button)=>{\nbutton.addEventListener(\"click\",(event)=>{"));
 test("question 46655: preserves adjacent source contract",()=>has(2,"event.stopPropagation();\nconst row=button.closest(\"[data-ref-scene]\");"));
@@ -27,7 +28,7 @@ test("question 46665: preserves adjacent source contract",()=>has(2,"if(!scene)r
 test("question 46666: preserves adjacent source contract",()=>has(2,"const id=String(button.dataset.refEye);\nconst set=new Set(Array.isArray(scene.hiddenNodeIds)?scene.hiddenNodeIds.map(String):[]);"));
 test("question 46667: preserves adjacent source contract",()=>has(2,"const set=new Set(Array.isArray(scene.hiddenNodeIds)?scene.hiddenNodeIds.map(String):[]);\nif(set.has(id))set.delete(id);else set.add(id);"));
 test("question 46668: preserves adjacent source contract",()=>has(2,"if(set.has(id))set.delete(id);else set.add(id);\nscene.hiddenNodeIds=[...set];"));
-test("question 46669: preserves adjacent source contract",()=>has(2,"scene.hiddenNodeIds=[...set];\nsave?.();"));
+test("question 46669: preserves adjacent source contract",()=>has(2,"scene.hiddenNodeIds=[...set];\nbumpRevision(\"display\");"));
 test("question 46670: preserves adjacent source contract",()=>has(2,"renderAll?.();\nhost.querySelectorAll(\"[data-import-editable-tube]\").forEach((row)=>{"));
 test("question 46671: preserves adjacent source contract",()=>has(2,"host.querySelectorAll(\"[data-import-editable-tube]\").forEach((row)=>{\nconst tube=importedEditableTubeById(project,row.dataset.importEditableTube);"));
 test("question 46672: preserves adjacent source contract",()=>has(2,"const tube=importedEditableTubeById(project,row.dataset.importEditableTube);\nif(!tube)return;"));
@@ -71,7 +72,7 @@ test("question 46709: preserves adjacent source contract",()=>has(2,"bulkSelecte
 test("question 46710: preserves adjacent source contract",()=>has(2,"bulkSelected.add(key);\nrangeAnchorKey=key;"));
 test("question 46711: preserves adjacent source contract",()=>has(2,"rangeAnchorKey=key;\nrefreshProjectTree?.();"));
 test("question 46712: preserves adjacent source contract",()=>has(2,"notifyExternalSelection(\"tree\");\nfunction restorePersistedRuntimes(project){"));
-test("question 46713: preserves adjacent source contract",()=>has(2,"function restorePersistedRuntimes(project){\nlet count=0;"));
+test("question 46713: preserves adjacent source contract",()=>has(2,"function restorePersistedRuntimes(project){\nmarkSceneChanged(project,\"geometry\");"));
 test("question 46714: preserves adjacent source contract",()=>has(2,"let count=0;\nfor(const scene of project?.referenceScenes??[]){"));
 test("question 46715: preserves adjacent source contract",()=>has(2,"for(const scene of project?.referenceScenes??[]){\nif(scene?.display_runtime&&registerRuntime(scene.display_runtime))count+=1;"));
 test("question 46716: preserves adjacent source contract",()=>has(2,"if(scene?.display_runtime&&registerRuntime(scene.display_runtime))count+=1;\nreturn count;"));
@@ -82,7 +83,7 @@ test("question 46720: preserves adjacent source contract",()=>has(2,"scene_id:ru
 test("question 46721: preserves adjacent source contract",()=>has(2,"asset_count:runtime.assetsById.size\nwindow.TubeBenderReferenceSceneUi=Object.freeze({"));
 test("question 46722: preserves adjacent source contract",()=>has(2,"window.TubeBenderReferenceSceneUi=Object.freeze({\nregisterRuntime,"));
 test("question 46723: preserves adjacent source contract",()=>has(2,"registerRuntime,\nrender3D,"));
-test("question 46724: preserves adjacent source contract",()=>has(2,"render3D,\ntreeItems,"));
+test("question 46724: preserves adjacent source contract",()=>has(2,"render3D,\nrender3DCooperative,"));
 test("question 46725: preserves adjacent source contract",()=>has(2,"treeItems,\nbindTree,"));
 test("question 46726: preserves adjacent source contract",()=>has(2,"bindTree,\nselectScene,"));
 test("question 46727: preserves adjacent source contract",()=>has(2,"selectScene,\nselectNode,"));

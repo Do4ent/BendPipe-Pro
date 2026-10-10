@@ -18,10 +18,16 @@ on:
       - feature/perf-dwfx-revision-counters-20261010
       - feature/perf-dwfx-writer-revisions-20261010
       - feature/perf-dwfx-crossmodule-audit-20261010
+      - feature/perf-browser-acceptance-evidence-20261010
   workflow_dispatch:
   pull_request:
     branches:
       - feature/mobile-viewport-mob001-20261010
+      - feature/perf-dwfx-crossmodule-audit-20261010
+
+concurrency:
+  group: perf-001-003-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   core-perf:
@@ -32,8 +38,35 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Syntax-check PERF runtime, renderer, and browser tests
+        run: |
+          node --check src/import/dwfx/reference-scene-ui.js
+          node --check src/domain/performance/render-startup.mjs
+          node --check scripts/build-standalone.mjs
+          node --check tests/browser/perf-001-003.spec.mjs
+          node --check tests/browser/perf-001-redraw-timing.spec.mjs
+          node --check tests/browser/perf-001-startup-longtasks.spec.mjs
+          node --check tests/core/perf-dwfx-source-index.test.mjs
+          node --check tests/core/perf-dwfx-project-wide-index.test.mjs
+          node --check tests/core/perf-dwfx-inflight-mutation.test.mjs
+          node --check tests/core/perf-dwfx-recovery-coalescer.test.mjs
+          node --check tests/core/perf-dwfx-frame-task-cancel.test.mjs
+          node --check tests/core/perf-dwfx-render-supersession.test.mjs
+          node --check tests/core/perf-dwfx-single-pass-index.test.mjs
       - name: Test frame coalescer and isolated startup
         run: node --test tests/core/perf-001-003.test.mjs
+      - name: Test indexed DWFx scene rendering and cache reuse
+        run: node --test tests/core/perf-dwfx-source-index.test.mjs
+      - name: Test multi-scene DWFx source index
+        run: node --test tests/core/perf-dwfx-project-wide-index.test.mjs
+      - name: Test in-flight DWFx mutation and stale-scene recovery
+        run: node --test tests/core/perf-dwfx-inflight-mutation.test.mjs
+      - name: Test coalesced DWFx stale recovery and task cancellation
+        run: node --test tests/core/perf-dwfx-recovery-coalescer.test.mjs tests/core/perf-dwfx-frame-task-cancel.test.mjs
+      - name: Test DWFx render supersession cancels obsolete frame and timer work
+        run: node --test tests/core/perf-dwfx-render-supersession.test.mjs
+      - name: Verify single-pass DWFx source indexing
+        run: node --test tests/core/perf-dwfx-single-pass-index.test.mjs
       - name: Run existing regression suite
         run: npm test
       - name: Verify full standalone build
