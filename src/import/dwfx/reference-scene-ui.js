@@ -1056,7 +1056,7 @@
     bumpRevision(kind);
     invalidateSceneCache();
   }
-  const sceneReuseStats={hits:0,misses:0,invalidations:0,signatureCalls:0,signatureTimeMs:0,maxSignatureTimeMs:0,lastSignatureTimeMs:0,lastSignatureBytes:0,emptyFastPaths:0};
+  const sceneReuseStats={hits:0,misses:0,invalidations:0,signatureCalls:0,signatureTimeMs:0,maxSignatureTimeMs:0,lastSignatureTimeMs:0,lastSignatureBytes:0,emptyFastPaths:0,lastLinksTimeMs:0,lastSerializeTimeMs:0,emptyFastPaths:0};
   // Explicit invalidation for import/replacement and renderer disposal.
   // Uninstrumented mutation paths still use the conservative source signature.
   function invalidateSceneCache(){
@@ -1085,6 +1085,7 @@
       sourceFormat:tube?.currentProjectImport?.source_format,
       importedPart:tube?.currentProjectImport?.part_number
     }));
+    const linksFinished=meshNow();
     const signature=JSON.stringify({
       scenes:project?.referenceScenes??[],
       meshInstances:project?.editable_mesh_instances??[],
@@ -1094,7 +1095,10 @@
       geomScale,
       revisions:revisionSnapshot()
     });
-    const elapsed=Math.max(0,meshNow()-started);
+    const finished=meshNow();
+    const elapsed=Math.max(0,finished-started);
+    sceneReuseStats.lastLinksTimeMs=Math.max(0,linksFinished-started);
+    sceneReuseStats.lastSerializeTimeMs=Math.max(0,finished-linksFinished);
     sceneReuseStats.signatureCalls++;
     sceneReuseStats.signatureTimeMs+=elapsed;
     sceneReuseStats.lastSignatureTimeMs=elapsed;
