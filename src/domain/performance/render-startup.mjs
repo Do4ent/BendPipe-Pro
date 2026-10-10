@@ -56,6 +56,63 @@ export function createFrameCoalescer({requestFrame,cancelFrame=()=>{},render,onE
 }
 
 /**
+ * PERF-001: one stale DWFx recovery per animation frame, targeting only the
+ * latest still-active project. A regular scene render can cancel an obsolete
+ * retry. Epoch checks also guard against ineffective cancelFrame adapters.
+ */
+export function createSceneRecoveryCoalescer({
+  requestFrame,cancelFrame=()=>{},isCurrent,render,onError=()=>{}
+}){
+  if(typeof requestFrame!=="function"||typeof isCurrent!=="function"||
+     typeof render!=="function"){
+    throw new TypeError("requestFrame, isCurrent and render are required");
+  }
+  let frameId=null,latestProject=null,epoch=0,disposed=false;
+  const stats={requests:0,frames:0,coalesced:0,cancelled:0,skipped:0,rendered:0,failures:0};
+  const report=(error)=>{
+    stats.failures++;
+    try{onError(error);}catch{}
+  };
+  function run(token){
+    if(disposed||token!==epoch||frameId===null)return;
+    frameId=null;
+    const project=latestProject;
+    latestProject=null;
+    let current=false;
+    try{current=isCurrent(project);}
+    catch(error){report(error);return;}
+    if(!current){stats.skipped++;return;}
+    try{render(project);stats.rendered++;}
+    catch(error){report(error);}
+  }
+  function cancel(){
+    if(frameId===null)return false;
+    epoch++;
+    const id=frameId;
+    frameId=null;latestProject=null;
+    stats.cancelled++;
+    try{cancelFrame(id);}catch(error){report(error);}
+    return true;
+  }
+  return Object.freeze({
+    schedule(project){
+      if(disposed||project==null)return false;
+      stats.requests++;
+      latestProject=project;
+      if(frameId!==null){stats.coalesced++;return true;}
+      const token=++epoch;
+      try{frameId=requestFrame(()=>run(token));stats.frames++;}
+      catch(error){frameId=null;latestProject=null;report(error);return false;}
+      return true;
+    },
+    cancel,
+    dispose(){cancel();disposed=true;},
+    get pending(){return frameId!==null;},
+    get stats(){return {...stats};}
+  });
+}
+
+/**
  * PERF-003: one failing optional initialization step cannot prevent bind() or
  * the remaining startup phases from being attempted.
  */
