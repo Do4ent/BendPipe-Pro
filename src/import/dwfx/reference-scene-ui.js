@@ -1583,6 +1583,7 @@
   }
 
   function toggleSceneSelection(scene,checked){
+    bumpRevision("selection");
     for(const node of collectSelectableNodes(scene?.tree??[])){
       const key=selectionKey(scene.id,node.id);
       if(checked)bulkSelected.add(key);else bulkSelected.delete(key);
@@ -1590,6 +1591,7 @@
   }
 
   function toggleNodeSelection(scene,node,checked){
+    bumpRevision("selection");
     for(const item of collectSelectableSubtree(node)){
       const key=selectionKey(scene.id,item.id);
       if(checked)bulkSelected.add(key);else bulkSelected.delete(key);
@@ -1597,6 +1599,7 @@
   }
 
   function applyBulkVisibility(project,visible){
+    bumpRevision("display");
     for(const {scene,node} of selectedEntries(project)){
       const hidden=hiddenSet(scene);
       if(visible){
@@ -1610,6 +1613,7 @@
   }
 
   function isolateSelection(project){
+    bumpRevision("display");
     const selectedTop=selectedTopLevelEntries(project);
     const selectedByScene=new Map();
     for(const {scene,node} of selectedTop){
@@ -1655,6 +1659,7 @@
   }
 
   function showAll(project){
+    bumpRevision("display");
     let changed=0;
     for(const scene of project?.referenceScenes??[]){
       if(scene?.visible===false)changed+=1;
@@ -1666,6 +1671,7 @@
   }
 
   function applyBulkTransparency(project){
+    bumpRevision("display");
     const entries=selectedEntries(project);
     if(!entries.length)return;
     const allTransparent=entries.every(({scene,node})=>
@@ -1813,6 +1819,7 @@
     const additive=!!(ctrlKey||metaKey);
     const target=sceneNodeFromKey(project,targetKey);
     if(!target||!selectableNode(target.node))return selectedCount(project);
+    bumpRevision("selection");
 
     if(shiftKey){
       const keys=Array.isArray(orderedKeys)?orderedKeys.map(String):[];
@@ -1873,6 +1880,7 @@
   }
 
   function selectOnlyNode(project,sceneId,nodeId){
+    bumpRevision("selection");
     bulkSelected.clear();
     const scene=findScene(project,sceneId);
     const node=findNode(scene?.tree,nodeId);
@@ -2153,6 +2161,7 @@
         const scene=findScene(project,button.dataset.refSceneEye);
         if(!scene)return;
         scene.visible=scene.visible===false;
+        bumpRevision("display");
         save?.();
         renderAll?.();
       });
@@ -2183,6 +2192,7 @@
         const set=new Set(Array.isArray(scene.hiddenNodeIds)?scene.hiddenNodeIds.map(String):[]);
         if(set.has(id))set.delete(id);else set.add(id);
         scene.hiddenNodeIds=[...set];
+        bumpRevision("display");
         save?.();
         renderAll?.();
       });
