@@ -99,19 +99,24 @@ jobs:
         continue-on-error: true
         run: TB_BROWSER_REPORT_NAME=chromium-baseline npx playwright test --config acceptance/playwright.config.mjs --grep 'Chromium baseline responds'
       - name: Build standalone under test
+        id: standalone_build
+        continue-on-error: true
         run: npm run build:standalone
       - name: Validate generated Standalone JavaScript syntax
+        if: steps.standalone_build.outcome == 'success'
         run: node scripts/check-standalone-syntax.mjs
       - name: Verify PERF-001 and PERF-003 application behavior
+        if: steps.standalone_build.outcome == 'success'
         id: chromium_app
         continue-on-error: true
         run: TB_BROWSER_REPORT_NAME=tubebender-application npx playwright test --config acceptance/playwright.config.mjs --grep 'PERF-00[13]' --grep-invert 'Chromium baseline responds'
       - name: Enforce Chromium baseline and application acceptance
         if: always()
         run: |
+          echo "Standalone build: ${{ steps.standalone_build.outcome }}"
           echo "Chromium baseline: ${{ steps.chromium_baseline.outcome }}"
           echo "TubeBender browser acceptance: ${{ steps.chromium_app.outcome }}"
-          if [ "${{ steps.chromium_baseline.outcome }}" != success ] || [ "${{ steps.chromium_app.outcome }}" != success ]; then exit 1; fi
+          if [ "${{ steps.standalone_build.outcome }}" != success ] || [ "${{ steps.chromium_baseline.outcome }}" != success ] || [ "${{ steps.chromium_app.outcome }}" != success ]; then exit 1; fi
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
