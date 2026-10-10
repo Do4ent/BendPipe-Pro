@@ -1075,14 +1075,13 @@
       sceneReuseStats.emptyFastPaths++;
       return "empty-reference-scenes";
     }
-    const sourceLinks=(project?.tubes??[]).map(tube=>({
+    // Include link collection in measured time: it can dominate serialization\n    // for projects with many editable tubes. Legacy mutation safety is unchanged.\n    const started=meshNow();\n    const sourceLinks=(project?.tubes??[]).map(tube=>({
       id:tube?.id,
       partNumber:tube?.partNumber??tube?.part_number,
       source:tube?.currentProjectImport?.source_link,
       sourceFormat:tube?.currentProjectImport?.source_format,
       importedPart:tube?.currentProjectImport?.part_number
     }));
-    const started=meshNow();
     const signature=JSON.stringify({
       scenes:project?.referenceScenes??[],
       meshInstances:project?.editable_mesh_instances??[],
