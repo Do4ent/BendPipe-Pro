@@ -25,6 +25,10 @@ on:
       - feature/mobile-viewport-mob001-20261010
       - feature/perf-dwfx-crossmodule-audit-20261010
 
+concurrency:
+  group: perf-001-003-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   core-perf:
     runs-on: ubuntu-latest
