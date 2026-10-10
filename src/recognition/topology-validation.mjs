@@ -79,7 +79,12 @@ export function validateCandidateTopology(
     if(i===0){
       if(p?.type==="LINE"||p?.type==="BEND"){
         try{
-          startPoint(p);endPoint(p);startTangent(p);endTangent(p);
+          startPoint(p);endPoint(p);
+          const firstStartTangent=startTangent(p);
+          const firstEndTangent=endTangent(p);
+          if(!unit(firstStartTangent)||!unit(firstEndTangent)){
+            issues.push({code:"UNDEFINED_TANGENT",index:i,message:"Primitive tangent direction is undefined."});
+          }
         }catch(error){
           issues.push({code:"INVALID_PRIMITIVE_DATA",index:i,message:error.message});
         }
