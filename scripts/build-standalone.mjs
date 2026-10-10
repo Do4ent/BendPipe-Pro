@@ -3163,20 +3163,27 @@ const guardedBindings=bindSection.replace(/qs\('([^']+)'\)\.addEventListener\(/g
 output=output.slice(0,bindStart)+guardedBindings+output.slice(bindEnd);
 const perfBootstrapSource =
   "const tbRunIsolatedStartup=(" + runIsolatedStartup.toString() + ");\n" +
-  "window.TubeBenderStartupStatus={phases:[],booted:false,startedAt:performance.now()};\n" +
-  "window.addEventListener('DOMContentLoaded',()=>{\n" +
+  "window.TubeBenderStartupStatus={phases:[],booted:false,starting:false,startedAt:performance.now()};\n" +
+  "function tbStartCore(){\n" +
   "  const status=window.TubeBenderStartupStatus;\n" +
+  "  if(status.booted||status.starting)return;\n" +
+  "  status.starting=true;\n" +
   "  const onError=(name,error)=>console.error('TubeBender startup '+name,error);\n" +
   "  status.phases.push(...tbRunIsolatedStartup([\n" +
   "    ['ensureIndustrialState',()=>ensureIndustrialState()],\n" +
   "    ['ensureCurrentTubeVisible',()=>ensureCurrentTubeVisible()],\n" +
   "    ['bind',()=>bind()]\n" +
   "  ],onError));\n" +
-  "  status.booted=true;\n" +
-  "  // Do not block the first interactive shell paint on heavy CAD rendering.\n" +
+  "  status.booted=true;status.starting=false;\n" +
+  "  // Heavy CAD redraw follows the first possible paint.\n" +
   "  const schedule=typeof requestAnimationFrame==='function'?requestAnimationFrame:callback=>setTimeout(callback,0);\n" +
   "  schedule(()=>status.phases.push(...tbRunIsolatedStartup([['renderAll',()=>renderAll()]],onError)));\n" +
-  "});";
+  "}\n" +
+  "// Core controls already exist by this late inline script; bind now instead\n" +
+  "// of waiting for unrelated optional scripts to finish DOMContentLoaded.\n" +
+  "if(document.getElementById('app')&&document.getElementById('projectCombo')&&document.getElementById('pipeSelect'))tbStartCore();\n" +
+  "else if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tbStartCore,{once:true});\n" +
+  "else tbStartCore();";
 if(!output.includes(perfInitAnchor))throw new Error("PERF-003 initialization hook anchor missing");
 output=output.replace(perfInitAnchor,perfBootstrapSource);
 if(!output.includes("window.TubeBenderStartupStatus") ||
