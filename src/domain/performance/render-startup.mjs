@@ -98,6 +98,12 @@ export function createSceneRecoveryCoalescer({
     schedule(project){
       if(disposed||project==null)return false;
       stats.requests++;
+      // An obsolete project must not displace a queued recovery for the
+      // current project if stale notifications arrive out of order.
+      let current=false;
+      try{current=isCurrent(project);}
+      catch(error){report(error);return false;}
+      if(!current){stats.skipped++;return false;}
       latestProject=project;
       if(frameId!==null){stats.coalesced++;return true;}
       const token=++epoch;
