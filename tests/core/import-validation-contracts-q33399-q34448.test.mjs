@@ -905,8 +905,8 @@ test("question 34293: preserves source contract",()=>has(9,"const output = await
 test("question 34294: preserves source contract",()=>has(9,"return new Uint8Array(output);"));
 test("question 34295: preserves source contract",()=>has(10,"function p3(v,name){"));
 test("question 34296: preserves source contract",()=>has(10,"if(!Array.isArray(v)||v.length!==3)throw new TypeError(`${name} must be [x,y,z]`);"));
-test("question 34297: preserves source contract",()=>has(10,"const p=v.map(Number);"));
-test("question 34298: preserves source contract",()=>has(10,"if(!p.every(Number.isFinite))throw new RangeError(`${name} contains non-finite values`);"));
+test("question 34297: preserves source contract",()=>has(10,"const p=v;"));
+test("question 34298: preserves source contract",()=>has(10,"if(!p.every(x=>typeof x===\"number\"&&Number.isFinite(x)))throw new RangeError(`${name} must contain finite numeric coordinates`);"));
 test("question 34299: preserves source contract",()=>has(10,"const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];"));
 test("question 34300: preserves source contract",()=>has(10,"const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];"));
 test("question 34301: preserves source contract",()=>has(10,"const len=a=>Math.hypot(a[0],a[1],a[2]);"));
