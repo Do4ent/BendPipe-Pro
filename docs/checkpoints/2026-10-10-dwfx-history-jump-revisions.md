@@ -4,7 +4,7 @@ Base: `feature/perf-legacy-project-switch-20261010`; working branch: `feature/pe
 
 - When a History timeline jump successfully restores a snapshot, notify the central DWFx revision tracker with a geometry change before updating the timeline UI.
 - Failed restoration exits before notification; jumps to the current cursor exit before restoration.
-- Added focused Node regression for the generated History-jump hook and its ordering.
+- Added executable VM-based Node regressions exercising successful snapshot restoration, rejected restoration and a no-op jump. The tests assert notification counts, geometry category and timeline state.
 - Preserve the conservative JSON source signature fallback for other legacy in-place mutation paths.
 - `main` is unchanged.
 
