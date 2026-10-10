@@ -7,7 +7,12 @@ function freeze(value){
   }
   return value;
 }
-function finite(value){const n=Number(value);return Number.isFinite(n)?n:null;}
+function finite(value){
+  // Do not turn absent or ambiguous CAD dimensions into an authoritative zero.
+  if(value==null||typeof value==="boolean"||(typeof value==="string"&&!value.trim()))return null;
+  if(typeof value!=="number"&&typeof value!=="string")return null;
+  const n=Number(value);return Number.isFinite(n)?n:null;
+}
 function median(values=[]){
   const list=values.map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
   if(!list.length)return null;
