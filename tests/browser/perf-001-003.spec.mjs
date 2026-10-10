@@ -20,8 +20,7 @@ function captureStartupDiagnostics(page){
     return JSON.stringify({state,failures:failures.slice(0,25)},null,2);
   };
 }
-async function expectStartup(page,predicate,timeout){
-  const diagnostics=captureStartupDiagnostics(page);
+async function expectStartup(page,predicate,timeout,diagnostics){
   try{
     await expect.poll(()=>page.evaluate(predicate),{timeout,intervals:[200,800,2000]}).toBe(true);
   }catch(error){
@@ -32,18 +31,20 @@ async function expectStartup(page,predicate,timeout){
 
 test("[PERF-003] core event binding survives isolated startup stages",async({page})=>{
   test.setTimeout(140000);
+  const diagnostics=captureStartupDiagnostics(page);
   const response=await page.goto(html,{waitUntil:"commit",timeout:15000});
   expect(response?.status()).toBe(200);
-  await expectStartup(page,()=>Boolean(window.TubeBenderStartupStatus?.booted===true&&document.getElementById("projectCombo")),110000);
+  await expectStartup(page,()=>Boolean(window.TubeBenderStartupStatus?.booted===true&&document.getElementById("projectCombo")),110000,diagnostics);
   const startup=await page.evaluate(()=>window.TubeBenderStartupStatus?.phases??[]);
   expect(startup.some(stage=>stage.name==="bind"&&stage.status==="ok")).toBe(true);
 });
 
 test("[PERF-001] repeated renders produce at most one 3D redraw per frame",async({page})=>{
   test.setTimeout(150000);
+  const diagnostics=captureStartupDiagnostics(page);
   const response=await page.goto(html,{waitUntil:"commit",timeout:15000});
   expect(response?.status()).toBe(200);
-  await expectStartup(page,()=>Boolean(window.TubeBenderStartupStatus?.booted&&window.TubeBenderEngineering?.renderAll&&window.TubeBenderRenderPerformance),115000);
+  await expectStartup(page,()=>Boolean(window.TubeBenderStartupStatus?.booted&&window.TubeBenderEngineering?.renderAll&&window.TubeBenderRenderPerformance),115000,diagnostics);
   const result=await page.evaluate(async()=>{
     // A real model update, no mocked render implementation.
     const perf=window.TubeBenderRenderPerformance;
