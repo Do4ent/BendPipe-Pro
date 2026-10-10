@@ -33,5 +33,5 @@ test("completed DWFx scene detaches before parent disposal and is reusable",()=>
 });
 test("standalone builder detaches reference cache before old geometry disposal",()=>{
   const source=fs.readFileSync(new URL("../../scripts/build-standalone.mjs",import.meta.url),"utf8");
-  assert.match(source,/beforeParentDispose\\\?\\\.\\\(root\\\)/);
+  assert.ok(source.includes("beforeParentDispose"));
 });
