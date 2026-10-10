@@ -2000,6 +2000,8 @@
   function runSourceLinkCommand(label,mutate,{modelCommand,save,renderAll,refreshProjectTree,reloadActiveTube}={}){
     const ok=typeof modelCommand==="function"?modelCommand(label,mutate):mutate();
     if(ok===false)return false;
+    // Source link operations mutate the reference display or geometry snapshot.
+    markSceneChanged(null,/Показать|Скрыть|Сравнить/.test(label)?"display":"geometry");
     save?.();
     reloadActiveTube?.();
     renderAll?.();
