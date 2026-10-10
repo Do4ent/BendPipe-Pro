@@ -26,7 +26,7 @@ test("PERF-001: empty reference project does not serialize large tube arrays",()
   const second=api.render3DCooperative({...opts,parent:new Group()});
   assert.equal(second.status.reused,true);
   const stats=api.sceneReuseStats();
-  assert.equal(stats.emptyFastPaths,2);
+  assert.equal(stats.emptyFastPaths,3,"initial build now checks again before commit");
   assert.equal(stats.signatureCalls,0);
   project.referenceScenes=[{id:"new",visible:true,display_runtime:{
     scene_id:"new",assets:[],scale_mm_per_source_unit:1
