@@ -65,8 +65,15 @@
         }
 
         const geometry=new THREE.BufferGeometry();
-        geometry.setAttribute("position",new THREE.BufferAttribute(positions,3));
-        geometry.setIndex(new THREE.BufferAttribute(indices,1));
+        // StaticDrawUsage is the correct GPU usage hint for immutable CAD meshes.
+        const positionAttribute=new THREE.BufferAttribute(positions,3);
+        if(typeof positionAttribute.setUsage==="function"&&THREE.StaticDrawUsage!=null)
+          positionAttribute.setUsage(THREE.StaticDrawUsage);
+        geometry.setAttribute("position",positionAttribute);
+        const indexAttribute=new THREE.BufferAttribute(indices,1);
+        if(typeof indexAttribute.setUsage==="function"&&THREE.StaticDrawUsage!=null)
+          indexAttribute.setUsage(THREE.StaticDrawUsage);
+        geometry.setIndex(indexAttribute);
         if(prepared?.normals){
           geometry.setAttribute("normal",new THREE.BufferAttribute(prepared.normals,3));
         }else{
