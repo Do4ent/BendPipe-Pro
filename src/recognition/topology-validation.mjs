@@ -50,9 +50,16 @@ export function validateCandidateTopology(
   }={}
 ){
   if(!Array.isArray(primitives))throw new TypeError("primitives must be an array");
-  if(!(endpoint_tolerance_mm>=0))throw new RangeError("endpoint_tolerance_mm must be >= 0");
-  if(!(tangent_angle_tolerance_deg>=0&&tangent_angle_tolerance_deg<180)){
-    throw new RangeError("tangent_angle_tolerance_deg must be in [0,180)");
+  // A non-finite or coerced endpoint tolerance can make an arbitrary gap
+  // appear continuous, producing unsafe "candidate_valid" geometry.
+  if(typeof endpoint_tolerance_mm!=="number"||
+    !Number.isFinite(endpoint_tolerance_mm)||endpoint_tolerance_mm<0){
+    throw new RangeError("endpoint_tolerance_mm must be a finite number >= 0");
+  }
+  if(typeof tangent_angle_tolerance_deg!=="number"||
+    !Number.isFinite(tangent_angle_tolerance_deg)||
+    tangent_angle_tolerance_deg<0||tangent_angle_tolerance_deg>=180){
+    throw new RangeError("tangent_angle_tolerance_deg must be a finite number in [0,180)");
   }
 
   const issues=[];
@@ -67,7 +74,18 @@ export function validateCandidateTopology(
     if(!p||!["LINE","BEND"].includes(p.type)){
       issues.push({code:"UNSUPPORTED_PRIMITIVE",index:i,message:`Unsupported primitive type at index ${i}.`});
     }
-    if(i===0)continue;
+    // The first primitive has no neighbor to trigger pairwise checks.
+    // Validate its intrinsic points and direction independently.
+    if(i===0){
+      if(p?.type==="LINE"||p?.type==="BEND"){
+        try{
+          startPoint(p);endPoint(p);startTangent(p);endTangent(p);
+        }catch(error){
+          issues.push({code:"INVALID_PRIMITIVE_DATA",index:i,message:error.message});
+        }
+      }
+      continue;
+    }
     const prev=primitives[i-1];
 
     if(prev?.type===p?.type){
