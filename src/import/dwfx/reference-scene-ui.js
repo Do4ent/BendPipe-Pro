@@ -250,10 +250,46 @@
     );
   }
 
-  function meshSourceDisplayState(project,scene,node){
-    const instances=meshInstancesForSource(project,scene?.id,node?.id);
+  // PERF-001: build source-link and mesh-instance lookups once per rendered
+  // reference scene rather than rescanning the entire project for every node.
+  // This index is deliberately short-lived: conservative signature checks still
+  // detect direct writes from legacy modules between render requests.
+  function buildSourceRenderIndex(project,sceneId){
+    const sid=String(sceneId??"");
+    const firstLinked=new Map(),firstAny=new Map(),meshByNode=new Map();
+    for(const tube of linkedEditableTubes(project)){
+      const link=sourceLink(tube);
+      if(!link||String(link.scene_id??"")!==sid)continue;
+      const nodeId=String(link.node_id??"");
+      if(!firstAny.has(nodeId))firstAny.set(nodeId,tube);
+      if(link.detached!==true&&!firstLinked.has(nodeId))
+        firstLinked.set(nodeId,tube);
+    }
+    for(const instance of editableMeshInstanceList(project,{create:false})){
+      if(instance?.link_status==="detached"||
+         String(instance?.source?.scene_id??"")!==sid)continue;
+      const nodeId=String(instance?.source?.node_id??"");
+      if(!meshByNode.has(nodeId))meshByNode.set(nodeId,[]);
+      meshByNode.get(nodeId).push(instance);
+    }
+    let entries=[];
+    try{entries=window.TubeBenderObjectContext?.selectionEntries?.()??[];}
+    catch{}
+    if(!Array.isArray(entries))entries=[];
+    const selectedTubeIds=new Set(entries.filter(entry=>entry?.kind==="tube")
+      .map(entry=>String(entry.tubeId)));
+    const selectedInstanceIds=new Set(entries.filter(entry=>entry?.kind==="mesh-instance")
+      .map(entry=>String(entry.instanceId)));
+    sceneReuseStats.sourceIndexBuilds++;
+    return {firstLinked,firstAny,meshByNode,selectedTubeIds,selectedInstanceIds};
+  }
+
+  function meshSourceDisplayState(project,scene,node,lookup=null){
+    const instances=lookup
+      ? (lookup.meshByNode.get(String(node?.id??""))??[])
+      : meshInstancesForSource(project,scene?.id,node?.id);
     if(!instances.length)return null;
-    const selectedInstanceIds=new Set(
+    const selectedInstanceIds=lookup?.selectedInstanceIds??new Set(
       (window.TubeBenderObjectContext?.selectionEntries?.()??[])
         .filter((entry)=>entry?.kind==="mesh-instance")
         .map((entry)=>String(entry.instanceId))
@@ -270,11 +306,13 @@
     };
   }
 
-  function sourceDisplayState(project,scene,node){
-    const linked=linkedTubeForSource(project,scene?.id,node?.id);
+  function sourceDisplayState(project,scene,node,lookup=null){
+    const linked=lookup
+      ? (lookup.firstLinked.get(String(node?.id??""))??null)
+      : linkedTubeForSource(project,scene?.id,node?.id);
     if(!linked)return null;
     const link=sourceLink(linked);
-    const selectedEditable=selectedEditableTubeIds().has(String(linked.id));
+    const selectedEditable=(lookup?.selectedTubeIds??selectedEditableTubeIds()).has(String(linked.id));
     const display=String(link?.display??"hidden");
     return {
       tube:linked,
@@ -795,7 +833,8 @@
     runtime,
     project,
     THREE,
-    geomScale
+    geomScale,
+    sourceLookup=null
   }){
     if(sceneMeta?.visible===false)return;
     const sceneGroup=new THREE.Group();
@@ -810,6 +849,7 @@
     const transparent=transparentSet(sceneMeta);
     const editable=editablePartSet(project);
     const selectedKeys=selectedKeySet();
+    const renderLookup=sourceLookup??buildSourceRenderIndex(project,sceneMeta.id);
     const selectedGroups=[];
 
     const visit=(
@@ -824,9 +864,9 @@
       const translation=addTranslationMm(parentTranslation,nodeTranslationMm(node));
 
       const recognizedPart=String(node.editable_part_number??"");
-      const linkedState=sourceDisplayState(project,sceneMeta,node);
-      const meshState=meshSourceDisplayState(project,sceneMeta,node);
-      const sourceTube=anyEditableTubeForSource(project,sceneMeta.id,node.id);
+      const linkedState=sourceDisplayState(project,sceneMeta,node,renderLookup);
+      const meshState=meshSourceDisplayState(project,sceneMeta,node,renderLookup);
+      const sourceTube=renderLookup.firstAny.get(String(node.id))??null;
       const detachedSource=sourceLink(sourceTube)?.detached===true;
       const suppressEditable=meshState
         ? !meshState.visible
@@ -1056,7 +1096,7 @@
     bumpRevision(kind);
     invalidateSceneCache();
   }
-  const sceneReuseStats={hits:0,misses:0,invalidations:0,signatureCalls:0,signatureTimeMs:0,maxSignatureTimeMs:0,lastSignatureTimeMs:0,lastSignatureBytes:0,emptyFastPaths:0,lastLinksTimeMs:0,lastSerializeTimeMs:0};
+  const sceneReuseStats={hits:0,misses:0,invalidations:0,signatureCalls:0,signatureTimeMs:0,maxSignatureTimeMs:0,lastSignatureTimeMs:0,lastSignatureBytes:0,emptyFastPaths:0,lastLinksTimeMs:0,lastSerializeTimeMs:0,sourceIndexBuilds:0};
   // Explicit invalidation for import/replacement and renderer disposal.
   // Uninstrumented mutation paths still use the conservative source signature.
   function invalidateSceneCache(){
@@ -1155,6 +1195,7 @@
     }
     sceneReuseStats.misses++;
     const staging=new THREE.Group();
+    const sceneLookups=new Map();
     staging.name="DWFx cooperative geometry";
     const work=[];
     for(const sceneMeta of project.referenceScenes??[]){
@@ -1261,10 +1302,15 @@
       for(;index<limit;index++){
         const {sceneMeta,runtime,root}=work[index];
         try{
+          let sourceLookup=sceneLookups.get(sceneMeta);
+          if(!sourceLookup){
+            sourceLookup=buildSourceRenderIndex(project,sceneMeta.id);
+            sceneLookups.set(sceneMeta,sourceLookup);
+          }
           renderSceneTree({
             parent:staging,
             sceneMeta:{...sceneMeta,tree:[root]},
-            runtime,project,THREE,geomScale
+            runtime,project,THREE,geomScale,sourceLookup
           });
         }catch(error){
           failures++;
