@@ -94,14 +94,14 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Syntax-check PERF browser specs
         run: node --check tests/browser/perf-001-003.spec.mjs
-      - name: Build standalone under test
-        run: npm run build:standalone
-      - name: Validate generated Standalone JavaScript syntax
-        run: node scripts/check-standalone-syntax.mjs
       - name: Verify Chromium baseline without TubeBender
         id: chromium_baseline
         continue-on-error: true
         run: TB_BROWSER_REPORT_NAME=chromium-baseline npx playwright test --config acceptance/playwright.config.mjs --grep 'Chromium baseline responds'
+      - name: Build standalone under test
+        run: npm run build:standalone
+      - name: Validate generated Standalone JavaScript syntax
+        run: node scripts/check-standalone-syntax.mjs
       - name: Verify PERF-001 and PERF-003 application behavior
         id: chromium_app
         continue-on-error: true
