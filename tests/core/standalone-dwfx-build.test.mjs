@@ -408,7 +408,7 @@ test("A50: 3D component selection preserves the current viewer framing",()=>{
   assert.match(html,/queueMicrotask\(\(\)=>\{preserveViewerFrameForCanvasInteraction=false;\}\)/);
   assert.match(
     html,
-    /safeUiCall\('renderViewerOnly', \(\)=>renderViewerOnly\(!preserveViewerFrameForCanvasInteraction\)\)/
+    /tbViewerFrameCoalescer\.schedule\(!preserveViewerFrameForCanvasInteraction\)/
   );
 });
 
