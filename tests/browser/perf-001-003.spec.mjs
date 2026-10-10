@@ -63,8 +63,9 @@ test("[PERF-003] core event binding survives isolated startup stages",async({pag
   const response=await page.goto(html,{waitUntil:"commit",timeout:15000});
   expect(response?.status()).toBe(200);
   await expectStartup(page,()=>Boolean(window.TubeBenderStartupStatus?.booted===true&&document.getElementById("projectCombo")),110000,diagnostics);
-  const startup=await page.evaluate(()=>window.TubeBenderStartupStatus?.phases??[]);
-  expect(startup.some(stage=>stage.name==="bind"&&stage.status==="ok")).toBe(true);
+  await expectStartup(page,()=>Boolean(window.TubeBenderStartupStatus?.phases?.some(
+    stage=>stage.name==="bind"&&stage.status==="ok"
+  )),10000,diagnostics);
 });
 
 test("[PERF-001] repeated renders produce at most one 3D redraw per frame",async({page})=>{
@@ -73,7 +74,7 @@ test("[PERF-001] repeated renders produce at most one 3D redraw per frame",async
   const response=await page.goto(html,{waitUntil:"commit",timeout:15000});
   expect(response?.status()).toBe(200);
   await expectStartup(page,()=>Boolean(window.TubeBenderStartupStatus?.booted&&window.TubeBenderEngineering?.renderAll&&window.TubeBenderRenderPerformance),115000,diagnostics);
-  const result=await page.evaluate(async()=>{
+  const measurement=page.evaluate(async()=>{
     // A real model update, no mocked render implementation.
     const perf=window.TubeBenderRenderPerformance;
     const before=perf.stats;
@@ -84,6 +85,13 @@ test("[PERF-001] repeated renders produce at most one 3D redraw per frame",async
     return {requests:during.requests-before.requests,drawsDuring:during.draws-before.draws,
       drawsTotal:after.draws-before.draws};
   });
+  let measurementTimer;
+  const result=await Promise.race([
+    measurement,
+    new Promise((_,reject)=>{
+      measurementTimer=setTimeout(()=>reject(new Error("PERF-001 redraw measurement timed out. Browser evidence:\\n"+diagnostics.fatalFailure())),10000);
+    })
+  ]).finally(()=>clearTimeout(measurementTimer));
   expect(result.requests).toBe(3);
   expect(result.drawsDuring).toBe(0);
   expect(result.drawsTotal).toBeLessThanOrEqual(1);
