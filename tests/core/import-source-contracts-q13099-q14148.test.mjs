@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+// PERF-001 intentional source-contract migration: indexed DWFx paths replace repeated project scans.
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const files=[
   "src/import/dwfx/reference-scene-ui.js",
@@ -39,7 +40,7 @@ test("question 13121: preserves source contract",()=>has(0,"return (c[0]<<16)|(c
 test("question 13122: preserves source contract",()=>has(0,"function buildAssetTemplate(runtime,asset,THREE,displayMode=\"normal\"){"));
 test("question 13123: preserves source contract",()=>has(0,"const transparent=displayMode===\"transparent\";"));
 test("question 13124: preserves source contract",()=>has(0,"const key=String(runtime.scene_id)+\"|\"+String(asset.id)+\"|\"+displayMode;"));
-test("question 13125: preserves source contract",()=>has(0,"if(templates.has(key))return templates.get(key);"));
+test("question 13125: preserves source contract",()=>has(0,"if(templates.has(key)){"));
 test("question 13126: preserves source contract",()=>has(0,"const group=new THREE.Group();"));
 test("question 13127: preserves source contract",()=>has(0,"group.userData.referenceShared=true;"));
 test("question 13128: preserves source contract",()=>has(0,"group.userData.referenceAssetId=asset.id;"));
@@ -48,19 +49,19 @@ test("question 13130: preserves source contract",()=>has(0,"for(const item of as
 test("question 13131: preserves source contract",()=>has(0,"const vertices=item.vertices??[];"));
 test("question 13132: preserves source contract",()=>has(0,"const faces=item.faces??[];"));
 test("question 13133: preserves source contract",()=>has(0,"if(!vertices.length||!faces.length)continue;"));
-test("question 13134: preserves source contract",()=>has(0,"const positions=new Float32Array(vertices.length*3);"));
-test("question 13135: preserves source contract",()=>has(0,"for(let i=0;i<vertices.length;i+=1){"));
+test("question 13134: preserves source contract",()=>has(0,"const positions=prepared?.positions??new Float32Array(vertices.length*3);"));
+test("question 13135: preserves source contract",()=>has(0,"for(let i=prepared?vertices.length:0;i<vertices.length;i+=1){"));
 test("question 13136: preserves source contract",()=>has(0,"positions[i*3]=Number(vertices[i]?.[0])||0;"));
 test("question 13137: preserves source contract",()=>has(0,"positions[i*3+1]=Number(vertices[i]?.[1])||0;"));
 test("question 13138: preserves source contract",()=>has(0,"positions[i*3+2]=Number(vertices[i]?.[2])||0;"));
-test("question 13139: preserves source contract",()=>has(0,"const indices=new Uint32Array(faces.length*3);"));
-test("question 13140: preserves source contract",()=>has(0,"for(let i=0;i<faces.length;i+=1){"));
+test("question 13139: preserves source contract",()=>has(0,"const indices=prepared?.indices??new Uint32Array(faces.length*3);"));
+test("question 13140: preserves source contract",()=>has(0,"for(let i=prepared?faces.length:0;i<faces.length;i+=1){"));
 test("question 13141: preserves source contract",()=>has(0,"indices[i*3]=Number(faces[i]?.[0])||0;"));
 test("question 13142: preserves source contract",()=>has(0,"indices[i*3+1]=Number(faces[i]?.[1])||0;"));
 test("question 13143: preserves source contract",()=>has(0,"indices[i*3+2]=Number(faces[i]?.[2])||0;"));
 test("question 13144: preserves source contract",()=>has(0,"const geometry=new THREE.BufferGeometry();"));
-test("question 13145: preserves source contract",()=>has(0,"geometry.setAttribute(\"position\",new THREE.BufferAttribute(positions,3));"));
-test("question 13146: preserves source contract",()=>has(0,"geometry.setIndex(new THREE.BufferAttribute(indices,1));"));
+test("question 13145: preserves source contract",()=>has(0,"geometry.setAttribute(\"position\",positionAttribute);"));
+test("question 13146: preserves source contract",()=>has(0,"geometry.setIndex(indexAttribute);"));
 test("question 13147: preserves source contract",()=>has(0,"geometry.computeVertexNormals();"));
 test("question 13148: preserves source contract",()=>has(0,"const material=new THREE.MeshStandardMaterial({"));
 test("question 13149: preserves source contract",()=>has(0,"color:rgbHex(item.color_rgb),"));
@@ -154,8 +155,8 @@ test("question 13236: preserves source contract",()=>has(0,"return editableMeshI
 test("question 13237: preserves source contract",()=>has(0,"instance?.link_status!==\"detached\"&&"));
 test("question 13238: preserves source contract",()=>has(0,"String(instance?.source?.scene_id??\"\")===String(sceneId??\"\")&&"));
 test("question 13239: preserves source contract",()=>has(0,"String(instance?.source?.node_id??\"\")===String(nodeId??\"\")"));
-test("question 13240: preserves source contract",()=>has(0,"function meshSourceDisplayState(project,scene,node){"));
-test("question 13241: preserves source contract",()=>has(0,"const instances=meshInstancesForSource(project,scene?.id,node?.id);"));
+test("question 13240: preserves source contract",()=>has(0,"function meshSourceDisplayState(project,scene,node,lookup=null){"));
+test("question 13241: preserves source contract",()=>has(0,": meshInstancesForSource(project,scene?.id,node?.id);"));
 test("question 13242: preserves source contract",()=>has(0,"if(!instances.length)return null;"));
 test("question 13243: preserves source contract",()=>has(0,"const selectedInstanceIds=new Set("));
 test("question 13244: preserves source contract",()=>has(0,".filter((entry)=>entry?.kind===\"mesh-instance\")"));
@@ -166,11 +167,11 @@ test("question 13248: preserves source contract",()=>has(0,"const explicit=insta
 test("question 13249: preserves source contract",()=>has(0,"visible:compare||explicit||!!selectedInstance,"));
 test("question 13250: preserves source contract",()=>has(0,"transparent:compare||!!selectedInstance,"));
 test("question 13251: preserves source contract",()=>has(0,"selectedInstance"));
-test("question 13252: preserves source contract",()=>has(0,"function sourceDisplayState(project,scene,node){"));
-test("question 13253: preserves source contract",()=>has(0,"const linked=linkedTubeForSource(project,scene?.id,node?.id);"));
+test("question 13252: preserves source contract",()=>has(0,"function sourceDisplayState(project,scene,node,lookup=null){"));
+test("question 13253: preserves source contract",()=>has(0,": linkedTubeForSource(project,scene?.id,node?.id);"));
 test("question 13254: preserves source contract",()=>has(0,"if(!linked)return null;"));
 test("question 13255: preserves source contract",()=>has(0,"const link=sourceLink(linked);"));
-test("question 13256: preserves source contract",()=>has(0,"const selectedEditable=selectedEditableTubeIds().has(String(linked.id));"));
+test("question 13256: preserves source contract",()=>has(0,"const selectedEditable=(lookup?.selectedTubeIds??selectedEditableTubeIds()).has(String(linked.id));"));
 test("question 13257: preserves source contract",()=>has(0,"const display=String(link?.display??\"hidden\");"));
 test("question 13258: preserves source contract",()=>has(0,"tube:linked,"));
 test("question 13259: preserves source contract",()=>has(0,"selectedEditable,"));
@@ -484,8 +485,8 @@ test("question 13566: preserves source contract",()=>has(0,"Number(runtime.scale
 test("question 13567: preserves source contract",()=>has(0,"sceneGroup.scale.setScalar(scaleMm*Number(geomScale||1));"));
 test("question 13568: preserves source contract",()=>has(0,"const hidden=hiddenSet(sceneMeta);"));
 test("question 13569: preserves source contract",()=>has(0,"const transparent=transparentSet(sceneMeta);"));
-test("question 13570: preserves source contract",()=>has(0,"const editable=editablePartSet(project);"));
-test("question 13571: preserves source contract",()=>has(0,"const selectedKeys=selectedKeySet();"));
+test("question 13570: preserves source contract",()=>has(0,"const editable=renderLookup.editableParts;"));
+test("question 13571: preserves source contract",()=>has(0,"const selectedKeys=renderLookup.selectedKeys;"));
 test("question 13572: preserves source contract",()=>has(0,"const selectedGroups=[];"));
 test("question 13573: preserves source contract",()=>has(0,"const visit=("));
 test("question 13574: preserves source contract",()=>has(0,"parentHidden=false,"));
@@ -495,9 +496,9 @@ test("question 13577: preserves source contract",()=>has(0,"const nodeHidden=par
 test("question 13578: preserves source contract",()=>has(0,"if(nodeHidden)return;"));
 test("question 13579: preserves source contract",()=>has(0,"const nodeTransparent=parentTransparent||transparent.has(String(node.id));"));
 test("question 13580: preserves source contract",()=>has(0,"const recognizedPart=String(node.editable_part_number??\"\");"));
-test("question 13581: preserves source contract",()=>has(0,"const linkedState=sourceDisplayState(project,sceneMeta,node);"));
-test("question 13582: preserves source contract",()=>has(0,"const meshState=meshSourceDisplayState(project,sceneMeta,node);"));
-test("question 13583: preserves source contract",()=>has(0,"const sourceTube=anyEditableTubeForSource(project,sceneMeta.id,node.id);"));
+test("question 13581: preserves source contract",()=>has(0,"const linkedState=sourceDisplayState(project,sceneMeta,node,renderLookup);"));
+test("question 13582: preserves source contract",()=>has(0,"const meshState=meshSourceDisplayState(project,sceneMeta,node,renderLookup);"));
+test("question 13583: preserves source contract",()=>has(0,"const sourceTube=renderLookup.firstAny.get(String(node.id))??null;"));
 test("question 13584: preserves source contract",()=>has(0,"const detachedSource=sourceLink(sourceTube)?.detached===true;"));
 test("question 13585: preserves source contract",()=>has(0,"const suppressEditable=meshState"));
 test("question 13586: preserves source contract",()=>has(0,"? !meshState.visible"));
@@ -631,7 +632,7 @@ test("question 13713: preserves source contract",()=>has(0,"if(!runtime&&sceneMe
 test("question 13714: preserves source contract",()=>has(0,"registerRuntime(sceneMeta.display_runtime);"));
 test("question 13715: preserves source contract",()=>has(0,"runtime=runtimes.get(runtimeKey(sceneMeta));"));
 test("question 13716: preserves source contract",()=>has(0,"if(!runtime)continue;"));
-test("question 13717: preserves source contract",()=>has(0,"renderSceneTree({parent,sceneMeta,runtime,project,THREE,geomScale});"));
+test("question 13717: preserves source contract",()=>has(0,"sourceLookup:sourceIndex.forScene(sceneMeta.id)"));
 test("question 13718: preserves source contract",()=>has(0,"count+=renderEditableMeshInstances({parent,project,THREE,geomScale});"));
 test("question 13719: preserves source contract",()=>has(0,"function matchNode(node,query){"));
 test("question 13720: preserves source contract",()=>has(0,"if(!query)return true;"));
