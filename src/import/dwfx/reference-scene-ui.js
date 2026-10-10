@@ -22,8 +22,8 @@
     const assetsById=new Map(
       runtime.assets.map((asset)=>[String(asset?.id??""),asset])
     );
+    if(runtimes.has(key)||cachedScene)invalidateSceneCache();
     runtimes.set(key,{...runtime,assetsById});
-    invalidateSceneCache();
     for(const cacheKey of [...templates.keys()]){
       if(cacheKey.startsWith(key+"|"))templates.delete(cacheKey);
     }
