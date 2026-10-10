@@ -10,13 +10,19 @@ function captureStartupDiagnostics(page){
   });
   page.on("requestfailed",request=>failures.push("requestfailed: "+request.url()+" "+(request.failure()?.errorText||"")));
   return async()=>{
-    const state=await page.evaluate(()=>({
+    // A blocked Chromium main thread must not hide the original startup timeout.
+    const evaluation=page.evaluate(()=>({
       readyState:document.readyState,
       startup:window.TubeBenderStartupStatus??null,
       engineering:!!window.TubeBenderEngineering,
       performance:!!window.TubeBenderRenderPerformance,
       scripts:[...document.scripts].length
     })).catch(error=>({evaluationError:String(error)}));
+    let timer;
+    const state=await Promise.race([
+      evaluation,
+      new Promise(resolve=>{timer=setTimeout(()=>resolve({evaluationTimeoutMs:3000}),3000);})
+    ]).finally(()=>clearTimeout(timer));
     return JSON.stringify({state,failures:failures.slice(0,25)},null,2);
   };
 }
