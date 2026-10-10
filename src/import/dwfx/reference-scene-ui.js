@@ -1019,16 +1019,20 @@
   // The existing render3D entry point remains synchronous for legacy callers.
   // Consumers can opt in and provide a render callback after commit.
   let cooperativeGeneration=0;
+  let activeCooperativeHandle=null;
   function render3DCooperative({
     parent,project,THREE,geomScale,batchSize=8,
     postTask=(fn)=>setTimeout(fn,0),
     cancelTask=(id)=>clearTimeout(id),
     onCommit=()=>{},
-    onError=()=>{}
+    onError=()=>{},
+    progressive=false,
+    onProgress=()=>{}
   }){
     if(!parent||!project||!THREE)throw new TypeError("3D parent, project and THREE required");
     if(!Number.isSafeInteger(batchSize)||batchSize<1)throw new RangeError("Invalid batch size");
     const generation=++cooperativeGeneration;
+    if(activeCooperativeHandle)activeCooperativeHandle.cancel();
     const staging=new THREE.Group();
     staging.name="DWFx cooperative geometry";
     const work=[];
@@ -1059,13 +1063,18 @@
       }
     }
     let meshJobIndex=0;
-    let index=0,pending=null,done=false,failures=0;
+    let index=0,pending=null,done=false,failures=0,attached=false;
+    const attach=()=>{
+      if(attached)return;
+      parent.add(staging);attached=true;
+    };
     const result={total:work.length,processed:0,failures:0,committed:false};
     const stop=()=>{
       if(done)return;
       done=true;
       if(pending!==null){try{cancelTask(pending);}catch{}pending=null;}
       // Staging is never attached until commit, so stale scene geometry cannot leak.
+      if(attached&&staging.parent)staging.parent.remove(staging);
       staging.clear();
     };
     function step(){
@@ -1143,6 +1152,10 @@
         result.processed++;
       }
       result.failures=failures;
+      if(progressive&&index>0){
+        attach();
+        try{onProgress({...result,committed:false});}catch{}
+      }
       if(index<work.length){
         try{pending=postTask(step);}
         catch(error){try{onError(error,index);}catch{}stop();}
@@ -1152,18 +1165,20 @@
       try{renderEditableMeshInstances({parent:staging,project,THREE,geomScale});}
       catch(error){failures++;try{onError(error,index);}catch{}}
       result.failures=failures;
-      parent.add(staging);
+      attach();
       done=true;
       result.committed=true;
       try{onCommit({...result});}catch{}
     }
     try{pending=postTask(step);}
     catch(error){try{onError(error,0);}catch{}stop();}
-    return Object.freeze({
+    const handle=Object.freeze({
       cancel:stop,
       get status(){return {...result,pending:!done};},
-      get group(){return result.committed?staging:null;}
+      get group(){return attached?staging:null;}
     });
+    activeCooperativeHandle=handle;
+    return handle;
   }
 
   function matchNode(node,query){
