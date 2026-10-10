@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderMobileViewportStyle } from "../src/ui/mobile-viewport.mjs";
+import { createFrameCoalescer, runIsolatedStartup } from "../src/domain/performance/render-startup.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourcePath = path.join(
@@ -3103,6 +3104,84 @@ if (!output.includes("result?.status!=='dwfx_project_candidate'")) {
 }
 if (!output.includes("poImportCurrentBtn") || !output.includes("importSelectedDwfxTubesIntoCurrentProject")) {
   throw new Error("Standalone build is missing the current-project DWFx import control");
+}
+
+// PERF-001: replace eager full 3D rebuild after every renderAll() with an
+// animation-frame coalescer. UI/text edits remain synchronous; only the costly
+// scene reconstruction is deferred to the next available frame.
+const perfOldViewerCall =
+  "  safeUiCall('renderViewerOnly', ()=>renderViewerOnly(!preserveViewerFrameForCanvasInteraction));";
+const perfCoreStart = "function renderAll(){";
+const perfOldDoubleCollision =
+  "  currentProjectCollisionAnalysis = getProjectCollisionAnalysis(activeProject());\n" +
+  "  safeUiCall('renderBoundsWarning', renderBoundsWarning);";
+if(!output.includes(perfOldViewerCall)||!output.includes(perfCoreStart)||
+   !output.includes(perfOldDoubleCollision)){
+  throw new Error("PERF-001 render-core anchors missing or changed");
+}
+const perfCoalescerSource =
+  "const tbViewerFrameCoalescer=(" + createFrameCoalescer.toString() + ")({\n" +
+  "  requestFrame: callback=>requestAnimationFrame(callback),\n" +
+  "  cancelFrame: id=>cancelAnimationFrame(id),\n" +
+  "  render: fit=>safeUiCall('renderViewerOnly',()=>renderViewerOnly(fit)),\n" +
+  "  onError: error=>console.error('PERF-001 viewport redraw',error)\n" +
+  "});\n" +
+  "window.TubeBenderRenderPerformance=Object.freeze({\n" +
+  "  get pending(){return tbViewerFrameCoalescer.pending;},\n" +
+  "  get stats(){return tbViewerFrameCoalescer.stats;}\n" +
+  "});\n";
+output=output.replace(perfCoreStart,perfCoalescerSource+perfCoreStart);
+output=output.replace(perfOldViewerCall,
+  "  tbViewerFrameCoalescer.schedule(!preserveViewerFrameForCanvasInteraction);");
+output=output.replace(perfOldDoubleCollision,
+  "  // renderBoundsWarning computes and stores the current project collision analysis once.\n" +
+  "  safeUiCall('renderBoundsWarning', renderBoundsWarning);");
+
+// PERF-003: failures in independent initialization stages must not prevent
+// event binding, nor one broken optional picker prevent later command hooks.
+const perfPickerAnchor =
+  "  buildViewPicker();\n" +
+  "  buildBendPicker();\n" +
+  "  setupMiniAxisClickHandlers();";
+if(!output.includes(perfPickerAnchor)){
+  throw new Error("PERF-003 picker registration anchor missing");
+}
+output=output.replace(perfPickerAnchor,
+  "  tbRunIsolatedStartup([\n" +
+  "    ['buildViewPicker',()=>buildViewPicker()],\n" +
+  "    ['buildBendPicker',()=>buildBendPicker()],\n" +
+  "    ['setupMiniAxisClickHandlers',()=>setupMiniAxisClickHandlers()]\n" +
+  "  ],(name,error)=>console.warn('Optional picker initialization: '+name,error));");
+const perfBindStart="function bind(){\n  qs('boundsFocusBtn')";
+const perfInitAnchor=
+  "window.addEventListener('DOMContentLoaded',()=>{ensureIndustrialState();ensureCurrentTubeVisible();bind();renderAll();});";
+const bindStart=output.indexOf(perfBindStart),bindEnd=output.indexOf(perfInitAnchor,bindStart);
+if(bindStart<0||bindEnd<0)throw new Error("PERF-003 core binding/init anchors missing");
+const bindSection=output.slice(bindStart,bindEnd);
+const guardedBindings=bindSection.replace(/qs\('([^']+)'\)\.addEventListener\(/g,
+  "qs('$1')?.addEventListener(");
+output=output.slice(0,bindStart)+guardedBindings+output.slice(bindEnd);
+const perfBootstrapSource =
+  "const tbRunIsolatedStartup=(" + runIsolatedStartup.toString() + ");\n" +
+  "window.TubeBenderStartupStatus={phases:[],booted:false,startedAt:performance.now()};\n" +
+  "window.addEventListener('DOMContentLoaded',()=>{\n" +
+  "  const status=window.TubeBenderStartupStatus;\n" +
+  "  const onError=(name,error)=>console.error('TubeBender startup '+name,error);\n" +
+  "  status.phases.push(...tbRunIsolatedStartup([\n" +
+  "    ['ensureIndustrialState',()=>ensureIndustrialState()],\n" +
+  "    ['ensureCurrentTubeVisible',()=>ensureCurrentTubeVisible()],\n" +
+  "    ['bind',()=>bind()]\n" +
+  "  ],onError));\n" +
+  "  status.booted=true;\n" +
+  "  // Do not block the first interactive shell paint on heavy CAD rendering.\n" +
+  "  const schedule=typeof requestAnimationFrame==='function'?requestAnimationFrame:callback=>setTimeout(callback,0);\n" +
+  "  schedule(()=>status.phases.push(...tbRunIsolatedStartup([['renderAll',()=>renderAll()]],onError)));\n" +
+  "});";
+if(!output.includes(perfInitAnchor))throw new Error("PERF-003 initialization hook anchor missing");
+output=output.replace(perfInitAnchor,perfBootstrapSource);
+if(!output.includes("window.TubeBenderStartupStatus") ||
+   !output.includes("window.TubeBenderRenderPerformance")){
+  throw new Error("PERF-001/003 runtime integration failed");
 }
 
 // Apply responsive containment after legacy/pixel-matched CSS is assembled.
