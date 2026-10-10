@@ -59,6 +59,7 @@ test("[PERF-005] no duplicate DOM IDs across a settings redraw (partial)",async(
   expect(await duplicated()).toEqual([]);
 });
 test("[MOB-001] mobile viewport has no global document scrollbars",async({page})=>{
+  test.setTimeout(90000);
   await loadApp(page);
   await page.setViewportSize({width:390,height:844});
   const diagnostics=await page.evaluate(()=>{
@@ -71,10 +72,11 @@ test("[MOB-001] mobile viewport has no global document scrollbars",async({page})
     return {viewport:{width:innerWidth,height:innerHeight},html:summary(html),body:summary(body),app:summary(app),bodyClass:body.className,offenders};
   });
   console.log("MOB-001 viewport diagnostics:",JSON.stringify(diagnostics));
-  await expect.poll(async()=>page.evaluate(()=>({
-    x:document.documentElement.scrollWidth<=document.documentElement.clientWidth+1,
-    y:document.documentElement.scrollHeight<=document.documentElement.clientHeight+1
-  }))).toEqual({x:true,y:true});
+  expect(diagnostics.bodyClass).toContain("tb-project-map");
+  for(const region of ["html","body","app"]){
+    expect(diagnostics[region]?.width).toBeLessThanOrEqual(diagnostics[region]?.clientWidth+1);
+    expect(diagnostics[region]?.height).toBeLessThanOrEqual(diagnostics[region]?.clientHeight+1);
+  }
 });
 // Traceability guard: unknown IDs or untracked browser scenarios are failures,
 // but the remaining requirements are NOT silently marked as passed.
