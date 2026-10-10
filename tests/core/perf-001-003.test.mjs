@@ -179,3 +179,26 @@ test("PERF-003: stale callback cannot erase replacement scene task handle",()=>{
   jobs.get(2)();
   assert.deepEqual(seen,[],"cancelled new generation must never run");
 });
+
+test("PERF-003: synchronous restart inside processItem cannot alter replacement progress",()=>{
+  const jobs=[];
+  const seen=[];
+  let queue;
+  queue=createCooperativeSceneQueue({
+    postTask:callback=>{jobs.push(callback);return jobs.length;},
+    processItem:item=>{
+      seen.push(item);
+      if(item==="old-first")queue.start(["replacement"]);
+    },
+    batchSize:2
+  });
+  queue.start(["old-first","old-second"]);
+  jobs.shift()();
+  assert.deepEqual(seen,["old-first"]);
+  assert.deepEqual(queue.progress,{completed:0,total:1,batches:0,failures:0});
+  assert.equal(queue.pending,true);
+  jobs.shift()();
+  assert.deepEqual(seen,["old-first","replacement"]);
+  assert.deepEqual(queue.progress,{completed:1,total:1,batches:1,failures:0});
+  assert.equal(queue.pending,false);
+});
