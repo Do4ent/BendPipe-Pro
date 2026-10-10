@@ -674,6 +674,7 @@ const historyPanelRuntime =
   "  if(target===tbHistoryCursor())return true;\n"+
   "  const snapshot=target===0?all[0].before:all[target-1].after;\n"+
   "  if(!tbHistoryRestore(snapshot))return false;\n"+
+  "  window.TubeBenderReferenceSceneUi?.markSceneChanged?.(activeProject(),'geometry');\n"+
   "  tbHistory.undo.splice(0,tbHistory.undo.length,...all.slice(0,target));\n"+
   "  tbHistory.redo.splice(0,tbHistory.redo.length,...all.slice(target).reverse());\n"+
   "  tbHistoryUpdateUi();\n"+
