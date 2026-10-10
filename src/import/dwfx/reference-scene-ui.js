@@ -23,6 +23,7 @@
       runtime.assets.map((asset)=>[String(asset?.id??""),asset])
     );
     runtimes.set(key,{...runtime,assetsById});
+    invalidateSceneCache();
     for(const cacheKey of [...templates.keys()]){
       if(cacheKey.startsWith(key+"|"))templates.delete(cacheKey);
     }
@@ -1035,7 +1036,16 @@
   let cooperativeGeneration=0;
   let activeCooperativeHandle=null;
   let cachedScene=null;
-  const sceneReuseStats={hits:0,misses:0};
+  const sceneReuseStats={hits:0,misses:0,invalidations:0};
+  // Explicit invalidation for import/replacement and renderer disposal.
+  // Uninstrumented mutation paths still use the conservative source signature.
+  function invalidateSceneCache(){
+    cooperativeGeneration++;
+    if(activeCooperativeHandle)activeCooperativeHandle.cancel();
+    activeCooperativeHandle=null;
+    cachedScene=null;
+    sceneReuseStats.invalidations++;
+  }
   // Only source/reference properties influence the cache key. Ordinary tube
   // bend/length edits do not, but source link/visibility edits do.
   function referenceSignature(project,geomScale){
@@ -1069,6 +1079,8 @@
     if(!Number.isSafeInteger(batchSize)||batchSize<1)throw new RangeError("Invalid batch size");
     const generation=++cooperativeGeneration;
     if(activeCooperativeHandle)activeCooperativeHandle.cancel();
+    // A previously completed staging group is referenced only by cachedScene.
+    // No geometry/material is disposed here: templates are shared by design.
     const signature=referenceSignature(project,geomScale);
     if(cachedScene?.signature===signature&&cachedScene.project===project&&
        cachedScene.THREE===THREE&&cachedScene.group){
@@ -2261,6 +2273,7 @@
     restorePersistedRuntimes,
     runtimeSummary,
     performanceStats:()=>({...meshPerformance,largeMeshes:meshPerformance.largeMeshes.map(x=>({...x}))}),
-    sceneReuseStats:()=>({...sceneReuseStats})
+    sceneReuseStats:()=>({...sceneReuseStats}),
+    invalidateSceneCache
   });
 })();
