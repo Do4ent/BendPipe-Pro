@@ -124,6 +124,8 @@
       }
 
       state.projects[projectIndex]=merged.project;
+      // Import replaces reference scenes and tube-to-source links together.
+      window.TubeBenderReferenceSceneUi?.markSceneChanged?.(merged.project,"geometry");
       state.activeProjectId=merged.project.id;
       state.activeTubeId=
         merged.imported_tube_ids.at(-1)||
