@@ -316,3 +316,26 @@ test("PERF-003: onError may cancel a failed item without scheduling later batche
   assert.equal(queue.pending,false);
   assert.equal(jobs.length,0);
 });
+
+test("PERF-003: rescheduling failure retains completed batch and reports next index",()=>{
+  const jobs=[],seen=[],errors=[],completions=[];
+  let dispatches=0;
+  const queue=createCooperativeSceneQueue({
+    postTask(callback){
+      if(++dispatches===2)throw new Error("second batch unavailable");
+      jobs.push(callback);
+      return dispatches;
+    },
+    processItem:item=>seen.push(item),
+    onError:(error,index)=>errors.push([error.message,index]),
+    onComplete:stats=>completions.push(stats),
+    batchSize:1
+  });
+  queue.start(["first","second"]);
+  jobs.shift()();
+  assert.deepEqual(seen,["first"]);
+  assert.deepEqual(errors,[["second batch unavailable",1]]);
+  assert.deepEqual(queue.progress,{completed:1,total:2,batches:1,failures:1});
+  assert.equal(queue.pending,false);
+  assert.deepEqual(completions,[]);
+});
