@@ -18,6 +18,7 @@ on:
       - feature/perf-dwfx-revision-counters-20261010
       - feature/perf-dwfx-writer-revisions-20261010
       - feature/perf-dwfx-crossmodule-audit-20261010
+      - feature/perf-source-link-revisions-20261010
   workflow_dispatch:
   pull_request:
     branches:
