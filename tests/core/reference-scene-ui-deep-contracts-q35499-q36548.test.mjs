@@ -1040,7 +1040,7 @@ test("question 36529: preserves reference-scene UI source contract",()=>has("if(
 test("question 36530: preserves reference-scene UI source contract",()=>has("link.detached=true;"));
 test("question 36531: preserves reference-scene UI source contract",()=>has("link.status=\"detached\";"));
 test("question 36532: preserves reference-scene UI source contract",()=>has("link.display=\"hidden\";"));
-test("question 36533: preserves reference-scene UI source contract",()=>has("function runSourceLinkCommand(label,mutate,{modelCommand,save,renderAll,refreshProjectTree,reloadActiveTube}={}){"));
+test("question 36533: preserves reference-scene UI source contract",()=>has("function runSourceLinkCommand(label,mutate,{modelCommand,save,renderAll,refreshProjectTree,reloadActiveTube}={},revisionKind=\"geometry\"){"));
 test("question 36534: preserves reference-scene UI source contract",()=>has("const ok=typeof modelCommand===\"function\"?modelCommand(label,mutate):mutate();"));
 test("question 36535: preserves reference-scene UI source contract",()=>has("if(ok===false)return false;"));
 test("question 36536: preserves reference-scene UI source contract",()=>has("reloadActiveTube?.();"));

@@ -1047,7 +1047,7 @@ test("question 14129: preserves source contract",()=>has(0,"if(!link||link.detac
 test("question 14130: preserves source contract",()=>has(0,"link.detached=true;"));
 test("question 14131: preserves source contract",()=>has(0,"link.status=\"detached\";"));
 test("question 14132: preserves source contract",()=>has(0,"link.display=\"hidden\";"));
-test("question 14133: preserves source contract",()=>has(0,"function runSourceLinkCommand(label,mutate,{modelCommand,save,renderAll,refreshProjectTree,reloadActiveTube}={}){"));
+test("question 14133: preserves source contract",()=>has(0,"function runSourceLinkCommand(label,mutate,{modelCommand,save,renderAll,refreshProjectTree,reloadActiveTube}={},revisionKind=\"geometry\"){"));
 test("question 14134: preserves source contract",()=>has(0,"const ok=typeof modelCommand===\"function\"?modelCommand(label,mutate):mutate();"));
 test("question 14135: preserves source contract",()=>has(0,"if(ok===false)return false;"));
 test("question 14136: preserves source contract",()=>has(0,"reloadActiveTube?.();"));
