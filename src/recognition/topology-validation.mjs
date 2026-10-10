@@ -1,7 +1,7 @@
 function p3(v,name){
   if(!Array.isArray(v)||v.length!==3)throw new TypeError(`${name} must be [x,y,z]`);
-  const p=v.map(Number);
-  if(!p.every(Number.isFinite))throw new RangeError(`${name} contains non-finite values`);
+  const p=v;
+  if(!p.every(x=>typeof x==="number"&&Number.isFinite(x)))throw new RangeError(`${name} must contain finite numeric coordinates`);
   return p;
 }
 const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
