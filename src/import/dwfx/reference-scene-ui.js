@@ -1178,6 +1178,13 @@
     if(!Number.isSafeInteger(batchSize)||batchSize<1)throw new RangeError("Invalid batch size");
     const generation=++cooperativeGeneration;
     if(activeCooperativeHandle)activeCooperativeHandle.cancel();
+    // Lazy runtime registration bumps geometry revision. Resolve loaded
+    // reference runtimes before taking the cache signature, so a first render
+    // is reusable immediately after its cooperative build commits.
+    for(const scene of project.referenceScenes??[]){
+      if(scene?.visible!==false&&scene?.display_runtime&&
+         !runtimes.has(runtimeKey(scene)))runtimeForScene(scene);
+    }
     // A previously completed staging group is referenced only by cachedScene.
     // No geometry/material is disposed here: templates are shared by design.
     const signature=referenceSignature(project,geomScale);
