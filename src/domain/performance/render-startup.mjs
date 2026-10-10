@@ -109,3 +109,70 @@ export function scheduleInitialSceneAfterPaint({
     if(task!==null)try{cancelTask(task);}catch{}
   };
 }
+
+/**
+ * Cooperative, cancellation-safe scene preparation. Each item is processed
+ * exactly once, in stable input order. This is for independent preparation
+ * stages only; geometry generation must supply its own deterministic adapter.
+ */
+export function createCooperativeSceneQueue({
+  postTask,
+  cancelTask=()=>{},
+  processItem,
+  onComplete=()=>{},
+  onError=()=>{},
+  batchSize=32
+}){
+  if(typeof postTask!=="function"||typeof processItem!=="function")
+    throw new TypeError("postTask and processItem are required");
+  if(!Number.isSafeInteger(batchSize)||batchSize<1)
+    throw new RangeError("batchSize must be a positive safe integer");
+  let generation=0,pending=null,active=false;
+  const state={completed:0,total:0,batches:0,failures:0};
+  const cancel=()=>{
+    generation++;
+    active=false;
+    if(pending!==null){try{cancelTask(pending);}catch{}pending=null;}
+  };
+  function start(items){
+    if(!Array.isArray(items))throw new TypeError("items must be an array");
+    cancel();
+    const token=generation,source=items.slice();
+    let index=0;
+    state.completed=0;state.total=source.length;state.batches=0;state.failures=0;
+    active=true;
+    function step(){
+      pending=null;
+      if(token!==generation||!active)return;
+      const end=Math.min(index+batchSize,source.length);
+      while(index<end){
+        if(token!==generation||!active)return;
+        try{processItem(source[index],index);}catch(error){
+          state.failures++;
+          try{onError(error,index);}catch{}
+        }
+        index++;state.completed=index;
+      }
+      state.batches++;
+      if(index>=source.length){
+        active=false;
+        try{onComplete({...state});}catch{}
+      }else{
+        try{pending=postTask(step);}catch(error){
+          active=false;state.failures++;
+          try{onError(error,index);}catch{}
+        }
+      }
+    }
+    try{pending=postTask(step);}catch(error){
+      active=false;state.failures++;
+      try{onError(error,0);}catch{}
+    }
+    return token;
+  }
+  return Object.freeze({
+    start,cancel,
+    get pending(){return active;},
+    get progress(){return {...state};}
+  });
+}
