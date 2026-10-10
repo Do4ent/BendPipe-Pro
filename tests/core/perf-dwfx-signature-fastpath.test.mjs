@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 
-function signatureHarness(){
+function signatureHarness(selectionEntries=()=>[]){
   const source=fs.readFileSync(
     new URL("../../src/import/dwfx/reference-scene-ui.js",import.meta.url),"utf8"
   );
@@ -12,7 +12,7 @@ function signatureHarness(){
   assert.ok(start>=0&&end>start,"reference signature implementation present");
   const context={
     bulkSelected:new Set(),
-    window:{TubeBenderObjectContext:{selectionEntries:()=>[]}},
+    window:{TubeBenderObjectContext:{selectionEntries}},
     revisionSnapshot:()=>({geometry:2,display:3,selection:4}),
   };
   return vm.runInNewContext(
@@ -46,4 +46,16 @@ test("legacy DWFx project retains the deep source signature",()=>{
   const before=key(project,1);
   project.referenceScenes[0].tree[0].id="part-2";
   assert.notEqual(key(project,1),before);
+});
+
+test("tracked signature includes independently mutated object-context selection",()=>{
+  let selected=[];
+  const key=signatureHarness(()=>selected);
+  const project={dwfx_revision_tracking_complete:true};
+  const before=key(project,1);
+  selected=[{kind:"tube",tubeId:"tube-1"}];
+  assert.notEqual(key(project,1),before);
+  const after=key(project,1);
+  selected=[{kind:"mesh",instanceId:"mesh-1"}];
+  assert.notEqual(key(project,1),after);
 });
