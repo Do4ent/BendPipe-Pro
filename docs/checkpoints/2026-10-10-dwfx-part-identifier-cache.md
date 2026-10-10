@@ -23,3 +23,8 @@ There are no actual DWFx benchmark fixtures in this repository. Synthetic timing
 
 ## Additional fix discovered by real CI
 The focused cooperative-render regression exposed a second real cache defect: `render3DCooperative()` took the source signature before `runtimeForScene()` lazily registered embedded runtimes. That registration bumped the geometry revision, so the **second unchanged render missed the cache**. The implementation now hydrates visible embedded runtimes before the signature and scene-build generation are captured. The runtime preflight visits scene descriptors, not nested DWFx tree nodes. The same regression now guards first-to-second render reuse as well as alias invalidation. This section records the code fix; CI must independently confirm passing results.
+
+## CI evidence captured
+Run [38086505080](https://github.com/Do4ent/BendPipe-Pro/actions/runs/38086505080) confirmed focused DWFx cache/legacy fallback tests and synthetic benchmark steps green after the runtime-registration fix. Synthetic `referenceSignature` results from GitHub runner (40 samples each): 100 nodes median 0.049 ms / p95 0.064 ms; 1,000 nodes 0.436 / 0.923 ms; 5,000 nodes 2.897 / 3.455 ms. These are indicative synthetic-run measurements, not production CAD performance.
+
+The same run's unfiltered `npm test` was **red**: 147,599 passed and 108 failed out of 147,707, dominated by older generated source-string contracts. It also identified brittle mesh-group-depth, malformed telemetry regex, and old synchronous render API assumptions in A25; these three test cases were updated in subsequent commits. Full-suite green status has not yet been established. Browser tests remained running at the point this checkpoint was prepared.
