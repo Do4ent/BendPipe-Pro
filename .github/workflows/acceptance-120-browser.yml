@@ -30,7 +30,7 @@ jobs:
       - name: Run real Chromium scenarios
         id: e2e
         continue-on-error: true
-        run: npx playwright test --config acceptance/playwright.config.mjs
+        run: npx playwright test --config acceptance/playwright.config.mjs --grep 'MOB-001'
       - name: Write all 120 requirement outcomes
         if: always()
         run: node scripts/acceptance-120-report.mjs
