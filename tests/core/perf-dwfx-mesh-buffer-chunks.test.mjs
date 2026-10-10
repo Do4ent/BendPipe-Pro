@@ -11,7 +11,12 @@ test("large DWFx mesh prepares vertex and index buffers across multiple tasks",(
     add(v){this.children.push(v);}
     clear(){this.children=[];}
     updateMatrixWorld(){}
-    clone(){return new Group();}
+    clone(deep=true){
+      const copy=new Group();
+      copy.userData={...this.userData};
+      if(deep)for(const child of this.children)copy.add(child?.clone?.(true)??child);
+      return copy;
+    }
   }
   class BufferGeometry{
     setAttribute(name,value){this[name]=value;return this;}
