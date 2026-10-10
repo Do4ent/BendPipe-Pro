@@ -9,7 +9,7 @@ function captureStartupDiagnostics(page){
     if(message.type()==="error")failures.push("console: "+message.text());
   });
   page.on("requestfailed",request=>failures.push("requestfailed: "+request.url()+" "+(request.failure()?.errorText||"")));
-  return async()=>{
+  const diagnostics=async()=>{
     // A blocked Chromium main thread must not hide the original startup timeout.
     const evaluation=page.evaluate(()=>({
       readyState:document.readyState,
@@ -25,10 +25,19 @@ function captureStartupDiagnostics(page){
     ]).finally(()=>clearTimeout(timer));
     return JSON.stringify({state,failures:failures.slice(0,25)},null,2);
   };
+  // A known startup failure should not consume the entire browser test timeout.
+  diagnostics.fatalFailure=()=>failures.find(message=>
+    message.startsWith("pageerror:")||message.includes("startup bind toolbar commands failed")
+  )??null;
+  return diagnostics;
 }
 async function expectStartup(page,predicate,timeout,diagnostics){
   try{
-    await expect.poll(()=>page.evaluate(predicate),{timeout,intervals:[200,800,2000]}).toBe(true);
+    await expect.poll(()=>{
+      const fatal=diagnostics.fatalFailure();
+      if(fatal)throw new Error("Fatal startup error: "+fatal);
+      return page.evaluate(predicate);
+    },{timeout,intervals:[200,800,2000]}).toBe(true);
   }catch(error){
     throw new Error("TubeBender startup did not complete. Browser evidence:\n"+await diagnostics()+"\n"+String(error));
   }
