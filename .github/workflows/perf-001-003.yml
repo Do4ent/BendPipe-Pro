@@ -43,8 +43,6 @@ jobs:
         run: node --test tests/core/perf-dwfx-*.test.mjs tests/core/perf-legacy-project-switch.test.mjs tests/core/perf-source-link-revisions.test.mjs
       - name: Profile conservative DWFx signature on synthetic fixtures
         run: node scripts/benchmark-dwfx-signature.mjs
-      - name: Run existing regression suite
-        run: npm test
       - name: Verify full standalone build
         run: npm run build:standalone
       - name: Verify generated PERF runtime contract
@@ -63,6 +61,9 @@ jobs:
           name: tubebender-perf-standalone
           path: dist/TubeBender_CAD_VC207R7_M1_Standalone.html
           if-no-files-found: error
+      # Preserve strict regression gating, but run the build and runtime contract first.
+      - name: Run existing regression suite
+        run: npm test
 
   chromium-perf:
     runs-on: ubuntu-latest
@@ -76,6 +77,8 @@ jobs:
         run: npm install --no-save @playwright/test@1.56.1
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+      - name: Syntax-check PERF browser specs
+        run: node --check tests/browser/perf-001-003.spec.mjs
       - name: Build standalone under test
         run: npm run build:standalone
       - name: Verify PERF-001 and PERF-003 in Chromium
