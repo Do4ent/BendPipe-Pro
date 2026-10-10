@@ -39,7 +39,7 @@ jobs:
       - name: Test frame coalescer and isolated startup
         run: node --test tests/core/perf-001-003.test.mjs
       - name: Validate DWFx part cache and legacy mutation fallback
-        run: node --test tests/core/perf-dwfx-part-identifiers-*.test.mjs tests/core/perf-dwfx-inplace-fallback-regression.test.mjs
+        run: node --test tests/core/perf-dwfx-*.test.mjs tests/core/perf-legacy-project-switch.test.mjs tests/core/perf-source-link-revisions.test.mjs
       - name: Profile conservative DWFx signature on synthetic fixtures
         run: node scripts/benchmark-dwfx-signature.mjs
       - name: Run existing regression suite
