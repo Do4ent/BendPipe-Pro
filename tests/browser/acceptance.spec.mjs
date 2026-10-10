@@ -61,6 +61,16 @@ test("[PERF-005] no duplicate DOM IDs across a settings redraw (partial)",async(
 test("[MOB-001] mobile viewport has no global document scrollbars",async({page})=>{
   await loadApp(page);
   await page.setViewportSize({width:390,height:844});
+  const diagnostics=await page.evaluate(()=>{
+    const html=document.documentElement, body=document.body, app=document.querySelector("#app");
+    const summary=(el)=>el?{width:el.scrollWidth,clientWidth:el.clientWidth,height:el.scrollHeight,clientHeight:el.clientHeight,cssOverflow:getComputedStyle(el).overflow,rect:Math.round(el.getBoundingClientRect().width)}:null;
+    const offenders=[...document.querySelectorAll("body *")].filter(el=>{
+      const r=el.getBoundingClientRect();
+      return r.right>innerWidth+10||r.left< -10||r.bottom>innerHeight+10;
+    }).slice(0,24).map(el=>({tag:el.tagName,id:el.id,cls:String(el.className).slice(0,50),left:Math.round(el.getBoundingClientRect().left),right:Math.round(el.getBoundingClientRect().right)}));
+    return {viewport:{width:innerWidth,height:innerHeight},html:summary(html),body:summary(body),app:summary(app),bodyClass:body.className,offenders};
+  });
+  console.log("MOB-001 viewport diagnostics:",JSON.stringify(diagnostics));
   await expect.poll(async()=>page.evaluate(()=>({
     x:document.documentElement.scrollWidth<=document.documentElement.clientWidth+1,
     y:document.documentElement.scrollHeight<=document.documentElement.clientHeight+1
