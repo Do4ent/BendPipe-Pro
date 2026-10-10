@@ -23,6 +23,8 @@ jobs:
         run: npm install --no-save @playwright/test@1.56.1
       - name: Install Chromium and dependencies
         run: npx playwright install --with-deps chromium
+      - name: Verify MOB-001 viewport contract
+        run: node --test tests/core/mobile-viewport.test.mjs
       - name: Build latest standalone
         run: npm run build:standalone
       - name: Run real Chromium scenarios
