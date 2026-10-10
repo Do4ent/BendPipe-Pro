@@ -1046,10 +1046,8 @@
   function revisionSnapshot(){return {...revisions};}
   // An opt-in token is safe only if every external source-state writer invokes
   // markSceneChanged; otherwise use the full conservative signature.
-  const revisionOptInProjects=new WeakSet();
   function markSceneChanged(project,kind="geometry"){
     bumpRevision(kind);
-    if(project&&typeof project==="object")revisionOptInProjects.add(project);
     invalidateSceneCache();
   }
   const sceneReuseStats={hits:0,misses:0,invalidations:0};
@@ -1078,7 +1076,8 @@
       links:sourceLinks,
       selected:[...bulkSelected].sort(),
       objectSelection:(window.TubeBenderObjectContext?.selectionEntries?.()??[]).map(entry=>({kind:entry?.kind,tubeId:entry?.tubeId,instanceId:entry?.instanceId})),
-      geomScale
+      geomScale,
+      revisions:revisionSnapshot()
     });
   }
 
