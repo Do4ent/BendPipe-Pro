@@ -38,7 +38,7 @@ test("large DWFx mesh prepares vertex and index buffers across multiple tasks",(
   assert.equal(h.status.committed,true);
   assert.ok(ticks>4,"large mesh must yield across multiple scheduled tasks");
   assert.equal(parent.children.length,1);
-  const buffer=parent.children[0].children[0].children[0].children[0].geometry;
+  const buffer=parent.children[0].children[0].children[0].children[0].children[0].geometry;
   assert.equal(buffer.positions.array.length,count*3);
   assert.equal(buffer.indices.array.length,(count-2)*3);
   assert.equal(buffer.positions.array[3],1);
