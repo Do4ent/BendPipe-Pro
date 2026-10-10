@@ -1001,6 +1001,82 @@
     return count;
   }
 
+  // PERF-001: cooperative DWFx geometry construction, with an atomic commit.
+  // The existing render3D entry point remains synchronous for legacy callers.
+  // Consumers can opt in and provide a render callback after commit.
+  let cooperativeGeneration=0;
+  function render3DCooperative({
+    parent,project,THREE,geomScale,batchSize=8,
+    postTask=(fn)=>setTimeout(fn,0),
+    cancelTask=(id)=>clearTimeout(id),
+    onCommit=()=>{},
+    onError=()=>{}
+  }){
+    if(!parent||!project||!THREE)throw new TypeError("3D parent, project and THREE required");
+    if(!Number.isSafeInteger(batchSize)||batchSize<1)throw new RangeError("Invalid batch size");
+    const generation=++cooperativeGeneration;
+    const staging=new THREE.Group();
+    staging.name="DWFx cooperative geometry";
+    const work=[];
+    for(const sceneMeta of project.referenceScenes??[]){
+      if(!sceneMeta||sceneMeta.visible===false)continue;
+      const runtime=runtimeForScene(sceneMeta);
+      if(!runtime)continue;
+      for(const root of sceneMeta.tree??[]){
+        work.push({sceneMeta,runtime,root});
+      }
+    }
+    let index=0,pending=null,done=false,failures=0;
+    const result={total:work.length,processed:0,failures:0,committed:false};
+    const stop=()=>{
+      if(done)return;
+      done=true;
+      if(pending!==null){try{cancelTask(pending);}catch{}pending=null;}
+      // Staging is never attached until commit, so stale scene geometry cannot leak.
+      staging.clear();
+    };
+    function step(){
+      pending=null;
+      if(done||generation!==cooperativeGeneration){stop();return;}
+      const limit=Math.min(index+batchSize,work.length);
+      for(;index<limit;index++){
+        const {sceneMeta,runtime,root}=work[index];
+        try{
+          renderSceneTree({
+            parent:staging,
+            sceneMeta:{...sceneMeta,tree:[root]},
+            runtime,project,THREE,geomScale
+          });
+        }catch(error){
+          failures++;
+          try{onError(error,index);}catch{}
+        }
+        result.processed++;
+      }
+      result.failures=failures;
+      if(index<work.length){
+        try{pending=postTask(step);}
+        catch(error){try{onError(error,index);}catch{}stop();}
+        return;
+      }
+      if(done||generation!==cooperativeGeneration){stop();return;}
+      try{renderEditableMeshInstances({parent:staging,project,THREE,geomScale});}
+      catch(error){failures++;try{onError(error,index);}catch{}}
+      result.failures=failures;
+      parent.add(staging);
+      done=true;
+      result.committed=true;
+      try{onCommit({...result});}catch{}
+    }
+    try{pending=postTask(step);}
+    catch(error){try{onError(error,0);}catch{}stop();}
+    return Object.freeze({
+      cancel:stop,
+      get status(){return {...result,pending:!done};},
+      get group(){return result.committed?staging:null;}
+    });
+  }
+
   function matchNode(node,query){
     if(!query)return true;
     if(String(node?.label??"").toLowerCase().includes(query))return true;
@@ -1995,6 +2071,7 @@
   window.TubeBenderReferenceSceneUi=Object.freeze({
     registerRuntime,
     render3D,
+    render3DCooperative,
     treeItems,
     bindTree,
     selectScene,
