@@ -158,3 +158,24 @@ test("PERF-003: empty scene queue completes without phantom task or batch",()=>{
   assert.deepEqual(completions[0],{completed:0,total:0,batches:0,failures:0});
   assert.deepEqual(queue.progress,{completed:0,total:0,batches:0,failures:0});
 });
+
+test("PERF-003: stale callback cannot erase replacement scene task handle",()=>{
+  const jobs=new Map(),cancelled=[];
+  let nextId=0;
+  const seen=[];
+  const queue=createCooperativeSceneQueue({
+    postTask(callback){const id=++nextId;jobs.set(id,callback);return id;},
+    cancelTask(id){cancelled.push(id);}, // deliberately simulates a late callback
+    processItem:item=>seen.push(item),
+    batchSize:1
+  });
+  queue.start(["old"]);
+  const old=jobs.get(1);
+  queue.start(["new"]);
+  assert.deepEqual(cancelled,[1]);
+  old(); // callback from cancelled generation arrives late
+  queue.cancel();
+  assert.deepEqual(cancelled,[1,2],"replacement handle must remain cancellable");
+  jobs.get(2)();
+  assert.deepEqual(seen,[],"cancelled new generation must never run");
+});
