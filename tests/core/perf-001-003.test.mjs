@@ -30,7 +30,9 @@ test("PERF-001: rapid single-parameter updates coalesce to one 3D draw",()=>{
   assert.equal(coalescer.stats.requests,50);
   clock.flush();
   assert.deepEqual(renders,[false],"most recent update wins");
-  assert.deepEqual(coalescer.stats,{requests:50,draws:1,failures:0});
+  assert.equal(coalescer.stats.draws,1);
+  assert.equal(coalescer.stats.failures,0);
+  assert.ok(coalescer.stats.lastWaitMs>=0);
   coalescer.schedule(true);
   clock.flush();
   assert.deepEqual(renders,[false,true],"new frame uses latest state");
@@ -64,7 +66,28 @@ test("PERF-001: one renderer failure cannot poison the next redraw",()=>{
   c.schedule();clock.flush();
   c.schedule();clock.flush();
   assert.deepEqual(errors,["WebGL context lost"]);
-  assert.deepEqual(c.stats,{requests:2,draws:1,failures:1});
+  assert.equal(c.stats.requests,2);
+  assert.equal(c.stats.draws,1);
+  assert.equal(c.stats.failures,1);
+});
+
+test("PERF-001: telemetry captures frame wait and rendering cost deterministically",()=>{
+  const clock=mockFrames();let time=100;
+  const c=createFrameCoalescer({
+    requestFrame:fn=>clock.requestFrame(fn),
+    now:()=>time,
+    render(){time+=7;}
+  });
+  c.schedule();time+=13;clock.flush();
+  assert.equal(c.stats.lastWaitMs,13);
+  assert.equal(c.stats.lastRenderMs,7);
+  c.schedule();time+=4;clock.flush();
+  assert.equal(c.stats.lastWaitMs,4);
+  assert.equal(c.stats.maxWaitMs,13);
+  assert.equal(c.stats.maxRenderMs,7);
+  const snapshot=c.stats;
+  snapshot.draws=999;
+  assert.equal(c.stats.draws,2,"diagnostic snapshot is read-only by value");
 });
 
 test("PERF-003: failure before bind() does not disable core command handlers",()=>{
