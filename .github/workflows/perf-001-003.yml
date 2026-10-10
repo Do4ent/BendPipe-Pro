@@ -101,23 +101,11 @@ jobs:
       - name: Verify Chromium baseline without TubeBender
         id: chromium_baseline
         continue-on-error: true
-        run: npx playwright test --config acceptance/playwright.config.mjs --grep 'Chromium baseline responds'
-      - name: Preserve baseline Playwright JSON
-        if: always()
-        run: |
-          if [ -f reports/browser/playwright.json ]; then
-            cp reports/browser/playwright.json reports/browser/chromium-baseline.json
-          fi
+        run: TB_BROWSER_REPORT_NAME=chromium-baseline npx playwright test --config acceptance/playwright.config.mjs --grep 'Chromium baseline responds'
       - name: Verify PERF-001 and PERF-003 application behavior
         id: chromium_app
         continue-on-error: true
-        run: npx playwright test --config acceptance/playwright.config.mjs --grep 'PERF-00[13]' --grep-invert 'Chromium baseline responds'
-      - name: Preserve application Playwright JSON
-        if: always()
-        run: |
-          if [ -f reports/browser/playwright.json ]; then
-            cp reports/browser/playwright.json reports/browser/tubebender-application.json
-          fi
+        run: TB_BROWSER_REPORT_NAME=tubebender-application npx playwright test --config acceptance/playwright.config.mjs --grep 'PERF-00[13]' --grep-invert 'Chromium baseline responds'
       - name: Enforce Chromium baseline and application acceptance
         if: always()
         run: |
