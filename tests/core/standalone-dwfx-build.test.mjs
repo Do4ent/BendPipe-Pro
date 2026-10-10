@@ -126,7 +126,8 @@ test("A25: standalone bundles readonly DWFx reference scene into 3D and project 
   const html=fs.readFileSync(output,"utf8");
 
   assert.match(html,/data-tubebender-bundled="dwfx-reference-scene-ui"/);
-  assert.match(html,/TubeBenderReferenceSceneUi\?\.render3D/);
+  assert.match(html,/referenceUi\?\.render3DCooperative/);
+  assert.match(html,/referenceUi\?\.render3D\?\./);
   assert.match(html,/TubeBenderReferenceSceneUi\?\.treeItems/);
   assert.match(html,/TubeBenderReferenceSceneUi\?\.bindTree/);
   assert.match(html,/только чтение/);
