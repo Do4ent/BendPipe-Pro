@@ -1034,6 +1034,27 @@
   // Consumers can opt in and provide a render callback after commit.
   let cooperativeGeneration=0;
   let activeCooperativeHandle=null;
+  let cachedScene=null;
+  const sceneReuseStats={hits:0,misses:0};
+  // Only source/reference properties influence the cache key. Ordinary tube
+  // bend/length edits do not, but source link/visibility edits do.
+  function referenceSignature(project,geomScale){
+    const sourceLinks=(project?.tubes??[]).map(tube=>({
+      id:tube?.id,
+      partNumber:tube?.partNumber??tube?.part_number,
+      source:tube?.currentProjectImport?.source_link,
+      sourceFormat:tube?.currentProjectImport?.source_format,
+      importedPart:tube?.currentProjectImport?.part_number
+    }));
+    return JSON.stringify({
+      scenes:project?.referenceScenes??[],
+      meshInstances:project?.editable_mesh_instances??[],
+      links:sourceLinks,
+      selected:[...bulkSelected].sort(),
+      geomScale
+    });
+  }
+
   function render3DCooperative({
     parent,project,THREE,geomScale,batchSize=8,
     postTask=(fn)=>setTimeout(fn,0),
@@ -1047,6 +1068,22 @@
     if(!Number.isSafeInteger(batchSize)||batchSize<1)throw new RangeError("Invalid batch size");
     const generation=++cooperativeGeneration;
     if(activeCooperativeHandle)activeCooperativeHandle.cancel();
+    const signature=referenceSignature(project,geomScale);
+    if(cachedScene?.signature===signature&&cachedScene.project===project&&
+       cachedScene.THREE===THREE&&cachedScene.group){
+      if(cachedScene.group.parent!==parent)parent.add(cachedScene.group);
+      sceneReuseStats.hits++;
+      const result={total:0,processed:0,failures:0,committed:true,reused:true};
+      try{onCommit({...result});}catch{}
+      const handle=Object.freeze({
+        cancel(){},
+        get status(){return {...result,pending:false};},
+        get group(){return cachedScene.group;}
+      });
+      activeCooperativeHandle=handle;
+      return handle;
+    }
+    sceneReuseStats.misses++;
     const staging=new THREE.Group();
     staging.name="DWFx cooperative geometry";
     const work=[];
@@ -1182,6 +1219,7 @@
       attach();
       done=true;
       result.committed=true;
+      cachedScene={signature,project,THREE,group:staging};
       try{onCommit({...result});}catch{}
     }
     try{pending=postTask(step);}
@@ -2221,6 +2259,7 @@
     selectedCount,
     restorePersistedRuntimes,
     runtimeSummary,
-    performanceStats:()=>({...meshPerformance,largeMeshes:meshPerformance.largeMeshes.map(x=>({...x}))})
+    performanceStats:()=>({...meshPerformance,largeMeshes:meshPerformance.largeMeshes.map(x=>({...x}))}),
+    sceneReuseStats:()=>({...sceneReuseStats})
   });
 })();
