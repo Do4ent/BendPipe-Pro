@@ -37,3 +37,32 @@ test("[PERF-001] repeated renders produce at most one 3D redraw per frame",async
   expect(result.drawsDuring).toBe(0);
   expect(result.drawsTotal).toBeLessThanOrEqual(1);
 });
+
+test("[PERF-003] injected optional view picker failure preserves core binding",async({page})=>{
+  test.setTimeout(150000);
+  const warnings=[];
+  page.on("console",message=>{
+    if(message.type()==="warning" && message.text().includes("Optional picker initialization"))
+      warnings.push(message.text());
+  });
+  await page.addInitScript(()=>{
+    window.__TB_TEST_PERF003_FAIL_OPTIONAL__=true;
+  });
+  const response=await page.goto(html,{waitUntil:"commit",timeout:15000});
+  expect(response?.status()).toBe(200);
+  await expect.poll(()=>page.evaluate(()=>Boolean(
+    window.TubeBenderStartupStatus?.booted &&
+    window.TubeBenderStartupStatus.phases.some(phase=>phase.name==="bind"&&phase.status==="ok")
+  )),{timeout:115000,intervals:[200,800,2000]}).toBe(true);
+  await expect.poll(()=>warnings.some(text=>text.includes("buildViewPicker")),{
+    timeout:30000,intervals:[100,500]
+  }).toBe(true);
+  const controls=await page.evaluate(()=>({
+    projectCombo:!!document.getElementById("projectCombo"),
+    renderAll:typeof window.TubeBenderEngineering?.renderAll==="function",
+    phases:window.TubeBenderStartupStatus.phases.map(({name,status})=>({name,status}))
+  }));
+  expect(controls.projectCombo).toBe(true);
+  expect(controls.renderAll).toBe(true);
+  expect(controls.phases.find(phase=>phase.name==="bind")?.status).toBe("ok");
+});
