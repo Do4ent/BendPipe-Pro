@@ -1997,11 +1997,11 @@
     return true;
   }
 
-  function runSourceLinkCommand(label,mutate,{modelCommand,save,renderAll,refreshProjectTree,reloadActiveTube}={}){
+  function runSourceLinkCommand(label,mutate,{modelCommand,save,renderAll,refreshProjectTree,reloadActiveTube}={},revisionKind="geometry"){
     const ok=typeof modelCommand==="function"?modelCommand(label,mutate):mutate();
     if(ok===false)return false;
     // Source link operations mutate the reference display or geometry snapshot.
-    markSceneChanged(null,/Показать|Скрыть|Сравнить/.test(label)?"display":"geometry");
+    markSceneChanged(null,revisionKind);
     save?.();
     reloadActiveTube?.();
     renderAll?.();
@@ -2049,15 +2049,15 @@
         const action=item.dataset.sourceLinkAction;
         menu.style.display="none";
         if(action==="show"){
-          runSourceLinkCommand("Показать исходник",()=>mutateSourceLinkDisplay(tube,"shown"),callbacks);
+          runSourceLinkCommand("Показать исходник",()=>mutateSourceLinkDisplay(tube,"shown"),callbacks,"display");
         }else if(action==="hide"){
-          runSourceLinkCommand("Скрыть исходник",()=>mutateSourceLinkDisplay(tube,"hidden"),callbacks);
+          runSourceLinkCommand("Скрыть исходник",()=>mutateSourceLinkDisplay(tube,"hidden"),callbacks,"display");
         }else if(action==="compare"){
-          runSourceLinkCommand("Сравнить с исходником",()=>mutateSourceLinkDisplay(tube,"compare"),callbacks);
+          runSourceLinkCommand("Сравнить с исходником",()=>mutateSourceLinkDisplay(tube,"compare"),callbacks,"display");
         }else if(action==="restore"){
-          runSourceLinkCommand("Восстановить из исходника",()=>restoreLinkedTubeGeometry(tube),callbacks);
+          runSourceLinkCommand("Восстановить из исходника",()=>restoreLinkedTubeGeometry(tube),callbacks,"geometry");
         }else if(action==="break"){
-          runSourceLinkCommand("Разорвать связь с исходником",()=>breakSourceLink(tube),callbacks);
+          runSourceLinkCommand("Разорвать связь с исходником",()=>breakSourceLink(tube),callbacks,"geometry");
         }
       });
     });
