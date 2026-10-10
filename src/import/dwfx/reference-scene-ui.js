@@ -1056,7 +1056,7 @@
     bumpRevision(kind);
     invalidateSceneCache();
   }
-  const sceneReuseStats={hits:0,misses:0,invalidations:0};
+  const sceneReuseStats={hits:0,misses:0,invalidations:0,signatureCalls:0,signatureTimeMs:0,maxSignatureTimeMs:0,lastSignatureTimeMs:0,lastSignatureBytes:0};
   // Explicit invalidation for import/replacement and renderer disposal.
   // Uninstrumented mutation paths still use the conservative source signature.
   function invalidateSceneCache(){
@@ -1076,7 +1076,8 @@
       sourceFormat:tube?.currentProjectImport?.source_format,
       importedPart:tube?.currentProjectImport?.part_number
     }));
-    return JSON.stringify({
+    const started=meshNow();
+    const signature=JSON.stringify({
       scenes:project?.referenceScenes??[],
       meshInstances:project?.editable_mesh_instances??[],
       links:sourceLinks,
@@ -1085,6 +1086,13 @@
       geomScale,
       revisions:revisionSnapshot()
     });
+    const elapsed=Math.max(0,meshNow()-started);
+    sceneReuseStats.signatureCalls++;
+    sceneReuseStats.signatureTimeMs+=elapsed;
+    sceneReuseStats.lastSignatureTimeMs=elapsed;
+    sceneReuseStats.maxSignatureTimeMs=Math.max(sceneReuseStats.maxSignatureTimeMs,elapsed);
+    sceneReuseStats.lastSignatureBytes=signature.length;
+    return signature;
   }
 
   // Preserve shared imported scene across disposal of the old CAD parent group.
