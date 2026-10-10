@@ -2274,6 +2274,9 @@
   }
 
   function restorePersistedRuntimes(project){
+    // A restored project may replace links and source scenes wholesale.
+    // Revision bump is intentionally explicit even if no runtime is embedded.
+    markSceneChanged(project,"geometry");
     let count=0;
     for(const scene of project?.referenceScenes??[]){
       if(scene?.display_runtime&&registerRuntime(scene.display_runtime))count+=1;
