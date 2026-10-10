@@ -43,4 +43,6 @@ test("large DWFx mesh prepares vertex and index buffers across multiple tasks",(
   assert.equal(buffer.indices.array.length,(count-2)*3);
   assert.equal(buffer.positions.array[3],1);
   assert.equal(buffer.indices.array[3],1);
+  assert.equal(buffer.positions.array.length,15000);
+  assert.equal(parent.children[0].children[0].children[0].children[0].children[0].geometry.positions.itemSize,3);
 });
