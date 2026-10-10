@@ -1961,19 +1961,6 @@ output=output.replace(
   "  labels.push({ el, pos: pos.clone(), rowIndex, field });"
 );
 
-// Clear cached THREE.Group when its owner is about to be disposed, so a
-// later tube edit cannot reparent scene objects freed by the renderer.
-const referenceDisposeLifecycleAnchor =
-  "function disposeObject3D(root){";
-if (!output.includes(referenceDisposeLifecycleAnchor)) {
-  throw new Error("disposeObject3D lifecycle anchor was not found");
-}
-output=output.replace(referenceDisposeLifecycleAnchor,
-  referenceDisposeLifecycleAnchor+
-  "\\n  if(root?.userData?.referenceSceneCacheOwner===true){\\n"+
-  "    window.TubeBenderReferenceSceneUi?.invalidateSceneCache?.();\\n"+
-  "  }");
-
 const referenceDisposeAnchor =
   "  root.traverse?.(obj=>{\n    if (obj.geometry?.dispose) geometries.add(obj.geometry);";
 if (!output.includes(referenceDisposeAnchor)) {
