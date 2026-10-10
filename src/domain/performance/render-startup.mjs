@@ -113,6 +113,49 @@ export function createSceneRecoveryCoalescer({
 }
 
 /**
+ * PERF-001: cancel either half of a rAF -> timer task. Returning a real
+ * cancellation token prevents discarded geometry batches from waking up
+ * after the current scene has already been superseded.
+ */
+export function createCancellableFrameTaskScheduler({
+  requestFrame,cancelFrame=()=>{},postTask,cancelTask=()=>{},onError=()=>{}
+}){
+  if(typeof requestFrame!=="function"||typeof postTask!=="function")
+    throw new TypeError("requestFrame and postTask are required");
+  return Object.freeze({
+    post(callback){
+      if(typeof callback!=="function")throw new TypeError("task callback required");
+      const handle={frame:null,timer:null,cancelled:false,completed:false};
+      const run=()=>{
+        handle.timer=null;
+        if(handle.cancelled)return;
+        handle.completed=true;
+        callback();
+      };
+      handle.frame=requestFrame(()=>{
+        handle.frame=null;
+        if(handle.cancelled)return;
+        try{handle.timer=postTask(run);}
+        catch(error){
+          try{onError(error);}catch{}
+          // A timer service failure must not strand the cooperative queue.
+          run();
+        }
+      });
+      return handle;
+    },
+    cancel(handle){
+      if(!handle||handle.cancelled||handle.completed)return false;
+      handle.cancelled=true;
+      if(handle.frame!==null)try{cancelFrame(handle.frame);}catch{}
+      if(handle.timer!==null)try{cancelTask(handle.timer);}catch{}
+      handle.frame=null;handle.timer=null;
+      return true;
+    }
+  });
+}
+
+/**
  * PERF-003: one failing optional initialization step cannot prevent bind() or
  * the remaining startup phases from being attempted.
  */
