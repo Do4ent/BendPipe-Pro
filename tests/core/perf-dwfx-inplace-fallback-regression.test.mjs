@@ -5,10 +5,11 @@ import vm from "node:vm";
 
 test("DWFx fallback signature changes for in-place nested geometry changes",()=>{
   const source=fs.readFileSync(new URL("../../src/import/dwfx/reference-scene-ui.js",import.meta.url),"utf8");
-  const start=source.indexOf("  function referenceSignature(project,geomScale){");
+  const start=source.indexOf("  const signatureStats=");
   const end=source.indexOf("  // Preserve shared imported scene",start);
   assert.ok(start>=0&&end>start);
   const context={
+    meshNow:()=>0,
     bulkSelected:new Set(),
     window:{TubeBenderObjectContext:{selectionEntries:()=>[]}},
     revisionSnapshot:()=>({geometry:0,display:0,selection:0})
@@ -34,10 +35,10 @@ test("DWFx fallback signature changes for in-place nested geometry changes",()=>
 
 test("conservative signature detects direct in-place source link edits",()=>{
   const source=fs.readFileSync(new URL("../../src/import/dwfx/reference-scene-ui.js",import.meta.url),"utf8");
-  const start=source.indexOf("  function referenceSignature(project,geomScale){");
+  const start=source.indexOf("  const signatureStats=");
   const end=source.indexOf("  // Preserve shared imported scene",start);
   assert.ok(start>=0&&end>start);
-  const context={bulkSelected:new Set(),window:{},revisionSnapshot:()=>({geometry:0})};
+  const context={meshNow:()=>0,bulkSelected:new Set(),window:{},revisionSnapshot:()=>({geometry:0})};
   vm.createContext(context);
   vm.runInContext(source.slice(start,end)+"\nthis.signature=referenceSignature;",context);
   const project={referenceScenes:[],editable_mesh_instances:[],tubes:[{

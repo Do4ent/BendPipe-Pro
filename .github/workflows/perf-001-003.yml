@@ -21,6 +21,7 @@ on:
       - feature/perf-source-link-revisions-20261010
       - feature/perf-source-link-command-revisions-20261010
       - feature/perf-legacy-project-switch-20261010
+      - feature/perf-dwfx-part-identifiers-cache-20261010
   workflow_dispatch:
   pull_request:
     branches:
@@ -37,6 +38,10 @@ jobs:
           node-version: '24'
       - name: Test frame coalescer and isolated startup
         run: node --test tests/core/perf-001-003.test.mjs
+      - name: Validate DWFx part cache and legacy mutation fallback
+        run: node --test tests/core/perf-dwfx-*.test.mjs tests/core/perf-legacy-project-switch.test.mjs tests/core/perf-source-link-revisions.test.mjs
+      - name: Profile conservative DWFx signature on synthetic fixtures
+        run: node scripts/benchmark-dwfx-signature.mjs
       - name: Run existing regression suite
         run: npm test
       - name: Verify full standalone build
