@@ -91,6 +91,15 @@ export function validateCandidateTopology(
       }
       continue;
     }
+    // Each primitive must be intrinsically valid, including the final end
+    // point and tangent that have no following junction to validate them.
+    if(p?.type==="LINE"||p?.type==="BEND"){
+      try{
+        startPoint(p);endPoint(p);startTangent(p);endTangent(p);
+      }catch(error){
+        issues.push({code:"INVALID_PRIMITIVE_DATA",index:i,message:error.message});
+      }
+    }
     const prev=primitives[i-1];
 
     if(prev?.type===p?.type){
