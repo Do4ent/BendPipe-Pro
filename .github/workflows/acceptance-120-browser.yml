@@ -3,10 +3,12 @@ on:
   push:
     branches:
       - feature/acceptance-120-browser-20261010
+      - feature/mobile-viewport-mob001-20261010
   workflow_dispatch:
   pull_request:
     branches:
       - feature/trusted-geometry-core
+      - feature/acceptance-120-browser-20261010
 
 jobs:
   chromium-acceptance:
