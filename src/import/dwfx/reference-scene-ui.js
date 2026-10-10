@@ -1066,6 +1066,22 @@
     });
   }
 
+  // Preserve shared imported scene across disposal of the old CAD parent group.
+  // This only detaches the cached group; its shared GPU resources remain alive.
+  function beforeParentDispose(root){
+    const group=cachedScene?.group;
+    if(!root||!group||!group.parent)return false;
+    let ancestor=group.parent;
+    while(ancestor){
+      if(ancestor===root){
+        group.parent.remove(group);
+        return true;
+      }
+      ancestor=ancestor.parent;
+    }
+    return false;
+  }
+
   function render3DCooperative({
     parent,project,THREE,geomScale,batchSize=8,
     postTask=(fn)=>setTimeout(fn,0),
@@ -2274,6 +2290,7 @@
     runtimeSummary,
     performanceStats:()=>({...meshPerformance,largeMeshes:meshPerformance.largeMeshes.map(x=>({...x}))}),
     sceneReuseStats:()=>({...sceneReuseStats}),
-    invalidateSceneCache
+    invalidateSceneCache,
+    beforeParentDispose
   });
 })();
