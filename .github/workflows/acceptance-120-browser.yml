@@ -4,6 +4,9 @@ on:
     branches:
       - feature/acceptance-120-browser-20261010
   workflow_dispatch:
+  pull_request:
+    branches:
+      - feature/trusted-geometry-core
 
 jobs:
   chromium-acceptance:
