@@ -6,13 +6,13 @@ export function createFrameCoalescer({requestFrame,cancelFrame=()=>{},render,onE
   if(typeof requestFrame!=="function"||typeof render!=="function"){
     throw new TypeError("requestFrame and render are required");
   }
-  let pending=false,frameId=null,latestFit=true,disposed=false,requestedAt=0;
+  let pending=false,frameId=null,latestFit=true,disposed=false,requestedAt=0,generation=0;
   // Durations are observational only: they never influence CAD geometry or scheduling.
   const stats={requests:0,draws:0,failures:0,lastWaitMs:null,maxWaitMs:null,lastRenderMs:null,maxRenderMs:null};
   const stamp=()=>{try{const value=now();return Number.isFinite(value)?value:null;}catch{return null;}};
-  function draw(){
+  function draw(token){
+    if(token!==generation||disposed||!pending)return;
     frameId=null;
-    if(disposed||!pending)return;
     pending=false;
     const fit=latestFit;
     const start=stamp();
@@ -38,15 +38,23 @@ export function createFrameCoalescer({requestFrame,cancelFrame=()=>{},render,onE
       if(pending)return true;
       pending=true;
       requestedAt=stamp();
-      try{frameId=requestFrame(draw);}
-      catch(error){pending=false;stats.failures++;try{onError(error);}catch{}return false;}
+      const token=++generation;
+      try{
+        const handle=requestFrame(()=>draw(token));
+        if(token===generation&&pending&&frameId===null)frameId=handle;
+      }catch(error){
+        if(token!==generation||!pending)return false;
+        pending=false;stats.failures++;try{onError(error);}catch{}return false;
+      }
       return true;
     },
     cancel(){
       if(!pending)return false;
       pending=false;
-      try{cancelFrame(frameId);}catch{}
+      generation++;
+      const handle=frameId;
       frameId=null;
+      if(handle!==null)try{cancelFrame(handle);}catch{}
       return true;
     },
     dispose(){this.cancel();disposed=true;},
