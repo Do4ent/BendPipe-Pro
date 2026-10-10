@@ -3131,6 +3131,21 @@ const perfCoalescerSource =
   "  get stats(){return tbViewerFrameCoalescer.stats;}\n" +
   "});\n";
 output=output.replace(perfCoreStart,perfCoalescerSource+perfCoreStart);
+// Legacy file-open, recovery and project switching all converge on renderAll.
+// Track the active project identity rather than guessing individual dialog handlers.
+const legacyProjectSwitchAnchor="function renderAll(){";
+const legacyProjectSwitchHook=
+  "let tbLastReferenceProjectIdentity;\n"+
+  "function tbTrackReferenceProjectSwitch(){\n"+
+  "  const project=activeProject();\n"+
+  "  if(project!==tbLastReferenceProjectIdentity){\n"+
+  "    if(tbLastReferenceProjectIdentity!==undefined)\n"+
+  "      window.TubeBenderReferenceSceneUi?.markSceneChanged?.(project,'geometry');\n"+
+  "    tbLastReferenceProjectIdentity=project;\n"+
+  "  }\n"+
+  "}\n";
+output=output.replace(legacyProjectSwitchAnchor,
+  legacyProjectSwitchHook+legacyProjectSwitchAnchor+"\n  tbTrackReferenceProjectSwitch();");
 output=output.replace(perfOldViewerCall,
   "  tbViewerFrameCoalescer.schedule(!preserveViewerFrameForCanvasInteraction);");
 output=output.replace(perfOldDoubleCollision,
