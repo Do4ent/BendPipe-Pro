@@ -1129,7 +1129,7 @@
     bumpRevision(kind);
     invalidateSceneCache();
   }
-  const sceneReuseStats={hits:0,misses:0,invalidations:0,signatureCalls:0,signatureTimeMs:0,maxSignatureTimeMs:0,lastSignatureTimeMs:0,lastSignatureBytes:0,emptyFastPaths:0,lastLinksTimeMs:0,lastSerializeTimeMs:0,sourceIndexBuilds:0};
+  const sceneReuseStats={hits:0,misses:0,invalidations:0,signatureCalls:0,signatureTimeMs:0,maxSignatureTimeMs:0,lastSignatureTimeMs:0,lastSignatureBytes:0,emptyFastPaths:0,lastLinksTimeMs:0,lastSerializeTimeMs:0,sourceIndexBuilds:0,staleBuilds:0};
   // Explicit invalidation for import/replacement and renderer disposal.
   // Uninstrumented mutation paths still use the conservative source signature.
   function invalidateSceneCache(){
@@ -1203,7 +1203,8 @@
     onCommit=()=>{},
     onError=()=>{},
     progressive=false,
-    onProgress=()=>{}
+    onProgress=()=>{},
+    onStale=()=>{}
   }){
     if(!parent||!project||!THREE)throw new TypeError("3D parent, project and THREE required");
     if(!Number.isSafeInteger(batchSize)||batchSize<1)throw new RangeError("Invalid batch size");
@@ -1219,6 +1220,7 @@
     // A previously completed staging group is referenced only by cachedScene.
     // No geometry/material is disposed here: templates are shared by design.
     const signature=referenceSignature(project,geomScale);
+    const snapshot=revisionSnapshot();
     if(cachedScene?.signature===signature&&cachedScene.project===project&&
        cachedScene.THREE===THREE&&cachedScene.group){
       if(cachedScene.group.parent!==parent)parent.add(cachedScene.group);
@@ -1270,18 +1272,29 @@
       if(attached)return;
       parent.add(staging);attached=true;
     };
-    const result={total:work.length,processed:0,failures:0,committed:false};
+    const result={total:work.length,processed:0,failures:0,committed:false,stale:false};
+    const revisionChanged=()=>Object.keys(snapshot).some(key=>revisions[key]!==snapshot[key]);
     const stop=()=>{
       if(done)return;
       done=true;
       if(pending!==null){try{cancelTask(pending);}catch{}pending=null;}
-      // Staging is never attached until commit, so stale scene geometry cannot leak.
+      // Progressive staging might already be attached; remove it on cancel.
       if(attached&&staging.parent)staging.parent.remove(staging);
       staging.clear();
+    };
+    const discardStale=()=>{
+      result.stale=true;
+      sceneReuseStats.staleBuilds++;
+      stop();
+      try{onStale({...result,pending:false});}catch(error){
+        try{onError(error,index);}catch{}
+      }
     };
     function step(){
       pending=null;
       if(done||generation!==cooperativeGeneration){stop();return;}
+      // O(1) counter checks on each task: no full project scan per mesh batch.
+      if(revisionChanged()){discardStale();return;}
       if(meshJobIndex<meshJobs.length){
         let remaining=2048;
         while(remaining>0&&meshJobIndex<meshJobs.length){
@@ -1356,6 +1369,7 @@
         result.processed++;
       }
       result.failures=failures;
+      if(revisionChanged()){discardStale();return;}
       if(progressive&&index>0&&index<work.length){
         attach();
         try{onProgress({...result,committed:false});}catch{}
@@ -1366,6 +1380,12 @@
         return;
       }
       if(done||generation!==cooperativeGeneration){stop();return;}
+      // Direct writes from legacy modules may not bump revisions; perform
+      // one conservative signature comparison before the final scene commit.
+      if(revisionChanged()||referenceSignature(project,geomScale)!==signature){
+        discardStale();
+        return;
+      }
       try{renderEditableMeshInstances({parent:staging,project,THREE,geomScale});}
       catch(error){failures++;try{onError(error,index);}catch{}}
       result.failures=failures;
