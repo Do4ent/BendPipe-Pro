@@ -239,3 +239,25 @@ test("PERF-003: synchronous restart does not overwrite replacement task handle",
   queue.cancel();
   assert.deepEqual(cancelled,[2]);
 });
+
+test("PERF-003: cancellation hook restarting scene preserves replacement task handle",()=>{
+  const jobs=new Map(),cancelled=[];
+  let sequence=0,queue;
+  queue=createCooperativeSceneQueue({
+    postTask(callback){const id=++sequence;jobs.set(id,callback);return id;},
+    cancelTask(id){
+      cancelled.push(id);
+      if(id===1)queue.start(["replacement"]);
+    },
+    processItem(){},
+    batchSize:1
+  });
+  queue.start(["old"]);
+  queue.cancel();
+  assert.equal(queue.pending,true,"replacement generation remains active");
+  assert.deepEqual(queue.progress,{completed:0,total:1,batches:0,failures:0});
+  queue.cancel();
+  assert.deepEqual(cancelled,[1,2],"replacement task is not lost by outer cancellation");
+  jobs.get(2)();
+  assert.equal(queue.pending,false);
+});
