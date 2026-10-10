@@ -254,23 +254,36 @@
   // reference scene rather than rescanning the entire project for every node.
   // This index is deliberately short-lived: conservative signature checks still
   // detect direct writes from legacy modules between render requests.
-  function buildSourceRenderIndex(project,sceneId){
-    const sid=String(sceneId??"");
-    const firstLinked=new Map(),firstAny=new Map(),meshByNode=new Map();
+  // Build one project-wide snapshot for an entire synchronous or cooperative
+  // DWFx render pass. Do not memoize it across renders: legacy source writers
+  // can mutate links without revision bumps, and the conservative signature
+  // must remain the authoritative reuse guard.
+  function buildProjectSourceRenderIndex(project){
+    const byScene=new Map();
+    const ensureScene=(sceneId)=>{
+      const key=String(sceneId??"");
+      let entry=byScene.get(key);
+      if(!entry){
+        entry={firstLinked:new Map(),firstAny:new Map(),meshByNode:new Map()};
+        byScene.set(key,entry);
+      }
+      return entry;
+    };
     for(const tube of linkedEditableTubes(project)){
       const link=sourceLink(tube);
-      if(!link||String(link.scene_id??"")!==sid)continue;
+      if(!link)continue;
+      const scene=ensureScene(link.scene_id);
       const nodeId=String(link.node_id??"");
-      if(!firstAny.has(nodeId))firstAny.set(nodeId,tube);
-      if(link.detached!==true&&!firstLinked.has(nodeId))
-        firstLinked.set(nodeId,tube);
+      if(!scene.firstAny.has(nodeId))scene.firstAny.set(nodeId,tube);
+      if(link.detached!==true&&!scene.firstLinked.has(nodeId))
+        scene.firstLinked.set(nodeId,tube);
     }
     for(const instance of editableMeshInstanceList(project,{create:false})){
-      if(instance?.link_status==="detached"||
-         String(instance?.source?.scene_id??"")!==sid)continue;
+      if(instance?.link_status==="detached")continue;
+      const scene=ensureScene(instance?.source?.scene_id);
       const nodeId=String(instance?.source?.node_id??"");
-      if(!meshByNode.has(nodeId))meshByNode.set(nodeId,[]);
-      meshByNode.get(nodeId).push(instance);
+      if(!scene.meshByNode.has(nodeId))scene.meshByNode.set(nodeId,[]);
+      scene.meshByNode.get(nodeId).push(instance);
     }
     let entries=[];
     try{entries=window.TubeBenderObjectContext?.selectionEntries?.()??[];}
@@ -280,10 +293,23 @@
       .map(entry=>String(entry.tubeId)));
     const selectedInstanceIds=new Set(entries.filter(entry=>entry?.kind==="mesh-instance")
       .map(entry=>String(entry.instanceId)));
-    const editableParts=editablePartSet(project);
-    const selectedKeys=selectedKeySet();
+    const common={
+      selectedTubeIds,selectedInstanceIds,
+      editableParts:editablePartSet(project),
+      selectedKeys:selectedKeySet()
+    };
+    const empty={firstLinked:new Map(),firstAny:new Map(),meshByNode:new Map()};
     sceneReuseStats.sourceIndexBuilds++;
-    return {firstLinked,firstAny,meshByNode,selectedTubeIds,selectedInstanceIds,editableParts,selectedKeys};
+    return {
+      forScene(sceneId){
+        return {...(byScene.get(String(sceneId??""))??empty),...common};
+      }
+    };
+  }
+
+  // Preserves the existing single-scene adapter for callers and test helpers.
+  function buildSourceRenderIndex(project,sceneId){
+    return buildProjectSourceRenderIndex(project).forScene(sceneId);
   }
 
   function meshSourceDisplayState(project,scene,node,lookup=null){
@@ -1065,6 +1091,7 @@
   function render3D({parent,project,THREE,geomScale}){
     if(!parent||!project||!THREE)return 0;
     let count=0;
+    let sourceIndex=null;
     for(const sceneMeta of project.referenceScenes??[]){
       let runtime=runtimes.get(runtimeKey(sceneMeta));
       if(!runtime&&sceneMeta?.display_runtime){
@@ -1072,7 +1099,11 @@
         runtime=runtimes.get(runtimeKey(sceneMeta));
       }
       if(!runtime)continue;
-      renderSceneTree({parent,sceneMeta,runtime,project,THREE,geomScale});
+      if(!sourceIndex)sourceIndex=buildProjectSourceRenderIndex(project);
+      renderSceneTree({
+        parent,sceneMeta,runtime,project,THREE,geomScale,
+        sourceLookup:sourceIndex.forScene(sceneMeta.id)
+      });
       count+=1;
     }
     count+=renderEditableMeshInstances({parent,project,THREE,geomScale});
@@ -1204,7 +1235,7 @@
     }
     sceneReuseStats.misses++;
     const staging=new THREE.Group();
-    const sceneLookups=new Map();
+    let sourceIndex=null;
     staging.name="DWFx cooperative geometry";
     const work=[];
     for(const sceneMeta of project.referenceScenes??[]){
@@ -1311,11 +1342,8 @@
       for(;index<limit;index++){
         const {sceneMeta,runtime,root}=work[index];
         try{
-          let sourceLookup=sceneLookups.get(sceneMeta);
-          if(!sourceLookup){
-            sourceLookup=buildSourceRenderIndex(project,sceneMeta.id);
-            sceneLookups.set(sceneMeta,sourceLookup);
-          }
+          if(!sourceIndex)sourceIndex=buildProjectSourceRenderIndex(project);
+          const sourceLookup=sourceIndex.forScene(sceneMeta.id);
           renderSceneTree({
             parent:staging,
             sceneMeta:{...sceneMeta,tree:[root]},
