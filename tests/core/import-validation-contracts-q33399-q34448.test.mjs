@@ -936,9 +936,9 @@ test("question 34324: preserves source contract",()=>has(10,"export function val
 test("question 34325: preserves source contract",()=>has(10,"endpoint_tolerance_mm=0.1,"));
 test("question 34326: preserves source contract",()=>has(10,"tangent_angle_tolerance_deg=0.25"));
 test("question 34327: preserves source contract",()=>has(10,"if(!Array.isArray(primitives))throw new TypeError(\"primitives must be an array\");"));
-test("question 34328: preserves source contract",()=>has(10,"if(!(endpoint_tolerance_mm>=0))throw new RangeError(\"endpoint_tolerance_mm must be >= 0\");"));
-test("question 34329: preserves source contract",()=>has(10,"if(!(tangent_angle_tolerance_deg>=0&&tangent_angle_tolerance_deg<180)){"));
-test("question 34330: preserves source contract",()=>has(10,"throw new RangeError(\"tangent_angle_tolerance_deg must be in [0,180)\");"));
+test("question 34328: preserves source contract",()=>has(10,"!Number.isFinite(endpoint_tolerance_mm)||endpoint_tolerance_mm<0"));
+test("question 34329: preserves source contract",()=>has(10,"!Number.isFinite(tangent_angle_tolerance_deg)||"));
+test("question 34330: preserves source contract",()=>has(10,"throw new RangeError(\"tangent_angle_tolerance_deg must be a finite number in [0,180)\");"));
 test("question 34331: preserves source contract",()=>has(10,"const issues=[];"));
 test("question 34332: preserves source contract",()=>has(10,"if(!primitives.length){"));
 test("question 34333: preserves source contract",()=>has(10,"issues.push({code:\"EMPTY_TOPOLOGY\",index:null,message:\"No primitive candidates are available.\"});"));
@@ -948,7 +948,7 @@ test("question 34336: preserves source contract",()=>has(10,"for(let i=0;i<primi
 test("question 34337: preserves source contract",()=>has(10,"const p=primitives[i];"));
 test("question 34338: preserves source contract",()=>has(10,"if(!p||![\"LINE\",\"BEND\"].includes(p.type)){"));
 test("question 34339: preserves source contract",()=>has(10,"issues.push({code:\"UNSUPPORTED_PRIMITIVE\",index:i,message:`Unsupported primitive type at index ${i}.`});"));
-test("question 34340: preserves source contract",()=>has(10,"if(i===0)continue;"));
+test("question 34340: preserves source contract",()=>has(10,"if(i===0){"));
 test("question 34341: preserves source contract",()=>has(10,"const prev=primitives[i-1];"));
 test("question 34342: preserves source contract",()=>has(10,"if(prev?.type===p?.type){"));
 test("question 34343: preserves source contract",()=>has(10,"issues.push({"));
