@@ -1152,7 +1152,7 @@
         result.processed++;
       }
       result.failures=failures;
-      if(progressive&&index>0){
+      if(progressive&&index>0&&index<work.length){
         attach();
         try{onProgress({...result,committed:false});}catch{}
       }
