@@ -116,6 +116,8 @@ export function evaluateProductionRelease({
       throw new TypeError("each validation result must be an object");
     }
     requiredString(result.check_id, "result.check_id");
+    // Conflicting duplicate outcomes must never be resolved by last-write-wins.
+    if(byId.has(result.check_id))throw new RangeError(`duplicate validation check id: ${result.check_id}`);
     byId.set(result.check_id, result);
   }
 
