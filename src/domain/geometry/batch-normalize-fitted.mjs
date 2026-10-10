@@ -14,7 +14,7 @@ function finite(value){
   const n=Number(value);return Number.isFinite(n)?n:null;
 }
 function median(values=[]){
-  const list=values.map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+  const list=values.map(finite).filter(value=>value!==null).sort((a,b)=>a-b);
   if(!list.length)return null;
   const i=Math.floor(list.length/2);
   return list.length%2?list[i]:(list[i-1]+list[i])/2;
