@@ -261,3 +261,58 @@ test("PERF-003: cancellation hook restarting scene preserves replacement task ha
   jobs.get(2)();
   assert.equal(queue.pending,false);
 });
+
+test("PERF-003: postTask failure reports once and leaves queue inactive",()=>{
+  const errors=[],seen=[];
+  const queue=createCooperativeSceneQueue({
+    postTask(){throw new Error("scheduler unavailable");},
+    processItem:item=>seen.push(item),
+    onError:(error,index)=>errors.push([error.message,index])
+  });
+  queue.start(["unprocessed"]);
+  assert.deepEqual(seen,[]);
+  assert.deepEqual(errors,[["scheduler unavailable",0]]);
+  assert.deepEqual(queue.progress,{completed:0,total:1,batches:0,failures:1});
+  assert.equal(queue.pending,false);
+});
+
+test("PERF-003: onError may restart scene after a scheduling failure",()=>{
+  const jobs=new Map(),seen=[],errors=[];
+  let nextId=0,queue;
+  queue=createCooperativeSceneQueue({
+    postTask:callback=>{
+      if(nextId++===0)throw new Error("first dispatch failed");
+      jobs.set(nextId,callback);
+      return nextId;
+    },
+    processItem:item=>seen.push(item),
+    onError:(error,index)=>{
+      errors.push([error.message,index]);
+      queue.start(["replacement"]);
+    }
+  });
+  queue.start(["original"]);
+  assert.deepEqual(errors,[["first dispatch failed",0]]);
+  assert.deepEqual(queue.progress,{completed:0,total:1,batches:0,failures:0});
+  assert.equal(queue.pending,true);
+  jobs.get(2)();
+  assert.deepEqual(seen,["replacement"]);
+  assert.deepEqual(queue.progress,{completed:1,total:1,batches:1,failures:0});
+});
+
+test("PERF-003: onError may cancel a failed item without scheduling later batches",()=>{
+  const jobs=[];
+  const seen=[];
+  let queue;
+  queue=createCooperativeSceneQueue({
+    postTask:callback=>{jobs.push(callback);return jobs.length;},
+    processItem:item=>{seen.push(item);throw new Error("bad CAD item");},
+    onError:()=>queue.cancel(),
+    batchSize:1
+  });
+  queue.start(["bad","must-not-run"]);
+  jobs.shift()();
+  assert.deepEqual(seen,["bad"]);
+  assert.equal(queue.pending,false);
+  assert.equal(jobs.length,0);
+});
