@@ -1069,12 +1069,18 @@
   }
   // Only source/reference properties influence the cache key. Ordinary tube
   // bend/length edits do not, but source link/visibility edits do.
+  const runtimeTrackedProjects=new WeakSet();
+  // Reserved for a future audited project command gateway; no public method
+  // grants authorization until legacy loading and history writers are covered.
   function referenceSignature(project,geomScale){
     // The fast path is opt-in: a project may enable it only after every
     // reference scene, source link, mesh instance and selection writer is
     // instrumented to call markSceneChanged with the appropriate revision.
     // Existing/legacy projects continue using the conservative deep key.
-    if(project?.dwfx_revision_tracking_complete===true){
+    // A serialized project flag is not proof that legacy writers are instrumented.
+    // A session-local authorization is needed before using revision-only keys.
+    if(project?.dwfx_revision_tracking_complete===true&&
+       runtimeTrackedProjects.has(project)){
       return JSON.stringify({
         mode:"tracked",
         geomScale,
