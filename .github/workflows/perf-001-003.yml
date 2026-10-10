@@ -98,8 +98,20 @@ jobs:
         run: npm run build:standalone
       - name: Validate generated Standalone JavaScript syntax
         run: node scripts/check-standalone-syntax.mjs
-      - name: Verify PERF-001 and PERF-003 in Chromium
-        run: npx playwright test --config acceptance/playwright.config.mjs --grep 'PERF-00[13]'
+      - name: Verify Chromium baseline without TubeBender
+        id: chromium_baseline
+        continue-on-error: true
+        run: npx playwright test --config acceptance/playwright.config.mjs --grep 'Chromium baseline responds'
+      - name: Verify PERF-001 and PERF-003 application behavior
+        id: chromium_app
+        continue-on-error: true
+        run: npx playwright test --config acceptance/playwright.config.mjs --grep 'PERF-00[13]' --grep-invert 'Chromium baseline responds'
+      - name: Enforce Chromium baseline and application acceptance
+        if: always()
+        run: |
+          echo "Chromium baseline: ${{ steps.chromium_baseline.outcome }}"
+          echo "TubeBender browser acceptance: ${{ steps.chromium_app.outcome }}"
+          if [ "${{ steps.chromium_baseline.outcome }}" != success ] || [ "${{ steps.chromium_app.outcome }}" != success ]; then exit 1; fi
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
