@@ -45,6 +45,8 @@ jobs:
         run: node scripts/benchmark-dwfx-signature.mjs
       - name: Verify full standalone build
         run: npm run build:standalone
+      - name: Validate inline JavaScript syntax in generated Standalone
+        run: node scripts/check-standalone-syntax.mjs
       - name: Verify generated PERF runtime contract
         run: |
           node --input-type=module <<'JS'
@@ -81,6 +83,8 @@ jobs:
         run: node --check tests/browser/perf-001-003.spec.mjs
       - name: Build standalone under test
         run: npm run build:standalone
+      - name: Validate generated Standalone JavaScript syntax
+        run: node scripts/check-standalone-syntax.mjs
       - name: Verify PERF-001 and PERF-003 in Chromium
         run: npx playwright test --config acceptance/playwright.config.mjs --grep 'PERF-00[13]'
       - name: Upload browser evidence
