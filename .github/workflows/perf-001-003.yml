@@ -2,30 +2,7 @@ name: perf-001-003-implementation
 on:
   push:
     branches:
-      - feature/perf-001-003-render-startup-20261010
-      - feature/perf-render-telemetry-20261010
-      - feature/perf-startup-yield-20261010
-      - feature/perf-cooperative-scene-20261010
-      - feature/perf-dwfx-scene-chunking-20261010
-      - feature/perf-dwfx-renderer-wiring-20261010
-      - feature/perf-mesh-buffer-chunks-20261010
-      - feature/perf-normals-upload-20261010
-      - feature/perf-progressive-gpu-20261010
-      - feature/perf-mesh-profiling-reuse-20261010
-      - feature/perf-dwfx-scene-revision-cache-20261010
-      - feature/perf-scene-cache-lifetime-20261010
-      - feature/perf-cache-disposal-hook-20261010
-      - feature/perf-dwfx-revision-counters-20261010
-      - feature/perf-dwfx-writer-revisions-20261010
-      - feature/perf-dwfx-crossmodule-audit-20261010
-      - feature/perf-source-link-revisions-20261010
-      - feature/perf-source-link-command-revisions-20261010
-      - feature/perf-legacy-project-switch-20261010
-      - feature/perf-dwfx-part-identifiers-cache-20261010
-      - feature/perf-browser-startup-diagnostics-20261010
-      - feature/perf-picker-startup-scope-fix-20261010
-      - feature/perf-revision-contract-reconcile-20261010
-      - feature/perf-regression-contract-refresh-20261011
+      - 'feature/perf-*'
   workflow_dispatch:
   pull_request:
     branches:
