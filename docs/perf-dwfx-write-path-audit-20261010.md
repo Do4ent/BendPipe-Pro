@@ -39,3 +39,16 @@ To enable tracking for general persisted projects safely:
 **General fast-path activation: BLOCKED.**
 
 No change has been made to `main`; the conservative deep signature remains the default.
+
+
+## Legacy cross-module review follow-up
+
+Reviewed `legacy/VC207R7/TubeBender_CAD_VC207R7_Pixel_Matched_Approved_Interface_Release.html`:
+- `tbHistoryRestore` replaces `state` with a cloned snapshot; `tbUndo`/`tbRedo` call it without notifying the DWFx scene runtime.
+- `poExecuteOpen` can replace `state.projects` or append imported projects directly without a revision notification.
+- `poCreateEditableCopy` pushes a copied project directly into `state.projects`.
+- `src/application/model-history.mjs` is a pure snapshot history model; invalidation must occur in its application integration, not in the generic history engine.
+
+**Security/correctness gate:** the persisted `dwfx_revision_tracking_complete` field no longer enables the fast path alone. A private session-local `WeakSet` is additionally required and has no enrollment path until all legacy writer integrations are instrumented. Consequently all current projects use the conservative key; the dormant fast path remains for future activation.
+
+Verification: regression tests committed, execution in this environment unavailable (GitHub checkout network resolution failed). Browser acceptance and runtime performance improvements have not been demonstrated.
