@@ -95,7 +95,7 @@ test("[PERF-001] repeated renders produce at most one 3D redraw per frame",async
       })
     ]);
   }catch(error){
-    throw new Error("PERF-001 redraw measurement failed. Browser evidence:\\n"+await diagnostics()+"\\n"+String(error));
+    throw new Error("PERF-001 redraw measurement failed. Browser evidence:\n"+await diagnostics()+"\n"+String(error));
   }finally{
     clearTimeout(measurementTimer);
   }
