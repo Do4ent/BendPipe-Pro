@@ -1056,7 +1056,7 @@
     bumpRevision(kind);
     invalidateSceneCache();
   }
-  const sceneReuseStats={hits:0,misses:0,invalidations:0,signatureCalls:0,signatureTimeMs:0,maxSignatureTimeMs:0,lastSignatureTimeMs:0,lastSignatureBytes:0};
+  const sceneReuseStats={hits:0,misses:0,invalidations:0,signatureCalls:0,signatureTimeMs:0,maxSignatureTimeMs:0,lastSignatureTimeMs:0,lastSignatureBytes:0,emptyFastPaths:0};
   // Explicit invalidation for import/replacement and renderer disposal.
   // Uninstrumented mutation paths still use the conservative source signature.
   function invalidateSceneCache(){
@@ -1069,6 +1069,12 @@
   // Only source/reference properties influence the cache key. Ordinary tube
   // bend/length edits do not, but source link/visibility edits do.
   function referenceSignature(project,geomScale){
+    // Empty reference projects have no DWFx geometry to rebuild. Avoid walking
+    // potentially large tube arrays on every ordinary editing frame.
+    if(!(project?.referenceScenes?.length) && !(project?.editable_mesh_instances?.length)){
+      sceneReuseStats.emptyFastPaths++;
+      return "empty-reference-scenes";
+    }
     const sourceLinks=(project?.tubes??[]).map(tube=>({
       id:tube?.id,
       partNumber:tube?.partNumber??tube?.part_number,
