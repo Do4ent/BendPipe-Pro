@@ -393,6 +393,7 @@
   }
 
   function moveEditableMeshInstance(project,instanceId,deltaMm){
+    bumpRevision("geometry");
     const instance=meshInstanceById(project,instanceId);
     if(!instance)throw new Error("Editable mesh instance not found");
     const p=instance.transform?.position_mm??{x:0,y:0,z:0};
@@ -432,6 +433,7 @@
   }
 
   function rotateEditableMeshInstanceAxis(project,instanceId,{axis,angle_deg}={}){
+    bumpRevision("geometry");
     const instance=meshInstanceById(project,instanceId);
     if(!instance)throw new Error("Editable mesh instance not found");
     const current=instance.transform?.rotation_quaternion??{x:0,y:0,z:0,w:1};
@@ -444,6 +446,7 @@
   }
 
   function rotateEditableMeshInstance(project,instanceId,deltaDeg){
+    bumpRevision("geometry");
     const instance=meshInstanceById(project,instanceId);
     if(!instance)throw new Error("Editable mesh instance not found");
     const r=instance.transform?.rotation_deg??{x:0,y:0,z:0};
@@ -459,6 +462,7 @@
   }
 
   function copyEditableMeshInstance(project,instanceId,{offset_mm={x:0,y:0,z:0},name=null}={}){
+    bumpRevision("geometry");
     const source=meshInstanceById(project,instanceId);
     if(!source)throw new Error("Editable mesh instance not found");
     const p=source.transform?.position_mm??{x:0,y:0,z:0};
@@ -480,6 +484,7 @@
   }
 
   function arrayEditableMeshInstance(project,instanceId,{count=2,step_mm={x:0,y:0,z:0}}={}){
+    bumpRevision("geometry");
     const n=Math.trunc(Number(count));
     if(!(n>=2))throw new RangeError("Array count must be >= 2");
     const created=[];
@@ -531,6 +536,7 @@
   }
 
   function breakEditableMeshInstanceLink(project,instanceId){
+    bumpRevision("geometry");
     const instance=meshInstanceById(project,instanceId);
     if(!instance)throw new Error("Editable mesh instance not found");
     if(instance.link_status==="detached")return instance;
@@ -1906,6 +1912,7 @@
   }
 
   function moveSelection(project,deltaMm){
+    bumpRevision("geometry");
     const delta={
       x:Number(deltaMm?.x)||0,
       y:Number(deltaMm?.y)||0,
