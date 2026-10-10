@@ -1075,7 +1075,10 @@
       sceneReuseStats.emptyFastPaths++;
       return "empty-reference-scenes";
     }
-    // Include link collection in measured time: it can dominate serialization\n    // for projects with many editable tubes. Legacy mutation safety is unchanged.\n    const started=meshNow();\n    const sourceLinks=(project?.tubes??[]).map(tube=>({
+    // Include link collection in measured time: it can dominate serialization
+    // for projects with many editable tubes. Legacy mutation safety is unchanged.
+    const started=meshNow();
+    const sourceLinks=(project?.tubes??[]).map(tube=>({
       id:tube?.id,
       partNumber:tube?.partNumber??tube?.part_number,
       source:tube?.currentProjectImport?.source_link,
