@@ -65,6 +65,15 @@ async function expectStartup(page,predicate,timeout,diagnostics){
 }
 
 
+test("[PERF-003] Chromium baseline responds before TubeBender startup",async({page})=>{
+  test.setTimeout(20000);
+  const response=await page.goto("about:blank",{waitUntil:"commit",timeout:10000});
+  expect(response).toBeNull();
+  const probe=await page.evaluate(()=>({readyState:document.readyState,js:1+1}));
+  expect(probe.js).toBe(2);
+  expect(probe.readyState).toBe("complete");
+});
+
 test("[PERF-003] core event binding survives isolated startup stages",async({page})=>{
   test.setTimeout(140000);
   const diagnostics=captureStartupDiagnostics(page);
