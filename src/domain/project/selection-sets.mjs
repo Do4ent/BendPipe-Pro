@@ -129,7 +129,13 @@ export function createSelectionSet(project,{id=null,name="Selection Set",members
   if(selectionSetById(project,set.id))throw new Error("Selection Set id already exists");
   assertUniqueName(project,set);
   project.selection_sets.push(set);
-  addSelectionSetMembers(project,set.id,members);
+  try{
+    addSelectionSetMembers(project,set.id,members);
+  }catch(error){
+    // Invalid references must not leave a partially created named set.
+    project.selection_sets=project.selection_sets.filter(item=>item!==set);
+    throw error;
+  }
   return set;
 }
 export function createDynamicSelectionSet(project,{id=null,name="Dynamic Selection Set",rules={}}={}){
@@ -146,7 +152,9 @@ export function updateDynamicSelectionSetRules(project,setId,rules={}){
 export function renameSelectionSet(project,setId,name){
   const set=selectionSetById(project,setId);if(!set)throw new Error("Selection Set not found");
   const next=String(name??"").trim();if(!next)throw new Error("Selection Set name is required");
-  set.name=next;assertUniqueName(project,set);return set;
+  // Check the proposed name before mutating project state.
+  assertUniqueName(project,{...set,name:next});
+  set.name=next;return set;
 }
 export function addSelectionSetMembers(project,setId,members=[]){
   const set=selectionSetById(project,setId);if(!set)throw new Error("Selection Set not found");
