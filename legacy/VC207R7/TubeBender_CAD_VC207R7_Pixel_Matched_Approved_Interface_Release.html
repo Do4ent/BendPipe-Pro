@@ -7809,12 +7809,25 @@ function tbHistoryClear(){
   tbHistory.transaction=null;
   tbHistoryUpdateUi();
 }
+function tbNotifyDwfxSceneChange(reason="project-replaced"){
+  const api=window.TubeBenderReferenceSceneUi;
+  if(!api)return false;
+  // Rehydrate source runtimes after complete state replacement; runtime IDs
+  // can be reused across snapshots and cached mesh templates must be refreshed.
+  if(typeof api.restorePersistedRuntimes==="function"){
+    for(const project of state.projects??[])api.restorePersistedRuntimes(project);
+  }else{
+    api.markSceneChanged?.(activeProject(),"geometry");
+  }
+  return true;
+}
 function tbHistoryRestore(snapshot){
   if(!snapshot?.state||!Array.isArray(snapshot?.pipeDb))return false;
   tbHistory.applying=true;
   try{
     state=clone(snapshot.state);
     pipeDb=clone(snapshot.pipeDb);
+    tbNotifyDwfxSceneChange("history-restore");
     ensureToolingIds(pipeDb);
     loadedCoordinateProjectId=null;
     syncProjectToLegacy();
@@ -14047,12 +14060,12 @@ async function poExecuteOpen(){
     }else{
       poMergeTooling(pkg.pipeDb,chosen);const existing=state.projects||[];for(const p of chosen){const same=existing.find(x=>String(x.name).toLowerCase()===String(p.name).toLowerCase());if(same&&conflict==='skip')continue;if(same&&conflict==='replace')state.projects=state.projects.filter(x=>x!==same);if(same&&conflict==='copy')p.name=uniqueName(p.name,state.projects.map(x=>x.name));state.projects.push(p);state.activeProjectId=p.id;state.activeTubeId=p.tubes[0].id;}state.workspaceReadOnly=false;state.workspaceDirty=true;
     }
-    ensureProject();verifyProjectHasCheckedPipe();syncProjectToLegacy();loadActiveTubeToState();projectCollisionCache.clear();save();state.workspaceDirty=mode==='append';localStorage.setItem(STORAGE_KEY,JSON.stringify(state));renderPipeSelect();renderPipeTable();renderAll();poApplyReadOnlyUi();await poRememberOpened(pkg,pkg.rawText||JSON.stringify(pkg.rawData));qs('projectOpenDialog').close();ptToast(mode==='append'?'Проекты добавлены':mode==='readonly'?'Проект открыт только для просмотра':'Проект открыт');
+    ensureProject();verifyProjectHasCheckedPipe();tbNotifyDwfxSceneChange("project-open");syncProjectToLegacy();loadActiveTubeToState();projectCollisionCache.clear();save();state.workspaceDirty=mode==='append';localStorage.setItem(STORAGE_KEY,JSON.stringify(state));renderPipeSelect();renderPipeTable();renderAll();poApplyReadOnlyUi();await poRememberOpened(pkg,pkg.rawText||JSON.stringify(pkg.rawData));qs('projectOpenDialog').close();ptToast(mode==='append'?'Проекты добавлены':mode==='readonly'?'Проект открыт только для просмотра':'Проект открыт');
   }catch(e){console.error(e);ptToast('Не удалось открыть проект: '+e.message);}finally{PO.suppressDirty=false;poSetBusy(false,'Готово');}
 }
 function poDownloadReport(){const pkg=PO.current;if(!pkg)return ptToast('Сначала выберите файл');const report={file:pkg.meta,version:pkg.version,status:poStatusText(pkg.status),summary:pkg.summary,errors:pkg.errors,warnings:pkg.warnings,conversions:[...new Set(pkg.conversions)],projects:pkg.projects.map(p=>({name:p.name,tubes:p.tubes.map(t=>({name:t.name,diameter:t._poDiameter,length:t._poLength,lines:t._poLines,bends:t._poBends,issues:t._poIssues}))}))};downloadJsonFile(report,safeFileName(pkg.meta.name.replace(/\.json$/i,''))+'_inspection.json');}
 function poApplyReadOnlyUi(){const ro=poReadOnly();document.body.classList.toggle('workspace-readonly',ro);qs('poReadOnlyBanner')?.classList.toggle('hidden',!ro);const selectors=['[data-action="projectNew"]','[data-action="projectCopy"]','[data-action="projectRename"]','[data-action="projectDelete"]','[data-action="tubeNew"]','[data-action="tubeCopy"]','[data-action="tubeRename"]','[data-action="tubeDelete"]','#addLine','#addBend','#openOffset','#openSketchRecognizer','#editorApply','#editorDelete','#openSettings','#clearProject','#tbEditSummary input','#tbEditSummary select'];document.querySelectorAll(selectors.join(',')).forEach(el=>{el.classList.toggle('po-readonly-disabled',ro);if('disabled'in el)el.disabled=ro;});}
-function poCreateEditableCopy(){if(!poReadOnly())return;const p=activeProject();syncActiveTubeFromState();const cp=clone(p);cp.id=uid();cp.name=uniqueName(p.name+' copy',state.projects.map(x=>x.name));cp.tubes=cp.tubes.map(t=>({...t,id:uid()}));state.projects.push(cp);state.activeProjectId=cp.id;state.activeTubeId=cp.tubes[0].id;state.workspaceReadOnly=false;state.workspaceDirty=true;syncProjectToLegacy();loadActiveTubeToState();save();renderAll();poApplyReadOnlyUi();ptToast('Создана редактируемая копия');}
+function poCreateEditableCopy(){if(!poReadOnly())return;const p=activeProject();syncActiveTubeFromState();const cp=clone(p);cp.id=uid();cp.name=uniqueName(p.name+' copy',state.projects.map(x=>x.name));cp.tubes=cp.tubes.map(t=>({...t,id:uid()}));state.projects.push(cp);tbNotifyDwfxSceneChange("project-copy");state.activeProjectId=cp.id;state.activeTubeId=cp.tubes[0].id;state.workspaceReadOnly=false;state.workspaceDirty=true;syncProjectToLegacy();loadActiveTubeToState();save();renderAll();poApplyReadOnlyUi();ptToast('Создана редактируемая копия');}
 function poOpenDialog(source='recent'){
   const d=qs('projectOpenDialog');if(!d)return;PO.current=null;PO.currentRecord=null;PO.selected.clear();PO.focusKey=null;PO.source=source||PO.settings.source||'recent';qs('poSearch').value='';qs('poStatusFilter').value=PO.settings.status||'all';qs('poSort').value=PO.settings.sort||'modified-desc';poUpdateSourceUi();if(!d.open)d.showModal();poInitPreview();poSetSource(PO.source);setTimeout(()=>qs('poSearch')?.focus(),40);
 }
