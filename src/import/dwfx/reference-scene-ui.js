@@ -1,6 +1,8 @@
 (() => {
   const runtimes=new Map();
   const templates=new Map();
+  const meshPerformance={templateBuilds:0,templateCacheHits:0,buildTimeMs:0,maxBuildTimeMs:0,largeMeshes:[]};
+  const meshNow=()=>typeof performance!=="undefined"&&typeof performance.now==="function"?performance.now():Date.now();
   let selected=null;
   const bulkSelected=new Set();
   let rangeAnchorKey=null;
@@ -38,7 +40,11 @@
   function buildAssetTemplate(runtime,asset,THREE,displayMode="normal"){
     const transparent=displayMode==="transparent";
     const key=String(runtime.scene_id)+"|"+String(asset.id)+"|"+displayMode;
-    if(templates.has(key))return templates.get(key);
+    if(templates.has(key)){
+      meshPerformance.templateCacheHits++;
+      return templates.get(key);
+    }
+    const buildStart=meshNow();
 
     const group=new THREE.Group();
     group.userData.referenceShared=true;
@@ -134,6 +140,14 @@
     }
 
     templates.set(key,group);
+    const elapsed=Math.max(0,meshNow()-buildStart);
+    meshPerformance.templateBuilds++;
+    meshPerformance.buildTimeMs+=elapsed;
+    meshPerformance.maxBuildTimeMs=Math.max(meshPerformance.maxBuildTimeMs,elapsed);
+    if(elapsed>=16){
+      meshPerformance.largeMeshes.push({assetId:String(asset.id),sceneId:String(runtime.scene_id),elapsedMs:elapsed});
+      if(meshPerformance.largeMeshes.length>20)meshPerformance.largeMeshes.shift();
+    }
     return group;
   }
 
@@ -2206,6 +2220,7 @@
     applyModifierSelection,
     selectedCount,
     restorePersistedRuntimes,
-    runtimeSummary
+    runtimeSummary,
+    performanceStats:()=>({...meshPerformance,largeMeshes:meshPerformance.largeMeshes.map(x=>({...x}))})
   });
 })();
