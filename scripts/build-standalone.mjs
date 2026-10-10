@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { renderMobileViewportStyle } from "../src/ui/mobile-viewport.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourcePath = path.join(
@@ -3103,6 +3104,13 @@ if (!output.includes("result?.status!=='dwfx_project_candidate'")) {
 if (!output.includes("poImportCurrentBtn") || !output.includes("importSelectedDwfxTubesIntoCurrentProject")) {
   throw new Error("Standalone build is missing the current-project DWFx import control");
 }
+
+// Apply responsive containment after legacy/pixel-matched CSS is assembled.
+// Styles are scoped to <=1120px and do not change the approved desktop reference.
+if(!output.includes("</head>"))throw new Error("MOB-001 head anchor missing");
+if(output.includes("tbMobileViewportMOB001"))throw new Error("MOB-001 style already injected");
+output=output.replace("</head>", renderMobileViewportStyle()+"\n</head>");
+if(!output.includes('id="tbMobileViewportMOB001"'))throw new Error("MOB-001 mobile viewport style missing");
 
 fs.mkdirSync(distDir, { recursive: true });
 const tempOutputPath =
