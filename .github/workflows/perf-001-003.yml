@@ -67,8 +67,32 @@ jobs:
           path: dist/TubeBender_CAD_VC207R7_M1_Standalone.html
           if-no-files-found: error
       # Preserve strict regression gating, but run the build and runtime contract first.
-      - name: Run existing regression suite
-        run: npm test
+      - name: Run existing regression suite and capture current failure count
+        shell: bash
+        run: |
+          mkdir -p reports/regression
+          set -o pipefail
+          npm test 2>&1 | tee reports/regression/node-test.log
+      - name: Summarize measured regression results
+        if: always()
+        shell: bash
+        run: |
+          if [ -f reports/regression/node-test.log ]; then
+            {
+              echo '### Current Node regression suite'
+              echo '```text'
+              grep -E '^# (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) ' reports/regression/node-test.log | tail -n 8 || true
+              echo '```'
+              echo 'Counts come from this run, not the historical 105 failures.'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-regression-evidence
+          path: reports/regression/node-test.log
+          if-no-files-found: warn
 
   chromium-perf:
     runs-on: ubuntu-latest
