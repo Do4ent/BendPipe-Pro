@@ -940,7 +940,7 @@ test("question 29278: preserves source contract",()=>has(10,"if(set.kind!==\"Dyn
 test("question 29279: preserves source contract",()=>has(10,"set.rules={...normalizeDynamicRules(rules)};return set;"));
 test("question 29280: preserves source contract",()=>has(10,"export function renameSelectionSet(project,setId,name){"));
 test("question 29281: preserves source contract",()=>has(10,"const next=String(name??\"\").trim();if(!next)throw new Error(\"Selection Set name is required\");"));
-test("question 29282: preserves source contract",()=>has(10,"set.name=next;assertUniqueName(project,set);return set;"));
+test("question 29282: preserves source contract",()=>has(10,"assertUniqueName(project,{...set,name:next});"));
 test("question 29283: preserves source contract",()=>has(10,"export function addSelectionSetMembers(project,setId,members=[]){"));
 test("question 29284: preserves source contract",()=>has(10,"if(set.kind!==\"StaticSelectionSet\")throw new Error(\"Dynamic Selection Set members are rule-derived\");"));
 test("question 29285: preserves source contract",()=>has(10,"const map=new Map((set.members??[]).map(ref=>[selectionRefKey(ref),ref]));"));
