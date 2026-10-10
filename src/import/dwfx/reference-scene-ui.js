@@ -65,9 +65,20 @@
         }
 
         const geometry=new THREE.BufferGeometry();
-        geometry.setAttribute("position",new THREE.BufferAttribute(positions,3));
-        geometry.setIndex(new THREE.BufferAttribute(indices,1));
-        geometry.computeVertexNormals();
+        // StaticDrawUsage is the correct GPU usage hint for immutable CAD meshes.
+        const positionAttribute=new THREE.BufferAttribute(positions,3);
+        if(typeof positionAttribute.setUsage==="function"&&THREE.StaticDrawUsage!=null)
+          positionAttribute.setUsage(THREE.StaticDrawUsage);
+        geometry.setAttribute("position",positionAttribute);
+        const indexAttribute=new THREE.BufferAttribute(indices,1);
+        if(typeof indexAttribute.setUsage==="function"&&THREE.StaticDrawUsage!=null)
+          indexAttribute.setUsage(THREE.StaticDrawUsage);
+        geometry.setIndex(indexAttribute);
+        if(prepared?.normals){
+          geometry.setAttribute("normal",new THREE.BufferAttribute(prepared.normals,3));
+        }else{
+          geometry.computeVertexNormals();
+        }
 
         const material=new THREE.MeshStandardMaterial({
           color:rgbHex(item.color_rgb),
@@ -1041,7 +1052,8 @@
           if(!(mesh.vertices?.length&&mesh.faces?.length))continue;
           meshJobs.push({
             mesh,positions:new Float32Array(mesh.vertices.length*3),
-            indices:new Uint32Array(mesh.faces.length*3),v:0,f:0
+            indices:new Uint32Array(mesh.faces.length*3),
+            normals:new Float32Array(mesh.vertices.length*3),v:0,f:0,n:0,normalized:0
           });
         }
       }
@@ -1079,7 +1091,35 @@
             remaining--;
           }
           if(job.v===vertices.length&&job.f===faces.length){
-            preparedMeshBuffers.set(job.mesh,{positions:job.positions,indices:job.indices});
+            // Match indexed Three.js normals: add unnormalized triangle cross
+            // products to each participating vertex, then normalize vectors.
+            while(remaining>0&&job.n<faces.length){
+              const k=job.n++*3;
+              const a=job.indices[k],b=job.indices[k+1],c=job.indices[k+2];
+              if(a<vertices.length&&b<vertices.length&&c<vertices.length){
+                const p=job.positions;
+                const ax=p[a*3],ay=p[a*3+1],az=p[a*3+2];
+                const bx=p[b*3],by=p[b*3+1],bz=p[b*3+2];
+                const cx=p[c*3],cy=p[c*3+1],cz=p[c*3+2];
+                const ux=cx-bx,uy=cy-by,uz=cz-bz;
+                const vx=ax-bx,vy=ay-by,vz=az-bz;
+                const nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
+                for(const id of [a,b,c]){
+                  job.normals[id*3]+=nx;job.normals[id*3+1]+=ny;job.normals[id*3+2]+=nz;
+                }
+              }
+              remaining--;
+            }
+            while(remaining>0&&job.n===faces.length&&job.normalized<vertices.length){
+              const i=job.normalized++*3,n=job.normals;
+              const length=Math.hypot(n[i],n[i+1],n[i+2]);
+              if(length>0){n[i]/=length;n[i+1]/=length;n[i+2]/=length;}
+              remaining--;
+            }
+          }
+          if(job.v===vertices.length&&job.f===faces.length&&
+             job.n===faces.length&&job.normalized===vertices.length){
+            preparedMeshBuffers.set(job.mesh,{positions:job.positions,indices:job.indices,normals:job.normals});
             meshJobIndex++;
           }
         }

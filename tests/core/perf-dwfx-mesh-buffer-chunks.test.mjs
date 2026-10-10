@@ -14,7 +14,7 @@ test("large DWFx mesh prepares vertex and index buffers across multiple tasks",(
     clone(){return new Group();}
   }
   class BufferGeometry{
-    setAttribute(name,value){this.positions=value;return this;}
+    setAttribute(name,value){this[name]=value;return this;}
     setIndex(value){this.indices=value;return this;}
     computeVertexNormals(){}
   }
@@ -39,8 +39,12 @@ test("large DWFx mesh prepares vertex and index buffers across multiple tasks",(
   assert.ok(ticks>4,"large mesh must yield across multiple scheduled tasks");
   assert.equal(parent.children.length,1);
   const buffer=parent.children[0].children[0].children[0].children[0].children[0].geometry;
-  assert.equal(buffer.positions.array.length,count*3);
+  assert.equal(buffer.position.array.length,count*3);
   assert.equal(buffer.indices.array.length,(count-2)*3);
-  assert.equal(buffer.positions.array[3],1);
+  assert.equal(buffer.position.array[3],1);
   assert.equal(buffer.indices.array[3],1);
+  assert.equal(buffer.position.array.length,15000);
+  assert.equal(buffer.normal.array.length,15000);
+  assert.ok(Number.isFinite(buffer.normal.array[2]));
+  assert.equal(parent.children[0].children[0].children[0].children[0].children[0].geometry.positions.itemSize,3);
 });
