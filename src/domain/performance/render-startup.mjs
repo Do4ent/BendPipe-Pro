@@ -141,6 +141,11 @@ export function createCooperativeSceneQueue({
     let index=0;
     state.completed=0;state.total=source.length;state.batches=0;state.failures=0;
     active=true;
+    if(source.length===0){
+      active=false;
+      try{onComplete({...state});}catch{}
+      return token;
+    }
     function step(){
       pending=null;
       if(token!==generation||!active)return;
