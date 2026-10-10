@@ -16,24 +16,19 @@ function signatureHarness(selectionEntries=()=>[]){
     revisionSnapshot:()=>({geometry:2,display:3,selection:4}),
   };
   return vm.runInNewContext(
-    source.slice(start,end)+"\nreferenceSignature",context
+    "const runtimeTrackedProjects=new WeakSet();\n"+source.slice(start,end)+"\nreferenceSignature",context
   );
 }
 
-test("tracked DWFx project uses revision key without traversing source scene",()=>{
+test("persisted tracking flag alone cannot bypass conservative source signature",()=>{
   const key=signatureHarness();
-  const project={dwfx_revision_tracking_complete:true};
-  Object.defineProperty(project,"referenceScenes",{
-    get(){throw new Error("scene tree was traversed");}
-  });
-  Object.defineProperty(project,"tubes",{
-    get(){throw new Error("tube links were traversed");}
-  });
-  const parsed=JSON.parse(key(project,1));
-  assert.equal(parsed.mode,"tracked");
-  assert.deepEqual(JSON.parse(JSON.stringify(parsed.revisions)),{
-    geometry:2,display:3,selection:4
-  });
+  const project={
+    dwfx_revision_tracking_complete:true,
+    referenceScenes:[{id:"scene-1"}],tubes:[],editable_mesh_instances:[]
+  };
+  const before=key(project,1);
+  project.referenceScenes[0].id="scene-2";
+  assert.notEqual(key(project,1),before);
 });
 
 test("legacy DWFx project retains the deep source signature",()=>{
@@ -48,14 +43,11 @@ test("legacy DWFx project retains the deep source signature",()=>{
   assert.notEqual(key(project,1),before);
 });
 
-test("tracked signature includes independently mutated object-context selection",()=>{
+test("external selection remains included in conservative signature",()=>{
   let selected=[];
   const key=signatureHarness(()=>selected);
-  const project={dwfx_revision_tracking_complete:true};
+  const project={dwfx_revision_tracking_complete:true,referenceScenes:[],tubes:[]};
   const before=key(project,1);
-  selected=[{kind:"tube",tubeId:"tube-1"}];
-  assert.notEqual(key(project,1),before);
-  const after=key(project,1);
   selected=[{kind:"mesh",instanceId:"mesh-1"}];
-  assert.notEqual(key(project,1),after);
+  assert.notEqual(key(project,1),before);
 });
