@@ -36,7 +36,7 @@ async function navigateWithDiagnostics(page,diagnostics){
     const response=await page.goto(html,{waitUntil:"commit",timeout:15000});
     expect(response?.status()).toBe(200);
   }catch(error){
-    throw new Error("TubeBender navigation failed. Browser evidence:\\n"+await diagnostics()+"\\n"+String(error));
+    throw new Error("TubeBender navigation failed. Browser evidence:\n"+await diagnostics()+"\n"+String(error));
   }
 }
 async function expectStartup(page,predicate,timeout,diagnostics){
