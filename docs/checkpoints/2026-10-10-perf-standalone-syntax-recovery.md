@@ -19,3 +19,6 @@ Double-escape the NC dialog's newline sequences in the builder, preserving the i
 
 ## Evidence and remaining gates
 GitHub Actions [38087636295](https://github.com/Do4ent/BendPipe-Pro/actions/runs/38087636295) confirmed targeted PERF and DWFx tests, Standalone build, generated inline syntax validation, and generated PERF contract succeeded in the `core-perf` job. Full npm test and Chromium startup/render behavior were still running when this checkpoint was recorded; do not claim green until independently verified. Main was not modified.
+
+## Full regression suite after syntax fix
+Run 38087636295 core job reported **147,602 passed / 105 failed / 147,707 total**. The failed cases are concentrated in historical generated text/source contracts, not the focused PERF/DWFx tests: pinned multi-domain (33), adjacent UI (51 across four files), import source (8), reference-scene UI deep contracts (8), and UI tail (5). These counts describe test locations only, not proven obsolescence. The failed contracts must be reconciled with current expected functional behavior; no tests were suppressed or removed.
