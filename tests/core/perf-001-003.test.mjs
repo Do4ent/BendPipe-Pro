@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-import {createFrameCoalescer,runIsolatedStartup} from "../../src/domain/performance/render-startup.mjs";
+import {createFrameCoalescer,runIsolatedStartup,createCooperativeSceneQueue} from "../../src/domain/performance/render-startup.mjs";
 
 function mockFrames(){
   const frames=new Map();
@@ -141,4 +141,20 @@ test("PERF-003: generated optional pickers execute independently without cross-s
   },{timeout:1000});
   assert.deepEqual(called,["view","bend","axis"]);
   assert.deepEqual(warnings,["Optional picker initialization: buildBendPicker"]);
+});
+
+test("PERF-003: empty scene queue completes without phantom task or batch",()=>{
+  let scheduled=0;
+  const completions=[];
+  const queue=createCooperativeSceneQueue({
+    postTask(){scheduled++;return scheduled;},
+    processItem(){assert.fail("empty queue must not process geometry");},
+    onComplete:stats=>completions.push(stats)
+  });
+  queue.start([]);
+  assert.equal(scheduled,0);
+  assert.equal(queue.pending,false);
+  assert.equal(completions.length,1);
+  assert.deepEqual(completions[0],{completed:0,total:0,batches:0,failures:0});
+  assert.deepEqual(queue.progress,{completed:0,total:0,batches:0,failures:0});
 });
