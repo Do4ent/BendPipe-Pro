@@ -23,6 +23,7 @@ on:
   pull_request:
     branches:
       - feature/mobile-viewport-mob001-20261010
+      - feature/perf-dwfx-crossmodule-audit-20261010
 
 jobs:
   core-perf:
