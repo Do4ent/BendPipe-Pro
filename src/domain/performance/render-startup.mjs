@@ -147,8 +147,8 @@ export function createCooperativeSceneQueue({
       return token;
     }
     function step(){
-      pending=null;
       if(token!==generation||!active)return;
+      pending=null;
       const end=Math.min(index+batchSize,source.length);
       while(index<end){
         if(token!==generation||!active)return;
