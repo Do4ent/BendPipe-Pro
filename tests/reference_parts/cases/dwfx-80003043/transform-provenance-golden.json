@@ -1,0 +1,62 @@
+{
+  "source_file": "ITEM[80003043(A)]-DOC[80003043(A)]-Components WTB, CoolMaster, NO-014.5.dwfx",
+  "hsf_version": "14.50",
+  "production_ready": false,
+  "note": "Exact geometric-variation root modelling matrices observed in the decompressed HSF stream. Each exact Include Library reference is under a nested identity transform. These matrices are assembly-placement provenance, not tube-local manufacturing compensation.",
+  "parts": {
+    "10160780": {
+      "geometric_variation": 121137,
+      "variation_segment_offset": 20744227,
+      "include_library": "?Include Library/34001",
+      "root_transform_relative_offset": 16,
+      "nested_identity_relative_offset": 68,
+      "include_relative_offset": 117,
+      "root_matrix": [1.0,-3.047802950535488e-16,-1.0961309374816867e-14,0,-7.291148966286282e-16,1.0,6.040006954874735e-14,0,9.962108652654227e-15,-6.037874464726728e-14,1.0,0,-30.20478057861328,-57.48326873779297,54.869049072265625,1]
+    },
+    "10157546": {
+      "geometric_variation": 121191,
+      "variation_segment_offset": 20748672,
+      "include_library": "?Include Library/46910",
+      "root_transform_relative_offset": 16,
+      "nested_identity_relative_offset": 68,
+      "include_relative_offset": 117,
+      "root_matrix": [-1.0,-3.1576867348377755e-15,-2.6935610453237072e-14,0,7.098978472257081e-15,-1.0,-1.9574952586870562e-15,0,-2.6935610453237072e-14,-1.9574952586870562e-15,1.0,0,2.0000102519989014,21.272296905517578,-4.85923433303833,1]
+    },
+    "10157555": {
+      "geometric_variation": 121197,
+      "variation_segment_offset": 20749175,
+      "include_library": "?Include Library/47012",
+      "root_transform_relative_offset": 16,
+      "nested_identity_relative_offset": 68,
+      "include_relative_offset": 117,
+      "root_matrix": [-1.0,-8.875335735173805e-15,-2.096483967761742e-06,0,8.875335735173805e-15,-1.0,2.655237617079972e-19,0,-2.096483967761742e-06,2.4691677326831726e-19,1.0,0,2.0002036094665527,21.27229881286621,-4.859093189239502,1]
+    },
+    "10157683": {
+      "geometric_variation": 121199,
+      "variation_segment_offset": 20749318,
+      "include_library": "?Include Library/47033",
+      "root_transform_relative_offset": 16,
+      "nested_identity_relative_offset": 68,
+      "include_relative_offset": 117,
+      "root_matrix": [-1.0,3.074511222851396e-16,-2.7406182465820395e-16,0,-3.074511222851396e-16,-1.0,1.2149532953049241e-13,0,-2.7406182465820395e-16,1.2149532953049241e-13,1.0,0,2.0,21.27229881286621,-4.85923433303833,1]
+    },
+    "10157549": {
+      "geometric_variation": 121271,
+      "variation_segment_offset": 20755052,
+      "include_library": "?Include Library/69646",
+      "root_transform_relative_offset": 16,
+      "nested_identity_relative_offset": 68,
+      "include_relative_offset": 117,
+      "root_matrix": [-1.0,4.145630706768762e-16,2.7755575615628914e-17,0,-1.0796938396237434e-15,-1.0,1.376117254680122e-15,0,-2.498001805406602e-16,1.4069531714875597e-15,1.0,0,1.9999805688858032,21.27229881286621,-4.859203815460205,1]
+    },
+    "10157552": {
+      "geometric_variation": 121273,
+      "variation_segment_offset": 20755195,
+      "include_library": "?Include Library/69667",
+      "root_transform_relative_offset": 16,
+      "nested_identity_relative_offset": 68,
+      "include_relative_offset": 117,
+      "root_matrix": [-1.0,-1.3404777505013343e-12,8.339702592516287e-15,0,1.3404777505013343e-12,-1.0,2.6505823996888884e-19,0,8.339702592516287e-15,2.65058265818283e-19,1.0,0,2.0,21.27229881286621,-4.859768867492676,1]
+    }
+  }
+}
