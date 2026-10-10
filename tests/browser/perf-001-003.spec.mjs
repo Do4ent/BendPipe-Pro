@@ -32,12 +32,25 @@ function captureStartupDiagnostics(page){
   return diagnostics;
 }
 async function expectStartup(page,predicate,timeout,diagnostics){
+  const started=Date.now();
+  let lastError=null;
   try{
-    await expect.poll(()=>{
+    while(Date.now()-started<timeout){
       const fatal=diagnostics.fatalFailure();
       if(fatal)throw new Error("Fatal startup error: "+fatal);
-      return page.evaluate(predicate);
-    },{timeout,intervals:[200,800,2000]}).toBe(true);
+      // Avoid an unlimited accumulation of Playwright evaluate calls when
+      // Chromium's main thread is blocked by a synchronous startup phase.
+      let timer;
+      const outcome=await Promise.race([
+        page.evaluate(predicate).then(value=>({value}),error=>({error:String(error)})),
+        new Promise(resolve=>{timer=setTimeout(()=>resolve({stalled:true}),3000);})
+      ]).finally(()=>clearTimeout(timer));
+      if(outcome.value===true)return;
+      if(outcome.error)lastError=outcome.error;
+      if(outcome.stalled)throw new Error("Chromium main thread did not answer startup probe within 3000 ms");
+      await new Promise(resolve=>setTimeout(resolve,250));
+    }
+    throw new Error("Startup predicate was not satisfied within "+timeout+" ms"+(lastError?"; last browser error: "+lastError:""));
   }catch(error){
     throw new Error("TubeBender startup did not complete. Browser evidence:\n"+await diagnostics()+"\n"+String(error));
   }
