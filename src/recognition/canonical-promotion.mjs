@@ -1,9 +1,7 @@
-function finitePositive(value,label){
-  const n=Number(value);
-  if(!Number.isFinite(n)||n<=0){
-    throw new RangeError(`${label} must be a finite positive number`);
-  }
-  return n;
+function isPositiveFiniteMeasurement(value){
+  // A recognized geometric dimension must be explicit, numeric and positive.
+  // Number(null) and Number("") must never manufacture a valid zero length.
+  return typeof value==="number" && Number.isFinite(value) && value>0;
 }
 
 function requiredStatus(object,expected,label){
@@ -60,7 +58,17 @@ export function evaluateCanonicalPromotion({
   const editableMetadataConflict=
     geometry.editable_metadata_conflict===true &&
     geometry.metadata_reconciliation?.advisory_for_editing===true;
-  if(lengthIssue&&!editableMetadataConflict) blockers.push(lengthIssue);
+  const reconstructedLength=geometry.length_consistency?.reconstructed_developed_length_mm;
+  const hasReconstructedLength=isPositiveFiniteMeasurement(reconstructedLength);
+  // An editing advisory can tolerate only an actual metadata comparison
+  // violation, never missing geometric evidence or an invalid measurement.
+  if(lengthIssue&&!(
+    editableMetadataConflict &&
+    geometry.length_consistency?.status==="violation"
+  )) blockers.push(lengthIssue);
+  if(!hasReconstructedLength){
+    blockers.push("reconstructed developed length must be a finite positive number");
+  }
 
   const neutralIssue=requiredStatus(
     geometry.neutral_bend_sequence,
@@ -141,10 +149,7 @@ export function evaluateCanonicalPromotion({
       Number.isInteger(geometry.neutral_bend_sequence?.bend_count)
         ? geometry.neutral_bend_sequence.bend_count
         : null,
-    developed_length_mm:
-      Number.isFinite(Number(geometry.length_consistency?.reconstructed_developed_length_mm))
-        ? Number(geometry.length_consistency.reconstructed_developed_length_mm)
-        : null,
+    developed_length_mm:hasReconstructedLength?reconstructedLength:null,
     transform_count:
       Number.isInteger(transform_provenance.transform_count)
         ? transform_provenance.transform_count
