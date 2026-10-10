@@ -21,7 +21,7 @@ test("DWFx revisions track geometry, display and selection independently",()=>{
   ui.markSceneChanged({}, "display");
   assert.equal(ui.revisionSnapshot().display,before.display+1);
   assert.ok(ui.sceneReuseStats().invalidations>=1);
-  assert.throws(()=>ui.markSceneChanged({},"unknown"),RangeError);
+  assert.throws(()=>ui.markSceneChanged({},"unknown"),/Unknown DWFx revision kind/);
 });
 test("explicit source mutation increments revision and invalidates cached scene",()=>{
   const ui=makeUi(),before=ui.revisionSnapshot();
