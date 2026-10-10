@@ -38,7 +38,18 @@ test("large DWFx mesh prepares vertex and index buffers across multiple tasks",(
   assert.equal(h.status.committed,true);
   assert.ok(ticks>4,"large mesh must yield across multiple scheduled tasks");
   assert.equal(parent.children.length,1);
-  const buffer=parent.children[0].children[0].children[0].children[0].children[0].geometry;
+  // Rendering strategy may add/remove grouping layers; assert mesh buffers,
+  // not incidental Three.js scene nesting depth.
+  const findGeometry=(node)=>{
+    if(node?.geometry?.position&&node?.geometry?.indices)return node.geometry;
+    for(const child of node?.children??[]){
+      const found=findGeometry(child);
+      if(found)return found;
+    }
+    return null;
+  };
+  const buffer=findGeometry(parent);
+  assert.ok(buffer,"prepared mesh must be present in the committed scene");
   assert.equal(buffer.position.array.length,count*3);
   assert.equal(buffer.indices.array.length,(count-2)*3);
   assert.equal(buffer.position.array[3],1);
@@ -46,5 +57,5 @@ test("large DWFx mesh prepares vertex and index buffers across multiple tasks",(
   assert.equal(buffer.position.array.length,15000);
   assert.equal(buffer.normal.array.length,15000);
   assert.ok(Number.isFinite(buffer.normal.array[2]));
-  assert.equal(parent.children[0].children[0].children[0].children[0].children[0].geometry.positions.itemSize,3);
+  assert.equal(buffer.position.itemSize,3);
 });
