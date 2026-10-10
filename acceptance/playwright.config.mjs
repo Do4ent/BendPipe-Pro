@@ -5,11 +5,11 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 export default defineConfig({
   testDir:"../tests/browser",
   testMatch:"*.spec.mjs",
-  timeout:45000,
-  expect:{timeout:15000},
+  timeout:30000,
+  expect:{timeout:10000},
   retries:0,
   workers:1,
-  reporter:[["list"],["json",{outputFile:"reports/browser/playwright.json"}]],
+  reporter:[["list"],["json",{outputFile:path.join(root,"reports/browser/playwright.json")}]],
   use:{
     ...devices["Desktop Chrome"],
     baseURL:"http://127.0.0.1:4178",
@@ -17,7 +17,7 @@ export default defineConfig({
     screenshot:"only-on-failure",
     launchOptions:{args:["--enable-webgl","--use-gl=angle","--use-angle=swiftshader","--disable-dev-shm-usage"]}
   },
-  outputDir:"reports/browser/test-results",
+  outputDir:path.join(root,"reports/browser/test-results"),
   webServer:{
     cwd:root,
     command:"node scripts/acceptance-static-server.mjs",
