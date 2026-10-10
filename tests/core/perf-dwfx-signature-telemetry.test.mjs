@@ -29,7 +29,7 @@ test("PERF-001: conservative DWFx signature timing is observable without changin
   const second=api.render3DCooperative({...opts,parent:new Group()});
   assert.equal(second.status.reused,true);
   const stats=api.sceneReuseStats();
-  assert.equal(stats.signatureCalls,2);
+  assert.equal(stats.signatureCalls,3,"initial build now revalidates before commit");
   assert.equal(stats.hits,1);
   assert.equal(stats.misses,1);
   assert.ok(stats.lastSignatureBytes>0);
