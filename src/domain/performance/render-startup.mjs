@@ -156,20 +156,24 @@ export function createCooperativeSceneQueue({
           state.failures++;
           try{onError(error,index);}catch{}
         }
+        if(token!==generation||!active)return;
         index++;state.completed=index;
       }
+      if(token!==generation||!active)return;
       state.batches++;
       if(index>=source.length){
         active=false;
         try{onComplete({...state});}catch{}
       }else{
         try{pending=postTask(step);}catch(error){
+          if(token!==generation||!active)return;
           active=false;state.failures++;
           try{onError(error,index);}catch{}
         }
       }
     }
     try{pending=postTask(step);}catch(error){
+      if(token!==generation||!active)return token;
       active=false;state.failures++;
       try{onError(error,0);}catch{}
     }
