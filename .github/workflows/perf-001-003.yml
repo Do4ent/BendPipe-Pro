@@ -13,6 +13,7 @@ on:
       - feature/perf-progressive-gpu-20261010
       - feature/perf-mesh-profiling-reuse-20261010
       - feature/perf-dwfx-scene-revision-cache-20261010
+      - feature/perf-scene-cache-lifetime-20261010
   workflow_dispatch:
   pull_request:
     branches:
