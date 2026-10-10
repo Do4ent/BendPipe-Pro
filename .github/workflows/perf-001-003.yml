@@ -43,12 +43,15 @@ jobs:
           node --check tests/browser/perf-001-startup-longtasks.spec.mjs
           node --check tests/core/perf-dwfx-source-index.test.mjs
           node --check tests/core/perf-dwfx-project-wide-index.test.mjs
+          node --check tests/core/perf-dwfx-inflight-mutation.test.mjs
       - name: Test frame coalescer and isolated startup
         run: node --test tests/core/perf-001-003.test.mjs
       - name: Test indexed DWFx scene rendering and cache reuse
         run: node --test tests/core/perf-dwfx-source-index.test.mjs
       - name: Test multi-scene DWFx source index
         run: node --test tests/core/perf-dwfx-project-wide-index.test.mjs
+      - name: Test in-flight DWFx mutation and stale-scene recovery
+        run: node --test tests/core/perf-dwfx-inflight-mutation.test.mjs
       - name: Run existing regression suite
         run: npm test
       - name: Verify full standalone build
