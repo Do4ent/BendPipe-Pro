@@ -176,9 +176,15 @@ export function evaluateToolingCompatibility({machineProfile,machineInstance=nul
   }else if(!toolingSet.compatible_machine_profile_ids.includes(machineProfile.id)){
     reasons.push("Tooling Set is not declared compatible with this Machine Profile");
   }
-  const od=Number(tube?.od_mm??tube?.outer_diameter_mm);
-  const wall=Number(tube?.wall_mm??tube?.wall_thickness_mm);
-  const clr=Number(tube?.clr_mm??tube?.centerline_radius_mm);
+  // Absent CAD dimensions must remain unknown, not become Number(null) === 0.
+  const tubeNumber=(raw)=>{
+    if(raw==null||typeof raw==="boolean"||(typeof raw==="string"&&!raw.trim()))return null;
+    if(typeof raw!=="number"&&typeof raw!=="string")return null;
+    const n=Number(raw);return Number.isFinite(n)?n:null;
+  };
+  const od=tubeNumber(tube?.od_mm??tube?.outer_diameter_mm);
+  const wall=tubeNumber(tube?.wall_mm??tube?.wall_thickness_mm);
+  const clr=tubeNumber(tube?.clr_mm??tube?.centerline_radius_mm);
   if(Number.isFinite(od)){
     if(Number.isFinite(toolingSet.diameter_mm)&&Math.abs(od-toolingSet.diameter_mm)>0.02)reasons.push(`Tube OD ${od} mm does not match tooling diameter ${toolingSet.diameter_mm} mm`);
     if(Number.isFinite(limits.max_diameter_mm)&&od>limits.max_diameter_mm)reasons.push(`Tube OD ${od} mm exceeds machine limit ${limits.max_diameter_mm} mm`);
