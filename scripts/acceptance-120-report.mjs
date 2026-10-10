@@ -16,7 +16,7 @@ if(fs.existsSync(reportFile)){
 const cases=new Map();
 function visit(suite){
   for(const spec of suite.specs||[]){
-    const m=/^\[([A-Z]+-\d{3})\]/.exec(spec.title);
+    const m=/^\[([A-Z0-9]+-\d{3})\]/.exec(spec.title);
     if(!m)continue;
     const id=m[1];
     if(!REQUIREMENT_IDS.includes(id)){diagnostics.push("Unknown test ID: "+id);continue;}
@@ -34,7 +34,7 @@ for(const suite of report?.suites||[])visit(suite);
 const rows=REQUIREMENT_IDS.map(id=>{
   const observed=cases.get(id)||[];
   const planned=BROWSER_COVERAGE[id]||null;
-  let status="NOT_AUTOMATED";
+  let status=planned?"NOT_EXECUTED":"NOT_AUTOMATED";
   if(observed.length){
     if(observed.some(c=>c.failed))status="FAILED";
     else if(observed.every(c=>c.passed))status=planned==="complete"?"BROWSER_PASSED":"PARTIAL_EVIDENCE";
