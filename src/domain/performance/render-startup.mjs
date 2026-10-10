@@ -132,7 +132,11 @@ export function createCooperativeSceneQueue({
   const cancel=()=>{
     generation++;
     active=false;
-    if(pending!==null){try{cancelTask(pending);}catch{}pending=null;}
+    if(pending!==null){
+      const handle=pending;
+      pending=null;
+      try{cancelTask(handle);}catch{}
+    }
   };
   function start(items){
     if(!Array.isArray(items))throw new TypeError("items must be an array");
