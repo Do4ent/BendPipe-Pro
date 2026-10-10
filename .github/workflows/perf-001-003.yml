@@ -24,6 +24,7 @@ on:
       - feature/perf-dwfx-part-identifiers-cache-20261010
       - feature/perf-browser-startup-diagnostics-20261010
       - feature/perf-picker-startup-scope-fix-20261010
+      - feature/perf-revision-contract-reconcile-20261010
   workflow_dispatch:
   pull_request:
     branches:
