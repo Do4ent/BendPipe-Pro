@@ -2,19 +2,33 @@
  * PERF-001: render the latest CAD state at most once per animation frame.
  * The geometry is not altered; only redundant 3D redraw requests are folded.
  */
-export function createFrameCoalescer({requestFrame,cancelFrame=()=>{},render,onError=()=>{}}){
+export function createFrameCoalescer({requestFrame,cancelFrame=()=>{},render,onError=()=>{},now=()=>performance.now()}){
   if(typeof requestFrame!=="function"||typeof render!=="function"){
     throw new TypeError("requestFrame and render are required");
   }
-  let pending=false,frameId=null,latestFit=true,disposed=false;
-  const stats={requests:0,draws:0,failures:0};
+  let pending=false,frameId=null,latestFit=true,disposed=false,requestedAt=0;
+  // Durations are observational only: they never influence CAD geometry or scheduling.
+  const stats={requests:0,draws:0,failures:0,lastWaitMs:null,maxWaitMs:null,lastRenderMs:null,maxRenderMs:null};
+  const stamp=()=>{try{const value=now();return Number.isFinite(value)?value:null;}catch{return null;}};
   function draw(){
     frameId=null;
     if(disposed||!pending)return;
     pending=false;
     const fit=latestFit;
+    const start=stamp();
+    if(start!==null&&requestedAt!==null){
+      stats.lastWaitMs=Math.max(0,start-requestedAt);
+      stats.maxWaitMs=Math.max(stats.maxWaitMs??0,stats.lastWaitMs);
+    }
     try{render(fit);stats.draws++;}
     catch(error){stats.failures++;try{onError(error);}catch{}}
+    finally{
+      const end=stamp();
+      if(start!==null&&end!==null){
+        stats.lastRenderMs=Math.max(0,end-start);
+        stats.maxRenderMs=Math.max(stats.maxRenderMs??0,stats.lastRenderMs);
+      }
+    }
   }
   return Object.freeze({
     schedule(fit=true){
@@ -23,6 +37,7 @@ export function createFrameCoalescer({requestFrame,cancelFrame=()=>{},render,onE
       stats.requests++;
       if(pending)return true;
       pending=true;
+      requestedAt=stamp();
       try{frameId=requestFrame(draw);}
       catch(error){pending=false;stats.failures++;try{onError(error);}catch{}return false;}
       return true;
