@@ -11,7 +11,7 @@ test("PERF-001: DWFx signature telemetry includes link-array traversal",()=>{
   const timestamp=signature.indexOf("const started=meshNow()");
   const traversal=signature.indexOf("const sourceLinks=(project?.tubes??[]).map");
   const serialization=signature.indexOf("const signature=JSON.stringify");
-  const elapsed=signature.indexOf("const elapsed=Math.max(0,meshNow()-started)");
+  const elapsed=signature.indexOf("const elapsed=Math.max(0,finished-started)");
   assert.ok(timestamp>=0&&timestamp<traversal&&traversal<serialization&&serialization<elapsed);
   assert.match(signature,/lastSignatureTimeMs=elapsed/);
   assert.match(signature,/return signature/);
