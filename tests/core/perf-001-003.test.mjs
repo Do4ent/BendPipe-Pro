@@ -202,3 +202,40 @@ test("PERF-003: synchronous restart inside processItem cannot alter replacement 
   assert.deepEqual(queue.progress,{completed:1,total:1,batches:1,failures:0});
   assert.equal(queue.pending,false);
 });
+
+test("PERF-003: synchronous single-item scheduler leaves no stale pending handle",()=>{
+  const seen=[],cancelled=[];
+  const queue=createCooperativeSceneQueue({
+    postTask:callback=>{callback();return 42;},
+    cancelTask:id=>cancelled.push(id),
+    processItem:item=>seen.push(item),
+    batchSize:1
+  });
+  queue.start(["item"]);
+  assert.deepEqual(seen,["item"]);
+  assert.equal(queue.pending,false);
+  queue.cancel();
+  assert.deepEqual(cancelled,[],"finished synchronous task must not be cancelled later");
+});
+
+test("PERF-003: synchronous restart does not overwrite replacement task handle",()=>{
+  const jobs=new Map(),cancelled=[];
+  let queue,sequence=0;
+  queue=createCooperativeSceneQueue({
+    postTask:callback=>{
+      const id=++sequence;
+      if(id===1){
+        queue.start(["replacement"]);
+        return id;
+      }
+      jobs.set(id,callback);
+      return id;
+    },
+    cancelTask:id=>cancelled.push(id),
+    processItem(){},
+    batchSize:1
+  });
+  queue.start(["original"]);
+  queue.cancel();
+  assert.deepEqual(cancelled,[2]);
+});
