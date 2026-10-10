@@ -339,3 +339,23 @@ test("PERF-003: rescheduling failure retains completed batch and reports next in
   assert.equal(queue.pending,false);
   assert.deepEqual(completions,[]);
 });
+
+test("PERF-001: late callback from cancelled frame cannot draw replacement state",()=>{
+  const jobs=new Map(),rendered=[],cancelled=[];
+  let nextId=0;
+  const coalescer=createFrameCoalescer({
+    requestFrame:callback=>{const id=++nextId;jobs.set(id,callback);return id;},
+    cancelFrame:id=>cancelled.push(id),
+    render:fit=>rendered.push(fit)
+  });
+  coalescer.schedule(true);
+  coalescer.cancel();
+  coalescer.schedule(false);
+  jobs.get(1)(); // simulate a callback arriving after cancellation
+  assert.deepEqual(rendered,[]);
+  assert.equal(coalescer.pending,true);
+  coalescer.cancel();
+  assert.deepEqual(cancelled,[1,2],"replacement frame must retain its cancellation handle");
+  jobs.get(2)();
+  assert.deepEqual(rendered,[]);
+});
