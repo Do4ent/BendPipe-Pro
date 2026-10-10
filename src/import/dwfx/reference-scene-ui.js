@@ -1134,7 +1134,13 @@
   // Uninstrumented mutation paths still use the conservative source signature.
   function invalidateSceneCache(){
     cooperativeGeneration++;
-    if(activeCooperativeHandle)activeCooperativeHandle.cancel();
+    // External scene mutations invalidate an in-flight build and request
+    // recovery; ordinary render supersession uses cancel() without a retry.
+    if(activeCooperativeHandle){
+      if(typeof activeCooperativeHandle.invalidate==="function")
+        activeCooperativeHandle.invalidate();
+      else activeCooperativeHandle.cancel();
+    }
     activeCooperativeHandle=null;
     cachedScene=null;
     sceneReuseStats.invalidations++;
@@ -1283,6 +1289,7 @@
       staging.clear();
     };
     const discardStale=()=>{
+      if(done)return;
       result.stale=true;
       sceneReuseStats.staleBuilds++;
       stop();
@@ -1399,6 +1406,7 @@
     catch(error){try{onError(error,0);}catch{}stop();}
     const handle=Object.freeze({
       cancel:stop,
+      invalidate:discardStale,
       get status(){return {...result,pending:!done};},
       get group(){return attached?staging:null;}
     });
