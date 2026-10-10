@@ -9,6 +9,7 @@ on:
       - feature/perf-dwfx-scene-chunking-20261010
       - feature/perf-dwfx-renderer-wiring-20261010
       - feature/perf-mesh-buffer-chunks-20261010
+      - feature/perf-normals-upload-20261010
   workflow_dispatch:
   pull_request:
     branches:
