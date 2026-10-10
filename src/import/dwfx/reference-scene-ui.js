@@ -269,9 +269,20 @@
       }
       return entry;
     };
-    for(const tube of linkedEditableTubes(project)){
-      const link=sourceLink(tube);
-      if(!link)continue;
+    // Collect editable part identifiers and original-source links together.
+    // This replaces linkedEditableTubes() + editablePartSet() rescans while
+    // retaining all four accepted part-number spellings and link precedence.
+    const editableParts=new Set();
+    for(const tube of project?.tubes??[]){
+      const importData=tube?.currentProjectImport;
+      for(const value of [
+        tube?.partNumber,tube?.part_number,
+        tube?.importEvidence?.part_number,importData?.part_number
+      ]){
+        if(value!=null&&String(value)!=="")editableParts.add(String(value));
+      }
+      const link=importData?.source_link;
+      if(!link||typeof link!=="object")continue;
       const scene=ensureScene(link.scene_id);
       const nodeId=String(link.node_id??"");
       if(!scene.firstAny.has(nodeId))scene.firstAny.set(nodeId,tube);
@@ -295,7 +306,7 @@
       .map(entry=>String(entry.instanceId)));
     const common={
       selectedTubeIds,selectedInstanceIds,
-      editableParts:editablePartSet(project),
+      editableParts,
       selectedKeys:selectedKeySet()
     };
     const empty={firstLinked:new Map(),firstAny:new Map(),meshByNode:new Map()};
