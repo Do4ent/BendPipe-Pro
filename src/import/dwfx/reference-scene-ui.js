@@ -1051,6 +1051,7 @@
       meshInstances:project?.editable_mesh_instances??[],
       links:sourceLinks,
       selected:[...bulkSelected].sort(),
+      objectSelection:(window.TubeBenderObjectContext?.selectionEntries?.()??[]).map(entry=>({kind:entry?.kind,tubeId:entry?.tubeId,instanceId:entry?.instanceId})),
       geomScale
     });
   }
