@@ -24,7 +24,7 @@ test("[PERF-001] collect Chromium startup long-task evidence",async({page},testI
       window.__TB_PERF_STARTUP_OBSERVER_ERROR__=String(error);
     }
   });
-  let navigationError=null;
+  // Browser console is emitted out-of-process, so failure evidence survives\n  // even when the page main thread stops responding to evaluate().\n  const consoleEvidence=[];\n  page.on("console",msg=>{\n    if(consoleEvidence.length<200)consoleEvidence.push({type:msg.type(),text:msg.text().slice(0,500)});\n  });\n  page.on("pageerror",error=>{\n    if(consoleEvidence.length<200)consoleEvidence.push({type:"pageerror",text:String(error).slice(0,500)});\n  });\n  let navigationError=null;
   try{
     const response=await page.goto(html,{waitUntil:"commit",timeout:15000});
     expect(response?.status()).toBe(200);
@@ -35,7 +35,7 @@ test("[PERF-001] collect Chromium startup long-task evidence",async({page},testI
 
   let pageEvidence={unavailable:true};
   try{
-    pageEvidence=await page.evaluate(()=>({
+    pageEvidence=await Promise.race([page.evaluate(()=>({
       booted:window.TubeBenderStartupStatus?.booted===true,
       startupPhases:window.TubeBenderStartupStatus?.phases?.map(({name,status})=>({name,status}))??[],
       longTasks:window.__TB_PERF_STARTUP_LONGTASKS__??[],
