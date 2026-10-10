@@ -3129,18 +3129,18 @@ const perfCoalescerSource =
   "window.TubeBenderRenderPerformance=Object.freeze({\n" +
   "  get pending(){return tbViewerFrameCoalescer.pending;},\n" +
   "  get stats(){return tbViewerFrameCoalescer.stats;}\n" +
-  "});\\n" +
-  "const tbDwfSceneRecovery=(" + createSceneRecoveryCoalescer.toString() + ")({\\n" +
-  "  requestFrame: callback=>requestAnimationFrame(callback),\\n" +
-  "  cancelFrame: id=>cancelAnimationFrame(id),\\n" +
-  "  isCurrent: project=>activeProject()===project,\\n" +
-  "  render:()=>renderAll(),\\n" +
-  "  onError: error=>console.warn('PERF-001 DWFx stale recovery',error)\\n" +
-  "});\\n" +
-  "window.TubeBenderDwfRecovery=Object.freeze({\\n" +
-  "  get pending(){return tbDwfSceneRecovery.pending;},\\n" +
-  "  get stats(){return tbDwfSceneRecovery.stats;}\\n" +
-  "});\\n";
+  "});\n" +
+  "const tbDwfSceneRecovery=(" + createSceneRecoveryCoalescer.toString() + ")({\n" +
+  "  requestFrame: callback=>requestAnimationFrame(callback),\n" +
+  "  cancelFrame: id=>cancelAnimationFrame(id),\n" +
+  "  isCurrent: project=>activeProject()===project,\n" +
+  "  render:()=>renderAll(),\n" +
+  "  onError: error=>console.warn('PERF-001 DWFx stale recovery',error)\n" +
+  "});\n" +
+  "window.TubeBenderDwfRecovery=Object.freeze({\n" +
+  "  get pending(){return tbDwfSceneRecovery.pending;},\n" +
+  "  get stats(){return tbDwfSceneRecovery.stats;}\n" +
+  "});\n";
 output=output.replace(perfCoreStart,perfCoalescerSource+perfCoreStart);
 output=output.replace(perfOldViewerCall,
   "  tbViewerFrameCoalescer.schedule(!preserveViewerFrameForCanvasInteraction);");
