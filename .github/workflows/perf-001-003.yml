@@ -43,6 +43,8 @@ jobs:
           node-version: '24'
       # Measure the complete regression suite before any focused check can fail.
       - name: Run existing regression suite and capture current failure count
+        id: regression
+        continue-on-error: true
         shell: bash
         run: |
           mkdir -p reports/regression
@@ -95,6 +97,11 @@ jobs:
           name: tubebender-perf-standalone
           path: dist/TubeBender_CAD_VC207R7_M1_Standalone.html
           if-no-files-found: error
+      - name: Enforce regression pass after gathering PERF evidence
+        if: always() && steps.regression.outcome == 'failure'
+        run: |
+          echo 'Regression suite failed; review perf-regression-evidence for measured failures.' >&2
+          exit 1
 
   chromium-perf:
     runs-on: ubuntu-latest
