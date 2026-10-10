@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderMobileViewportStyle } from "../src/ui/mobile-viewport.mjs";
-import { createFrameCoalescer, runIsolatedStartup, scheduleInitialSceneAfterPaint } from "../src/domain/performance/render-startup.mjs";
+import { createFrameCoalescer, createSceneRecoveryCoalescer, runIsolatedStartup, scheduleInitialSceneAfterPaint } from "../src/domain/performance/render-startup.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourcePath = path.join(
@@ -1979,7 +1979,7 @@ if (!output.includes(referenceRenderAnchor)) {
 output = output.replace(
   referenceRenderAnchor,
   referenceRenderAnchor +
-  `\n  try{\n    const referenceUi=window.TubeBenderReferenceSceneUi;\n    const referenceProject=activeProject();\n    if(referenceUi?.render3DCooperative){\n      referenceUi.render3DCooperative({\n        parent:pipeGroup,project:referenceProject,THREE:window.THREE,\n        geomScale:GEOM_SCALE,batchSize:8,progressive:true,\n        postTask:fn=>requestAnimationFrame(()=>setTimeout(fn,0)),\n        onProgress:()=>{\n          if(typeof renderer!=='undefined'&&typeof scene!=='undefined'&&typeof camera!=='undefined')\n            renderer.render(scene,camera);\n        },\n        onCommit:()=>{\n          if(typeof renderer!=='undefined'&&typeof scene!=='undefined'&&typeof camera!=='undefined')\n            renderer.render(scene,camera);\n        },\n        onStale:()=>requestAnimationFrame(()=>{\n          // Rebuild only while the original project is still active.\n          if(activeProject()===referenceProject)renderAll();\n        }),\n        onError:(error,index)=>console.warn('DWFx batch '+index,error)\n      });\n    }else{\n      referenceUi?.render3D?.({\n        parent:pipeGroup,project:referenceProject,THREE:window.THREE,geomScale:GEOM_SCALE\n      });\n    }\n  }catch(error){\n    console.warn('DWFx reference geometry render:',error);\n  }`
+  `\n  tbDwfSceneRecovery.cancel();\n  try{\n    const referenceUi=window.TubeBenderReferenceSceneUi;\n    const referenceProject=activeProject();\n    if(referenceUi?.render3DCooperative){\n      referenceUi.render3DCooperative({\n        parent:pipeGroup,project:referenceProject,THREE:window.THREE,\n        geomScale:GEOM_SCALE,batchSize:8,progressive:true,\n        postTask:fn=>requestAnimationFrame(()=>setTimeout(fn,0)),\n        onProgress:()=>{\n          if(typeof renderer!=='undefined'&&typeof scene!=='undefined'&&typeof camera!=='undefined')\n            renderer.render(scene,camera);\n        },\n        onCommit:()=>{\n          if(typeof renderer!=='undefined'&&typeof scene!=='undefined'&&typeof camera!=='undefined')\n            renderer.render(scene,camera);\n        },\n        onStale:()=>tbDwfSceneRecovery.schedule(referenceProject),\n        onError:(error,index)=>console.warn('DWFx batch '+index,error)\n      });\n    }else{\n      referenceUi?.render3D?.({\n        parent:pipeGroup,project:referenceProject,THREE:window.THREE,geomScale:GEOM_SCALE\n      });\n    }\n  }catch(error){\n    console.warn('DWFx reference geometry render:',error);\n  }`
 );
 
 const referenceTreeHtmlAnchor =
@@ -3129,7 +3129,18 @@ const perfCoalescerSource =
   "window.TubeBenderRenderPerformance=Object.freeze({\n" +
   "  get pending(){return tbViewerFrameCoalescer.pending;},\n" +
   "  get stats(){return tbViewerFrameCoalescer.stats;}\n" +
-  "});\n";
+  "});\\n" +
+  "const tbDwfSceneRecovery=(" + createSceneRecoveryCoalescer.toString() + ")({\\n" +
+  "  requestFrame: callback=>requestAnimationFrame(callback),\\n" +
+  "  cancelFrame: id=>cancelAnimationFrame(id),\\n" +
+  "  isCurrent: project=>activeProject()===project,\\n" +
+  "  render:()=>renderAll(),\\n" +
+  "  onError: error=>console.warn('PERF-001 DWFx stale recovery',error)\\n" +
+  "});\\n" +
+  "window.TubeBenderDwfRecovery=Object.freeze({\\n" +
+  "  get pending(){return tbDwfSceneRecovery.pending;},\\n" +
+  "  get stats(){return tbDwfSceneRecovery.stats;}\\n" +
+  "});\\n";
 output=output.replace(perfCoreStart,perfCoalescerSource+perfCoreStart);
 output=output.replace(perfOldViewerCall,
   "  tbViewerFrameCoalescer.schedule(!preserveViewerFrameForCanvasInteraction);");
