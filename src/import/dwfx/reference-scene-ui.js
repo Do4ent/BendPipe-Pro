@@ -280,8 +280,10 @@
       .map(entry=>String(entry.tubeId)));
     const selectedInstanceIds=new Set(entries.filter(entry=>entry?.kind==="mesh-instance")
       .map(entry=>String(entry.instanceId)));
+    const editableParts=editablePartSet(project);
+    const selectedKeys=selectedKeySet();
     sceneReuseStats.sourceIndexBuilds++;
-    return {firstLinked,firstAny,meshByNode,selectedTubeIds,selectedInstanceIds};
+    return {firstLinked,firstAny,meshByNode,selectedTubeIds,selectedInstanceIds,editableParts,selectedKeys};
   }
 
   function meshSourceDisplayState(project,scene,node,lookup=null){
@@ -847,9 +849,9 @@
 
     const hidden=hiddenSet(sceneMeta);
     const transparent=transparentSet(sceneMeta);
-    const editable=editablePartSet(project);
-    const selectedKeys=selectedKeySet();
     const renderLookup=sourceLookup??buildSourceRenderIndex(project,sceneMeta.id);
+    const editable=renderLookup.editableParts;
+    const selectedKeys=renderLookup.selectedKeys;
     const selectedGroups=[];
 
     const visit=(
