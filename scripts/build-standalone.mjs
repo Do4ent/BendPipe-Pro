@@ -3137,12 +3137,15 @@ output=output.replace(perfCoreStart,perfCoalescerSource+perfCoreStart);
 const legacyProjectSwitchAnchor="function renderAll(){";
 const legacyProjectSwitchHook=
   "let tbLastReferenceProjectIdentity;\n"+
+  "let tbLastReferenceScenesIdentity;\n"+
   "function tbTrackReferenceProjectSwitch(){\n"+
   "  const project=activeProject();\n"+
-  "  if(project!==tbLastReferenceProjectIdentity){\n"+
+  "  const scenes=project?.referenceScenes;\n"+
+  "  if(project!==tbLastReferenceProjectIdentity||scenes!==tbLastReferenceScenesIdentity){\n"+
   "    if(tbLastReferenceProjectIdentity!==undefined)\n"+
   "      window.TubeBenderReferenceSceneUi?.markSceneChanged?.(project,'geometry');\n"+
   "    tbLastReferenceProjectIdentity=project;\n"+
+  "    tbLastReferenceScenesIdentity=scenes;\n"+
   "  }\n"+
   "}\n";
 output=output.replace(legacyProjectSwitchAnchor,
