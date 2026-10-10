@@ -3135,17 +3135,17 @@ output=output.replace(perfCoreStart,perfCoalescerSource+perfCoreStart);
 // Track the active project identity rather than guessing individual dialog handlers.
 const legacyProjectSwitchAnchor="function renderAll(){";
 const legacyProjectSwitchHook=
-  "let tbLastReferenceProjectIdentity;\\n"+
-  "function tbTrackReferenceProjectSwitch(){\\n"+
-  "  const project=activeProject();\\n"+
-  "  if(project!==tbLastReferenceProjectIdentity){\\n"+
-  "    if(tbLastReferenceProjectIdentity!==undefined)\\n"+
-  "      window.TubeBenderReferenceSceneUi?.markSceneChanged?.(project,'geometry');\\n"+
-  "    tbLastReferenceProjectIdentity=project;\\n"+
-  "  }\\n"+
-  "}\\n";
+  "let tbLastReferenceProjectIdentity;\n"+
+  "function tbTrackReferenceProjectSwitch(){\n"+
+  "  const project=activeProject();\n"+
+  "  if(project!==tbLastReferenceProjectIdentity){\n"+
+  "    if(tbLastReferenceProjectIdentity!==undefined)\n"+
+  "      window.TubeBenderReferenceSceneUi?.markSceneChanged?.(project,'geometry');\n"+
+  "    tbLastReferenceProjectIdentity=project;\n"+
+  "  }\n"+
+  "}\n";
 output=output.replace(legacyProjectSwitchAnchor,
-  legacyProjectSwitchHook+legacyProjectSwitchAnchor+"\\n  tbTrackReferenceProjectSwitch();");
+  legacyProjectSwitchHook+legacyProjectSwitchAnchor+"\n  tbTrackReferenceProjectSwitch();");
 output=output.replace(perfOldViewerCall,
   "  tbViewerFrameCoalescer.schedule(!preserveViewerFrameForCanvasInteraction);");
 output=output.replace(perfOldDoubleCollision,
