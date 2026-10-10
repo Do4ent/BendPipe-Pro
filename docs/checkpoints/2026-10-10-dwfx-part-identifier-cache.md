@@ -20,3 +20,6 @@ The conservative signature now includes all four values independently. This fixe
 
 ## Scope and limits
 There are no actual DWFx benchmark fixtures in this repository. Synthetic timings cannot establish performance for customer projects. The conservative signature remains O(n), so no O(1) guarantee is claimed. Production acceptance depends on recorded CI/Chromium results and measured real-world files. `main` is untouched.
+
+## Additional fix discovered by real CI
+The focused cooperative-render regression exposed a second real cache defect: `render3DCooperative()` took the source signature before `runtimeForScene()` lazily registered embedded runtimes. That registration bumped the geometry revision, so the **second unchanged render missed the cache**. The implementation now hydrates visible embedded runtimes before the signature and scene-build generation are captured. The runtime preflight visits scene descriptors, not nested DWFx tree nodes. The same regression now guards first-to-second render reuse as well as alias invalidation. This section records the code fix; CI must independently confirm passing results.
