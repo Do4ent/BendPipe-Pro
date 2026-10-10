@@ -23,6 +23,7 @@
       runtime.assets.map((asset)=>[String(asset?.id??""),asset])
     );
     if(runtimes.has(key)||cachedScene)invalidateSceneCache();
+    bumpRevision("geometry");
     runtimes.set(key,{...runtime,assetsById});
     for(const cacheKey of [...templates.keys()]){
       if(cacheKey.startsWith(key+"|"))templates.delete(cacheKey);
@@ -1036,6 +1037,21 @@
   let cooperativeGeneration=0;
   let activeCooperativeHandle=null;
   let cachedScene=null;
+  const revisions={geometry:0,display:0,selection:0};
+  function bumpRevision(kind){
+    if(!Object.prototype.hasOwnProperty.call(revisions,kind))throw new RangeError("Unknown DWFx revision kind");
+    revisions[kind]++;
+    return revisions[kind];
+  }
+  function revisionSnapshot(){return {...revisions};}
+  // An opt-in token is safe only if every external source-state writer invokes
+  // markSceneChanged; otherwise use the full conservative signature.
+  const revisionOptInProjects=new WeakSet();
+  function markSceneChanged(project,kind="geometry"){
+    bumpRevision(kind);
+    if(project&&typeof project==="object")revisionOptInProjects.add(project);
+    invalidateSceneCache();
+  }
   const sceneReuseStats={hits:0,misses:0,invalidations:0};
   // Explicit invalidation for import/replacement and renderer disposal.
   // Uninstrumented mutation paths still use the conservative source signature.
@@ -1765,6 +1781,7 @@
   }
 
   function clearSelection(){
+    bumpRevision("selection");
     bulkSelected.clear();
     rangeAnchorKey=null;
     selected=null;
@@ -1840,6 +1857,7 @@
   }
 
   function replaceSelection(project,keys=[]){
+    bumpRevision("selection");
     bulkSelected.clear();
     let active=null;
     for(const key of keys??[]){
@@ -1904,6 +1922,7 @@
       throw new RangeError("Immutable Source / Reference does not support bulk action: "+command);
     }
     if(!bulkSelected.size)return 0;
+    bumpRevision("display");
     if(command==="show")applyBulkVisibility(project,true);
     else if(command==="hide")applyBulkVisibility(project,false);
     else if(command==="transparent")applyBulkTransparency(project);
@@ -2290,6 +2309,8 @@
     runtimeSummary,
     performanceStats:()=>({...meshPerformance,largeMeshes:meshPerformance.largeMeshes.map(x=>({...x}))}),
     sceneReuseStats:()=>({...sceneReuseStats}),
+    revisionSnapshot,
+    markSceneChanged,
     invalidateSceneCache,
     beforeParentDispose
   });
