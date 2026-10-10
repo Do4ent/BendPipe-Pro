@@ -3181,7 +3181,7 @@ const perfBootstrapSource =
   "}\n" +
   "// Core controls already exist by this late inline script; bind now instead\n" +
   "// of waiting for unrelated optional scripts to finish DOMContentLoaded.\n" +
-  "if(document.getElementById('app')&&document.getElementById('projectCombo')&&document.getElementById('pipeSelect'))tbStartCore();\n" +
+  "if(document.getElementById('app')&&document.getElementById('projectCombo'))tbStartCore();\n" +
   "else if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tbStartCore,{once:true});\n" +
   "else tbStartCore();";
 if(!output.includes(perfInitAnchor))throw new Error("PERF-003 initialization hook anchor missing");
