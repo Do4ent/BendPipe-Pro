@@ -27,7 +27,7 @@ test("PERF-001: DWFx signature reports link traversal and serialization separate
   const second=api.render3DCooperative({...opts,parent:new Group()});
   assert.equal(second.status.reused,true);
   const stats=api.sceneReuseStats();
-  assert.equal(stats.signatureCalls,2);
+  assert.equal(stats.signatureCalls,3,"initial build now revalidates before commit");
   assert.equal(stats.lastLinksTimeMs,1);
   assert.equal(stats.lastSerializeTimeMs,1);
   assert.equal(stats.lastSignatureTimeMs,2);
