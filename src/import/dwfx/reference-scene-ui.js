@@ -1069,6 +1069,17 @@
   // Only source/reference properties influence the cache key. Ordinary tube
   // bend/length edits do not, but source link/visibility edits do.
   function referenceSignature(project,geomScale){
+    // The fast path is opt-in: a project may enable it only after every
+    // reference scene, source link, mesh instance and selection writer is
+    // instrumented to call markSceneChanged with the appropriate revision.
+    // Existing/legacy projects continue using the conservative deep key.
+    if(project?.dwfx_revision_tracking_complete===true){
+      return JSON.stringify({
+        mode:"tracked",
+        geomScale,
+        revisions:revisionSnapshot()
+      });
+    }
     const sourceLinks=(project?.tubes??[]).map(tube=>({
       id:tube?.id,
       partNumber:tube?.partNumber??tube?.part_number,
