@@ -85,6 +85,12 @@ export function evaluateCanonicalPromotion({
         "geometry was not recognized using the exact descriptor source scale"
       );
     }else if(
+      geometry.source_scale_mm_per_source_unit==null ||
+      !Number.isFinite(Number(geometry.source_scale_mm_per_source_unit)) ||
+      Number(geometry.source_scale_mm_per_source_unit)<=0
+    ){
+      blockers.push("geometry source scale must be a finite positive number");
+    }else if(
       Number.isFinite(Number(descriptorScale)) &&
       Math.abs(
         Number(geometry.source_scale_mm_per_source_unit)-Number(descriptorScale)
