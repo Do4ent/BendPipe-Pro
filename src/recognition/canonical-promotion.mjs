@@ -1,3 +1,12 @@
+function finitePositive(value,label){
+  // Legacy named contract retained for integrations that inspect this module.
+  // Use strict numeric evidence: null, strings and booleans are not dimensions.
+  if(typeof value!=="number"||!Number.isFinite(value)||value<=0){
+    throw new RangeError(`${label} must be a finite positive number`);
+  }
+  return value;
+}
+
 function isPositiveFiniteMeasurement(value){
   // A recognized geometric dimension must be explicit, numeric and positive.
   // Number(null) and Number("") must never manufacture a valid zero length.
