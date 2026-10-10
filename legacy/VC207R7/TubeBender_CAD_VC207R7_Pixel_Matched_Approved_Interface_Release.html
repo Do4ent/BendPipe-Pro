@@ -7814,7 +7814,9 @@ function tbNotifyDwfxSceneChange(reason="project-replaced"){
   if(!api)return false;
   // Rehydrate source runtimes after complete state replacement; runtime IDs
   // can be reused across snapshots and cached mesh templates must be refreshed.
-  if(typeof api.restorePersistedRuntimes==="function"){
+  if(typeof api.replacePersistedRuntimes==="function"){
+    api.replacePersistedRuntimes(state.projects??[]);
+  }else if(typeof api.restorePersistedRuntimes==="function"){
     for(const project of state.projects??[])api.restorePersistedRuntimes(project);
   }else{
     api.markSceneChanged?.(activeProject(),"geometry");
