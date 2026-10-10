@@ -362,6 +362,7 @@
       detached_payload:null
     };
     editableMeshInstanceList(project).push(instance);
+    bumpRevision("geometry");
     return instance;
   }
 
@@ -1789,6 +1790,8 @@
       }
     }
     project.referenceScenes=kept;
+    bumpRevision("geometry");
+    bumpRevision("selection");
     bulkSelected.clear();
   }
 
