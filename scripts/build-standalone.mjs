@@ -3175,7 +3175,9 @@ const perfBootstrapSource =
   "    ['ensureCurrentTubeVisible',()=>ensureCurrentTubeVisible()],\n" +
   "    ['bind',()=>bind()]\n" +
   "  ],onError));\n" +
-  "  status.booted=true;status.starting=false;\n" +
+  "  status.booted=status.phases.some(phase=>phase.name===\'bind\'&&phase.status===\'ok\');status.starting=false;\n" +
+  "  // A failed core bind must never appear as a successful startup.\n" +
+  "  if(!status.booted)return;\n" +
   "  // Let bound controls paint before building the potentially large scene.\n" +
   "  status.cancelInitialScene=tbScheduleInitialSceneAfterPaint({\n" +
   "    requestFrame:callback=>requestAnimationFrame(callback),\n" +
