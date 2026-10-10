@@ -1068,7 +1068,9 @@
   }
   // Only source/reference properties influence the cache key. Ordinary tube
   // bend/length edits do not, but source link/visibility edits do.
+  const signatureStats={calls:0,totalMs:0,maxMs:0,lastMs:0};
   function referenceSignature(project,geomScale){
+    const started=meshNow();
     const sourceLinks=(project?.tubes??[]).map(tube=>({
       id:tube?.id,
       partNumber:tube?.partNumber??tube?.part_number,
@@ -1076,7 +1078,7 @@
       sourceFormat:tube?.currentProjectImport?.source_format,
       importedPart:tube?.currentProjectImport?.part_number
     }));
-    return JSON.stringify({
+    const signature=JSON.stringify({
       scenes:project?.referenceScenes??[],
       meshInstances:project?.editable_mesh_instances??[],
       links:sourceLinks,
@@ -1085,6 +1087,12 @@
       geomScale,
       revisions:revisionSnapshot()
     });
+    const elapsed=Math.max(0,meshNow()-started);
+    signatureStats.calls++;
+    signatureStats.totalMs+=elapsed;
+    signatureStats.maxMs=Math.max(signatureStats.maxMs,elapsed);
+    signatureStats.lastMs=elapsed;
+    return signature;
   }
 
   // Preserve shared imported scene across disposal of the old CAD parent group.
@@ -2330,6 +2338,7 @@
     runtimeSummary,
     performanceStats:()=>({...meshPerformance,largeMeshes:meshPerformance.largeMeshes.map(x=>({...x}))}),
     sceneReuseStats:()=>({...sceneReuseStats}),
+    signatureStats:()=>({...signatureStats}),
     revisionSnapshot,
     markSceneChanged,
     invalidateSceneCache,
