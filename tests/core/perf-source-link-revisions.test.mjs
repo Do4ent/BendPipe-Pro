@@ -10,7 +10,9 @@ test("source-link command wrapper bumps revision before redrawing",()=>{
   const ui=window.TubeBenderReferenceSceneUi;
   const origin=ui.revisionSnapshot();
   assert.equal(typeof ui.markSceneChanged,"function");
-  assert.match(source,/markSceneChanged\(null,\/Показать\|Скрыть\|Сравнить\/\.test\(label\)/);
+  assert.ok(source.includes("markSceneChanged(null,revisionKind)"));
+  assert.ok(source.includes('callbacks,"display"'));
+  assert.ok(source.includes('callbacks,"geometry"'));
   assert.ok(source.indexOf('markSceneChanged(null,')<source.indexOf('    save?.();',source.indexOf('function runSourceLinkCommand')));
   ui.markSceneChanged(null,"display");
   assert.equal(ui.revisionSnapshot().display,origin.display+1);
