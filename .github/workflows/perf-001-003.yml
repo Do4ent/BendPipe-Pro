@@ -21,6 +21,7 @@ on:
       - feature/perf-source-link-revisions-20261010
       - feature/perf-source-link-command-revisions-20261010
       - feature/perf-legacy-project-switch-20261010
+      - feature/perf-dwfx-part-identifiers-cache-20261010
   workflow_dispatch:
   pull_request:
     branches:
