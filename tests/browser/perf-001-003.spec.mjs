@@ -86,12 +86,19 @@ test("[PERF-001] repeated renders produce at most one 3D redraw per frame",async
       drawsTotal:after.draws-before.draws};
   });
   let measurementTimer;
-  const result=await Promise.race([
-    measurement,
-    new Promise((_,reject)=>{
-      measurementTimer=setTimeout(()=>reject(new Error("PERF-001 redraw measurement timed out. Browser evidence:\\n"+diagnostics.fatalFailure())),10000);
-    })
-  ]).finally(()=>clearTimeout(measurementTimer));
+  let result;
+  try{
+    result=await Promise.race([
+      measurement,
+      new Promise((_,reject)=>{
+        measurementTimer=setTimeout(()=>reject(new Error("PERF-001 redraw measurement timed out after 10000 ms")),10000);
+      })
+    ]);
+  }catch(error){
+    throw new Error("PERF-001 redraw measurement failed. Browser evidence:\\n"+await diagnostics()+"\\n"+String(error));
+  }finally{
+    clearTimeout(measurementTimer);
+  }
   expect(result.requests).toBe(3);
   expect(result.drawsDuring).toBe(0);
   expect(result.drawsTotal).toBeLessThanOrEqual(1);
