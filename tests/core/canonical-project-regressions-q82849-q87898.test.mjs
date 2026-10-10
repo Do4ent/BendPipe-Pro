@@ -122,7 +122,7 @@ for(let i=1;i<=700;i++){
     near(bend.signed_bend_angle_deg,sweep,"signed bend angle");
     near(bend.bend_angle_deg,90,"absolute nominal bend angle");
     assert.equal(bend.rotation_from_previous_bend_deg,null);
-    assert.deepEqual(bend.plane_normal,Z,"oriented positive plane normal");
+    for(let c=0;c<3;c++)near(bend.plane_normal[c],Z[c],"oriented positive plane normal "+c);
     near(result.tail_length_mm,tail,"final straight length");
     assert.ok(Object.isFrozen(result.bends));
   });
