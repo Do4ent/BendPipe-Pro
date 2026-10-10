@@ -1073,7 +1073,12 @@
     const started=meshNow();
     const sourceLinks=(project?.tubes??[]).map(tube=>({
       id:tube?.id,
-      partNumber:tube?.partNumber??tube?.part_number,
+      // renderSceneTree() suppresses editable source geometry based on all
+      // four identifiers from editablePartSet(), not just the preferred alias.
+      // Keep each one in the conservative key to detect in-place legacy edits.
+      partNumber:tube?.partNumber,
+      legacyPartNumber:tube?.part_number,
+      evidencePartNumber:tube?.importEvidence?.part_number,
       source:tube?.currentProjectImport?.source_link,
       sourceFormat:tube?.currentProjectImport?.source_format,
       importedPart:tube?.currentProjectImport?.part_number
