@@ -1,16 +1,20 @@
 import {test,expect} from "@playwright/test";
 import {REQUIREMENT_IDS,BROWSER_COVERAGE} from "../../acceptance/requirements-120.mjs";
 const html="/TubeBender_CAD_VC207R7_M1_Standalone.html";
-test.beforeEach(async({page})=>{
-  await page.goto(html,{waitUntil:"domcontentloaded"});
-  await expect(page.locator("#app")).toBeVisible();
-});
+async function loadApp(page){
+  const response=await page.goto(html,{waitUntil:"commit",timeout:12000});
+  expect(response?.status()).toBe(200);
+  // Require the actual app DOM, not just a successful network response.
+  await expect(page.locator("#app")).toBeVisible({timeout:12000});
+}
 test("[UI-006] visible top-bar project, tube and main actions (partial)",async({page})=>{
+  await loadApp(page);
   for(const selector of ["#projectCombo","#tubeCombo","#projectOpenQuick","#openSettings"]){
     await expect(page.locator(selector)).toBeVisible();
   }
 });
 test("[UI-009] desktop viewport has no global page scrollbar",async({page})=>{
+  await loadApp(page);
   await page.setViewportSize({width:1672,height:941});
   await expect.poll(async()=>page.evaluate(()=>({
     x:document.documentElement.scrollWidth<=document.documentElement.clientWidth+1,
@@ -18,6 +22,7 @@ test("[UI-009] desktop viewport has no global page scrollbar",async({page})=>{
   }))).toEqual({x:true,y:true});
 });
 test("[VIEW-006] standalone canvas and bundled renderer presence (partial)",async({page})=>{
+  await loadApp(page);
   await expect(page.locator("canvas#threeCanvas")).toBeVisible();
   const result=await page.evaluate(()=>({
     three:typeof window.THREE==="object",
@@ -27,12 +32,14 @@ test("[VIEW-006] standalone canvas and bundled renderer presence (partial)",asyn
   expect(result.cdn).toBe(0);
 });
 test("[I18N-001] all four language choices are offered (partial)",async({page})=>{
+  await loadApp(page);
   await page.locator("#openSettings").click();
   await page.locator("#settingsTabLanguage").click();
   await expect(page.locator("#settingsPaneLanguage")).toBeVisible();
   await expect.poll(async()=>page.locator("#langList").locator("button,[role=option]").count()).toBeGreaterThanOrEqual(4);
 });
 test("[I18N-002] language selection lives on Settings language tab",async({page})=>{
+  await loadApp(page);
   await page.locator("#openSettings").click();
   await expect(page.locator("#settingsTabLanguage")).toBeVisible();
   await page.locator("#settingsTabLanguage").click();
@@ -41,6 +48,7 @@ test("[I18N-002] language selection lives on Settings language tab",async({page}
   await expect(page.locator("#langSearch")).toBeVisible();
 });
 test("[PERF-005] no duplicate DOM IDs across a settings redraw (partial)",async({page})=>{
+  await loadApp(page);
   const duplicated=()=>page.evaluate(()=>{
     const all=[...document.querySelectorAll("[id]")].map(e=>e.id);
     return [...new Set(all.filter((v,i)=>all.indexOf(v)!==i))].slice(0,20);
@@ -51,6 +59,7 @@ test("[PERF-005] no duplicate DOM IDs across a settings redraw (partial)",async(
   expect(await duplicated()).toEqual([]);
 });
 test("[MOB-001] mobile viewport has no global document scrollbars",async({page})=>{
+  await loadApp(page);
   await page.setViewportSize({width:390,height:844});
   await expect.poll(async()=>page.evaluate(()=>({
     x:document.documentElement.scrollWidth<=document.documentElement.clientWidth+1,
