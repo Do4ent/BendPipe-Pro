@@ -362,6 +362,7 @@
       detached_payload:null
     };
     editableMeshInstanceList(project).push(instance);
+    bumpRevision("geometry");
     return instance;
   }
 
@@ -1068,7 +1069,29 @@
   }
   // Only source/reference properties influence the cache key. Ordinary tube
   // bend/length edits do not, but source link/visibility edits do.
+  const runtimeTrackedProjects=new WeakSet();
+  // Reserved for a future audited project command gateway; no public method
+  // grants authorization until legacy loading and history writers are covered.
   function referenceSignature(project,geomScale){
+    // The fast path is opt-in: a project may enable it only after every
+    // reference scene, source link, mesh instance and selection writer is
+    // instrumented to call markSceneChanged with the appropriate revision.
+    // Existing/legacy projects continue using the conservative deep key.
+    // A serialized project flag is not proof that legacy writers are instrumented.
+    // A session-local authorization is needed before using revision-only keys.
+    if(project?.dwfx_revision_tracking_complete===true&&
+       runtimeTrackedProjects.has(project)){
+      return JSON.stringify({
+        mode:"tracked",
+        geomScale,
+        // External object-context selection can change outside this module;
+        // include its small key even when full geometry tracking is enabled.
+        selected:[...bulkSelected].sort(),
+        objectSelection:(window.TubeBenderObjectContext?.selectionEntries?.()??[])
+          .map(entry=>({kind:entry?.kind,tubeId:entry?.tubeId,instanceId:entry?.instanceId})),
+        revisions:revisionSnapshot()
+      });
+    }
     const sourceLinks=(project?.tubes??[]).map(tube=>({
       id:tube?.id,
       partNumber:tube?.partNumber??tube?.part_number,
@@ -1773,6 +1796,8 @@
       }
     }
     project.referenceScenes=kept;
+    bumpRevision("geometry");
+    bumpRevision("selection");
     bulkSelected.clear();
   }
 
@@ -1959,6 +1984,7 @@
     }
     scene.collapsedNodeIds=[...collapsed];
     selected={sceneId:String(scene.id),nodeId:String(node.id)};
+    bumpRevision("selection");
     return true;
   }
 
@@ -1985,6 +2011,7 @@
     if(!["hidden","shown","compare"].includes(display))throw new RangeError("Unknown Source display mode");
     link.display=display;
     link.status="linked";
+    bumpRevision("display");
     return true;
   }
 
@@ -1994,6 +2021,7 @@
     link.detached=true;
     link.status="detached";
     link.display="hidden";
+    bumpRevision("geometry");
     return true;
   }
 
@@ -2262,6 +2290,7 @@
         }
 
         selected={sceneId:String(scene.id),nodeId:String(node.id)};
+        bumpRevision("selection");
         if(!node.editable_part_number){
           bulkSelected.clear();
           bulkSelected.add(key);
@@ -2280,6 +2309,23 @@
     let count=0;
     for(const scene of project?.referenceScenes??[]){
       if(scene?.display_runtime&&registerRuntime(scene.display_runtime))count+=1;
+    }
+    return count;
+  }
+
+  // Full workspace replacement must evict runtimes from removed projects too.
+  // Restoring scenes one project at a time otherwise leaves orphan assets
+  // available under reused scene IDs and wastes GPU template memory.
+  function replacePersistedRuntimes(projects=[]){
+    invalidateSceneCache();
+    runtimes.clear();
+    templates.clear();
+    bumpRevision("geometry");
+    let count=0;
+    for(const project of projects??[]){
+      for(const scene of project?.referenceScenes??[]){
+        if(scene?.display_runtime&&registerRuntime(scene.display_runtime))count+=1;
+      }
     }
     return count;
   }
@@ -2325,6 +2371,7 @@
     applyModifierSelection,
     selectedCount,
     restorePersistedRuntimes,
+    replacePersistedRuntimes,
     runtimeSummary,
     performanceStats:()=>({...meshPerformance,largeMeshes:meshPerformance.largeMeshes.map(x=>({...x}))}),
     sceneReuseStats:()=>({...sceneReuseStats}),
