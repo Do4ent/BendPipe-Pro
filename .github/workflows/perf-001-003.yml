@@ -46,6 +46,7 @@ jobs:
           node --check tests/core/perf-dwfx-inflight-mutation.test.mjs
           node --check tests/core/perf-dwfx-recovery-coalescer.test.mjs
           node --check tests/core/perf-dwfx-frame-task-cancel.test.mjs
+          node --check tests/core/perf-dwfx-render-supersession.test.mjs
       - name: Test frame coalescer and isolated startup
         run: node --test tests/core/perf-001-003.test.mjs
       - name: Test indexed DWFx scene rendering and cache reuse
@@ -56,6 +57,8 @@ jobs:
         run: node --test tests/core/perf-dwfx-inflight-mutation.test.mjs
       - name: Test coalesced DWFx stale recovery and task cancellation
         run: node --test tests/core/perf-dwfx-recovery-coalescer.test.mjs tests/core/perf-dwfx-frame-task-cancel.test.mjs
+      - name: Test DWFx render supersession cancels obsolete frame and timer work
+        run: node --test tests/core/perf-dwfx-render-supersession.test.mjs
       - name: Run existing regression suite
         run: npm test
       - name: Verify full standalone build
