@@ -1127,6 +1127,13 @@
   }){
     if(!parent||!project||!THREE)throw new TypeError("3D parent, project and THREE required");
     if(!Number.isSafeInteger(batchSize)||batchSize<1)throw new RangeError("Invalid batch size");
+    // Embedded DWFx runtimes must be registered before computing the cache key.
+    // Lazy registration inside the build loop advances geometry revisions and
+    // would otherwise cause a false miss on the next unchanged render.
+    for(const sceneMeta of project.referenceScenes??[]){
+      if(!sceneMeta||sceneMeta.visible===false||!sceneMeta.display_runtime)continue;
+      if(!runtimes.has(runtimeKey(sceneMeta)))registerRuntime(sceneMeta.display_runtime);
+    }
     const generation=++cooperativeGeneration;
     if(activeCooperativeHandle)activeCooperativeHandle.cancel();
     // A previously completed staging group is referenced only by cachedScene.
