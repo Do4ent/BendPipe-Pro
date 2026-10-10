@@ -1968,7 +1968,7 @@ if (!output.includes(referenceDisposeAnchor)) {
 }
 output = output.replace(
   referenceDisposeAnchor,
-  "  root.traverse?.(obj=>{\n    if(obj.userData?.referenceShared===true)return;\n    if (obj.geometry?.dispose) geometries.add(obj.geometry);"
+  "  window.TubeBenderReferenceSceneUi?.beforeParentDispose?.(root);\n  root.traverse?.(obj=>{\n    if(obj.userData?.referenceShared===true)return;\n    if (obj.geometry?.dispose) geometries.add(obj.geometry);"
 );
 
 const referenceRenderAnchor =
