@@ -33,6 +33,8 @@
     return (c[0]<<16)|(c[1]<<8)|c[2];
   }
 
+  const preparedMeshBuffers=new WeakMap();
+
   function buildAssetTemplate(runtime,asset,THREE,displayMode="normal"){
     const transparent=displayMode==="transparent";
     const key=String(runtime.scene_id)+"|"+String(asset.id)+"|"+displayMode;
@@ -48,14 +50,15 @@
         const faces=item.faces??[];
         if(!vertices.length||!faces.length)continue;
 
-        const positions=new Float32Array(vertices.length*3);
-        for(let i=0;i<vertices.length;i+=1){
+        const prepared=preparedMeshBuffers.get(item);
+        const positions=prepared?.positions??new Float32Array(vertices.length*3);
+        for(let i=prepared?vertices.length:0;i<vertices.length;i+=1){
           positions[i*3]=Number(vertices[i]?.[0])||0;
           positions[i*3+1]=Number(vertices[i]?.[1])||0;
           positions[i*3+2]=Number(vertices[i]?.[2])||0;
         }
-        const indices=new Uint32Array(faces.length*3);
-        for(let i=0;i<faces.length;i+=1){
+        const indices=prepared?.indices??new Uint32Array(faces.length*3);
+        for(let i=prepared?faces.length:0;i<faces.length;i+=1){
           indices[i*3]=Number(faces[i]?.[0])||0;
           indices[i*3+1]=Number(faces[i]?.[1])||0;
           indices[i*3+2]=Number(faces[i]?.[2])||0;
@@ -1026,6 +1029,24 @@
         work.push({sceneMeta,runtime,root});
       }
     }
+    // Prepare large mesh buffers in bounded slices before THREE object creation.
+    // Each mesh is staged privately and published only once fully copied.
+    const meshJobs=[],seenMeshes=new Set();
+    for(const runtime of new Set(work.map(entry=>entry.runtime))){
+      for(const asset of runtime.assetsById.values()){
+        if(asset?.kind!=="mesh")continue;
+        for(const mesh of asset.meshes??[]){
+          if(!mesh||seenMeshes.has(mesh)||preparedMeshBuffers.has(mesh))continue;
+          seenMeshes.add(mesh);
+          if(!(mesh.vertices?.length&&mesh.faces?.length))continue;
+          meshJobs.push({
+            mesh,positions:new Float32Array(mesh.vertices.length*3),
+            indices:new Uint32Array(mesh.faces.length*3),v:0,f:0
+          });
+        }
+      }
+    }
+    let meshJobIndex=0;
     let index=0,pending=null,done=false,failures=0;
     const result={total:work.length,processed:0,failures:0,committed:false};
     const stop=()=>{
@@ -1038,6 +1059,34 @@
     function step(){
       pending=null;
       if(done||generation!==cooperativeGeneration){stop();return;}
+      if(meshJobIndex<meshJobs.length){
+        let remaining=2048;
+        while(remaining>0&&meshJobIndex<meshJobs.length){
+          const job=meshJobs[meshJobIndex];
+          const vertices=job.mesh.vertices,faces=job.mesh.faces;
+          while(remaining>0&&job.v<vertices.length){
+            const i=job.v++,vertex=vertices[i];
+            job.positions[i*3]=Number(vertex?.[0])||0;
+            job.positions[i*3+1]=Number(vertex?.[1])||0;
+            job.positions[i*3+2]=Number(vertex?.[2])||0;
+            remaining--;
+          }
+          while(remaining>0&&job.f<faces.length){
+            const i=job.f++,face=faces[i];
+            job.indices[i*3]=Number(face?.[0])||0;
+            job.indices[i*3+1]=Number(face?.[1])||0;
+            job.indices[i*3+2]=Number(face?.[2])||0;
+            remaining--;
+          }
+          if(job.v===vertices.length&&job.f===faces.length){
+            preparedMeshBuffers.set(job.mesh,{positions:job.positions,indices:job.indices});
+            meshJobIndex++;
+          }
+        }
+        try{pending=postTask(step);}
+        catch(error){try{onError(error,index);}catch{}stop();}
+        return;
+      }
       const limit=Math.min(index+batchSize,work.length);
       for(;index<limit;index++){
         const {sceneMeta,runtime,root}=work[index];
