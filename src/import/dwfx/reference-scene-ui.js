@@ -2313,6 +2313,23 @@
     return count;
   }
 
+  // Full workspace replacement must evict runtimes from removed projects too.
+  // Restoring scenes one project at a time otherwise leaves orphan assets
+  // available under reused scene IDs and wastes GPU template memory.
+  function replacePersistedRuntimes(projects=[]){
+    invalidateSceneCache();
+    runtimes.clear();
+    templates.clear();
+    bumpRevision("geometry");
+    let count=0;
+    for(const project of projects??[]){
+      for(const scene of project?.referenceScenes??[]){
+        if(scene?.display_runtime&&registerRuntime(scene.display_runtime))count+=1;
+      }
+    }
+    return count;
+  }
+
   function runtimeSummary(){
     return [...runtimes.values()].map((runtime)=>({
       scene_id:runtime.scene_id,
@@ -2354,6 +2371,7 @@
     applyModifierSelection,
     selectedCount,
     restorePersistedRuntimes,
+    replacePersistedRuntimes,
     runtimeSummary,
     performanceStats:()=>({...meshPerformance,largeMeshes:meshPerformance.largeMeshes.map(x=>({...x}))}),
     sceneReuseStats:()=>({...sceneReuseStats}),
