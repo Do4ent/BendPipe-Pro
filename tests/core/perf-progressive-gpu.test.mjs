@@ -52,5 +52,6 @@ test("standalone build wires frame-paced progress callback to WebGL",()=>{
   const source=fs.readFileSync(new URL("../../scripts/build-standalone.mjs",import.meta.url),"utf8");
   assert.match(source,/batchSize:8,progressive:true/);
   assert.match(source,/onProgress:\(\)=>/);
-  assert.match(source,/postTask:fn=>requestAnimationFrame/);
+  assert.match(source,/postTask:fn=>tbDwfTaskScheduler\.post\(fn\)/);
+  assert.match(source,/cancelTask:task=>tbDwfTaskScheduler\.cancel\(task\)/);
 });
