@@ -65,11 +65,7 @@ test("[MOB-001] mobile viewport has no global document scrollbars",async({page})
   const diagnostics=await page.evaluate(()=>{
     const html=document.documentElement, body=document.body, app=document.querySelector("#app");
     const summary=(el)=>el?{width:el.scrollWidth,clientWidth:el.clientWidth,height:el.scrollHeight,clientHeight:el.clientHeight,cssOverflow:getComputedStyle(el).overflow,rect:Math.round(el.getBoundingClientRect().width)}:null;
-    const offenders=[...document.querySelectorAll("body *")].filter(el=>{
-      const r=el.getBoundingClientRect();
-      return r.right>innerWidth+10||r.left< -10||r.bottom>innerHeight+10;
-    }).slice(0,24).map(el=>({tag:el.tagName,id:el.id,cls:String(el.className).slice(0,50),left:Math.round(el.getBoundingClientRect().left),right:Math.round(el.getBoundingClientRect().right)}));
-    return {viewport:{width:innerWidth,height:innerHeight},html:summary(html),body:summary(body),app:summary(app),bodyClass:body.className,offenders};
+    return {viewport:{width:innerWidth,height:innerHeight},html:summary(html),body:summary(body),app:summary(app),bodyClass:body.className};
   });
   console.log("MOB-001 viewport diagnostics:",JSON.stringify(diagnostics));
   expect(diagnostics.bodyClass).toContain("tb-project-map");
