@@ -31,6 +31,14 @@ function captureStartupDiagnostics(page){
   )??null;
   return diagnostics;
 }
+async function navigateWithDiagnostics(page,diagnostics){
+  try{
+    const response=await page.goto(html,{waitUntil:"commit",timeout:15000});
+    expect(response?.status()).toBe(200);
+  }catch(error){
+    throw new Error("TubeBender navigation failed. Browser evidence:\\n"+await diagnostics()+"\\n"+String(error));
+  }
+}
 async function expectStartup(page,predicate,timeout,diagnostics){
   const started=Date.now();
   let lastError=null;
@@ -60,8 +68,7 @@ async function expectStartup(page,predicate,timeout,diagnostics){
 test("[PERF-003] core event binding survives isolated startup stages",async({page})=>{
   test.setTimeout(140000);
   const diagnostics=captureStartupDiagnostics(page);
-  const response=await page.goto(html,{waitUntil:"commit",timeout:15000});
-  expect(response?.status()).toBe(200);
+  await navigateWithDiagnostics(page,diagnostics);
   await expectStartup(page,()=>Boolean(window.TubeBenderStartupStatus?.booted===true&&document.getElementById("projectCombo")),110000,diagnostics);
   await expectStartup(page,()=>Boolean(window.TubeBenderStartupStatus?.phases?.some(
     stage=>stage.name==="bind"&&stage.status==="ok"
@@ -71,8 +78,7 @@ test("[PERF-003] core event binding survives isolated startup stages",async({pag
 test("[PERF-001] repeated renders produce at most one 3D redraw per frame",async({page})=>{
   test.setTimeout(150000);
   const diagnostics=captureStartupDiagnostics(page);
-  const response=await page.goto(html,{waitUntil:"commit",timeout:15000});
-  expect(response?.status()).toBe(200);
+  await navigateWithDiagnostics(page,diagnostics);
   await expectStartup(page,()=>Boolean(window.TubeBenderStartupStatus?.booted&&window.TubeBenderEngineering?.renderAll&&window.TubeBenderRenderPerformance),115000,diagnostics);
   const measurement=page.evaluate(async()=>{
     // A real model update, no mocked render implementation.
