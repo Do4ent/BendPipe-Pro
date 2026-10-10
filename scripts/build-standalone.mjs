@@ -3166,11 +3166,11 @@ if(!output.includes(perfPickerAnchor)){
   throw new Error("PERF-003 picker registration anchor missing");
 }
 output=output.replace(perfPickerAnchor,
-  "  tbRunIsolatedStartup([\n" +
-  "    ['buildViewPicker',()=>buildViewPicker()],\n" +
-  "    ['buildBendPicker',()=>buildBendPicker()],\n" +
-  "    ['setupMiniAxisClickHandlers',()=>setupMiniAxisClickHandlers()]\n" +
-  "  ],(name,error)=>console.warn('Optional picker initialization: '+name,error));");
+  "  for(const [name,initialize] of [\\n" +
+  "    ['buildViewPicker',()=>buildViewPicker()],\\n" +
+  "    ['buildBendPicker',()=>buildBendPicker()],\\n" +
+  "    ['setupMiniAxisClickHandlers',()=>setupMiniAxisClickHandlers()]\\n" +
+  "  ]){try{initialize();}catch(error){console.warn('Optional picker initialization: '+name,error);}}");
 const perfBindStart="function bind(){\n  qs('boundsFocusBtn')";
 const perfInitAnchor=
   "window.addEventListener('DOMContentLoaded',()=>{ensureIndustrialState();ensureCurrentTubeVisible();bind();renderAll();});";
