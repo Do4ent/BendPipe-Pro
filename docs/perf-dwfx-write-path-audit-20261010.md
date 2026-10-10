@@ -52,3 +52,10 @@ Reviewed `legacy/VC207R7/TubeBender_CAD_VC207R7_Pixel_Matched_Approved_Interface
 **Security/correctness gate:** the persisted `dwfx_revision_tracking_complete` field no longer enables the fast path alone. A private session-local `WeakSet` is additionally required and has no enrollment path until all legacy writer integrations are instrumented. Consequently all current projects use the conservative key; the dormant fast path remains for future activation.
 
 Verification: regression tests committed, execution in this environment unavailable (GitHub checkout network resolution failed). Browser acceptance and runtime performance improvements have not been demonstrated.
+
+
+## Restoration integration checkpoint
+
+In the legacy standalone UI, `tbNotifyDwfxSceneChange` is now connected to history restore (Undo/Redo), project-open replace/append and editable copy. The notification calls `replacePersistedRuntimes(state.projects)` when available. It clears registered runtimes and geometry templates before registering the current workspace's embedded runtimes, protecting against stale scene IDs after replacement. Added `tests/core/perf-dwfx-workspace-restoration.test.mjs` for orphan removal, empty workspace and notification contracts.
+
+CI evidence as of this checkpoint: the latest commit returned no pull-request workflow runs and no combined commit statuses. Local Node/Chromium tests cannot be run in this execution environment because the GitHub host is not resolvable from the container. **Do not treat unexecuted regression/browser tests as passing**; run the existing `perf-001-003.yml` workflow and inspect both core-perf and chromium-perf before merge.
