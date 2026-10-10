@@ -25,6 +25,7 @@ on:
       - feature/perf-browser-startup-diagnostics-20261010
       - feature/perf-picker-startup-scope-fix-20261010
       - feature/perf-revision-contract-reconcile-20261010
+      - feature/perf-regression-contract-refresh-20261011
   workflow_dispatch:
   pull_request:
     branches:
