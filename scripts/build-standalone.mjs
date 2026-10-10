@@ -3148,7 +3148,7 @@ if(!output.includes(perfPickerAnchor)){
 }
 output=output.replace(perfPickerAnchor,
   "  tbRunIsolatedStartup([\n" +
-  "    ['buildViewPicker',()=>buildViewPicker()],\n" +
+  "    ['buildViewPicker',()=>{if(window.__TB_TEST_PERF003_FAIL_OPTIONAL__===true)throw new Error('PERF-003 injected optional picker failure');buildViewPicker();}],\n" +
   "    ['buildBendPicker',()=>buildBendPicker()],\n" +
   "    ['setupMiniAxisClickHandlers',()=>setupMiniAxisClickHandlers()]\n" +
   "  ],(name,error)=>console.warn('Optional picker initialization: '+name,error));");
