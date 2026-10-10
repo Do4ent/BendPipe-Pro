@@ -37,3 +37,27 @@ jobs:
           name: tubebender-perf-standalone
           path: dist/TubeBender_CAD_VC207R7_M1_Standalone.html
           if-no-files-found: error
+
+  chromium-perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Playwright test runner
+        run: npm install --no-save @playwright/test@1.56.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build standalone under test
+        run: npm run build:standalone
+      - name: Verify PERF-001 and PERF-003 in Chromium
+        run: npx playwright test --config acceptance/playwright.config.mjs --grep 'PERF-00[13]'
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-001-003-browser-evidence
+          path: reports/browser
+          if-no-files-found: warn
