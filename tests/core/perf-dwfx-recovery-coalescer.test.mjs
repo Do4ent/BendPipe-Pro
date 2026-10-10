@@ -57,11 +57,29 @@ test("PERF-001: stale recovery targets the latest active project only",()=>{
   recovery.schedule(a);
   frames.flush();
   assert.deepEqual(rendered,[b],"inactive project cannot force re-render");
-  assert.equal(recovery.stats.skipped,1);
+  assert.equal(recovery.stats.skipped,2,"both inactive requests are ignored");
   active=a;
   recovery.schedule(a);
   frames.flush();
   assert.deepEqual(rendered,[b,a]);
+});
+
+test("PERF-001: an obsolete notification cannot replace a queued recovery for the current project",()=>{
+  const frames=clock(),oldProject={id:"stale"},currentProject={id:"active"};
+  const rendered=[];
+  const recovery=createSceneRecoveryCoalescer({
+    requestFrame:fn=>frames.requestFrame(fn),
+    isCurrent:project=>project===currentProject,
+    render:project=>rendered.push(project)
+  });
+  assert.equal(recovery.schedule(currentProject),true);
+  assert.equal(recovery.schedule(oldProject),false,
+    "late notification from inactive project must be discarded");
+  assert.equal(frames.callbacks.size,1);
+  frames.flush();
+  assert.deepEqual(rendered,[currentProject]);
+  assert.equal(recovery.stats.skipped,1);
+  assert.equal(recovery.stats.rendered,1);
 });
 
 test("PERF-001: normal render cancels queued recovery even if frame cancellation is ineffective",()=>{
