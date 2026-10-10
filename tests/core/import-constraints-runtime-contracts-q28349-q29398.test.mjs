@@ -117,9 +117,9 @@ test("question 28455: preserves source contract",()=>has(5,"if(!toolingSet.compa
 test("question 28456: preserves source contract",()=>has(5,"warnings.push(\"Tooling Set has no declared Machine Profile compatibility\");"));
 test("question 28457: preserves source contract",()=>has(5,"}else if(!toolingSet.compatible_machine_profile_ids.includes(machineProfile.id)){"));
 test("question 28458: preserves source contract",()=>has(5,"reasons.push(\"Tooling Set is not declared compatible with this Machine Profile\");"));
-test("question 28459: preserves source contract",()=>has(5,"const od=Number(tube?.od_mm??tube?.outer_diameter_mm);"));
-test("question 28460: preserves source contract",()=>has(5,"const wall=Number(tube?.wall_mm??tube?.wall_thickness_mm);"));
-test("question 28461: preserves source contract",()=>has(5,"const clr=Number(tube?.clr_mm??tube?.centerline_radius_mm);"));
+test("question 28459: preserves source contract",()=>has(5,"const od=tubeNumber(tube?.od_mm??tube?.outer_diameter_mm);"));
+test("question 28460: preserves source contract",()=>has(5,"const wall=tubeNumber(tube?.wall_mm??tube?.wall_thickness_mm);"));
+test("question 28461: preserves source contract",()=>has(5,"const clr=tubeNumber(tube?.clr_mm??tube?.centerline_radius_mm);"));
 test("question 28462: preserves source contract",()=>has(5,"if(Number.isFinite(od)){"));
 test("question 28463: preserves source contract",()=>has(5,"if(Number.isFinite(toolingSet.diameter_mm)&&Math.abs(od-toolingSet.diameter_mm)>0.02)reasons.push(`Tube OD ${od} mm does not match tooling diameter ${toolingSet.diameter_mm} mm`);"));
 test("question 28464: preserves source contract",()=>has(5,"if(Number.isFinite(limits.max_diameter_mm)&&od>limits.max_diameter_mm)reasons.push(`Tube OD ${od} mm exceeds machine limit ${limits.max_diameter_mm} mm`);"));
