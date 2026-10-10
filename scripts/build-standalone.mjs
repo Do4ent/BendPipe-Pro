@@ -1979,7 +1979,7 @@ if (!output.includes(referenceRenderAnchor)) {
 output = output.replace(
   referenceRenderAnchor,
   referenceRenderAnchor +
-  `\n  try{\n    window.TubeBenderReferenceSceneUi?.render3D?.({\n      parent:pipeGroup,\n      project:activeProject(),\n      THREE:window.THREE,\n      geomScale:GEOM_SCALE\n    });\n  }catch(error){\n    console.warn("DWFx reference geometry render:",error);\n  }`
+  `\n  try{\n    const referenceUi=window.TubeBenderReferenceSceneUi;\n    const referenceProject=activeProject();\n    if(referenceUi?.render3DCooperative){\n      referenceUi.render3DCooperative({\n        parent:pipeGroup,project:referenceProject,THREE:window.THREE,\n        geomScale:GEOM_SCALE,batchSize:8,\n        onCommit:()=>{\n          if(typeof renderer!=='undefined'&&typeof scene!=='undefined'&&typeof camera!=='undefined')\n            renderer.render(scene,camera);\n        },\n        onError:(error,index)=>console.warn('DWFx batch '+index,error)\n      });\n    }else{\n      referenceUi?.render3D?.({\n        parent:pipeGroup,project:referenceProject,THREE:window.THREE,geomScale:GEOM_SCALE\n      });\n    }\n  }catch(error){\n    console.warn('DWFx reference geometry render:',error);\n  }`
 );
 
 const referenceTreeHtmlAnchor =
