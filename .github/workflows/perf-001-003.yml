@@ -4,6 +4,7 @@ on:
     branches:
       - feature/perf-001-003-render-startup-20261010
       - feature/perf-render-telemetry-20261010
+      - feature/perf-startup-yield-20261010
   workflow_dispatch:
   pull_request:
     branches:

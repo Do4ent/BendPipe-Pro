@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderMobileViewportStyle } from "../src/ui/mobile-viewport.mjs";
-import { createFrameCoalescer, runIsolatedStartup } from "../src/domain/performance/render-startup.mjs";
+import { createFrameCoalescer, runIsolatedStartup, scheduleInitialSceneAfterPaint } from "../src/domain/performance/render-startup.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourcePath = path.join(
@@ -3162,6 +3162,7 @@ const guardedBindings=bindSection.replace(/qs\('([^']+)'\)\.addEventListener\(/g
   "qs('$1')?.addEventListener(");
 output=output.slice(0,bindStart)+guardedBindings+output.slice(bindEnd);
 const perfBootstrapSource =
+  "const tbScheduleInitialSceneAfterPaint=(" + scheduleInitialSceneAfterPaint.toString() + ");\n" +
   "const tbRunIsolatedStartup=(" + runIsolatedStartup.toString() + ");\n" +
   "window.TubeBenderStartupStatus={phases:[],booted:false,starting:false,startedAt:performance.now()};\n" +
   "function tbStartCore(){\n" +
@@ -3175,9 +3176,14 @@ const perfBootstrapSource =
   "    ['bind',()=>bind()]\n" +
   "  ],onError));\n" +
   "  status.booted=true;status.starting=false;\n" +
-  "  // Heavy CAD redraw follows the first possible paint.\n" +
-  "  const schedule=typeof requestAnimationFrame==='function'?requestAnimationFrame:callback=>setTimeout(callback,0);\n" +
-  "  schedule(()=>status.phases.push(...tbRunIsolatedStartup([['renderAll',()=>renderAll()]],onError)));\n" +
+  "  // Let bound controls paint before building the potentially large scene.\n" +
+  "  status.cancelInitialScene=tbScheduleInitialSceneAfterPaint({\n" +
+  "    requestFrame:callback=>requestAnimationFrame(callback),\n" +
+  "    cancelFrame:id=>cancelAnimationFrame(id),\n" +
+  "    postTask:callback=>setTimeout(callback,0),\n" +
+  "    cancelTask:id=>clearTimeout(id),\n" +
+  "    draw:()=>status.phases.push(...tbRunIsolatedStartup([['renderAll',()=>renderAll()]],onError))\n" +
+  "  });\n" +
   "}\n" +
   "// Core controls already exist by this late inline script; bind now instead\n" +
   "// of waiting for unrelated optional scripts to finish DOMContentLoaded.\n" +

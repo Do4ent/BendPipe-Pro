@@ -76,3 +76,36 @@ export function runIsolatedStartup(stages,reportError=()=>{}){
   }
   return result;
 }
+
+/**
+ * Yield initial heavy project rendering until the browser has had an
+ * opportunity to paint the bound controls. Both stages are asynchronous:
+ * a timer hop after the second frame avoids running heavy work inside rAF.
+ * The returned function cancels pending startup work on teardown.
+ */
+export function scheduleInitialSceneAfterPaint({
+  requestFrame,
+  cancelFrame=()=>{},
+  postTask,
+  cancelTask=()=>{},
+  draw
+}){
+  if(typeof requestFrame!=="function"||typeof postTask!=="function"||
+     typeof draw!=="function")throw new TypeError("render scheduling callbacks required");
+  let cancelled=false,frame=null,task=null;
+  const invoke=()=>{task=null;if(!cancelled)draw();};
+  frame=requestFrame(()=>{
+    frame=null;
+    if(cancelled)return;
+    frame=requestFrame(()=>{
+      frame=null;
+      if(cancelled)return;
+      task=postTask(invoke);
+    });
+  });
+  return ()=>{
+    cancelled=true;
+    if(frame!==null)try{cancelFrame(frame);}catch{}
+    if(task!==null)try{cancelTask(task);}catch{}
+  };
+}
