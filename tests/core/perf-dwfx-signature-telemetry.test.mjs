@@ -26,5 +26,5 @@ test("DWFx fallback signature reports costs while retaining mutation detection",
   assert.ok(context.stats.totalMs>=2);
   assert.ok(context.stats.maxMs>=1);
   assert.ok(context.stats.lastMs>=1);
-  assert.match(source,/signatureStats:()=>\(\{\.\.\.signatureStats\}\)/);
+  assert.match(source,/signatureStats:\(\)=>\(\{\.\.\.signatureStats\}\)/);
 });
