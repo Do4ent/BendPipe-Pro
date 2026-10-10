@@ -6,6 +6,7 @@ on:
       - feature/perf-render-telemetry-20261010
       - feature/perf-startup-yield-20261010
       - feature/perf-cooperative-scene-20261010
+      - feature/perf-dwfx-scene-chunking-20261010
   workflow_dispatch:
   pull_request:
     branches:
