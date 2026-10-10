@@ -29,6 +29,7 @@ on:
   workflow_dispatch:
   pull_request:
     branches:
+      - main
       - feature/mobile-viewport-mob001-20261010
 
 jobs:
@@ -40,33 +41,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Test frame coalescer and isolated startup
-        run: node --test tests/core/perf-001-003.test.mjs
-      - name: Validate DWFx part cache and legacy mutation fallback
-        run: node --test tests/core/perf-dwfx-*.test.mjs tests/core/perf-legacy-project-switch.test.mjs tests/core/perf-source-link-revisions.test.mjs
-      - name: Profile conservative DWFx signature on synthetic fixtures
-        run: node scripts/benchmark-dwfx-signature.mjs
-      - name: Verify full standalone build
-        run: npm run build:standalone
-      - name: Validate inline JavaScript syntax in generated Standalone
-        run: node scripts/check-standalone-syntax.mjs
-      - name: Verify generated PERF runtime contract
-        run: |
-          node --input-type=module <<'JS'
-          import fs from 'node:fs';
-          import assert from 'node:assert/strict';
-          const html=fs.readFileSync('dist/TubeBender_CAD_VC207R7_M1_Standalone.html','utf8');
-          assert.match(html,/window\.TubeBenderRenderPerformance/);
-          assert.match(html,/window\.TubeBenderStartupStatus/);
-          assert.match(html,/tbViewerFrameCoalescer\.schedule/);
-          assert.ok(!html.includes("currentProjectCollisionAnalysis = getProjectCollisionAnalysis(activeProject());\n  safeUiCall('renderBoundsWarning', renderBoundsWarning);"));
-          JS
-      - uses: actions/upload-artifact@v4
-        with:
-          name: tubebender-perf-standalone
-          path: dist/TubeBender_CAD_VC207R7_M1_Standalone.html
-          if-no-files-found: error
-      # Preserve strict regression gating, but run the build and runtime contract first.
+      # Measure the complete regression suite before any focused check can fail.
       - name: Run existing regression suite and capture current failure count
         shell: bash
         run: |
@@ -93,6 +68,33 @@ jobs:
           name: perf-regression-evidence
           path: reports/regression/node-test.log
           if-no-files-found: warn
+
+      - name: Test frame coalescer and isolated startup
+        run: node --test tests/core/perf-001-003.test.mjs
+      - name: Validate DWFx part cache and legacy mutation fallback
+        run: node --test tests/core/perf-dwfx-*.test.mjs tests/core/perf-legacy-project-switch.test.mjs tests/core/perf-source-link-revisions.test.mjs
+      - name: Profile conservative DWFx signature on synthetic fixtures
+        run: node scripts/benchmark-dwfx-signature.mjs
+      - name: Verify full standalone build
+        run: npm run build:standalone
+      - name: Validate inline JavaScript syntax in generated Standalone
+        run: node scripts/check-standalone-syntax.mjs
+      - name: Verify generated PERF runtime contract
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const html=fs.readFileSync('dist/TubeBender_CAD_VC207R7_M1_Standalone.html','utf8');
+          assert.match(html,/window\.TubeBenderRenderPerformance/);
+          assert.match(html,/window\.TubeBenderStartupStatus/);
+          assert.match(html,/tbViewerFrameCoalescer\.schedule/);
+          assert.ok(!html.includes("currentProjectCollisionAnalysis = getProjectCollisionAnalysis(activeProject());\n  safeUiCall('renderBoundsWarning', renderBoundsWarning);"));
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tubebender-perf-standalone
+          path: dist/TubeBender_CAD_VC207R7_M1_Standalone.html
+          if-no-files-found: error
 
   chromium-perf:
     runs-on: ubuntu-latest
