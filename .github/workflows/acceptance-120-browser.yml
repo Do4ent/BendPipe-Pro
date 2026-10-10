@@ -1,0 +1,50 @@
+name: acceptance-120-browser
+on:
+  push:
+    branches:
+      - feature/acceptance-120-browser-20261010
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - feature/trusted-geometry-core
+
+jobs:
+  chromium-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install browser test runner
+        run: npm install --no-save @playwright/test@1.56.1
+      - name: Install Chromium and dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Build latest standalone
+        run: npm run build:standalone
+      - name: Run real Chromium scenarios
+        id: e2e
+        continue-on-error: true
+        run: npx playwright test --config acceptance/playwright.config.mjs
+      - name: Write all 120 requirement outcomes
+        if: always()
+        run: node scripts/acceptance-120-report.mjs
+      - name: Upload evidence and failure screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-120-browser-evidence
+          path: |
+            reports/acceptance
+            reports/browser
+          if-no-files-found: warn
+      - name: Enforce actual browser result
+        if: always()
+        env:
+          E2E_OUTCOME: ${{ steps.e2e.outcome }}
+        run: |
+          if [ "$E2E_OUTCOME" != "success" ]; then
+            echo "Browser acceptance is not green: $E2E_OUTCOME"
+            exit 1
+          fi
