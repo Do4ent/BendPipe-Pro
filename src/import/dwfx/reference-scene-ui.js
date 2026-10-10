@@ -1077,6 +1077,11 @@
       return JSON.stringify({
         mode:"tracked",
         geomScale,
+        // External object-context selection can change outside this module;
+        // include its small key even when full geometry tracking is enabled.
+        selected:[...bulkSelected].sort(),
+        objectSelection:(window.TubeBenderObjectContext?.selectionEntries?.()??[])
+          .map(entry=>({kind:entry?.kind,tubeId:entry?.tubeId,instanceId:entry?.instanceId})),
         revisions:revisionSnapshot()
       });
     }
