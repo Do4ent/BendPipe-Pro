@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const files=["src/ui/object-selection-context-ui.js","src/ui/editing-ui.js","src/import/dwfx/reference-scene-ui.js","src/ui/assemblies-runtime.js","src/ui/equipment-library-ui.js"];
 const normalized=files.map(rel=>fs.readFileSync(path.join(root,rel),"utf8").split(/\r?\n/).map(s=>s.trim()).filter(s=>s.length>=8&&!s.startsWith("//")&&s!=="{"&&s!=="}"&&s!=="};").join("\n"));
+// DWFx adjacent pairs were intentionally rebased after indexed scene rendering (PERF-001).
 const has=(fileIndex,pair)=>assert.ok(normalized[fileIndex].includes(pair));
 test("question 46124: preserves adjacent source contract",()=>has(2,"'<button class=\"tb-tree-icon\" data-ref-scene-toggle=\"'+escape(scene.id)+'\" title=\"Свернуть/развернуть файл\">'+\n(sceneCollapsed?'▸':'▾')+"));
 test("question 46125: preserves adjacent source contract",()=>has(2,"(sceneCollapsed?'▸':'▾')+\n'</button>'+"));
@@ -128,15 +129,15 @@ test("question 46241: preserves adjacent source contract",()=>has(2,"path.pop();
 test("question 46242: preserves adjacent source contract",()=>has(2,"return false;\nwalk(tree??[]);"));
 test("question 46243: preserves adjacent source contract",()=>has(2,"walk(tree??[]);\nreturn path;"));
 test("question 46244: preserves adjacent source contract",()=>has(2,"return path;\nfunction toggleSceneSelection(scene,checked){"));
-test("question 46245: preserves adjacent source contract",()=>has(2,"function toggleSceneSelection(scene,checked){\nfor(const node of collectSelectableNodes(scene?.tree??[])){"));
+test("question 46245: preserves adjacent source contract",()=>has(2,"function toggleSceneSelection(scene,checked){\nbumpRevision(\"selection\");"));
 test("question 46246: preserves adjacent source contract",()=>has(2,"for(const node of collectSelectableNodes(scene?.tree??[])){\nconst key=selectionKey(scene.id,node.id);"));
 test("question 46247: preserves adjacent source contract",()=>has(2,"const key=selectionKey(scene.id,node.id);\nif(checked)bulkSelected.add(key);else bulkSelected.delete(key);"));
 test("question 46248: preserves adjacent source contract",()=>has(2,"if(checked)bulkSelected.add(key);else bulkSelected.delete(key);\nfunction toggleNodeSelection(scene,node,checked){"));
-test("question 46249: preserves adjacent source contract",()=>has(2,"function toggleNodeSelection(scene,node,checked){\nfor(const item of collectSelectableSubtree(node)){"));
+test("question 46249: preserves adjacent source contract",()=>has(2,"function toggleNodeSelection(scene,node,checked){\nbumpRevision(\"selection\");"));
 test("question 46250: preserves adjacent source contract",()=>has(2,"for(const item of collectSelectableSubtree(node)){\nconst key=selectionKey(scene.id,item.id);"));
 test("question 46251: preserves adjacent source contract",()=>has(2,"const key=selectionKey(scene.id,item.id);\nif(checked)bulkSelected.add(key);else bulkSelected.delete(key);"));
 test("question 46252: preserves adjacent source contract",()=>has(2,"if(checked)bulkSelected.add(key);else bulkSelected.delete(key);\nfunction applyBulkVisibility(project,visible){"));
-test("question 46253: preserves adjacent source contract",()=>has(2,"function applyBulkVisibility(project,visible){\nfor(const {scene,node} of selectedEntries(project)){"));
+test("question 46253: preserves adjacent source contract",()=>has(2,"function applyBulkVisibility(project,visible){\nbumpRevision(\"display\");"));
 test("question 46254: preserves adjacent source contract",()=>has(2,"for(const {scene,node} of selectedEntries(project)){\nconst hidden=hiddenSet(scene);"));
 test("question 46255: preserves adjacent source contract",()=>has(2,"const hidden=hiddenSet(scene);\nif(visible){"));
 test("question 46256: preserves adjacent source contract",()=>has(2,"if(visible){\nhidden.delete(String(node.id));"));
@@ -144,7 +145,7 @@ test("question 46257: preserves adjacent source contract",()=>has(2,"hidden.dele
 test("question 46258: preserves adjacent source contract",()=>has(2,"for(const ancestorId of ancestorsFor(scene.tree,node.id))hidden.delete(String(ancestorId));\nhidden.add(String(node.id));"));
 test("question 46259: preserves adjacent source contract",()=>has(2,"hidden.add(String(node.id));\nscene.hiddenNodeIds=[...hidden];"));
 test("question 46260: preserves adjacent source contract",()=>has(2,"scene.hiddenNodeIds=[...hidden];\nfunction isolateSelection(project){"));
-test("question 46261: preserves adjacent source contract",()=>has(2,"function isolateSelection(project){\nconst selectedTop=selectedTopLevelEntries(project);"));
+test("question 46261: preserves adjacent source contract",()=>has(2,"function isolateSelection(project){\nbumpRevision(\"display\");"));
 test("question 46262: preserves adjacent source contract",()=>has(2,"const selectedTop=selectedTopLevelEntries(project);\nconst selectedByScene=new Map();"));
 test("question 46263: preserves adjacent source contract",()=>has(2,"const selectedByScene=new Map();\nfor(const {scene,node} of selectedTop){"));
 test("question 46264: preserves adjacent source contract",()=>has(2,"for(const {scene,node} of selectedTop){\nconst key=String(scene.id);"));
@@ -174,7 +175,7 @@ test("question 46287: preserves adjacent source contract",()=>has(2,"if(!keep.ha
 test("question 46288: preserves adjacent source contract",()=>has(2,"stack.unshift(...(node.children??[]));\nscene.hiddenNodeIds=[...hidden];"));
 test("question 46289: preserves adjacent source contract",()=>has(2,"scene.hiddenNodeIds=[...hidden];\nreturn selectedTop.length;"));
 test("question 46290: preserves adjacent source contract",()=>has(2,"return selectedTop.length;\nfunction showAll(project){"));
-test("question 46291: preserves adjacent source contract",()=>has(2,"function showAll(project){\nlet changed=0;"));
+test("question 46291: preserves adjacent source contract",()=>has(2,"function showAll(project){\nbumpRevision(\"display\");"));
 test("question 46292: preserves adjacent source contract",()=>has(2,"let changed=0;\nfor(const scene of project?.referenceScenes??[]){"));
 test("question 46293: preserves adjacent source contract",()=>has(2,"for(const scene of project?.referenceScenes??[]){\nif(scene?.visible===false)changed+=1;"));
 test("question 46294: preserves adjacent source contract",()=>has(2,"if(scene?.visible===false)changed+=1;\nif(Array.isArray(scene?.hiddenNodeIds)&&scene.hiddenNodeIds.length)changed+=scene.hiddenNodeIds.length;"));
@@ -182,7 +183,7 @@ test("question 46295: preserves adjacent source contract",()=>has(2,"if(Array.is
 test("question 46296: preserves adjacent source contract",()=>has(2,"scene.visible=true;\nscene.hiddenNodeIds=[];"));
 test("question 46297: preserves adjacent source contract",()=>has(2,"scene.hiddenNodeIds=[];\nreturn changed;"));
 test("question 46298: preserves adjacent source contract",()=>has(2,"return changed;\nfunction applyBulkTransparency(project){"));
-test("question 46299: preserves adjacent source contract",()=>has(2,"function applyBulkTransparency(project){\nconst entries=selectedEntries(project);"));
+test("question 46299: preserves adjacent source contract",()=>has(2,"function applyBulkTransparency(project){\nbumpRevision(\"display\");"));
 test("question 46300: preserves adjacent source contract",()=>has(2,"const entries=selectedEntries(project);\nif(!entries.length)return;"));
 test("question 46301: preserves adjacent source contract",()=>has(2,"if(!entries.length)return;\nconst allTransparent=entries.every(({scene,node})=>"));
 test("question 46302: preserves adjacent source contract",()=>has(2,"const allTransparent=entries.every(({scene,node})=>\ntransparentSet(scene).has(String(node.id))"));
@@ -263,7 +264,7 @@ test("question 46376: preserves adjacent source contract",()=>has(2,"const node=
 test("question 46377: preserves adjacent source contract",()=>has(2,"if(!scene||!node||!selectableNode(node))return selectedCount(project);\ntoggleNodeSelection(scene,node,checked);"));
 test("question 46378: preserves adjacent source contract",()=>has(2,"toggleNodeSelection(scene,node,checked);\nreturn selectedCount(project);"));
 test("question 46379: preserves adjacent source contract",()=>has(2,"return selectedCount(project);\nfunction clearSelection(){"));
-test("question 46380: preserves adjacent source contract",()=>has(2,"function clearSelection(){\nbulkSelected.clear();"));
+test("question 46380: preserves adjacent source contract",()=>has(2,"function clearSelection(){\nbumpRevision(\"selection\");"));
 test("question 46381: preserves adjacent source contract",()=>has(2,"bulkSelected.clear();\nrangeAnchorKey=null;"));
 test("question 46382: preserves adjacent source contract",()=>has(2,"rangeAnchorKey=null;\nselected=null;"));
 test("question 46383: preserves adjacent source contract",()=>has(2,"selected=null;\nreturn 0;"));
@@ -287,7 +288,7 @@ test("question 46400: preserves adjacent source contract",()=>has(2,"targetKey,\
 test("question 46401: preserves adjacent source contract",()=>has(2,"{ctrlKey=false,metaKey=false,shiftKey=false}={}\nconst additive=!!(ctrlKey||metaKey);"));
 test("question 46402: preserves adjacent source contract",()=>has(2,"const additive=!!(ctrlKey||metaKey);\nconst target=sceneNodeFromKey(project,targetKey);"));
 test("question 46403: preserves adjacent source contract",()=>has(2,"const target=sceneNodeFromKey(project,targetKey);\nif(!target||!selectableNode(target.node))return selectedCount(project);"));
-test("question 46404: preserves adjacent source contract",()=>has(2,"if(!target||!selectableNode(target.node))return selectedCount(project);\nif(shiftKey){"));
+test("question 46404: preserves adjacent source contract",()=>has(2,"if(!target||!selectableNode(target.node))return selectedCount(project);\nbumpRevision(\"selection\");"));
 test("question 46405: preserves adjacent source contract",()=>has(2,"if(shiftKey){\nconst keys=Array.isArray(orderedKeys)?orderedKeys.map(String):[];"));
 test("question 46406: preserves adjacent source contract",()=>has(2,"const keys=Array.isArray(orderedKeys)?orderedKeys.map(String):[];\nconst targetIndex=keys.indexOf(String(targetKey));"));
 test("question 46407: preserves adjacent source contract",()=>has(2,"const targetIndex=keys.indexOf(String(targetKey));\nlet anchorIndex=keys.indexOf(String(rangeAnchorKey??\"\"));"));
@@ -317,7 +318,7 @@ test("question 46430: preserves adjacent source contract",()=>has(2,"return sele
 test("question 46431: preserves adjacent source contract",()=>has(2,"function selectedKeys(project){\npruneBulkSelection(project);"));
 test("question 46432: preserves adjacent source contract",()=>has(2,"pruneBulkSelection(project);\nreturn Object.freeze([...bulkSelected]);"));
 test("question 46433: preserves adjacent source contract",()=>has(2,"return Object.freeze([...bulkSelected]);\nfunction replaceSelection(project,keys=[]){"));
-test("question 46434: preserves adjacent source contract",()=>has(2,"function replaceSelection(project,keys=[]){\nbulkSelected.clear();"));
+test("question 46434: preserves adjacent source contract",()=>has(2,"function replaceSelection(project,keys=[]){\nbumpRevision(\"selection\");"));
 test("question 46435: preserves adjacent source contract",()=>has(2,"bulkSelected.clear();\nlet active=null;"));
 test("question 46436: preserves adjacent source contract",()=>has(2,"let active=null;\nfor(const key of keys??[]){"));
 test("question 46437: preserves adjacent source contract",()=>has(2,"for(const key of keys??[]){\nconst entry=sceneNodeFromKey(project,key);"));
@@ -329,7 +330,7 @@ test("question 46442: preserves adjacent source contract",()=>has(2,"active={sce
 test("question 46443: preserves adjacent source contract",()=>has(2,"selected=active;\nrangeAnchorKey=active?selectionKey(active.sceneId,active.nodeId):null;"));
 test("question 46444: preserves adjacent source contract",()=>has(2,"rangeAnchorKey=active?selectionKey(active.sceneId,active.nodeId):null;\nreturn selectedCount(project);"));
 test("question 46445: preserves adjacent source contract",()=>has(2,"return selectedCount(project);\nfunction selectOnlyNode(project,sceneId,nodeId){"));
-test("question 46446: preserves adjacent source contract",()=>has(2,"function selectOnlyNode(project,sceneId,nodeId){\nbulkSelected.clear();"));
+test("question 46446: preserves adjacent source contract",()=>has(2,"function selectOnlyNode(project,sceneId,nodeId){\nbumpRevision(\"selection\");"));
 test("question 46447: preserves adjacent source contract",()=>has(2,"bulkSelected.clear();\nconst scene=findScene(project,sceneId);"));
 test("question 46448: preserves adjacent source contract",()=>has(2,"const node=findNode(scene?.tree,nodeId);\nif(!scene||!node||!selectableNode(node))return 0;"));
 test("question 46449: preserves adjacent source contract",()=>has(2,"if(!scene||!node||!selectableNode(node))return 0;\nbulkSelected.add(selectionKey(scene.id,node.id));"));
@@ -346,7 +347,7 @@ test("question 46459: preserves adjacent source contract",()=>has(2,"!ancestorsF
 test("question 46460: preserves adjacent source contract",()=>has(2,".filter((ancestorId)=>String(ancestorId)!==String(node.id))\n.some((ancestorId)=>"));
 test("question 46461: preserves adjacent source contract",()=>has(2,".some((ancestorId)=>\nselectedSet.has(selectionKey(scene.id,ancestorId))"));
 test("question 46462: preserves adjacent source contract",()=>has(2,"selectedSet.has(selectionKey(scene.id,ancestorId))\nfunction moveSelection(project,deltaMm){"));
-test("question 46463: preserves adjacent source contract",()=>has(2,"function moveSelection(project,deltaMm){\nconst delta={"));
+test("question 46463: preserves adjacent source contract",()=>has(2,"function moveSelection(project,deltaMm){\nbumpRevision(\"geometry\");"));
 test("question 46464: preserves adjacent source contract",()=>has(2,"const delta={\nx:Number(deltaMm?.x)||0,"));
 test("question 46465: preserves adjacent source contract",()=>has(2,"x:Number(deltaMm?.x)||0,\ny:Number(deltaMm?.y)||0,"));
 test("question 46466: preserves adjacent source contract",()=>has(2,"y:Number(deltaMm?.y)||0,\nz:Number(deltaMm?.z)||0"));
@@ -364,7 +365,7 @@ test("question 46477: preserves adjacent source contract",()=>has(2,"const comma
 test("question 46478: preserves adjacent source contract",()=>has(2,"if(command===\"clear\")return clearSelection();\nif(![\"show\",\"hide\",\"transparent\"].includes(command)){"));
 test("question 46479: preserves adjacent source contract",()=>has(2,"if(![\"show\",\"hide\",\"transparent\"].includes(command)){\nthrow new RangeError(\"Immutable Source / Reference does not support bulk action: \"+command);"));
 test("question 46480: preserves adjacent source contract",()=>has(2,"throw new RangeError(\"Immutable Source / Reference does not support bulk action: \"+command);\nif(!bulkSelected.size)return 0;"));
-test("question 46481: preserves adjacent source contract",()=>has(2,"if(!bulkSelected.size)return 0;\nif(command===\"show\")applyBulkVisibility(project,true);"));
+test("question 46481: preserves adjacent source contract",()=>has(2,"if(!bulkSelected.size)return 0;\nbumpRevision(\"display\");"));
 test("question 46482: preserves adjacent source contract",()=>has(2,"if(command===\"show\")applyBulkVisibility(project,true);\nelse if(command===\"hide\")applyBulkVisibility(project,false);"));
 test("question 46483: preserves adjacent source contract",()=>has(2,"else if(command===\"hide\")applyBulkVisibility(project,false);\nelse if(command===\"transparent\")applyBulkTransparency(project);"));
 test("question 46484: preserves adjacent source contract",()=>has(2,"else if(command===\"transparent\")applyBulkTransparency(project);\nreturn selectedCount(project);"));
