@@ -1,4 +1,9 @@
 function positive(value,label){
+  // Geometry without an explicit numeric dimension cannot count as a zero-length segment.
+  if(value==null||typeof value==="boolean"||(typeof value==="string"&&!value.trim())||
+     (typeof value!=="number"&&typeof value!=="string")){
+    throw new RangeError(`${label} must be a finite non-negative number`);
+  }
   const number=Number(value);
   if(!Number.isFinite(number)||number<0){
     throw new RangeError(`${label} must be a finite non-negative number`);
