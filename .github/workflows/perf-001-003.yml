@@ -113,9 +113,15 @@ jobs:
       - name: Enforce Chromium baseline and application acceptance
         if: always()
         run: |
-          echo "Standalone build: ${{ steps.standalone_build.outcome }}"
-          echo "Chromium baseline: ${{ steps.chromium_baseline.outcome }}"
-          echo "TubeBender browser acceptance: ${{ steps.chromium_app.outcome }}"
+          {
+            echo '### PERF browser acceptance'
+            echo '| Stage | Outcome |'
+            echo '| --- | --- |'
+            echo '| Standalone build | ${{ steps.standalone_build.outcome }} |'
+            echo '| Chromium baseline | ${{ steps.chromium_baseline.outcome }} |'
+            echo '| TubeBender PERF-001 / PERF-003 | ${{ steps.chromium_app.outcome }} |'
+            echo 'Playwright JSON, screenshots, and traces are retained in perf-001-003-browser-evidence.'
+          } >> "$GITHUB_STEP_SUMMARY"
           if [ "${{ steps.standalone_build.outcome }}" != success ] || [ "${{ steps.chromium_baseline.outcome }}" != success ] || [ "${{ steps.chromium_app.outcome }}" != success ]; then exit 1; fi
       - name: Upload browser evidence
         if: always()
