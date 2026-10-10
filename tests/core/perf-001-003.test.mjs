@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import vm from "node:vm";
 import {createFrameCoalescer,runIsolatedStartup} from "../../src/domain/performance/render-startup.mjs";
 
 function mockFrames(){
@@ -120,4 +121,24 @@ test("PERF-001/003: standalone builder applies guarded render and bind hooks",()
     "perfOldDoubleCollision","perfInitAnchor","tbRunIsolatedStartup",
     "window.TubeBenderStartupStatus","window.TubeBenderRenderPerformance"
   ])assert.ok(build.includes(required),"missing build integration "+required);
+});
+
+test("PERF-003: generated optional pickers execute independently without cross-script helpers",()=>{
+  const builder=fs.readFileSync(new URL("../../scripts/build-standalone.mjs",import.meta.url),"utf8");
+  const start=builder.indexOf("output=output.replace(perfPickerAnchor,");
+  const end=builder.indexOf("const perfBindStart=",start);
+  assert.ok(start>=0&&end>start,"expected optional-picker builder patch");
+  const context={output:"__PICKERS__",perfPickerAnchor:"__PICKERS__"};
+  vm.runInNewContext(builder.slice(start,end),context,{timeout:1000});
+  assert.doesNotMatch(context.output,/\\n/,"generated JavaScript must contain actual line breaks");
+  assert.doesNotMatch(context.output,/tbRunIsolatedStartup/,"optional picker code must be self-contained");
+  const called=[],warnings=[];
+  vm.runInNewContext("function bind(){\n"+context.output+"\n}\nbind();",{
+    buildViewPicker(){called.push("view");},
+    buildBendPicker(){called.push("bend");throw new Error("optional picker failed");},
+    setupMiniAxisClickHandlers(){called.push("axis");},
+    console:{warn(name){warnings.push(name);}}
+  },{timeout:1000});
+  assert.deepEqual(called,["view","bend","axis"]);
+  assert.deepEqual(warnings,["Optional picker initialization: buildBendPicker"]);
 });
