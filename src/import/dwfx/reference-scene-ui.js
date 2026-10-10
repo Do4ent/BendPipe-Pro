@@ -1978,6 +1978,7 @@
     }
     scene.collapsedNodeIds=[...collapsed];
     selected={sceneId:String(scene.id),nodeId:String(node.id)};
+    bumpRevision("selection");
     return true;
   }
 
@@ -2004,6 +2005,7 @@
     if(!["hidden","shown","compare"].includes(display))throw new RangeError("Unknown Source display mode");
     link.display=display;
     link.status="linked";
+    bumpRevision("display");
     return true;
   }
 
@@ -2013,6 +2015,7 @@
     link.detached=true;
     link.status="detached";
     link.display="hidden";
+    bumpRevision("geometry");
     return true;
   }
 
@@ -2281,6 +2284,7 @@
         }
 
         selected={sceneId:String(scene.id),nodeId:String(node.id)};
+        bumpRevision("selection");
         if(!node.editable_part_number){
           bulkSelected.clear();
           bulkSelected.add(key);
