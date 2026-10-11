@@ -4,9 +4,11 @@ on:
   pull_request:
     branches:
       - ai/setup-agent-team
+      - develop
       - main
   push:
     branches:
+      - develop
       - feature/trusted-geometry-core
 
 jobs:

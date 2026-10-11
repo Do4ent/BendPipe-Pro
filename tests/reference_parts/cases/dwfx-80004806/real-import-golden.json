@@ -1,10 +1,10 @@
 {
   "suite": "DWFx 80004806 real-source golden",
   "source": {
-    "file": "ITEM[80004806(-)]-DOC[80004806(-)]-Components WTB, CoolMaster, K-008.9, start pressure regulator.dwfx",
+    "file": "source.dwfx",
     "size_bytes": 8538354,
     "sha256": "4a37c381b4d5234b98cf7b77e78271c52a1fcbfa237849a76abdd09d609ff4f7",
-    "committed_binary": false
+    "committed_binary": true
   },
   "import_result": {
     "status": "dwfx_project_candidate",

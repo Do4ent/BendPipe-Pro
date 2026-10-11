@@ -1,0 +1,27 @@
+{
+  "id": "dwfx-80005313",
+  "artifact_role": "authoritative_source_cad",
+  "source": {
+    "format": "DWFx",
+    "file": "source.dwfx",
+    "original_filename": "ITEM[80005313(A)]-DOC[80005313(A)]-Components WTB, DryMaster, Y-035.0 UL_CSA (2).dwfx",
+    "size_bytes": 8141564,
+    "sha256": "5bedcbf8db5d39caf77d29938e6f0a21beef6bc4ba029fe06b5320ac6dcb6b36",
+    "byte_preserved": true
+  },
+  "container_validation": {
+    "format": "DWFx/OPC ZIP",
+    "entry_count": 27,
+    "w3d_resource_count": 1,
+    "hsf_version": "14.50",
+    "w3d_version": "01.00"
+  },
+  "canonical_geometry": {
+    "value": null,
+    "confidence": 0.0,
+    "reason": "The source CAD has been archived unchanged; canonical tube recognition and dimensions have not been verified for this reference case.",
+    "source": "source.dwfx",
+    "method": "not_evaluated"
+  },
+  "production_ready": false
+}

@@ -1,0 +1,27 @@
+{
+  "id": "dwfx-80004806",
+  "artifact_role": "authoritative_source_cad",
+  "source": {
+    "format": "DWFx",
+    "file": "source.dwfx",
+    "original_filename": "ITEM[80004806(-)]-DOC[80004806(-)]-Components WTB, CoolMaster, K-008.9, start pressure regulator.dwfx",
+    "size_bytes": 8538354,
+    "sha256": "4a37c381b4d5234b98cf7b77e78271c52a1fcbfa237849a76abdd09d609ff4f7",
+    "byte_preserved": true
+  },
+  "container_validation": {
+    "format": "DWFx/OPC ZIP",
+    "entry_count": 30,
+    "w3d_resource_count": 1,
+    "hsf_version": "14.50",
+    "w3d_version": "01.00"
+  },
+  "canonical_geometry": {
+    "value": null,
+    "confidence": 0.0,
+    "reason": "The source CAD has been archived unchanged; canonical tube recognition and dimensions have not been verified for this reference case.",
+    "source": "source.dwfx",
+    "method": "not_evaluated"
+  },
+  "production_ready": false
+}
