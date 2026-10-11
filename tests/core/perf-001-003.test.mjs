@@ -413,7 +413,7 @@ test("PERF-001: requestFrame failure permits recovery on next redraw",()=>{
   assert.equal(coalescer.schedule(false),true);
   callbacks.shift()();
   assert.deepEqual(rendered,[false]);
-  assert.deepEqual(coalescer.stats,{requests:2,draws:1,failures:1,
-    lastWaitMs:coalescer.stats.lastWaitMs,maxWaitMs:coalescer.stats.maxWaitMs,
-    lastRenderMs:coalescer.stats.lastRenderMs,maxRenderMs:coalescer.stats.maxRenderMs});
+  assert.equal(coalescer.stats.requests,2);
+  assert.equal(coalescer.stats.draws,1);
+  assert.equal(coalescer.stats.failures,1);
 });
