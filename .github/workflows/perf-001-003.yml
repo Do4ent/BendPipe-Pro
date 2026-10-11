@@ -20,6 +20,8 @@ jobs:
         with:
           node-version: '24'
       # Measure the complete regression suite before any focused check can fail.
+      - name: Validate standalone builder syntax before running tests
+        run: node --check scripts/build-standalone.mjs
       - name: Run existing regression suite and capture current failure count
         id: regression
         continue-on-error: true
@@ -93,6 +95,8 @@ jobs:
         run: npm install --no-save @playwright/test@1.56.1
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+      - name: Syntax-check Standalone builder
+        run: node --check scripts/build-standalone.mjs
       - name: Syntax-check PERF browser specs
         run: node --check tests/browser/perf-001-003.spec.mjs
       - name: Verify Chromium baseline without TubeBender
