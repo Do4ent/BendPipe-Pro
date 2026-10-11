@@ -57,7 +57,7 @@ export function createFrameCoalescer({requestFrame,cancelFrame=()=>{},render,onE
       if(handle!==null)try{cancelFrame(handle);}catch{}
       return true;
     },
-    dispose(){this.cancel();disposed=true;},
+    dispose(){disposed=true;this.cancel();},
     get pending(){return pending;},
     get stats(){return {...stats};}
   });
