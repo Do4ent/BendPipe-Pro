@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+      - 'feature/perf-*'
       - feature/mobile-viewport-mob001-20261010
 
 jobs:
