@@ -417,3 +417,28 @@ test("PERF-001: requestFrame failure permits recovery on next redraw",()=>{
   assert.equal(coalescer.stats.draws,1);
   assert.equal(coalescer.stats.failures,1);
 });
+
+test("PERF-001: onError can reschedule after requestFrame failure",()=>{
+  const callbacks=[],renders=[],errors=[];
+  let attempts=0,coalescer;
+  coalescer=createFrameCoalescer({
+    requestFrame:callback=>{
+      if(++attempts===1)throw new Error("frame scheduler failed");
+      callbacks.push(callback);
+      return attempts;
+    },
+    render:fit=>renders.push(fit),
+    onError:error=>{
+      errors.push(error.message);
+      coalescer.schedule(false);
+    }
+  });
+  assert.equal(coalescer.schedule(true),false,"original dispatch failed");
+  assert.equal(coalescer.pending,true,"recovery callback scheduled a replacement");
+  assert.deepEqual(errors,["frame scheduler failed"]);
+  callbacks.shift()();
+  assert.deepEqual(renders,[false]);
+  assert.equal(coalescer.pending,false);
+  assert.equal(coalescer.stats.failures,1);
+  assert.equal(coalescer.stats.draws,1);
+});
