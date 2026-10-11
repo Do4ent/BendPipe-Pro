@@ -11,7 +11,7 @@ test("question 45599: preserves adjacent source contract",()=>has(2,"x:Number((N
 test("question 45600: preserves adjacent source contract",()=>has(2,"y:Number((Number(r.y||0)+Number(deltaDeg?.y||0)).toFixed(6)),\nz:Number((Number(r.z||0)+Number(deltaDeg?.z||0)).toFixed(6))"));
 test("question 45601: preserves adjacent source contract",()=>has(2,"z:Number((Number(r.z||0)+Number(deltaDeg?.z||0)).toFixed(6))\nreturn instance;"));
 test("question 45602: preserves adjacent source contract",()=>has(2,"return instance;\nfunction copyEditableMeshInstance(project,instanceId,{offset_mm={x:0,y:0,z:0},name=null}={}){"));
-test("question 45603: preserves adjacent source contract",()=>has(2,"function copyEditableMeshInstance(project,instanceId,{offset_mm={x:0,y:0,z:0},name=null}={}){\nconst source=meshInstanceById(project,instanceId);"));
+test("question 45603: preserves adjacent source contract",()=>has(2,"function copyEditableMeshInstance(project,instanceId,{offset_mm={x:0,y:0,z:0},name=null}={}){\nbumpRevision(\"geometry\");"));
 test("question 45604: preserves adjacent source contract",()=>has(2,"const source=meshInstanceById(project,instanceId);\nif(!source)throw new Error(\"Editable mesh instance not found\");"));
 test("question 45605: preserves adjacent source contract",()=>has(2,"if(!source)throw new Error(\"Editable mesh instance not found\");\nconst p=source.transform?.position_mm??{x:0,y:0,z:0};"));
 test("question 45606: preserves adjacent source contract",()=>has(2,"const p=source.transform?.position_mm??{x:0,y:0,z:0};\nconst copy=clonePlain(source);"));
@@ -28,7 +28,7 @@ test("question 45616: preserves adjacent source contract",()=>has(2,"y:Number(p.
 test("question 45617: preserves adjacent source contract",()=>has(2,"z:Number(p.z||0)+Number(offset_mm?.z||0)\neditableMeshInstanceList(project).push(copy);"));
 test("question 45618: preserves adjacent source contract",()=>has(2,"editableMeshInstanceList(project).push(copy);\nreturn copy;"));
 test("question 45619: preserves adjacent source contract",()=>has(2,"return copy;\nfunction arrayEditableMeshInstance(project,instanceId,{count=2,step_mm={x:0,y:0,z:0}}={}){"));
-test("question 45620: preserves adjacent source contract",()=>has(2,"function arrayEditableMeshInstance(project,instanceId,{count=2,step_mm={x:0,y:0,z:0}}={}){\nconst n=Math.trunc(Number(count));"));
+test("question 45620: preserves adjacent source contract",()=>has(2,"function arrayEditableMeshInstance(project,instanceId,{count=2,step_mm={x:0,y:0,z:0}}={}){\nbumpRevision(\"geometry\");"));
 test("question 45621: preserves adjacent source contract",()=>has(2,"const n=Math.trunc(Number(count));\nif(!(n>=2))throw new RangeError(\"Array count must be >= 2\");"));
 test("question 45622: preserves adjacent source contract",()=>has(2,"if(!(n>=2))throw new RangeError(\"Array count must be >= 2\");\nconst created=[];"));
 test("question 45623: preserves adjacent source contract",()=>has(2,"const created=[];\nfor(let index=1;index<n;index++){"));
@@ -67,7 +67,7 @@ test("question 45655: preserves adjacent source contract",()=>has(2,"source_node
 test("question 45656: preserves adjacent source contract",()=>has(2,"scale_mm_per_source_unit:Number(linked.scene.scale_mm_per_source_unit)||Number(runtime.scale_mm_per_source_unit)||1,\nnode:clonePlain(linked.node),"));
 test("question 45657: preserves adjacent source contract",()=>has(2,"node:clonePlain(linked.node),\nassets:collectDetachedAssets(runtime,linked.node)"));
 test("question 45658: preserves adjacent source contract",()=>has(2,"assets:collectDetachedAssets(runtime,linked.node)\nfunction breakEditableMeshInstanceLink(project,instanceId){"));
-test("question 45659: preserves adjacent source contract",()=>has(2,"function breakEditableMeshInstanceLink(project,instanceId){\nconst instance=meshInstanceById(project,instanceId);"));
+test("question 45659: preserves adjacent source contract",()=>has(2,"function breakEditableMeshInstanceLink(project,instanceId){\nbumpRevision(\"geometry\");"));
 test("question 45660: preserves adjacent source contract",()=>has(2,"if(!instance)throw new Error(\"Editable mesh instance not found\");\nif(instance.link_status===\"detached\")return instance;"));
 test("question 45661: preserves adjacent source contract",()=>has(2,"if(instance.link_status===\"detached\")return instance;\ninstance.detached_payload=snapshotMeshInstanceSource(project,instance);"));
 test("question 45662: preserves adjacent source contract",()=>has(2,"instance.detached_payload=snapshotMeshInstanceSource(project,instance);\ninstance.link_status=\"detached\";"));
@@ -418,7 +418,7 @@ test("question 46006: preserves adjacent source contract",()=>has(2,"if(!runtime
 test("question 46007: preserves adjacent source contract",()=>has(2,"renderSceneTree({parent,sceneMeta,runtime,project,THREE,geomScale});\ncount+=1;"));
 test("question 46008: preserves adjacent source contract",()=>has(2,"count+=1;\ncount+=renderEditableMeshInstances({parent,project,THREE,geomScale});"));
 test("question 46009: preserves adjacent source contract",()=>has(2,"count+=renderEditableMeshInstances({parent,project,THREE,geomScale});\nreturn count;"));
-test("question 46010: preserves adjacent source contract",()=>has(2,"return count;\nfunction matchNode(node,query){"));
+test("question 46010: preserves adjacent source contract",()=>has(2,"return handle;\nfunction matchNode(node,query){"));
 test("question 46011: preserves adjacent source contract",()=>has(2,"function matchNode(node,query){\nif(!query)return true;"));
 test("question 46012: preserves adjacent source contract",()=>has(2,"if(!query)return true;\nif(String(node?.label??\"\").toLowerCase().includes(query))return true;"));
 test("question 46013: preserves adjacent source contract",()=>has(2,"if(String(node?.label??\"\").toLowerCase().includes(query))return true;\nreturn (node?.children??[]).some((child)=>matchNode(child,query));"));

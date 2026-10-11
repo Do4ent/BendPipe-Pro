@@ -32,7 +32,7 @@ test("question 35521: preserves reference-scene UI source contract",()=>has("ret
 test("question 35522: preserves reference-scene UI source contract",()=>has("function buildAssetTemplate(runtime,asset,THREE,displayMode=\"normal\"){"));
 test("question 35523: preserves reference-scene UI source contract",()=>has("const transparent=displayMode===\"transparent\";"));
 test("question 35524: preserves reference-scene UI source contract",()=>has("const key=String(runtime.scene_id)+\"|\"+String(asset.id)+\"|\"+displayMode;"));
-test("question 35525: preserves reference-scene UI source contract",()=>has("if(templates.has(key))return templates.get(key);"));
+test("question 35525: preserves reference-scene UI source contract",()=>has("meshPerformance.templateCacheHits++;"));
 test("question 35526: preserves reference-scene UI source contract",()=>has("const group=new THREE.Group();"));
 test("question 35527: preserves reference-scene UI source contract",()=>has("group.userData.referenceShared=true;"));
 test("question 35528: preserves reference-scene UI source contract",()=>has("group.userData.referenceAssetId=asset.id;"));

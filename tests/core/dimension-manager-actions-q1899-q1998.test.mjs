@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
-const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
+const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8").replace(/\r\n?/g,"\n");
 const has=s=>assert.ok(ui.includes(s),"missing source contract: "+s);
 
 test("question 1899: select review queue control is rendered when review items exist",()=>has("data-select-dimension-review-queue"));

@@ -92,7 +92,7 @@ const equipmentLibraryUiPath = path.join(root, "src", "ui", "equipment-library-u
 const distDir = path.join(root, "dist");
 const outputPath = path.join(distDir, "TubeBender_CAD_VC207R7_M1_Standalone.html");
 
-const source = fs.readFileSync(sourcePath, "utf8");
+const source = fs.readFileSync(sourcePath, "utf8").replace(/\r\n?/g, "\n");
 const three = fs.readFileSync(threePath, "utf8");
 
 const localTag =
@@ -3231,8 +3231,32 @@ if(!output.includes('id="tbMobileViewportMOB001"'))throw new Error("MOB-001 mobi
 fs.mkdirSync(distDir, { recursive: true });
 const tempOutputPath =
   outputPath + ".tmp-" + process.pid + "-" + Date.now().toString(36);
-fs.writeFileSync(tempOutputPath, output, "utf8");
-fs.renameSync(tempOutputPath, outputPath);
+const outputLockPath = outputPath + ".lock";
+const lockDeadline = Date.now() + 30_000;
+const lockWait = new Int32Array(new SharedArrayBuffer(4));
+let outputLock;
+while (!outputLock) {
+  try {
+    outputLock = fs.openSync(outputLockPath, "wx");
+  } catch (error) {
+    if (error?.code !== "EEXIST" || Date.now() >= lockDeadline) throw error;
+    Atomics.wait(lockWait, 0, 0, 25);
+  }
+}
+try {
+  const currentOutput = fs.existsSync(outputPath)
+    ? fs.readFileSync(outputPath, "utf8")
+    : null;
+  if (currentOutput !== output) {
+    fs.writeFileSync(tempOutputPath, output, "utf8");
+    if (process.platform === "win32") fs.rmSync(outputPath, { force: true });
+    fs.renameSync(tempOutputPath, outputPath);
+  }
+} finally {
+  fs.rmSync(tempOutputPath, { force: true });
+  fs.closeSync(outputLock);
+  fs.rmSync(outputLockPath, { force: true });
+}
 
 const bytes = fs.statSync(outputPath).size;
 process.stdout.write(

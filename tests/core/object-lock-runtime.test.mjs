@@ -6,7 +6,7 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
-const runtime=fs.readFileSync(path.join(root,"src","ui","object-lock-runtime.js"),"utf8");
+const runtime=fs.readFileSync(path.join(root,"src","ui","object-lock-runtime.js"),"utf8").replace(/\r\n?/g,"\n");
 const contextUi=fs.readFileSync(path.join(root,"src","ui","object-selection-context-ui.js"),"utf8");
 const properties=fs.readFileSync(path.join(root,"src","ui","properties-panel-runtime.js"),"utf8");
 const gizmo=fs.readFileSync(path.join(root,"src","ui","transform-gizmo-runtime.js"),"utf8");
@@ -68,4 +68,23 @@ test("question 71: model command has atomic locked-object mutation guard",()=>{
   assert.match(build,/const lockViolation=tbLockedMutationViolation/);
   assert.match(build,/if\(token\?\.before\)tbHistoryRestore\(token\.before\)/);
   assert.match(build,/ptToast\(lockViolation\.message\|\|'Объект заблокирован'\)/);
+});
+
+test("question 71: TreeView lock badge decoration is idempotent",()=>{
+  const start=runtime.indexOf("  function ensureBadge(row){");
+  const end=runtime.indexOf("\n\n  function treeEntry",start);
+  assert.ok(start>=0&&end>start,"ensureBadge source must be extractable");
+  const document={createElement:()=>({className:"",style:{},textContent:"",title:"",hidden:false})};
+  const ensureBadge=vm.runInNewContext("("+runtime.slice(start,end).trim()+")",{document});
+  const label={badge:null,appendCount:0,appendChild(node){this.badge=node;this.appendCount++;}};
+  const row={directBadge:null,querySelector(selector){
+    if(selector===".tb-tree-label")return label;
+    if(selector.includes(".tb-tree-label > .tb-lock-badge"))return label.badge;
+    if(selector.includes(":scope > .tb-lock-badge"))return this.directBadge;
+    return null;
+  },appendChild(node){this.directBadge=node;}};
+  const first=ensureBadge(row);
+  const second=ensureBadge(row);
+  assert.equal(second,first);
+  assert.equal(label.appendCount,1);
 });

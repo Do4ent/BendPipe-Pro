@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
-const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8");
+const ui=fs.readFileSync(path.join(root,"src","ui","measurements-ui.js"),"utf8").replace(/\r\n?/g,"\n");
 
 test("question 245: Reset view clears persisted project audit state",()=>{
   assert.match(ui,/function clearPersistedDimensionAuditViewState\(\)/);

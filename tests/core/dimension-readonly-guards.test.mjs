@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
-const runtime=fs.readFileSync(path.join(root,"src","ui","dimension-grips-runtime.js"),"utf8");
+const runtime=fs.readFileSync(path.join(root,"src","ui","dimension-grips-runtime.js"),"utf8").replace(/\r\n?/g,"\n");
 
 test("question 207: Dimension runtime enforces read-only guards centrally",()=>{
   assert.match(runtime,/const readonly=\(\)=>\{try\{return eng\(\)\?\.readonly\?\.\(\)===true/);

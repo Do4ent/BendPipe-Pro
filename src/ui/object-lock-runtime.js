@@ -147,7 +147,7 @@
   }
 
   function ensureBadge(row){
-    let badge=row.querySelector(":scope > .tb-lock-badge");
+    let badge=row.querySelector(":scope > .tb-lock-badge, .tb-tree-label > .tb-lock-badge");
     if(!badge){
       badge=document.createElement("span");
       badge.className="tb-lock-badge";
@@ -177,7 +177,8 @@
     for(const row of root.querySelectorAll("[data-project-assembly],[data-project-group],[data-tree-tube],[data-tree-row],[data-tree-origin],[data-tree-end],[data-import-mesh-instance]")){
       const entry=treeEntry(row),badge=ensureBadge(row);
       const mode=entry?entryLockMode(entry):"Unlocked";
-      badge.textContent=lockIcon(mode);
+      const icon=lockIcon(mode);
+      if(badge.textContent!==icon)badge.textContent=icon;
       badge.title=mode==="Object"?"Lock Object":mode==="Position"?"Lock Position":"";
       badge.hidden=mode==="Unlocked";
       row.dataset.lockMode=mode;
