@@ -442,3 +442,24 @@ test("PERF-001: onError can reschedule after requestFrame failure",()=>{
   assert.equal(coalescer.stats.failures,1);
   assert.equal(coalescer.stats.draws,1);
 });
+
+test("PERF-001: dispose blocks schedule reentered from cancelFrame",()=>{
+  const callbacks=[],cancelled=[],scheduled=[];
+  let coalescer;
+  coalescer=createFrameCoalescer({
+    requestFrame:callback=>{callbacks.push(callback);return callbacks.length;},
+    cancelFrame:id=>{
+      cancelled.push(id);
+      scheduled.push(coalescer.schedule(false));
+    },
+    render(){assert.fail("disposed coalescer must not render");}
+  });
+  assert.equal(coalescer.schedule(true),true);
+  coalescer.dispose();
+  assert.deepEqual(cancelled,[1]);
+  assert.deepEqual(scheduled,[false]);
+  assert.equal(coalescer.pending,false);
+  assert.equal(coalescer.stats.requests,1);
+  callbacks[0]();
+  assert.equal(coalescer.pending,false);
+});
