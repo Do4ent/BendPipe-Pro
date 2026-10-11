@@ -394,3 +394,26 @@ test("PERF-001: render may schedule a new frame without losing its handle",()=>{
   callbacks.get(2)();
   assert.deepEqual(rendered,[true]);
 });
+
+test("PERF-001: requestFrame failure permits recovery on next redraw",()=>{
+  const callbacks=[],errors=[],rendered=[];
+  let attempts=0;
+  const coalescer=createFrameCoalescer({
+    requestFrame:callback=>{
+      if(++attempts===1)throw new Error("animation frame unavailable");
+      callbacks.push(callback);
+      return attempts;
+    },
+    render:fit=>rendered.push(fit),
+    onError:error=>errors.push(error.message)
+  });
+  assert.equal(coalescer.schedule(true),false);
+  assert.equal(coalescer.pending,false);
+  assert.deepEqual(errors,["animation frame unavailable"]);
+  assert.equal(coalescer.schedule(false),true);
+  callbacks.shift()();
+  assert.deepEqual(rendered,[false]);
+  assert.deepEqual(coalescer.stats,{requests:2,draws:1,failures:1,
+    lastWaitMs:coalescer.stats.lastWaitMs,maxWaitMs:coalescer.stats.maxWaitMs,
+    lastRenderMs:coalescer.stats.lastRenderMs,maxRenderMs:coalescer.stats.maxRenderMs});
+});
