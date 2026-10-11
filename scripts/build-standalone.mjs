@@ -3179,6 +3179,11 @@ if(bindStart<0||bindEnd<0)throw new Error("PERF-003 core binding/init anchors mi
 const bindSection=output.slice(bindStart,bindEnd);
 const guardedBindings=bindSection.replace(/qs\('([^']+)'\)\.addEventListener\(/g,
   "qs('$1')?.addEventListener(");
+// Startup event binding executes before the late bootstrap helper is declared.
+// Reject accidental reintroduction of the Chromium ReferenceError at build time.
+if(/\\btbRunIsolatedStartup\\s*\\(/.test(guardedBindings)){
+  throw new Error("PERF-003 early bind() must not call late tbRunIsolatedStartup helper");
+}
 output=output.slice(0,bindStart)+guardedBindings+output.slice(bindEnd);
 const perfBootstrapSource =
   "const tbScheduleInitialSceneAfterPaint=(" + scheduleInitialSceneAfterPaint.toString() + ");\n" +
