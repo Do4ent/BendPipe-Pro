@@ -9,43 +9,87 @@ function captureStartupDiagnostics(page){
     if(message.type()==="error")failures.push("console: "+message.text());
   });
   page.on("requestfailed",request=>failures.push("requestfailed: "+request.url()+" "+(request.failure()?.errorText||"")));
-  return async()=>{
-    const state=await page.evaluate(()=>({
+  const diagnostics=async()=>{
+    // A blocked Chromium main thread must not hide the original startup timeout.
+    const evaluation=page.evaluate(()=>({
       readyState:document.readyState,
       startup:window.TubeBenderStartupStatus??null,
       engineering:!!window.TubeBenderEngineering,
       performance:!!window.TubeBenderRenderPerformance,
       scripts:[...document.scripts].length
     })).catch(error=>({evaluationError:String(error)}));
+    let timer;
+    const state=await Promise.race([
+      evaluation,
+      new Promise(resolve=>{timer=setTimeout(()=>resolve({evaluationTimeoutMs:3000}),3000);})
+    ]).finally(()=>clearTimeout(timer));
     return JSON.stringify({state,failures:failures.slice(0,25)},null,2);
   };
+  // A known startup failure should not consume the entire browser test timeout.
+  diagnostics.fatalFailure=()=>failures.find(message=>
+    message.startsWith("pageerror:")||message.includes("startup bind toolbar commands failed")
+  )??null;
+  return diagnostics;
+}
+async function navigateWithDiagnostics(page,diagnostics){
+  try{
+    const response=await page.goto(html,{waitUntil:"commit",timeout:15000});
+    expect(response?.status()).toBe(200);
+  }catch(error){
+    throw new Error("TubeBender navigation failed. Browser evidence:\n"+await diagnostics()+"\n"+String(error));
+  }
 }
 async function expectStartup(page,predicate,timeout,diagnostics){
+  const started=Date.now();
+  let lastError=null;
   try{
-    await expect.poll(()=>page.evaluate(predicate),{timeout,intervals:[200,800,2000]}).toBe(true);
+    while(Date.now()-started<timeout){
+      const fatal=diagnostics.fatalFailure();
+      if(fatal)throw new Error("Fatal startup error: "+fatal);
+      // Avoid an unlimited accumulation of Playwright evaluate calls when
+      // Chromium's main thread is blocked by a synchronous startup phase.
+      let timer;
+      const outcome=await Promise.race([
+        page.evaluate(predicate).then(value=>({value}),error=>({error:String(error)})),
+        new Promise(resolve=>{timer=setTimeout(()=>resolve({stalled:true}),3000);})
+      ]).finally(()=>clearTimeout(timer));
+      if(outcome.value===true)return;
+      if(outcome.error)lastError=outcome.error;
+      if(outcome.stalled)throw new Error("Chromium main thread did not answer startup probe within 3000 ms");
+      await new Promise(resolve=>setTimeout(resolve,250));
+    }
+    throw new Error("Startup predicate was not satisfied within "+timeout+" ms"+(lastError?"; last browser error: "+lastError:""));
   }catch(error){
     throw new Error("TubeBender startup did not complete. Browser evidence:\n"+await diagnostics()+"\n"+String(error));
   }
 }
 
 
+test("[PERF-003] Chromium baseline responds before TubeBender startup",async({page})=>{
+  test.setTimeout(20000);
+  const response=await page.goto("about:blank",{waitUntil:"commit",timeout:10000});
+  expect(response).toBeNull();
+  const probe=await page.evaluate(()=>({readyState:document.readyState,js:1+1}));
+  expect(probe.js).toBe(2);
+  expect(probe.readyState).toBe("complete");
+});
+
 test("[PERF-003] core event binding survives isolated startup stages",async({page})=>{
   test.setTimeout(140000);
   const diagnostics=captureStartupDiagnostics(page);
-  const response=await page.goto(html,{waitUntil:"commit",timeout:15000});
-  expect(response?.status()).toBe(200);
+  await navigateWithDiagnostics(page,diagnostics);
   await expectStartup(page,()=>Boolean(window.TubeBenderStartupStatus?.booted===true&&document.getElementById("projectCombo")),110000,diagnostics);
-  const startup=await page.evaluate(()=>window.TubeBenderStartupStatus?.phases??[]);
-  expect(startup.some(stage=>stage.name==="bind"&&stage.status==="ok")).toBe(true);
+  await expectStartup(page,()=>Boolean(window.TubeBenderStartupStatus?.phases?.some(
+    stage=>stage.name==="bind"&&stage.status==="ok"
+  )),10000,diagnostics);
 });
 
 test("[PERF-001] repeated renders produce at most one 3D redraw per frame",async({page})=>{
   test.setTimeout(150000);
   const diagnostics=captureStartupDiagnostics(page);
-  const response=await page.goto(html,{waitUntil:"commit",timeout:15000});
-  expect(response?.status()).toBe(200);
+  await navigateWithDiagnostics(page,diagnostics);
   await expectStartup(page,()=>Boolean(window.TubeBenderStartupStatus?.booted&&window.TubeBenderEngineering?.renderAll&&window.TubeBenderRenderPerformance),115000,diagnostics);
-  const result=await page.evaluate(async()=>{
+  const measurement=page.evaluate(async()=>{
     // A real model update, no mocked render implementation.
     const perf=window.TubeBenderRenderPerformance;
     const before=perf.stats;
@@ -56,6 +100,20 @@ test("[PERF-001] repeated renders produce at most one 3D redraw per frame",async
     return {requests:during.requests-before.requests,drawsDuring:during.draws-before.draws,
       drawsTotal:after.draws-before.draws};
   });
+  let measurementTimer;
+  let result;
+  try{
+    result=await Promise.race([
+      measurement,
+      new Promise((_,reject)=>{
+        measurementTimer=setTimeout(()=>reject(new Error("PERF-001 redraw measurement timed out after 10000 ms")),10000);
+      })
+    ]);
+  }catch(error){
+    throw new Error("PERF-001 redraw measurement failed. Browser evidence:\n"+await diagnostics()+"\n"+String(error));
+  }finally{
+    clearTimeout(measurementTimer);
+  }
   expect(result.requests).toBe(3);
   expect(result.drawsDuring).toBe(0);
   expect(result.drawsTotal).toBeLessThanOrEqual(1);

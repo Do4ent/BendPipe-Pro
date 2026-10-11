@@ -2,32 +2,12 @@ name: perf-001-003-implementation
 on:
   push:
     branches:
-      - feature/perf-001-003-render-startup-20261010
-      - feature/perf-render-telemetry-20261010
-      - feature/perf-startup-yield-20261010
-      - feature/perf-cooperative-scene-20261010
-      - feature/perf-dwfx-scene-chunking-20261010
-      - feature/perf-dwfx-renderer-wiring-20261010
-      - feature/perf-mesh-buffer-chunks-20261010
-      - feature/perf-normals-upload-20261010
-      - feature/perf-progressive-gpu-20261010
-      - feature/perf-mesh-profiling-reuse-20261010
-      - feature/perf-dwfx-scene-revision-cache-20261010
-      - feature/perf-scene-cache-lifetime-20261010
-      - feature/perf-cache-disposal-hook-20261010
-      - feature/perf-dwfx-revision-counters-20261010
-      - feature/perf-dwfx-writer-revisions-20261010
-      - feature/perf-dwfx-crossmodule-audit-20261010
-      - feature/perf-source-link-revisions-20261010
-      - feature/perf-source-link-command-revisions-20261010
-      - feature/perf-legacy-project-switch-20261010
-      - feature/perf-dwfx-part-identifiers-cache-20261010
-      - feature/perf-browser-startup-diagnostics-20261010
-      - feature/perf-picker-startup-scope-fix-20261010
-      - feature/perf-revision-contract-reconcile-20261010
+      - 'feature/perf-*'
   workflow_dispatch:
   pull_request:
     branches:
+      - main
+      - 'feature/perf-*'
       - feature/mobile-viewport-mob001-20261010
 
 jobs:
@@ -39,6 +19,38 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      # Measure the complete regression suite before any focused check can fail.
+      - name: Validate standalone builder syntax before running tests
+        run: node --check scripts/build-standalone.mjs
+      - name: Run existing regression suite and capture current failure count
+        id: regression
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p reports/regression
+          set -o pipefail
+          npm test 2>&1 | tee reports/regression/node-test.log
+      - name: Summarize measured regression results
+        if: always()
+        shell: bash
+        run: |
+          if [ -f reports/regression/node-test.log ]; then
+            {
+              echo '### Current Node regression suite'
+              echo '```text'
+              grep -E '^# (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) ' reports/regression/node-test.log | tail -n 8 || true
+              echo '```'
+              echo 'Counts come from this run, not the historical 105 failures.'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-regression-evidence
+          path: reports/regression/node-test.log
+          if-no-files-found: warn
+
       - name: Test frame coalescer and isolated startup
         run: node --test tests/core/perf-001-003.test.mjs
       - name: Validate DWFx part cache and legacy mutation fallback
@@ -65,9 +77,11 @@ jobs:
           name: tubebender-perf-standalone
           path: dist/TubeBender_CAD_VC207R7_M1_Standalone.html
           if-no-files-found: error
-      # Preserve strict regression gating, but run the build and runtime contract first.
-      - name: Run existing regression suite
-        run: npm test
+      - name: Enforce regression pass after gathering PERF evidence
+        if: always() && steps.regression.outcome == 'failure'
+        run: |
+          echo 'Regression suite failed; review perf-regression-evidence for measured failures.' >&2
+          exit 1
 
   chromium-perf:
     runs-on: ubuntu-latest
@@ -81,14 +95,39 @@ jobs:
         run: npm install --no-save @playwright/test@1.56.1
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+      - name: Syntax-check Standalone builder
+        run: node --check scripts/build-standalone.mjs
       - name: Syntax-check PERF browser specs
         run: node --check tests/browser/perf-001-003.spec.mjs
+      - name: Verify Chromium baseline without TubeBender
+        id: chromium_baseline
+        continue-on-error: true
+        run: TB_BROWSER_REPORT_NAME=chromium-baseline npx playwright test --config acceptance/playwright.config.mjs --grep 'Chromium baseline responds'
       - name: Build standalone under test
+        id: standalone_build
+        continue-on-error: true
         run: npm run build:standalone
       - name: Validate generated Standalone JavaScript syntax
+        if: steps.standalone_build.outcome == 'success'
         run: node scripts/check-standalone-syntax.mjs
-      - name: Verify PERF-001 and PERF-003 in Chromium
-        run: npx playwright test --config acceptance/playwright.config.mjs --grep 'PERF-00[13]'
+      - name: Verify PERF-001 and PERF-003 application behavior
+        if: steps.standalone_build.outcome == 'success'
+        id: chromium_app
+        continue-on-error: true
+        run: TB_BROWSER_REPORT_NAME=tubebender-application npx playwright test --config acceptance/playwright.config.mjs --grep 'PERF-00[13]' --grep-invert 'Chromium baseline responds'
+      - name: Enforce Chromium baseline and application acceptance
+        if: always()
+        run: |
+          {
+            echo '### PERF browser acceptance'
+            echo '| Stage | Outcome |'
+            echo '| --- | --- |'
+            echo '| Standalone build | ${{ steps.standalone_build.outcome }} |'
+            echo '| Chromium baseline | ${{ steps.chromium_baseline.outcome }} |'
+            echo '| TubeBender PERF-001 / PERF-003 | ${{ steps.chromium_app.outcome }} |'
+            echo 'Playwright JSON, screenshots, and traces are retained in perf-001-003-browser-evidence.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.standalone_build.outcome }}" != success ] || [ "${{ steps.chromium_baseline.outcome }}" != success ] || [ "${{ steps.chromium_app.outcome }}" != success ]; then exit 1; fi
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
