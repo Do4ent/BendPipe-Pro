@@ -359,3 +359,38 @@ test("PERF-001: late callback from cancelled frame cannot draw replacement state
   jobs.get(2)();
   assert.deepEqual(rendered,[]);
 });
+
+test("PERF-001: synchronous animation frame completion retains no stale frame handle",()=>{
+  const rendered=[],cancelled=[];
+  const coalescer=createFrameCoalescer({
+    requestFrame:callback=>{callback();return 77;},
+    cancelFrame:id=>cancelled.push(id),
+    render:fit=>rendered.push(fit)
+  });
+  assert.equal(coalescer.schedule(false),true);
+  assert.deepEqual(rendered,[false]);
+  assert.equal(coalescer.pending,false);
+  assert.equal(coalescer.cancel(),false);
+  assert.deepEqual(cancelled,[]);
+});
+
+test("PERF-001: render may schedule a new frame without losing its handle",()=>{
+  const callbacks=new Map(),cancelled=[],rendered=[];
+  let id=0,coalescer;
+  coalescer=createFrameCoalescer({
+    requestFrame:callback=>{const handle=++id;callbacks.set(handle,callback);return handle;},
+    cancelFrame:handle=>cancelled.push(handle),
+    render:fit=>{
+      rendered.push(fit);
+      if(rendered.length===1)coalescer.schedule(false);
+    }
+  });
+  coalescer.schedule(true);
+  callbacks.get(1)();
+  assert.deepEqual(rendered,[true]);
+  assert.equal(coalescer.pending,true);
+  assert.equal(coalescer.cancel(),true);
+  assert.deepEqual(cancelled,[2]);
+  callbacks.get(2)();
+  assert.deepEqual(rendered,[true]);
+});
