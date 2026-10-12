@@ -36,16 +36,29 @@ function button(label,icon,action){
 }
 function action(name){
  try{
+  // Never present an unavailable CAD command as if it succeeded.
+  const requireCommand=(callback,message)=>{
+   if(typeof callback!=="function")throw new Error(message);
+   callback();return true;
+  };
   if(name==="radius"||name==="dimensions"){
-    // The native measurement editor owns all dimension data and tools.
-    if(!window.TubeBenderMeasurements?.open)throw new Error("Измерения недоступны");
-    window.TubeBenderMeasurements.open();return;
+   // The native measurement editor owns all dimension data and tools.
+   return requireCommand(window.TubeBenderMeasurements?.open?.bind(window.TubeBenderMeasurements),"Измерения недоступны");
   }
-  if(name==="views"){window.TubeBenderNamedViews?.openPanel?.();return;}
-  if(name==="display"){workspace()?.execute?.("views");return;}
-  if(name==="properties"){window.TubeBenderProperties?.open?.();return;}
-  if(name==="checks"){workspace()?.selectInspector?.("checks");return;}
- }catch(error){toast(String(error?.message??error));}
+  if(name==="views"){
+   return requireCommand(window.TubeBenderNamedViews?.openPanel?.bind(window.TubeBenderNamedViews),"Сохранённые виды недоступны");
+  }
+  if(name==="display"){
+   return requireCommand(workspace()?.execute?.bind(workspace(),"views"),"Настройки отображения недоступны");
+  }
+  if(name==="properties"){
+   return requireCommand(window.TubeBenderProperties?.open?.bind(window.TubeBenderProperties),"Свойства недоступны");
+  }
+  if(name==="checks"){
+   return requireCommand(workspace()?.selectInspector?.bind(workspace(),"checks"),"Проверки недоступны");
+  }
+  throw new Error("Неизвестная CAD-команда");
+ }catch(error){toast(String(error?.message??error));return false;}
 }
 function syncRibbon(){
  const bar=$("#cadCommands");if(!bar)return;
