@@ -49,3 +49,17 @@ test("[CAD-REFERENCE] compact viewport remains usable without replacing 3D rende
   expect(data.referenceScripts).toBe(1);
   await page.screenshot({path:"reports/browser/cad-reference-mobile.png",fullPage:true});
 });
+
+test("[CAD-REFERENCE] unknown and unavailable commands fail visibly",async({page})=>{
+  await page.goto("/BendPipe_Pro_CAD_Workspace.html",{waitUntil:"load"});
+  await page.waitForFunction(()=>Boolean(window.TubeBenderReferenceWorkspace));
+  const result=await page.evaluate(()=>{
+    const api=window.TubeBenderReferenceWorkspace;
+    const original=window.TubeBenderNamedViews;
+    try{
+      window.TubeBenderNamedViews=undefined;
+      return {unknown:api.execute("__unknown_command__"),unavailable:api.execute("views")};
+    }finally{window.TubeBenderNamedViews=original;}
+  });
+  expect(result).toEqual({unknown:false,unavailable:false});
+});
