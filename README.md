@@ -12,7 +12,29 @@ BendPipe-Pro is intended to recognize bent tubes from CAD sources and convert ve
 6. Apply machine-specific compensation only in a separate downstream layer.
 7. Export technological data for tube-bending workflows.
 
-The repository is currently at the project-scaffolding stage. The application language/framework is intentionally not assumed yet.
+The application is a browser-based CAD editor with a standalone HTML build. The integration branch is `develop`. The first release candidate is `v0.1.0-rc.1`.
+
+## Build and verification
+
+Use Node.js 24 or later:
+
+```sh
+npm test
+npm run build:standalone
+node scripts/check-standalone-syntax.mjs
+```
+
+Open `dist/TubeBender_CAD_VC207R7_M1_Standalone.html` in Chromium. For browser acceptance:
+
+```sh
+npm install --no-save @playwright/test@1.56.1
+npx playwright install chromium
+npx playwright test --config acceptance/playwright.config.mjs
+```
+
+The release scenario imports the committed 80004806 DWFx, recognizes nine editable tube candidates, edits a length, saves and reloads the workspace, then exports and reopens project JSON. It checks preservation of canonical geometry, provenance and production blockers. Project JSON is an editable project artifact; manufacturing export requires confirmed geometry, tooling, material and machine settings.
+
+See `docs/releases/0.1.0-rc.1.md` for release scope and known limitations.
 
 ## AI development team
 

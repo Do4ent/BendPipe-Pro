@@ -1,0 +1,57 @@
+name: release-candidate
+
+on:
+  push:
+    tags:
+      - 'v*-rc.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify release version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: node --input-type=module -e "import fs from 'node:fs'; const p=JSON.parse(fs.readFileSync('package.json')); if(process.env.GITHUB_REF_NAME!=='v'+p.version) throw new Error('Tag/package version mismatch');"
+      - name: Node regression
+        run: npm test
+      - name: Build standalone
+        run: npm run build:standalone
+      - name: Validate standalone JavaScript
+        run: node scripts/check-standalone-syntax.mjs
+      - name: Install browser runner
+        run: npm install --no-save @playwright/test@1.56.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Full browser acceptance
+        run: npx playwright test --config acceptance/playwright.config.mjs
+      - name: Checksum standalone
+        working-directory: dist
+        run: sha256sum TubeBender_CAD_VC207R7_M1_Standalone.html > SHA256SUMS
+      - name: Retain browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-browser-evidence
+          path: reports/browser
+      - name: Retain release package
+        uses: actions/upload-artifact@v4
+        with:
+          name: BendPipe-Pro-release-candidate
+          path: |
+            dist/TubeBender_CAD_VC207R7_M1_Standalone.html
+            dist/SHA256SUMS
+          if-no-files-found: error
+      - name: Publish prerelease after verification
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/TubeBender_CAD_VC207R7_M1_Standalone.html dist/SHA256SUMS --verify-tag --prerelease --title "BendPipe-Pro $GITHUB_REF_NAME" --notes-file docs/releases/0.1.0-rc.1.md
