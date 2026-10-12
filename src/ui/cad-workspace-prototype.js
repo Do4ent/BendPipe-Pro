@@ -70,7 +70,7 @@
     }
   }
   function toggleTools(){collectTools();toolDrawer.hidden=!toolDrawer.hidden;}
-  function hotkey(id){if(!window.TubeBenderHotkeys)throw new Error("Команды ещё загружаются");return window.TubeBenderHotkeys.execute(id);}
+  function hotkey(id){if(typeof window.TubeBenderHotkeys?.execute!=="function")throw new Error("Команды ещё загружаются");return window.TubeBenderHotkeys.execute(id);}
   function execute(id){
     const command=commands.find(item=>item[0]===id);
     if(!command)return false;
