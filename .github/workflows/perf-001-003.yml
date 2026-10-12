@@ -2,10 +2,12 @@ name: perf-001-003-implementation
 on:
   push:
     branches:
+      - develop
       - 'feature/perf-*'
   workflow_dispatch:
   pull_request:
     branches:
+      - develop
       - main
       - 'feature/perf-*'
       - feature/mobile-viewport-mob001-20261010
@@ -98,7 +100,9 @@ jobs:
       - name: Syntax-check Standalone builder
         run: node --check scripts/build-standalone.mjs
       - name: Syntax-check PERF browser specs
-        run: node --check tests/browser/perf-001-003.spec.mjs
+        run: |
+          node --check tests/browser/perf-001-003.spec.mjs
+          node --check tests/browser/release-gate.spec.mjs
       - name: Verify Chromium baseline without TubeBender
         id: chromium_baseline
         continue-on-error: true
@@ -131,6 +135,9 @@ jobs:
       - name: Verify native browser storage survives reload
         if: success() || failure()
         run: npx playwright test --config acceptance/playwright.config.mjs --grep 'PERSISTENCE'
+      - name: Verify release scenario from DWFx import through project export
+        if: success() || failure()
+        run: TB_BROWSER_REPORT_NAME=release-gate npx playwright test --config acceptance/playwright.config.mjs --grep 'RELEASE-GATE'
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
