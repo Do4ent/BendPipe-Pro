@@ -1,0 +1,48 @@
+name: tube-bender-webgl2-rc2-independent
+
+on:
+  push:
+    branches:
+      - feature/webgl2-acceptance-20261012
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-webgl2-and-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Run complete Node regression and preserve test totals
+        shell: bash
+        run: |
+          mkdir -p reports/browser
+          set +e
+          npm test > reports/browser/node-regression.log 2>&1
+          code=$?
+          tail -n 25 reports/browser/node-regression.log
+          exit $code
+      - name: Rebuild exact release artifacts and verify syntax
+        run: |
+          npm run build:release
+          node scripts/check-standalone-syntax.mjs
+          node scripts/check-standalone-syntax.mjs dist/BendPipe_Pro_CAD_Workspace.html
+          (cd dist && sha256sum -c SHA256SUMS)
+      - name: Install independent browser runner
+        run: |
+          npm install --no-save @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run every Chromium acceptance scenario including live WebGL2 and full process restart
+        run: npx playwright test --config acceptance/playwright.config.mjs
+      - name: Retain Node and Chromium evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tubebender-webgl2-regression-evidence
+          path: reports/browser
+          if-no-files-found: warn
