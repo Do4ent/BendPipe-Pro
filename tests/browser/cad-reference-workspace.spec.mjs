@@ -63,3 +63,19 @@ test("[CAD-REFERENCE] unknown and unavailable commands fail visibly",async({page
   });
   expect(result).toEqual({unknown:false,unavailable:false});
 });
+
+
+test("[CAD-REFERENCE] status never invents length for absent or incomplete geometry",async({page})=>{
+  await page.goto("/BendPipe_Pro_CAD_Workspace.html",{waitUntil:"load"});
+  await page.waitForFunction(()=>Boolean(window.TubeBenderReferenceWorkspace));
+  const summary=await page.evaluate(()=>window.TubeBenderReferenceWorkspace.activeSummary());
+  if(!summary.tube||summary.rows.length===0){
+    expect(summary.length).toBeNull();
+    await expect(page.locator("#cadReferenceStatus")).toContainText("не определена");
+  }
+  if(summary.rows.some(row=>row.type==="LINE"&&(row.L==null||row.L===""))||
+     summary.rows.some(row=>row.type==="BEND"&&(row.clr==null||row.angle==null))){
+    expect(summary.length).toBeNull();
+  }
+  expect(summary.length===null||Number.isFinite(summary.length)).toBe(true);
+});
