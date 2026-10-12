@@ -39,14 +39,28 @@ body.cad-workspace #boundsWarningText {white-space:normal!important;overflow-wra
 body.cad-workspace #boundsWarning button {font-size:10px!important;padding:5px 8px!important}
 #cadCommands {display:flex;gap:4px;align-items:center;height:70px;overflow:auto}
 #cadCommands button {height:54px;min-width:82px;display:flex;flex-direction:column;gap:5px;align-items:center;justify-content:center;border:1px solid transparent;border-radius:5px;background:transparent;color:#d0dce9;font-size:11px;white-space:nowrap}
-#cadCommands button span {font-size:21px;line-height:23px;color:#8fbbe9}
+#cadCommands button .cad-command-icon {font-size:21px;line-height:23px;color:#8fbbe9}
+#cadCommands button .cad-command-label {font-size:11px;line-height:14px;color:#d0dce9}
+#cadCommands[data-cad-display="icons"] button .cad-command-label {display:none}
+#cadCommands[data-cad-display="icons"] button {min-width:42px;width:42px;height:42px;flex:0 0 42px}
+body.cad-workspace .tb-head-actions[data-cad-display="labels"] .txt {display:inline!important}
+body.cad-workspace .tb-head-actions[data-cad-display="labels"] button {width:auto!important;min-width:32px!important;font-size:11px!important}
+body.cad-workspace .tb-head-actions[data-cad-display="icons"] .txt {display:none!important}
+body:not(.cad-workspace) .cad-extra-label {display:none}
+#cadPanelMenu[hidden] {display:none!important}
+#cadPanelMenu {position:fixed;z-index:130000;min-width:210px;padding:6px;background:#1a2939;border:1px solid #567493;border-radius:6px;box-shadow:0 10px 32px #0009;color:#e4eef8}
+#cadPanelMenu .cad-menu-title {font-size:10px;color:#92acc6;padding:5px 10px 8px}
+#cadPanelMenu button {display:block;width:100%;text-align:left;background:transparent;border:0;border-radius:4px;color:inherit;padding:9px 12px;font-size:12px}
+#cadPanelMenu button[aria-checked="true"]:before {content:"✓ ";color:#8dc6ff}
+#cadPanelMenu button:hover,#cadPanelMenu button:focus-visible {background:#304861;outline:1px solid #85baff}
 #cadCommands button:hover {background:#26374b;border-color:#405672}
 #cadRibbon button:focus-visible,#cadInspector button:focus-visible,#cadRestore:focus-visible {outline:2px solid #a6d1ff;outline-offset:-2px}
-body.cad-workspace .tb-map-workspace {grid-row:3;grid-template-columns:272px minmax(0,1fr) 292px!important;padding:10px!important;gap:10px!important;background:#10161e}
+body.cad-workspace .tb-map-workspace {grid-row:3;display:grid!important;grid-template-columns:272px minmax(0,1fr) 292px!important;padding:10px!important;gap:10px!important;background:#10161e}
+@media(min-width:861px){body.cad-workspace .tb-map-left,body.cad-workspace .tb-map-right{position:static!important;transform:none!important;width:auto!important}}
 body.cad-workspace .tb-map-left {display:block!important;width:auto!important}
 body.cad-workspace .tb-map-center {grid-template-rows:minmax(0,1fr)!important}
 body.cad-workspace .tb-map-right {display:flex!important;flex-direction:column;gap:10px!important;overflow:auto!important}
-body.cad-workspace .tb-map-right>.tb-card {flex:none}
+body.cad-workspace .tb-map-right>.tb-card {display:none!important}
 body.cad-workspace .tb-card {border-radius:7px!important;border:1px solid var(--cad-line)!important;background:#16212d!important;box-shadow:none!important}
 body.cad-workspace .tb-card-head {background:#1b2938!important;font-size:12px!important;min-height:38px!important;height:auto!important}
 body.cad-workspace .tb-tree-card {height:100%}
@@ -60,6 +74,14 @@ body.cad-workspace .tb-map-bottom {grid-row:4;height:42px!important;min-height:4
 body.cad-workspace .tb-bottom-tab {min-width:120px!important;font-size:11px!important;max-width:180px!important}
 body.cad-workspace .tb-bottom-tab .ico {font-size:16px!important}
 #cadInspector {border:1px solid #2b3c50;background:#182432;border-radius:7px;padding:13px;color:#c1d0df}
+.cad-inspector-tabs {display:flex;gap:2px;border-bottom:1px solid #31445a;margin:-4px -4px 12px}
+.cad-inspector-tabs button {flex:1;background:transparent;border:0;border-bottom:2px solid transparent;color:#93acc6;font-size:11px;padding:10px 5px}
+.cad-inspector-tabs button[aria-selected="true"] {color:#e8f3ff;border-bottom-color:#82baff;background:#23374b}
+#cadPropertySlot[hidden],#cadInspectorContent[hidden] {display:none!important}
+body.cad-workspace #cadPropertySlot #tbPropertiesPanel {position:static!important;inset:auto!important;width:100%!important;max-height:none!important;border:0!important;box-shadow:none!important;background:transparent!important;display:flex!important}
+body.cad-workspace #cadPropertySlot .tb-prop-body {padding:0}
+body.cad-workspace #cadPropertySlot .tb-prop-head {padding:0 0 9px}
+body.cad-workspace #cadPropertySlot [data-prop-close] {display:none}
 #cadInspector header {display:flex;justify-content:space-between;align-items:center;gap:5px;font-size:9px;letter-spacing:1.2px;color:#8dabc8}
 #cadInspector header button {color:#a8ccf6;background:transparent;border:0;font-size:10px}
 #cadInspector h2 {font-size:18px;font-weight:500;margin:16px 0 5px;color:#eef5ff}
@@ -72,5 +94,10 @@ body.cad-workspace .tb-bottom-tab .ico {font-size:16px!important}
 #cadInspector details {font-size:11px;margin-top:13px;color:#9cb8d5}
 #cadInspector pre {font-size:10px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:200px;overflow:auto;background:#101b27;padding:8px}
 .cad-blockers {padding-left:15px;font-size:11px;color:#ddb8a0;line-height:1.6}
+@media(max-width:860px){
+  body.tb-project-map.cad-workspace .tb-map-left,
+  body.tb-project-map.cad-workspace .tb-map-right {height:calc(100dvh - 238px)!important;max-height:calc(100dvh - 238px)!important;min-height:0!important;box-sizing:border-box!important}
+  body.cad-workspace .tb-map-bottom {position:relative;z-index:700}
+}
 @media(max-width:1200px) and (min-width:861px){body.cad-workspace .tb-map-workspace{grid-template-columns:224px minmax(0,1fr) 252px!important}body.cad-workspace .tb-brand{min-width:160px!important}.cad-stage-tabs button{padding-left:10px;padding-right:10px}#cadSearch kbd{display:none}}
 @media(max-width:860px){body.cad-workspace #app{grid-template-rows:64px 108px minmax(0,1fr) 46px!important}body.cad-workspace .tb-brand{display:none!important}body.cad-workspace .tb-map-workspace{display:block!important}body.cad-workspace .tb-map-left,body.cad-workspace .tb-map-right{top:182px!important;bottom:56px!important;width:min(90vw,320px)!important}#cadRibbon{padding:0 8px}.cad-ribbon-top{height:42px}#cadCommands{height:62px}.cad-stage-tabs button{padding:12px 9px}.cad-stage-tabs button span{display:none}#cadSearch{font-size:0;padding:8px}#cadSearch:before{content:"⌕";font-size:19px}#cadSearch kbd{display:none}body.cad-workspace .tb-bottom-tab{min-width:0!important;font-size:10px!important}#cadRestore{font-size:10px;padding:5px;max-width:85px;white-space:normal}}

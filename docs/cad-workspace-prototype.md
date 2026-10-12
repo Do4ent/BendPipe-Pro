@@ -32,7 +32,7 @@ Official sources consulted:
 
 ## Layout and scope
 
-Top: project, active tube, save/undo/redo, five workspaces and command search. Left: current source/project/object tree, including original layers and group decorations. Centre: original 3D canvas, view navigation and selection. Right: canonical/source evidence, editable model context, unresolved tooling and actual production blockers; existing diagnostics and production tools remain below. Bottom: original view/mobile panel navigation.
+Top: project, active tube, save/undo/redo, five workspaces and command search. Left: current source/project/object tree, including original layers and group decorations. Centre: original 3D canvas, view navigation and selection. Right: a unified Properties / Source / Checks inspector. Bottom: original view/mobile panel navigation.
 
 The inspector never assigns missing dimensions, confidence values or tooling. It displays stored source evidence and the real production release decision. Source CAD, canonical geometry, editable geometry and downstream compensation remain distinct. Project JSON export is labelled separately from manufacturing output.
 
@@ -76,6 +76,16 @@ TB_BROWSER_APP_PATH=/BendPipe_Pro_CAD_Workspace_Prototype.html npx playwright te
 
 The first test covers visible command routing, real DWFx import, source/production boundaries, layout switching and mobile overflow. The second exercises the complete edit/save/reopen/export flow on the alternate UI. Screenshots are written to `reports/browser/cad-workspace-desktop.png` and `cad-workspace-mobile.png`.
 
+## Unified inspector and panel display
+
+The right column has three tabs: Properties uses the original selection editor (including editable fields), Source shows active-tube canonical/provenance evidence, and Checks lists the actual production gate blockers. The previous right-column cards are hidden only in CAD Workspace; their functions remain accessible through the task ribbon and original panels. Switching to Classic returns the original properties DOM node to the body and restores the original layout. No model data is copied.
+
+Right-click the command ribbon or header action panel to choose **Icons with labels** or **Icons only**. The preference is saved separately for each panel in localStorage under `bendpipe.cad.toolbarDisplay.v1`; it applies across workspaces and page reloads. It does not enter project JSON or alter manufacturing settings. Hidden captions retain tooltips and accessible names. The menu also supports Shift+F10/the context-menu key, arrows, Enter and Escape.
+
+Menu keyboard events are consumed before CAD hotkey/repeat handlers, so Enter/Space cannot accidentally repeat a model operation while selecting a display option. On mobile, opening native Properties reveals the inspector; drawer height leaves the bottom 3D navigation reachable.
+
+Save is kept in the header; the duplicate Save ribbon item and duplicate All Panels ribbon item are removed. Evidence now opens the Source inspector rather than reopening Properties.
+
 ## Evaluation limits
 
-Prototype labels are initially Russian; existing language settings continue to control the underlying application. The inspector observes state periodically and does not implement new recognition or compensation logic. Native panels remain floating/modal in this first iteration. Keyboard navigation is provided for workspace tabs; a full accessibility audit and usability testing with real operators are still required. No editing speed or performance improvement is claimed without measurement.
+Prototype labels are initially Russian; existing language settings continue to control the underlying application. The inspector observes state periodically and does not implement new recognition or compensation logic. Other native panels remain floating/modal in this iteration. Keyboard navigation is provided for workspace/inspector tabs and the display menu; a full accessibility audit and usability testing with real operators are still required. No editing speed or performance improvement is claimed without measurement.
