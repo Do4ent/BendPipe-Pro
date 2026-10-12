@@ -109,3 +109,6 @@ body.cad-workspace .tb-bottom-tab.active{background:#134872!important;color:#e2f
  height:calc(100dvh - 250px)!important;max-height:calc(100dvh - 250px)!important}
  .cad-reference-status{bottom:32px;font-size:10px;left:6px;right:6px;padding:4px}
 }
+/* Reference-only viewport controls must disappear in the original classic layout. */
+body:not(.cad-workspace) #cadReferenceQuick,
+body:not(.cad-workspace) #cadReferenceStatus { display:none!important; }
