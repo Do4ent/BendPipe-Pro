@@ -96,3 +96,40 @@ test("[CAD-REFERENCE] missing native layers panel does not report successful com
   });
   expect(result).toEqual({missing:true,returned:false});
 });
+
+
+test("[CAD-REFERENCE] real 3D viewport, project tree, geometry inspector and workspace switching",async({page})=>{
+  test.setTimeout(120000);
+  const errors=[];page.on("pageerror",error=>errors.push(String(error)));
+  await page.setViewportSize({width:1672,height:941});
+  await page.goto("/BendPipe_Pro_CAD_Workspace.html",{waitUntil:"load"});
+  await page.waitForFunction(()=>Boolean(window.TubeBenderEngineering&&window.TubeBenderReferenceWorkspace));
+  await expect(page.locator(".tb-map-3d canvas")).toBeVisible();
+  await expect(page.locator(".tb-tree-card")).toBeVisible();
+  await expect(page.locator("#cadPropertySlot #tbPropertiesPanel")).toHaveCount(1);
+  const state=await page.evaluate(()=>({
+    canvas:!!document.querySelector(".tb-map-3d canvas"),
+    webgl:!!document.getElementById("threeCanvas")?.getContext("webgl2"),
+    project:!!window.TubeBenderEngineering.activeProject?.(),
+    tube:!!window.TubeBenderEngineering.activeTube?.()
+  }));
+  expect(state.canvas).toBe(true);
+  expect(state.webgl).toBe(true);
+  expect(state.project).toBe(true);
+  const canvas=page.locator(".tb-map-3d canvas").first();
+  const rect=await canvas.boundingBox();expect(rect?.width).toBeGreaterThan(100);
+  if(rect){
+    await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);
+    await page.mouse.down({button:"left"});
+    await page.mouse.move(rect.x+rect.width/2+45,rect.y+rect.height/2+25,{steps:5});
+    await page.mouse.up({button:"left"});
+  }
+  for(const stage of ["source","geometry","technology","machine","release"]){
+    await page.locator('[data-cad-stage="'+stage+'"]').click();
+    await expect(page.locator('[data-cad-stage="'+stage+'"]')).toHaveAttribute("aria-selected","true");
+  }
+  await page.locator('[data-cad-stage="geometry"]').click();
+  await page.locator('[data-inspector-tab="properties"]').click();
+  await expect(page.locator("#cadPropertySlot")).toBeVisible();
+  expect(errors).toEqual([]);
+});
