@@ -59,7 +59,12 @@
     ["release","05","Выпуск","Выпуск"]
   ];
   function click(id){const target=$(id);if(!target)throw new Error("Команда недоступна: "+id);target.click();}
-  function openExistingPanel(panelId,toggleId){if(!$(panelId)?.classList.contains("open"))click(toggleId);}
+  function openExistingPanel(panelId,toggleId){
+    const panel=$(panelId);
+    if(!panel)throw new Error("Панель недоступна: "+panelId);
+    if(!panel.classList.contains("open"))click(toggleId);
+    return true;
+  }
   function collectTools(){
     if(!enabled)return;
     for(const node of [...document.body.children]){
