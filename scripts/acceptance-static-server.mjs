@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 const port=Number(process.env.PORT||4178);
 const basename="TubeBender_CAD_VC207R7_M1_Standalone.html";
-const allowed=new Set([basename,"BendPipe_Pro_CAD_Workspace_Prototype.html"]);
+const allowed=new Set([basename,"BendPipe_Pro_CAD_Workspace_Prototype.html","BendPipe_Pro_CAD_Workspace.html"]);
 http.createServer((req,res)=>{
   const requested=decodeURIComponent((req.url||"/").split("?")[0]);
   const filename=requested==="/"?basename:requested.slice(1);
