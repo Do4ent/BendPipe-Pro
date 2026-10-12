@@ -135,9 +135,9 @@ jobs:
       - name: Verify native browser storage survives reload
         if: success() || failure()
         run: npx playwright test --config acceptance/playwright.config.mjs --grep 'PERSISTENCE'
-      - name: Verify release scenario from DWFx import through project export
+      - name: Verify full browser acceptance including DWFx project round trip
         if: success() || failure()
-        run: TB_BROWSER_REPORT_NAME=release-gate npx playwright test --config acceptance/playwright.config.mjs --grep 'RELEASE-GATE'
+        run: TB_BROWSER_REPORT_NAME=release-gate npx playwright test --config acceptance/playwright.config.mjs
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4

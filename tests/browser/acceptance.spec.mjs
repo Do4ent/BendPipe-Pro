@@ -2,14 +2,18 @@ import {test,expect} from "@playwright/test";
 import {REQUIREMENT_IDS,BROWSER_COVERAGE} from "../../acceptance/requirements-120.mjs";
 const html="/TubeBender_CAD_VC207R7_M1_Standalone.html";
 async function loadApp(page){
+  test.setTimeout(150000);
   const response=await page.goto(html,{waitUntil:"commit",timeout:12000});
   expect(response?.status()).toBe(200);
   // Require the actual app DOM, not just a successful network response.
   await expect(page.locator("#app")).toBeVisible({timeout:12000});
+  await page.waitForFunction(()=>document.readyState==='complete'&&
+    window.TubeBenderStartupStatus?.booted&&document.body.classList.contains('tb-project-map'),
+    null,{timeout:120000});
 }
 test("[UI-006] visible top-bar project, tube and main actions (partial)",async({page})=>{
   await loadApp(page);
-  for(const selector of ["#projectCombo","#tubeCombo","#projectOpenQuick","#openSettings"]){
+  for(const selector of ["#projectCombo","#tubeCombo","#tbActionOpen","#tbActionSettings"]){
     await expect(page.locator(selector)).toBeVisible();
   }
 });
@@ -33,14 +37,14 @@ test("[VIEW-006] standalone canvas and bundled renderer presence (partial)",asyn
 });
 test("[I18N-001] all four language choices are offered (partial)",async({page})=>{
   await loadApp(page);
-  await page.locator("#openSettings").click();
+  await page.locator("#tbActionSettings").click();
   await page.locator("#settingsTabLanguage").click();
   await expect(page.locator("#settingsPaneLanguage")).toBeVisible();
   await expect.poll(async()=>page.locator("#langList").locator("button,[role=option]").count()).toBeGreaterThanOrEqual(4);
 });
 test("[I18N-002] language selection lives on Settings language tab",async({page})=>{
   await loadApp(page);
-  await page.locator("#openSettings").click();
+  await page.locator("#tbActionSettings").click();
   await expect(page.locator("#settingsTabLanguage")).toBeVisible();
   await page.locator("#settingsTabLanguage").click();
   await expect(page.locator("#settingsTabLanguage")).toHaveAttribute("aria-selected","true");
@@ -54,7 +58,7 @@ test("[PERF-005] no duplicate DOM IDs across a settings redraw (partial)",async(
     return [...new Set(all.filter((v,i)=>all.indexOf(v)!==i))].slice(0,20);
   });
   expect(await duplicated()).toEqual([]);
-  await page.locator("#openSettings").click();
+  await page.locator("#tbActionSettings").click();
   await page.locator("#settingsTabLanguage").click();
   expect(await duplicated()).toEqual([]);
 });
