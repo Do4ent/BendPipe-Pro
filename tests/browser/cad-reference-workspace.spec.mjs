@@ -81,3 +81,18 @@ test("[CAD-REFERENCE] status never invents length for absent or incomplete geome
   }
   expect(summary.length===null||Number.isFinite(summary.length)).toBe(true);
 });
+
+
+test("[CAD-REFERENCE] missing native layers panel does not report successful command",async({page})=>{
+  await page.goto("/BendPipe_Pro_CAD_Workspace.html",{waitUntil:"load"});
+  await page.waitForFunction(()=>Boolean(window.TubeBenderCadWorkspace));
+  const result=await page.evaluate(()=>{
+    const node=document.getElementById("tbLayersPanel");
+    if(!node)return {missing:true,returned:window.TubeBenderCadWorkspace.execute("layers")};
+    const parent=node.parentNode,next=node.nextSibling;
+    node.remove();
+    try{return {missing:true,returned:window.TubeBenderCadWorkspace.execute("layers")};}
+    finally{parent.insertBefore(node,next);}
+  });
+  expect(result).toEqual({missing:true,returned:false});
+});
