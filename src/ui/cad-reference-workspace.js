@@ -7,25 +7,25 @@ const getApi=()=>window.TubeBenderEngineering;
 const workspace=()=>window.TubeBenderCadWorkspace;
 const toast=s=>{try{getApi()?.toast?.(s);}catch{}};
 let timer=null;
-const format=n=>Number.isFinite(Number(n))?Number(n).toFixed(2):"—";
+const format=n=>n!==null&&n!==undefined&&n!==""&&Number.isFinite(Number(n))?Number(n).toFixed(2):"—";
 function current(){
  const api=getApi();const tube=api?.activeTube?.()??null;
  const project=api?.activeProject?.()??null;
  const rows=Array.isArray(tube?.rows)?tube.rows:[];
- let length=0,known=true;
+ let length=0,known=Boolean(tube&&rows.length);
  for(const row of rows){
    if(row?.type==="LINE"){
-     const l=Number(row.L);if(!Number.isFinite(l)){known=false;break;}length+=l;
+     const l=row.L;if(l==null||l===""||!Number.isFinite(Number(l))||Number(l)<0){known=false;break;}length+=Number(l);
    }else if(row?.type==="BEND"){
-     const r=Number(row.clr),a=Number(row.angle);
-     if(!Number.isFinite(r)||!Number.isFinite(a)){known=false;break;}
-     length+=Math.abs(r*a*Math.PI/180);
-   }
+     const r=row.clr,a=row.angle;
+     if(r==null||r===""||a==null||a===""||!Number.isFinite(Number(r))||!Number.isFinite(Number(a))||Number(r)<=0){known=false;break;}
+     length+=Math.abs(Number(r)*Number(a)*Math.PI/180);
+   }else{known=false;break;}
  }
  const diameter=tube?.od??tube?.OD??tube?.diameter??tube?.outerDiameter??tube?.outsideDiameter;
  const material=tube?.material?.name??tube?.material?.displayName??(typeof tube?.material==="string"?tube.material:null);
  return {project,tube,rows,bends:rows.filter(r=>r.type==="BEND").length,
-   length:known?length:null,diameter,material,wall:tube?.wallThickness??tube?.wall??null};
+   length:known&&Number.isFinite(length)?length:null,diameter,material,wall:tube?.wallThickness??tube?.wall??null};
 }
 function button(label,icon,action){
  const b=document.createElement("button");b.type="button";b.className="cad-reference-tool";
@@ -112,8 +112,9 @@ function updateStatus(){
   if(j===0)span.className="cad-reference-ok";
   fragment.append(span);
  }
- if(el.dataset.signature===JSON.stringify(parts))return;
- el.dataset.signature=JSON.stringify(parts);el.replaceChildren(fragment);
+ const signature=JSON.stringify(parts);
+ if(el.dataset.signature===signature)return;
+ el.dataset.signature=signature;el.replaceChildren(fragment);
 }
 function installInspector(){
  const slot=$("#cadPropertySlot");if(!slot||$("#cadReferenceInfo"))return;
