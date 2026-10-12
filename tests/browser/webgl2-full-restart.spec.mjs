@@ -46,6 +46,26 @@ test("[WEBGL2-001] actual release CAD Workspace initializes a live WebGL2 3D can
       text: document.querySelector("#viewer")?.textContent?.slice(0,80) ?? ""
     };
   });
+  const actualRenderer = await page.evaluate(() => {
+    try {
+      return {
+        threeLoaded: Boolean(window.THREE?.WebGLRenderer),
+        realRenderer: typeof renderer !== "undefined" && renderer?.isWebGLRenderer === true,
+        matchingContext: typeof renderer !== "undefined" &&
+          renderer?.getContext?.() === document.querySelector("#threeCanvas")?.getContext("webgl2"),
+        meshGroupCount: typeof pipeGroup !== "undefined" ? pipeGroup?.children?.length ?? 0 : 0,
+        sceneChildrenCount: typeof scene !== "undefined" ? scene?.children?.length ?? 0 : 0,
+        drawCalls: typeof renderer !== "undefined" ? renderer?.info?.render?.calls ?? 0 : 0
+      };
+    } catch (error) { return { error: String(error) }; }
+  });
+  console.log("WEBGL2-001 actual renderer:", JSON.stringify(actualRenderer));
+  expect(actualRenderer.threeLoaded).toBe(true);
+  expect(actualRenderer.realRenderer).toBe(true);
+  expect(actualRenderer.matchingContext).toBe(true);
+  expect(actualRenderer.meshGroupCount).toBeGreaterThan(0);
+  expect(actualRenderer.sceneChildrenCount).toBeGreaterThan(0);
+  expect(actualRenderer.drawCalls).toBeGreaterThan(0);
   console.log("WEBGL2-001 observed:", JSON.stringify(observation));
   expect(observation.webgl2Canvas, "3D canvas must own a WebGL2 context").toBe(true);
   expect(observation.workingContext).toBe(true);
