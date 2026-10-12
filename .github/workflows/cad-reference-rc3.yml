@@ -1,0 +1,71 @@
+name: cad-reference-rc3-release
+on:
+  push:
+    branches:
+      - feature/reference-cad-workspace-20261012
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Run project regression suite
+        run: npm test
+      - name: Build both real application HTML variants
+        run: npm run build:release
+      - name: Check HTML JavaScript syntax
+        run: |
+          node scripts/check-standalone-syntax.mjs
+          node scripts/check-standalone-syntax.mjs dist/BendPipe_Pro_CAD_Workspace.html
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Browser acceptance (including reference workspace)
+        run: npx playwright test --config acceptance/playwright.config.mjs
+      - name: Validate release checksums
+        working-directory: dist
+        run: sha256sum -c SHA256SUMS
+      - name: Create release ZIP
+        run: |
+          cd dist
+          zip -j BendPipe-Pro-v0.1.0-rc.3.zip BendPipe_Pro_CAD_Workspace.html TubeBender_CAD_VC207R7_M1_Standalone.html README-RELEASE.txt SHA256SUMS
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cad-reference-browser-evidence
+          path: reports/browser
+          if-no-files-found: warn
+      - name: Upload updated build
+        uses: actions/upload-artifact@v4
+        with:
+          name: BendPipe-Pro-v0.1.0-rc.3
+          path: |
+            dist/BendPipe_Pro_CAD_Workspace.html
+            dist/TubeBender_CAD_VC207R7_M1_Standalone.html
+            dist/README-RELEASE.txt
+            dist/SHA256SUMS
+            dist/BendPipe-Pro-v0.1.0-rc.3.zip
+          if-no-files-found: error
+      - name: Publish validated GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.1.0-rc.3 \
+            dist/BendPipe-Pro-v0.1.0-rc.3.zip \
+            dist/BendPipe_Pro_CAD_Workspace.html \
+            dist/TubeBender_CAD_VC207R7_M1_Standalone.html \
+            dist/README-RELEASE.txt \
+            dist/SHA256SUMS \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "BendPipe-Pro v0.1.0-rc.3 · CAD reference UI" \
+            --notes-file docs/releases/0.1.0-rc.3.md
