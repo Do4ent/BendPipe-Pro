@@ -110,10 +110,12 @@ jobs:
       - name: Build standalone under test
         id: standalone_build
         continue-on-error: true
-        run: npm run build:standalone
+        run: npm run build:cad-prototype
       - name: Validate generated Standalone JavaScript syntax
         if: steps.standalone_build.outcome == 'success'
-        run: node scripts/check-standalone-syntax.mjs
+        run: |
+          node scripts/check-standalone-syntax.mjs
+          node scripts/check-standalone-syntax.mjs dist/BendPipe_Pro_CAD_Workspace_Prototype.html
       - name: Verify PERF-001 and PERF-003 application behavior
         if: steps.standalone_build.outcome == 'success'
         id: chromium_app
@@ -138,6 +140,9 @@ jobs:
       - name: Verify full browser acceptance including DWFx project round trip
         if: success() || failure()
         run: TB_BROWSER_REPORT_NAME=release-gate npx playwright test --config acceptance/playwright.config.mjs
+      - name: Verify full round trip on the opt-in CAD workspace
+        if: steps.standalone_build.outcome == 'success'
+        run: TB_BROWSER_REPORT_NAME=prototype-round-trip TB_BROWSER_APP_PATH=/BendPipe_Pro_CAD_Workspace_Prototype.html npx playwright test --config acceptance/playwright.config.mjs --grep RELEASE-GATE
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -145,3 +150,10 @@ jobs:
           name: perf-001-003-browser-evidence
           path: reports/browser
           if-no-files-found: warn
+      - name: Upload opt-in CAD workspace prototype
+        if: steps.standalone_build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: BendPipe-Pro-CAD-Workspace-Prototype
+          path: dist/BendPipe_Pro_CAD_Workspace_Prototype.html
+          if-no-files-found: error

@@ -3,7 +3,7 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const baselineOnly=process.env.TB_BROWSER_REPORT_NAME==="chromium-baseline";
-const reportName=["chromium-baseline","tubebender-application","release-gate"].includes(process.env.TB_BROWSER_REPORT_NAME)?process.env.TB_BROWSER_REPORT_NAME:"playwright";
+const reportName=["chromium-baseline","tubebender-application","release-gate","prototype-round-trip"].includes(process.env.TB_BROWSER_REPORT_NAME)?process.env.TB_BROWSER_REPORT_NAME:"playwright";
 export default defineConfig({
   testDir:"../tests/browser",
   testMatch:"*.spec.mjs",

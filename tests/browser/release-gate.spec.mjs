@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {test,expect} from "@playwright/test";
 
-const html="/TubeBender_CAD_VC207R7_M1_Standalone.html";
+const html=process.env.TB_BROWSER_APP_PATH||"/TubeBender_CAD_VC207R7_M1_Standalone.html";
 const fixture=path.resolve("tests/reference_parts/cases/dwfx-80004806/source.dwfx");
 
 async function waitForApplication(page){
