@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {deriveTubeLocalFrame} from "../../src/recognition/tube-local-frame.mjs";
+import {canonicalNumericReference} from "../helpers/canonical-numeric-reference.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -732,7 +734,10 @@ test("question 32220: preserves source contract",()=>has(5,"return angleBetweenD
 test("question 32221: preserves source contract",()=>has(6,"function point3(value,label){"));
 test("question 32222: preserves source contract",()=>has(6,"if(!Array.isArray(value)||value.length!==3){"));
 test("question 32223: preserves source contract",()=>has(6,"throw new TypeError(label+\" must be a 3D vector\");"));
-test("question 32224: preserves source contract",()=>has(6,"const out=value.map(Number);"));
+test("question 32224: unknown origin cannot define a tube-local frame",()=>{
+  const input=canonicalNumericReference();input.primitives[0].start.value=[null,0,0];
+  assert.throws(()=>deriveTubeLocalFrame(input),/non-finite values/);
+});
 test("question 32225: preserves source contract",()=>has(6,"if(!out.every(Number.isFinite)){"));
 test("question 32226: preserves source contract",()=>has(6,"throw new RangeError(label+\" contains non-finite values\");"));
 test("question 32227: preserves source contract",()=>has(6,"const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];"));
@@ -790,7 +795,10 @@ test("question 32278: preserves source contract",()=>has(6,"const x=unit(unwrap(
 test("question 32279: preserves source contract",()=>has(6,"const rawNormal=unit("));
 test("question 32280: preserves source contract",()=>has(6,"unwrap(firstBend.bend_plane_normal,\"first BEND plane normal\"),"));
 test("question 32281: preserves source contract",()=>has(6,"\"first BEND plane normal\""));
-test("question 32282: preserves source contract",()=>has(6,"const angle=Number(unwrap(firstBend.angle,\"first BEND angle\"));"));
+test("question 32282: a boolean is not a canonical bend angle",()=>{
+  const input=canonicalNumericReference();input.primitives[1].angle.value=true;
+  assert.throws(()=>deriveTubeLocalFrame(input),/angle must be finite/);
+});
 test("question 32283: preserves source contract",()=>has(6,"if(!Number.isFinite(angle)||angle===0){"));
 test("question 32284: preserves source contract",()=>has(6,"throw new RangeError(\"first BEND angle must be finite and non-zero\");"));
 test("question 32285: preserves source contract",()=>has(6,"const z=mul(rawNormal,Math.sign(angle)||1);"));

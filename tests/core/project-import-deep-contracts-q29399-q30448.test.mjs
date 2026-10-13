@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {canonicalToLegacyRows} from "../../src/recognition/canonical-to-legacy-rows.mjs";
+import {canonicalNumericReference} from "../helpers/canonical-numeric-reference.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -136,12 +138,18 @@ test("question 29524: preserves source contract",()=>has(1,"if(!value||typeof va
 test("question 29525: preserves source contract",()=>has(1,"throw new TypeError(label+\" confidence wrapper is required\");"));
 test("question 29526: preserves source contract",()=>has(1,"return value.value;"));
 test("question 29527: preserves source contract",()=>has(1,"function finite(value,label){"));
-test("question 29528: preserves source contract",()=>has(1,"const n=Number(value);"));
+test("question 29528: unknown length cannot be exported as an editable zero",()=>{
+  const input=canonicalNumericReference();input.primitives[0].length.value=null;
+  assert.throws(()=>canonicalToLegacyRows(input),/length must be finite/);
+});
 test("question 29529: preserves source contract",()=>has(1,"if(!Number.isFinite(n)) throw new RangeError(label+\" must be finite\");"));
 test("question 29530: preserves source contract",()=>has(1,"function vector(value,label){"));
 test("question 29531: preserves source contract",()=>has(1,"if(!Array.isArray(value)||value.length!==3){"));
 test("question 29532: preserves source contract",()=>has(1,"throw new TypeError(label+\" must be a 3D vector\");"));
-test("question 29533: preserves source contract",()=>has(1,"const out=value.map(Number);"));
+test("question 29533: unknown direction components cannot be exported as axes",()=>{
+  const input=canonicalNumericReference();input.primitives[0].direction.value=[1,null,0];
+  assert.throws(()=>canonicalToLegacyRows(input),/non-finite/);
+});
 test("question 29534: preserves source contract",()=>has(1,"if(!out.every(Number.isFinite)){"));
 test("question 29535: preserves source contract",()=>has(1,"throw new RangeError(label+\" contains non-finite coordinates\");"));
 test("question 29536: preserves source contract",()=>has(1,"function lineDirection(primitive,index){"));
