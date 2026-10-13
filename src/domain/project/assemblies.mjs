@@ -1,0 +1,351 @@
+const clone=(v)=>v==null?v:structuredClone(v);
+const EPS=1e-12;
+function freeze(value){
+  if(Array.isArray(value))return Object.freeze(value.map(freeze));
+  if(value&&typeof value==="object"&&!Object.isFrozen(value)){
+    for(const key of Object.keys(value))value[key]=freeze(value[key]);
+    return Object.freeze(value);
+  }
+  return value;
+}
+function makeId(prefix="assembly"){
+  const uuid=globalThis.crypto?.randomUUID?.();
+  return uuid?prefix+"-"+uuid:prefix+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10);
+}
+function finite(value,name){
+  const n=Number(value);if(!Number.isFinite(n))throw new TypeError(name+" must be finite");return n;
+}
+export function point3(value={x:0,y:0,z:0},name="point"){
+  return Object.freeze({x:finite(value.x??0,name+".x"),y:finite(value.y??0,name+".y"),z:finite(value.z??0,name+".z")});
+}
+export function normalizeQuaternion(value={x:0,y:0,z:0,w:1}){
+  const x=finite(value.x??0,"quaternion.x"),y=finite(value.y??0,"quaternion.y"),z=finite(value.z??0,"quaternion.z"),w=finite(value.w??1,"quaternion.w");
+  const len=Math.hypot(x,y,z,w);if(!(len>EPS))throw new RangeError("quaternion must be non-zero");
+  return Object.freeze({x:x/len,y:y/len,z:z/len,w:w/len});
+}
+export function conjugateQuaternion(value){
+  const q=normalizeQuaternion(value);return Object.freeze({x:-q.x,y:-q.y,z:-q.z,w:q.w});
+}
+export function multiplyQuaternions(aValue,bValue){
+  const a=normalizeQuaternion(aValue),b=normalizeQuaternion(bValue);
+  return normalizeQuaternion({
+    x:a.w*b.x+a.x*b.w+a.y*b.z-a.z*b.y,
+    y:a.w*b.y-a.x*b.z+a.y*b.w+a.z*b.x,
+    z:a.w*b.z+a.x*b.y-a.y*b.x+a.z*b.w,
+    w:a.w*b.w-a.x*b.x-a.y*b.y-a.z*b.z
+  });
+}
+export function axisAngleQuaternion(axisValue,angleDeg){
+  const axis=point3(axisValue,"axis"),len=Math.hypot(axis.x,axis.y,axis.z);
+  if(!(len>EPS))throw new RangeError("rotation axis must be non-zero");
+  const half=finite(angleDeg,"angle_deg")*Math.PI/360,s=Math.sin(half)/len;
+  return normalizeQuaternion({x:axis.x*s,y:axis.y*s,z:axis.z*s,w:Math.cos(half)});
+}
+export function quaternionAxisAngle(value){
+  const q=normalizeQuaternion(value),w=Math.max(-1,Math.min(1,q.w));
+  const angle=2*Math.acos(w),s=Math.sqrt(Math.max(0,1-w*w));
+  if(s<EPS||Math.abs(angle)<EPS)return Object.freeze({axis:Object.freeze({x:1,y:0,z:0}),angle_deg:0});
+  return Object.freeze({axis:Object.freeze({x:q.x/s,y:q.y/s,z:q.z/s}),angle_deg:angle*180/Math.PI});
+}
+export function eulerQuaternion({x=0,y=0,z=0}={}){
+  const rx=axisAngleQuaternion({x:1,y:0,z:0},x);
+  const ry=axisAngleQuaternion({x:0,y:1,z:0},y);
+  const rz=axisAngleQuaternion({x:0,y:0,z:1},z);
+  return multiplyQuaternions(rz,multiplyQuaternions(ry,rx));
+}
+export function rotateVectorByQuaternion(vectorValue,qValue){
+  const v=point3(vectorValue,"vector"),q=normalizeQuaternion(qValue);
+  const p={x:v.x,y:v.y,z:v.z,w:0},qi=conjugateQuaternion(q);
+  const a={
+    x:q.w*p.x+q.x*p.w+q.y*p.z-q.z*p.y,
+    y:q.w*p.y-q.x*p.z+q.y*p.w+q.z*p.x,
+    z:q.w*p.z+q.x*p.y-q.y*p.x+q.z*p.w,
+    w:q.w*p.w-q.x*p.x-q.y*p.y-q.z*p.z
+  };
+  const r={
+    x:a.w*qi.x+a.x*qi.w+a.y*qi.z-a.z*qi.y,
+    y:a.w*qi.y-a.x*qi.z+a.y*qi.w+a.z*qi.x,
+    z:a.w*qi.z+a.x*qi.y-a.y*qi.x+a.z*qi.w
+  };
+  return Object.freeze(r);
+}
+export function worldToLocalPoint(frame,worldValue){
+  const origin=point3(frame?.origin_mm??{},"frame.origin_mm"),world=point3(worldValue,"world");
+  return rotateVectorByQuaternion(
+    {x:world.x-origin.x,y:world.y-origin.y,z:world.z-origin.z},
+    conjugateQuaternion(frame?.rotation_quaternion??{})
+  );
+}
+export function localToWorldPoint(frame,localValue){
+  const origin=point3(frame?.origin_mm??{},"frame.origin_mm"),rotated=rotateVectorByQuaternion(localValue,frame?.rotation_quaternion??{});
+  return Object.freeze({x:origin.x+rotated.x,y:origin.y+rotated.y,z:origin.z+rotated.z});
+}
+export function worldToLocalQuaternion(frame,worldQuaternion){
+  return multiplyQuaternions(conjugateQuaternion(frame?.rotation_quaternion??{}),worldQuaternion);
+}
+export function localToWorldQuaternion(frame,localQuaternion){
+  return multiplyQuaternions(frame?.rotation_quaternion??{},localQuaternion);
+}
+
+export const ASSEMBLY_MEMBER_KINDS=Object.freeze(["tube","mesh-instance","construction","dimension","assembly"]);
+export function normalizeAssemblyRef(input={}){
+  const kind=String(input.kind??"").trim();
+  if(!ASSEMBLY_MEMBER_KINDS.includes(kind))throw new RangeError("unsupported Assembly member kind");
+  const id=String(input.id??input.tubeId??input.instanceId??input.assemblyId??"").trim();
+  if(!id)throw new Error(kind+" member requires id");
+  return Object.freeze({kind,id});
+}
+export function assemblyMemberKey(input){
+  const ref=normalizeAssemblyRef(input);return ref.kind+":"+ref.id;
+}
+export function normalizeAssemblyMember(input={}){
+  const ref=normalizeAssemblyRef(input.ref??input);
+  const local=input.local??{};
+  const position=local.position_mm==null?null:point3(local.position_mm,"member.local.position_mm");
+  const rotation=local.rotation_quaternion==null?null:normalizeQuaternion(local.rotation_quaternion);
+  const direction=local.direction==null?null:point3(local.direction,"member.local.direction");
+  return Object.freeze({
+    ref,
+    local:Object.freeze({
+      position_mm:position,
+      rotation_quaternion:rotation,
+      direction
+    })
+  });
+}
+export function normalizeAssemblyFrame(input={}){
+  return Object.freeze({
+    origin_mm:point3(input.origin_mm??input.origin??{},"assembly.origin_mm"),
+    rotation_quaternion:normalizeQuaternion(input.rotation_quaternion??{})
+  });
+}
+export function ensureAssemblyState(project){
+  if(!project||typeof project!=="object")throw new TypeError("project is required");
+  if(!Array.isArray(project.assemblies))project.assemblies=[];
+  for(const assembly of project.assemblies){
+    if(!assembly||typeof assembly!=="object")continue;
+    assembly.id=String(assembly.id??makeId());
+    assembly.kind="Assembly";
+    assembly.name=String(assembly.name??"Assembly");
+    assembly.frame={...normalizeAssemblyFrame(assembly.frame??{})};
+    assembly.members=(assembly.members??[]).map(member=>({...normalizeAssemblyMember(member),ref:{...normalizeAssemblyMember(member).ref},local:{...normalizeAssemblyMember(member).local}}));
+    assembly.fixed=assembly.fixed===true;
+    assembly.visible=assembly.visible!==false;
+    if(assembly.lock_state?.mode!=="Object"&&assembly.lock_state?.mode!=="Position")delete assembly.lock_state;
+  }
+  return project.assemblies;
+}
+export function assemblyById(project,id){
+  return ensureAssemblyState(project).find(item=>String(item.id)===String(id))??null;
+}
+function directNestedIds(assembly){
+  return (assembly?.members??[]).filter(member=>member.ref?.kind==="assembly").map(member=>String(member.ref.id));
+}
+export function assemblyDescendantIds(project,assemblyId){
+  const result=[],visiting=new Set(),visited=new Set();
+  const visit=(id)=>{
+    if(visiting.has(id))throw new Error("Assembly cycle detected");
+    if(visited.has(id))return;
+    visiting.add(id);
+    const assembly=assemblyById(project,id);
+    if(!assembly){visiting.delete(id);return;}
+    for(const child of directNestedIds(assembly)){result.push(child);visit(child);}
+    visiting.delete(id);visited.add(id);
+  };
+  visit(String(assemblyId));
+  return Object.freeze([...new Set(result)]);
+}
+export function wouldCreateAssemblyCycle(project,parentId,childId){
+  const parent=String(parentId),child=String(childId);
+  return parent===child||assemblyDescendantIds(project,child).includes(parent);
+}
+export function createAssembly(project,{id=null,name="Assembly",frame={},members=[],fixed=false,visible=true}={}){
+  ensureAssemblyState(project);
+  const assembly={
+    id:String(id??makeId()),
+    kind:"Assembly",
+    name:String(name??"Assembly").trim()||"Assembly",
+    frame:{...normalizeAssemblyFrame(frame)},
+    members:[],
+    fixed:fixed===true,
+    visible:visible!==false
+  };
+  if(assemblyById(project,assembly.id))throw new Error("Assembly id already exists");
+  project.assemblies.push(assembly);
+  try{
+    setAssemblyMembers(project,assembly.id,members);
+    return assembly;
+  }catch(error){
+    project.assemblies=project.assemblies.filter(item=>String(item?.id)!==String(assembly.id));
+    throw error;
+  }
+}
+export function setAssemblyMembers(project,assemblyId,members=[]){
+  const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
+  const map=new Map();
+  for(const raw of members){
+    const member=normalizeAssemblyMember(raw);
+    if(member.ref.kind==="assembly"){
+      if(!assemblyById(project,member.ref.id))throw new Error("Nested Assembly not found");
+      if(wouldCreateAssemblyCycle(project,assembly.id,member.ref.id))throw new Error("Assembly nesting cycle is forbidden");
+    }
+    map.set(assemblyMemberKey(member.ref),{ref:{...member.ref},local:{...member.local}});
+  }
+  assembly.members=[...map.values()];
+  return assembly;
+}
+export function addAssemblyMembers(project,assemblyId,members=[]){
+  const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
+  return setAssemblyMembers(project,assemblyId,[...(assembly.members??[]),...members]);
+}
+export function removeAssemblyMembers(project,assemblyId,refs=[]){
+  const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
+  const remove=new Set(refs.map(assemblyMemberKey));
+  assembly.members=(assembly.members??[]).filter(member=>!remove.has(assemblyMemberKey(member.ref)));
+  return assembly;
+}
+export function leafAssemblyMembers(project,assemblyId){
+  const root=assemblyById(project,assemblyId);if(!root)throw new Error("Assembly not found");
+  const result=new Map(),visiting=new Set();
+  const visit=(id)=>{
+    if(visiting.has(id))throw new Error("Assembly cycle detected");
+    visiting.add(id);
+    const assembly=assemblyById(project,id);if(!assembly)throw new Error("Nested Assembly not found");
+    for(const member of assembly.members??[]){
+      if(member.ref.kind==="assembly")visit(member.ref.id);
+      else result.set(assemblyMemberKey(member.ref),{ref:{...member.ref},local:{...member.local}});
+    }
+    visiting.delete(id);
+  };
+  visit(root.id);return Object.freeze([...result.values()].map(member=>Object.freeze(member)));
+}
+export function assembliesContainingMember(project,memberRef,{includeAncestors=true}={}){
+  const key=assemblyMemberKey(memberRef),direct=[];
+  for(const assembly of ensureAssemblyState(project)){
+    if((assembly.members??[]).some(member=>assemblyMemberKey(member.ref)===key))direct.push(assembly);
+  }
+  if(!includeAncestors)return Object.freeze(direct);
+  const result=new Map(direct.map(item=>[String(item.id),item]));
+  let changed=true;
+  while(changed){
+    changed=false;
+    for(const assembly of ensureAssemblyState(project)){
+      for(const member of assembly.members??[]){
+        if(member.ref?.kind==="assembly"&&result.has(String(member.ref.id))&&!result.has(String(assembly.id))){
+          result.set(String(assembly.id),assembly);changed=true;
+        }
+      }
+    }
+  }
+  return Object.freeze([...result.values()]);
+}
+export function assemblyContextForMember(project,memberRef,{world_point=null}={}){
+  const chain=[...assembliesContainingMember(project,memberRef,{includeAncestors:true})].reverse();
+  const direct=chain.at(-1)??null;
+  const point=world_point==null?null:point3(world_point,"world_point");
+  return freeze({
+    space:direct?"assembly":"project",
+    assembly_id:direct?String(direct.id):null,
+    assembly_path:chain.map(item=>String(item.id)),
+    local_point_mm:point==null?null:direct?worldToLocalPoint(direct.frame,point):point3(point,"project_point"),
+    world_point_mm:point==null?null:point3(point,"world_point")
+  });
+}
+export function crossAssemblyMetadata(contexts=[]){
+  const normalized=(contexts??[]).filter(Boolean).map(context=>({
+    space:String(context.space??(context.assembly_id?"assembly":"project")),
+    assembly_id:context.assembly_id==null?null:String(context.assembly_id),
+    assembly_path:Array.isArray(context.assembly_path)?context.assembly_path.map(String):[],
+    local_point_mm:context.local_point_mm==null?null:point3(context.local_point_mm,"local_point_mm"),
+    world_point_mm:context.world_point_mm==null?null:point3(context.world_point_mm,"world_point_mm")
+  }));
+  const keys=[...new Set(normalized.map(context=>context.assembly_id?"assembly:"+context.assembly_id:"project-root"))];
+  const cross=keys.length>1;
+  return freeze({
+    cross_assembly:cross,
+    relation_space:cross?"CrossAssembly":keys[0]?.startsWith("assembly:")?"SameAssembly":"Project",
+    assembly_ids:[...new Set(normalized.map(context=>context.assembly_id).filter(Boolean))],
+    contexts:normalized
+  });
+}
+export function setAssemblyMemberLocal(project,assemblyId,memberRef,local={}){
+  const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
+  const key=assemblyMemberKey(memberRef);
+  const index=(assembly.members??[]).findIndex(member=>assemblyMemberKey(member.ref)===key);
+  if(index<0)throw new Error("Assembly member not found");
+  const next=normalizeAssemblyMember({ref:assembly.members[index].ref,local});
+  assembly.members[index]={ref:{...next.ref},local:{...next.local}};
+  return assembly.members[index];
+}
+export function renameAssembly(project,assemblyId,name){
+  const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
+  const text=String(name??"").trim();if(!text)throw new Error("Assembly name is required");
+  assembly.name=text;return assembly;
+}
+export function setAssemblyFixed(project,assemblyId,fixed){
+  const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
+  assembly.fixed=fixed===true;return assembly;
+}
+export function setAssemblyVisibility(project,assemblyId,visible){
+  const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
+  assembly.visible=visible!==false;return assembly;
+}
+export function setAssemblyLock(project,assemblyId,mode="Unlocked"){
+  const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
+  const value=String(mode);
+  if(value==="Unlocked")delete assembly.lock_state;
+  else if(value==="Object"||value==="Position")assembly.lock_state={mode:value};
+  else throw new RangeError("Assembly lock mode must be Unlocked, Position or Object");
+  return assembly;
+}
+export function setAssemblyFrame(project,assemblyId,frame){
+  const assembly=assemblyById(project,assemblyId);if(!assembly)throw new Error("Assembly not found");
+  assembly.frame={...normalizeAssemblyFrame(frame)};return assembly;
+}
+export function removeAssembly(project,assemblyId){
+  const assembly=assemblyById(project,assemblyId);if(!assembly)return false;
+  if((assembly.members??[]).length)throw new Error("Assembly with components must be dissolved, not deleted");
+  project.assemblies=project.assemblies.filter(item=>String(item.id)!==String(assembly.id));
+  for(const parent of project.assemblies){
+    parent.members=(parent.members??[]).filter(member=>!(member.ref.kind==="assembly"&&String(member.ref.id)===String(assembly.id)));
+  }
+  return true;
+}
+function rebaseAssemblyMemberLocal(project,member,fromFrame,toFrame){
+  const next=clone(member),local=next.local??{};
+  let worldPosition=null,worldRotation=null,worldDirection=null;
+  if(next.ref?.kind==="assembly"){
+    const child=assemblyById(project,next.ref.id);
+    if(child){
+      worldPosition=child.frame?.origin_mm??null;
+      worldRotation=child.frame?.rotation_quaternion??null;
+    }
+  }else{
+    if(local.position_mm!=null)worldPosition=localToWorldPoint(fromFrame,local.position_mm);
+    if(local.rotation_quaternion!=null)worldRotation=localToWorldQuaternion(fromFrame,local.rotation_quaternion);
+    if(local.direction!=null)worldDirection=rotateVectorByQuaternion(local.direction,fromFrame?.rotation_quaternion??{});
+  }
+  next.local={
+    position_mm:worldPosition==null?null:worldToLocalPoint(toFrame,worldPosition),
+    rotation_quaternion:worldRotation==null?null:worldToLocalQuaternion(toFrame,worldRotation),
+    direction:worldDirection==null?null:rotateVectorByQuaternion(worldDirection,conjugateQuaternion(toFrame?.rotation_quaternion??{}))
+  };
+  return normalizeAssemblyMember(next);
+}
+export function dissolveAssembly(project,assemblyId){
+  const assembly=assemblyById(project,assemblyId);if(!assembly)return false;
+  const members=(assembly.members??[]).map(clone);
+  for(const parent of ensureAssemblyState(project)){
+    if(String(parent.id)===String(assembly.id))continue;
+    const next=[];
+    for(const member of parent.members??[]){
+      if(member.ref.kind==="assembly"&&String(member.ref.id)===String(assembly.id)){
+        next.push(...members.map(child=>rebaseAssemblyMemberLocal(project,child,assembly.frame,parent.frame)));
+      }else next.push(member);
+    }
+    parent.members=[...new Map(next.map(member=>[assemblyMemberKey(member.ref),member])).values()]
+      .map(member=>({ref:{...member.ref},local:{...member.local}}));
+  }
+  project.assemblies=project.assemblies.filter(item=>String(item.id)!==String(assembly.id));
+  return Object.freeze(members.map(Object.freeze));
+}

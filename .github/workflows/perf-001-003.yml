@@ -1,0 +1,167 @@
+name: perf-001-003-implementation
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/perf-*'
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - develop
+      - main
+      - 'feature/perf-*'
+      - feature/mobile-viewport-mob001-20261010
+
+jobs:
+  core-perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      # Measure the complete regression suite before any focused check can fail.
+      - name: Validate standalone builder syntax before running tests
+        run: node --check scripts/build-standalone.mjs
+      - name: Run existing regression suite and capture current failure count
+        id: regression
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p reports/regression
+          set -o pipefail
+          npm test 2>&1 | tee reports/regression/node-test.log
+      - name: Summarize measured regression results
+        if: always()
+        shell: bash
+        run: |
+          if [ -f reports/regression/node-test.log ]; then
+            {
+              echo '### Current Node regression suite'
+              echo '```text'
+              grep -E '^# (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) ' reports/regression/node-test.log | tail -n 8 || true
+              echo '```'
+              echo 'Counts come from this run, not the historical 105 failures.'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-regression-evidence
+          path: reports/regression/node-test.log
+          if-no-files-found: warn
+
+      - name: Test frame coalescer and isolated startup
+        run: node --test tests/core/perf-001-003.test.mjs
+      - name: Validate DWFx part cache and legacy mutation fallback
+        run: node --test tests/core/perf-dwfx-*.test.mjs tests/core/perf-legacy-project-switch.test.mjs tests/core/perf-source-link-revisions.test.mjs
+      - name: Profile conservative DWFx signature on synthetic fixtures
+        run: node scripts/benchmark-dwfx-signature.mjs
+      - name: Verify full standalone build
+        run: npm run build:standalone
+      - name: Validate inline JavaScript syntax in generated Standalone
+        run: node scripts/check-standalone-syntax.mjs
+      - name: Verify generated PERF runtime contract
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const html=fs.readFileSync('dist/TubeBender_CAD_VC207R7_M1_Standalone.html','utf8');
+          assert.match(html,/window\.TubeBenderRenderPerformance/);
+          assert.match(html,/window\.TubeBenderStartupStatus/);
+          assert.match(html,/tbViewerFrameCoalescer\.schedule/);
+          assert.ok(!html.includes("currentProjectCollisionAnalysis = getProjectCollisionAnalysis(activeProject());\n  safeUiCall('renderBoundsWarning', renderBoundsWarning);"));
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tubebender-perf-standalone
+          path: dist/TubeBender_CAD_VC207R7_M1_Standalone.html
+          if-no-files-found: error
+      - name: Enforce regression pass after gathering PERF evidence
+        if: always() && steps.regression.outcome == 'failure'
+        run: |
+          echo 'Regression suite failed; review perf-regression-evidence for measured failures.' >&2
+          exit 1
+
+  chromium-perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Playwright test runner
+        run: npm install --no-save @playwright/test@1.56.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Syntax-check Standalone builder
+        run: node --check scripts/build-standalone.mjs
+      - name: Syntax-check PERF browser specs
+        run: |
+          node --check tests/browser/perf-001-003.spec.mjs
+          node --check tests/browser/release-gate.spec.mjs
+      - name: Verify Chromium baseline without TubeBender
+        id: chromium_baseline
+        continue-on-error: true
+        run: TB_BROWSER_REPORT_NAME=chromium-baseline npx playwright test --config acceptance/playwright.config.mjs --grep 'Chromium baseline responds'
+      - name: Build standalone under test
+        id: standalone_build
+        continue-on-error: true
+        run: npm run build:release
+      - name: Validate generated Standalone JavaScript syntax
+        if: steps.standalone_build.outcome == 'success'
+        run: |
+          node scripts/check-standalone-syntax.mjs
+          node scripts/check-standalone-syntax.mjs dist/BendPipe_Pro_CAD_Workspace_Prototype.html
+          node scripts/check-standalone-syntax.mjs dist/BendPipe_Pro_CAD_Workspace.html
+      - name: Verify PERF-001 and PERF-003 application behavior
+        if: steps.standalone_build.outcome == 'success'
+        id: chromium_app
+        continue-on-error: true
+        run: TB_BROWSER_REPORT_NAME=tubebender-application npx playwright test --config acceptance/playwright.config.mjs --grep 'PERF-00[13]' --grep-invert 'Chromium baseline responds'
+      - name: Enforce Chromium baseline and application acceptance
+        if: always()
+        run: |
+          {
+            echo '### PERF browser acceptance'
+            echo '| Stage | Outcome |'
+            echo '| --- | --- |'
+            echo '| Standalone build | ${{ steps.standalone_build.outcome }} |'
+            echo '| Chromium baseline | ${{ steps.chromium_baseline.outcome }} |'
+            echo '| TubeBender PERF-001 / PERF-003 | ${{ steps.chromium_app.outcome }} |'
+            echo 'Playwright JSON, screenshots, and traces are retained in perf-001-003-browser-evidence.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.standalone_build.outcome }}" != success ] || [ "${{ steps.chromium_baseline.outcome }}" != success ] || [ "${{ steps.chromium_app.outcome }}" != success ]; then exit 1; fi
+      - name: Verify native browser storage survives reload
+        if: success() || failure()
+        run: npx playwright test --config acceptance/playwright.config.mjs --grep 'PERSISTENCE'
+      - name: Verify full browser acceptance including DWFx project round trip
+        if: success() || failure()
+        run: TB_BROWSER_REPORT_NAME=release-gate npx playwright test --config acceptance/playwright.config.mjs
+      - name: Verify full round trip on the opt-in CAD workspace
+        if: steps.standalone_build.outcome == 'success'
+        run: TB_BROWSER_REPORT_NAME=prototype-round-trip TB_BROWSER_APP_PATH=/BendPipe_Pro_CAD_Workspace_Prototype.html npx playwright test --config acceptance/playwright.config.mjs --grep RELEASE-GATE
+      - name: Verify full round trip on the primary release workspace
+        if: steps.standalone_build.outcome == 'success'
+        run: TB_BROWSER_REPORT_NAME=workspace-round-trip TB_BROWSER_APP_PATH=/BendPipe_Pro_CAD_Workspace.html npx playwright test --config acceptance/playwright.config.mjs --grep RELEASE-GATE
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-001-003-browser-evidence
+          path: reports/browser
+          if-no-files-found: warn
+      - name: Upload opt-in CAD workspace prototype
+        if: steps.standalone_build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: BendPipe-Pro-CAD-Workspace-Prototype
+          path: dist/BendPipe_Pro_CAD_Workspace_Prototype.html
+          if-no-files-found: error

@@ -1,0 +1,66 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import vm from "node:vm";
+
+test("large DWFx mesh prepares vertex and index buffers across multiple tasks",()=>{
+  const source=fs.readFileSync(new URL("../../src/import/dwfx/reference-scene-ui.js",import.meta.url),"utf8");
+  const window={};vm.runInNewContext(source,{window,setTimeout,clearTimeout,globalThis:{}});
+  class Group{
+    constructor(){this.children=[];this.userData={};this.scale={setScalar(){}};this.position={set(){}};}
+    add(v){this.children.push(v);}
+    clear(){this.children=[];}
+    updateMatrixWorld(){}
+    clone(deep=true){
+      const copy=new Group();
+      copy.userData={...this.userData};
+      if(deep)for(const child of this.children)copy.add(child?.clone?.(true)??child);
+      return copy;
+    }
+  }
+  class BufferGeometry{
+    setAttribute(name,value){this[name]=value;return this;}
+    setIndex(value){this.indices=value;return this;}
+    computeVertexNormals(){}
+  }
+  class BufferAttribute{constructor(array,itemSize){this.array=array;this.itemSize=itemSize;}}
+  class Mesh{
+    constructor(geometry){this.geometry=geometry;this.userData={};this.matrix={fromArray(){}};}
+    clone(){return this;}
+  }
+  const THREE={Group,BufferGeometry,BufferAttribute,Mesh,MeshStandardMaterial:class{},DoubleSide:2};
+  const count=5000;
+  const vertices=Array.from({length:count},(_,i)=>[i,i+1,i+2]);
+  const faces=Array.from({length:count-2},(_,i)=>[i,i+1,i+2]);
+  const asset={id:"big",kind:"mesh",status:"exact",meshes:[{vertices,faces}]};
+  const project={referenceScenes:[{id:"one",tree:[{id:"node",geometry_instances:[{asset_id:"big",status:"exact"}],children:[]}],
+    display_runtime:{scene_id:"one",assets:[asset],scale_mm_per_source_unit:1}}]};
+  const jobs=[];const postTask=fn=>{jobs.push(fn);return jobs.length;};
+  const parent=new Group();const ui=window.TubeBenderReferenceSceneUi;
+  const h=ui.render3DCooperative({parent,project,THREE,postTask,cancelTask(){},batchSize:1});
+  let ticks=0;
+  while(jobs.length&&ticks<30){jobs.shift()();ticks++;}
+  assert.equal(h.status.committed,true);
+  assert.ok(ticks>4,"large mesh must yield across multiple scheduled tasks");
+  assert.equal(parent.children.length,1);
+  // Rendering strategy may add/remove grouping layers; assert mesh buffers,
+  // not incidental Three.js scene nesting depth.
+  const findGeometry=(node)=>{
+    if(node?.geometry?.position&&node?.geometry?.indices)return node.geometry;
+    for(const child of node?.children??[]){
+      const found=findGeometry(child);
+      if(found)return found;
+    }
+    return null;
+  };
+  const buffer=findGeometry(parent);
+  assert.ok(buffer,"prepared mesh must be present in the committed scene");
+  assert.equal(buffer.position.array.length,count*3);
+  assert.equal(buffer.indices.array.length,(count-2)*3);
+  assert.equal(buffer.position.array[3],1);
+  assert.equal(buffer.indices.array[3],1);
+  assert.equal(buffer.position.array.length,15000);
+  assert.equal(buffer.normal.array.length,15000);
+  assert.ok(Number.isFinite(buffer.normal.array[2]));
+  assert.equal(buffer.position.itemSize,3);
+});

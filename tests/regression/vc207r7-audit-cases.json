@@ -1,0 +1,177 @@
+{
+  "suite": "VC207R7 audit regression cases",
+  "specification_revision": "2.0",
+  "baseline_sha256": "685578ea584dccdeea3bd34c4fdaf988cb3a461e0c1d76deecf2289dcb645fca",
+  "units": {
+    "length": "mm",
+    "angle": "deg"
+  },
+  "cases": [
+    {
+      "id": "A01-centerline-arc-length",
+      "priority": "P0",
+      "input": {
+        "outer_diameter": 22,
+        "clr": 65,
+        "bend_angle": 90,
+        "straight_before": 100,
+        "straight_after": 100
+      },
+      "expected": {
+        "arc_length": 102.10176124166827,
+        "total_centerline_length": 302.10176124166827,
+        "formula": "arc_length = CLR * abs(angle_rad)"
+      },
+      "forbidden": [
+        "adding tube radius to CLR when CLR already means centerline radius"
+      ],
+      "tolerance": {
+        "length": 0.000001
+      }
+    },
+    {
+      "id": "A02-check-exception-is-not-ok",
+      "priority": "P0",
+      "input": {
+        "validation_component": "bounds-or-intersection-check",
+        "behavior": "throws"
+      },
+      "expected": {
+        "status": "calculation_error",
+        "production_release_allowed": false
+      },
+      "forbidden": [
+        "passed",
+        "ok"
+      ]
+    },
+    {
+      "id": "A03-tooling-reference-stability",
+      "priority": "P0",
+      "input": {
+        "tooling_records_before": [
+          "tool-15",
+          "tool-22",
+          "tool-28"
+        ],
+        "tube_tooling_id": "tool-22",
+        "mutation": "delete tool-15 then sort"
+      },
+      "expected": {
+        "tube_tooling_id": "tool-22",
+        "canonical_geometry_unchanged": true
+      },
+      "forbidden": [
+        "array-index identity"
+      ]
+    },
+    {
+      "id": "A04-no-silent-manufacturing-defaults",
+      "priority": "P0",
+      "input": {
+        "canonical_material": "Copper",
+        "missing_machine_profile": true,
+        "missing_springback": true
+      },
+      "expected": {
+        "material_remains": "Copper",
+        "machine_profile": null,
+        "springback": null,
+        "production_release_allowed": false
+      },
+      "forbidden": [
+        "Steel fallback",
+        "Generic CNC fallback",
+        "invented springback"
+      ]
+    },
+    {
+      "id": "A05-production-release-gate",
+      "priority": "P0",
+      "input": {
+        "required_validation_statuses": [
+          "passed",
+          "not_checked"
+        ],
+        "export_kind": "production"
+      },
+      "expected": {
+        "allowed": false,
+        "reason_contains": "required checks incomplete"
+      }
+    },
+    {
+      "id": "A06-angle-edit-stale-formula",
+      "priority": "P1",
+      "input": {
+        "angle_before": 90,
+        "angle_formula_before": "90",
+        "edited_angle": 45
+      },
+      "expected": {
+        "angle_after": 45,
+        "stale_formula_must_not_restore_old_value": true
+      }
+    },
+    {
+      "id": "A09-project-conflict-visible",
+      "priority": "P1",
+      "input": {
+        "active_tube": "A",
+        "collision_pair": [
+          "B",
+          "C"
+        ]
+      },
+      "expected": {
+        "project_validation_has_collision": true,
+        "active_tube_summary_may_be_separate": true
+      }
+    },
+    {
+      "id": "A10-import-does-not-invent-line",
+      "priority": "P1",
+      "input": {
+        "imported_elements": [
+          "CUSTOM",
+          "BEND"
+        ]
+      },
+      "expected": {
+        "unsupported_element_preserved_or_reported": true,
+        "production_release_allowed": false
+      },
+      "forbidden": [
+        "synthetic LINE length 100"
+      ]
+    },
+    {
+      "id": "A12-dxf-preserves-curvature",
+      "priority": "P1",
+      "input": {
+        "primitive_sequence": [
+          {
+            "type": "LINE",
+            "length": 100
+          },
+          {
+            "type": "BEND",
+            "clr": 65,
+            "angle": 90
+          },
+          {
+            "type": "LINE",
+            "length": 100
+          }
+        ]
+      },
+      "expected": {
+        "bend_exported_as_curve_or_tolerance_controlled_approximation": true,
+        "maximum_centerline_deviation": 0.1
+      },
+      "tolerance": {
+        "length": 0.1
+      }
+    }
+  ]
+}

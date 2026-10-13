@@ -1,0 +1,59 @@
+{
+  "source_file": "ITEM[80003043(A)]-DOC[80003043(A)]-Components WTB, CoolMaster, NO-014.5.dwfx",
+  "hsf_version": "14.50",
+  "note": "Exact Include Library anchors observed from each part's geometric-variation segment. Node-chain alternatives are listed where present. No chain is selected as canonical or production geometry here.",
+  "parts": [
+    {
+      "part_number": "10160780",
+      "variation_segment": "121137",
+      "variation_include": "?Include Library/34001",
+      "variation_include_offset": 10390333,
+      "node_include": null,
+      "node_include_offset": null
+    },
+    {
+      "part_number": "10157546",
+      "variation_segment": "121191",
+      "variation_include": "?Include Library/46910",
+      "variation_include_offset": 12793026,
+      "node_segment": "121190",
+      "node_include": "?Include Library/46838",
+      "node_include_offset": 12765748
+    },
+    {
+      "part_number": "10157555",
+      "variation_segment": "121197",
+      "variation_include": "?Include Library/47012",
+      "variation_include_offset": 12876042,
+      "node_segment": "121196",
+      "node_include": "?Include Library/46992",
+      "node_include_offset": 12857095
+    },
+    {
+      "part_number": "10157683",
+      "variation_segment": "121199",
+      "variation_include": "?Include Library/47033",
+      "variation_include_offset": 12883275,
+      "node_include": null,
+      "node_include_offset": null
+    },
+    {
+      "part_number": "10157549",
+      "variation_segment": "121271",
+      "variation_include": "?Include Library/69646",
+      "variation_include_offset": 15611644,
+      "node_segment": "121270",
+      "node_include": "?Include Library/69466",
+      "node_include_offset": 15594148
+    },
+    {
+      "part_number": "10157552",
+      "variation_segment": "121273",
+      "variation_include": "?Include Library/69667",
+      "variation_include_offset": 15622313,
+      "node_include": null,
+      "node_include_offset": null
+    }
+  ],
+  "production_ready": false
+}

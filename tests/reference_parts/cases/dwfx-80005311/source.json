@@ -1,0 +1,27 @@
+{
+  "id": "dwfx-80005311",
+  "artifact_role": "authoritative_source_cad",
+  "source": {
+    "format": "DWFx",
+    "file": "source.dwfx",
+    "original_filename": "ITEM[80005311(A)]-DOC[80005311(A)]-Components WTB, CoolMaster, K-012.1, UL_CSA (7).dwfx",
+    "size_bytes": 8749963,
+    "sha256": "dfb0df3a7f5ab6c9ae6815ab9555c40ea09a03b2480218bb30b163825166e45c",
+    "byte_preserved": true
+  },
+  "container_validation": {
+    "format": "DWFx/OPC ZIP",
+    "entry_count": 26,
+    "w3d_resource_count": 1,
+    "hsf_version": "14.50",
+    "w3d_version": "01.00"
+  },
+  "canonical_geometry": {
+    "value": null,
+    "confidence": 0.0,
+    "reason": "The source CAD has been archived unchanged; canonical tube recognition and dimensions have not been verified for this reference case.",
+    "source": "source.dwfx",
+    "method": "not_evaluated"
+  },
+  "production_ready": false
+}

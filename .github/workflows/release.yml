@@ -1,0 +1,70 @@
+name: release-candidate
+
+on:
+  push:
+    tags:
+      - 'v*-rc.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify release version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: node --input-type=module -e "import fs from 'node:fs'; const p=JSON.parse(fs.readFileSync('package.json')); if(process.env.GITHUB_REF_NAME!=='v'+p.version) throw new Error('Tag/package version mismatch');"
+      - name: Node regression
+        run: npm test
+      - name: Build accepted CAD Workspace release
+        run: npm run build:release
+      - name: Validate standalone JavaScript
+        run: |
+          node scripts/check-standalone-syntax.mjs
+          node scripts/check-standalone-syntax.mjs dist/BendPipe_Pro_CAD_Workspace.html
+      - name: Install browser runner
+        run: npm install --no-save @playwright/test@1.56.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Full browser acceptance
+        run: npx playwright test --config acceptance/playwright.config.mjs
+      - name: Verify full round trip on the release artifact
+        run: TB_BROWSER_REPORT_NAME=release-gate TB_BROWSER_APP_PATH=/BendPipe_Pro_CAD_Workspace.html npx playwright test --config acceptance/playwright.config.mjs --grep RELEASE-GATE
+      - name: Verify checksums
+        working-directory: dist
+        run: sha256sum -c SHA256SUMS
+      - name: Package downloadable archive
+        run: |
+          VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json')).version")
+          zip -j "dist/BendPipe-Pro-v$VERSION.zip" dist/BendPipe_Pro_CAD_Workspace.html dist/TubeBender_CAD_VC207R7_M1_Standalone.html dist/README-RELEASE.txt dist/SHA256SUMS
+      - name: Retain browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-browser-evidence
+          path: reports/browser
+      - name: Retain release package
+        uses: actions/upload-artifact@v4
+        with:
+          name: BendPipe-Pro-release-candidate
+          path: |
+            dist/TubeBender_CAD_VC207R7_M1_Standalone.html
+            dist/BendPipe_Pro_CAD_Workspace.html
+            dist/README-RELEASE.txt
+            dist/SHA256SUMS
+            dist/BendPipe-Pro-*.zip
+          if-no-files-found: error
+      - name: Publish prerelease after verification
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json')).version")
+          gh release create "$GITHUB_REF_NAME" "dist/BendPipe-Pro-v$VERSION.zip" dist/BendPipe_Pro_CAD_Workspace.html dist/TubeBender_CAD_VC207R7_M1_Standalone.html dist/README-RELEASE.txt dist/SHA256SUMS --verify-tag --prerelease --title "BendPipe-Pro $GITHUB_REF_NAME" --notes-file "docs/releases/$VERSION.md"

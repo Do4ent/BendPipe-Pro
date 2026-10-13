@@ -1,0 +1,259 @@
+import { buildDwfxAssemblyImportPlan } from "./assembly-import-plan.mjs";
+import { hydrateDwfxAssemblyVariationSegments } from "./assembly-variation-hydration.mjs";
+import { prepareDwfxAssemblyImport } from "./assembly-import-pipeline.mjs";
+import { buildLegacyProjectPackageFromAssembly } from "./legacy-project-package.mjs";
+import { spatiallyPlaceDwfxAssembly } from "./editable-spatial-placement.mjs";
+import { roundDwfxAssemblyLinearDimensions } from "./editable-linear-rounding.mjs";
+import {
+  deriveAutomaticFrameFromReferenceBounds,
+  rebaseDwfxAssemblyToAutomaticFrame
+} from "./automatic-frame-fit.mjs";
+
+/**
+ * Compose the trusted DWFx project import path:
+ * exact metadata/linkage plan -> exact variation hydration ->
+ * per-tube trusted import -> VC207R7 project package.
+ *
+ * Every blocker remains stage-specific and no later stage is attempted after
+ * an unsafe or partial result.
+ */
+export function prepareTrustedDwfxProjectImport({
+  opcode_stream,
+  metadata_recognition,
+  include_linkage,
+  descriptor,
+  hsf_version=null,
+  project_id="dwfx-project",
+  project_name="Imported DWFx project",
+  bbox=null,
+  reference_scene=null,
+  buildPlan=buildDwfxAssemblyImportPlan,
+  hydrateVariations=hydrateDwfxAssemblyVariationSegments,
+  prepareAssembly=prepareDwfxAssemblyImport,
+  placeAssembly=spatiallyPlaceDwfxAssembly,
+  roundAssembly=roundDwfxAssemblyLinearDimensions,
+  buildProjectPackage=buildLegacyProjectPackageFromAssembly
+}){
+  for(const [label,fn] of [
+    ["buildPlan",buildPlan],
+    ["hydrateVariations",hydrateVariations],
+    ["prepareAssembly",prepareAssembly],
+    ["placeAssembly",placeAssembly],
+    ["roundAssembly",roundAssembly],
+    ["buildProjectPackage",buildProjectPackage]
+  ]){
+    if(typeof fn!=="function") throw new TypeError(label+" must be a function");
+  }
+
+  const plan=buildPlan({
+    metadataRecognition:metadata_recognition,
+    includeLinkage:include_linkage
+  });
+  if(!plan||plan.status!=="exact"){
+    return Object.freeze({
+      status:"blocked",
+      stage:"plan",
+      editable_ready:false,
+      production_ready:false,
+      plan:plan??null,
+      hydration:null,
+      assembly:null,
+      project_package:null,
+      blocker:
+        Array.isArray(plan?.issues)&&plan.issues.length
+          ? plan.issues.join("; ")
+          : "Exact DWFx assembly import plan could not be built."
+    });
+  }
+
+  const hydration=hydrateVariations({
+    opcode_stream,
+    plan,
+    hsf_version:hsf_version??plan.hsf_version??null
+  });
+  if(!hydration||hydration.status!=="exact"){
+    return Object.freeze({
+      status:"blocked",
+      stage:"variation_hydration",
+      editable_ready:false,
+      production_ready:false,
+      plan,
+      hydration:hydration??null,
+      assembly:null,
+      project_package:null,
+      blocker:
+        hydration?.blocker??
+        "One or more exact geometric-variation segments did not decode completely."
+    });
+  }
+
+  const assembly=prepareAssembly({
+    opcode_stream,
+    descriptor,
+    source_file:plan.source_file,
+    hsf_version:hsf_version??plan.hsf_version??null,
+    parts:hydration.parts
+  });
+  if(!assembly||assembly.status!=="assembly_candidate"||assembly.editable_ready!==true){
+    return Object.freeze({
+      status:"blocked",
+      stage:"assembly",
+      editable_ready:false,
+      production_ready:false,
+      plan,
+      hydration,
+      assembly:assembly??null,
+      project_package:null,
+      blocker:
+        assembly?.blocker??
+        "Not every linked tube part produced an editable trusted candidate."
+    });
+  }
+
+  let placedAssembly=assembly;
+  let spatialPlacement=null;
+  if(reference_scene){
+    spatialPlacement=placeAssembly({
+      assembly,
+      reference_scene
+    });
+    if(
+      !spatialPlacement||
+      spatialPlacement.status!=="placed_assembly"||
+      !spatialPlacement.assembly
+    ){
+      return Object.freeze({
+        status:"blocked",
+        stage:"spatial_placement",
+        editable_ready:false,
+        production_ready:false,
+        plan,
+        hydration,
+        assembly,
+        spatial_placement:spatialPlacement??null,
+        project_package:null,
+        blocker:
+          spatialPlacement?.blocker??
+          "Exact DWFx spatial placement could not be preserved for editable tubes."
+      });
+    }
+    placedAssembly=spatialPlacement.assembly;
+  }
+
+  const linearRounding=roundAssembly(
+    placedAssembly,
+    {increment_mm:1}
+  );
+  if(
+    !linearRounding||
+    linearRounding.status!=="rounded_assembly"||
+    !linearRounding.assembly
+  ){
+    return Object.freeze({
+      status:"blocked",
+      stage:"linear_rounding",
+      editable_ready:false,
+      production_ready:false,
+      plan,
+      hydration,
+      assembly:placedAssembly,
+      spatial_placement:spatialPlacement,
+      linear_rounding:linearRounding??null,
+      project_package:null,
+      blocker:
+        linearRounding?.blocker??
+        "Editable DWFx linear dimensions could not be rounded to the requested 1 mm increment."
+    });
+  }
+  const editableAssembly=linearRounding.assembly;
+
+  let packageAssembly=editableAssembly;
+  let effectiveBbox=bbox;
+  let effectiveBboxAnchor=null;
+  let effectiveCoordinateOffset=null;
+  let automaticFrame=null;
+
+  if(effectiveBbox==null&&reference_scene){
+    automaticFrame=deriveAutomaticFrameFromReferenceBounds(reference_scene);
+    if(automaticFrame?.status==="exact"){
+      const rebased=rebaseDwfxAssemblyToAutomaticFrame({
+        assembly:editableAssembly,
+        frame:automaticFrame
+      });
+      if(
+        !rebased||
+        rebased.status!=="rebased_assembly"||
+        !rebased.assembly
+      ){
+        return Object.freeze({
+          status:"blocked",
+          stage:"automatic_frame",
+          editable_ready:false,
+          production_ready:false,
+          plan,
+          hydration,
+          assembly:editableAssembly,
+          spatial_placement:spatialPlacement,
+          linear_rounding:linearRounding,
+          automatic_frame:automaticFrame,
+          project_package:null,
+          blocker:
+            rebased?.blocker??
+            "Automatic DWFx frame fitting could not preserve editable tube placement."
+        });
+      }
+      packageAssembly=rebased.assembly;
+      effectiveBbox=automaticFrame.bbox;
+      effectiveBboxAnchor=automaticFrame.bbox_anchor;
+      effectiveCoordinateOffset=automaticFrame.coordinate_offset;
+    }
+  }
+
+  const projectPackage=buildProjectPackage({
+    assembly:packageAssembly,
+    project_id,
+    project_name,
+    bbox:effectiveBbox,
+    bbox_anchor:effectiveBboxAnchor,
+    coordinate_offset:effectiveCoordinateOffset,
+    bbox_source:automaticFrame?.status==="exact"
+      ?"automatic_reference_geometry"
+      :"explicit",
+    reference_scene
+  });
+  if(!projectPackage||projectPackage.status!=="project_package_candidate"){
+    return Object.freeze({
+      status:"blocked",
+      stage:"project_package",
+      editable_ready:false,
+      production_ready:false,
+      plan,
+      hydration,
+      assembly:packageAssembly,
+      spatial_placement:spatialPlacement,
+      linear_rounding:linearRounding,
+      automatic_frame:automaticFrame,
+      project_package:projectPackage??null,
+      blocker:
+        projectPackage?.blocker??
+        "Legacy project package could not be built."
+    });
+  }
+
+  return Object.freeze({
+    status:"project_import_candidate",
+    stage:"complete",
+    editable_ready:true,
+    production_ready:false,
+    plan,
+    hydration,
+    assembly:packageAssembly,
+    spatial_placement:spatialPlacement,
+    linear_rounding:linearRounding,
+    automatic_frame:automaticFrame,
+    project_package:projectPackage,
+    package:projectPackage.package,
+    blocker:
+      "DWFx project is ready for project-open as editable geometry; production release remains blocked by existing downstream gates."
+  });
+}

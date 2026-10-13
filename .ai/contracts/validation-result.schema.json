@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bendpipe-pro.local/schema/validation-result.schema.json",
+  "title": "ValidationResult",
+  "description": "Explicit result of one TubeBender validation check. Exceptions and missing checks can never collapse into passed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "check_id",
+    "scope",
+    "subject_id",
+    "model_revision",
+    "required_for_production",
+    "status",
+    "severity",
+    "message",
+    "blocks_production"
+  ],
+  "properties": {
+    "check_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope": {
+      "enum": [
+        "tube",
+        "project"
+      ]
+    },
+    "subject_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "required_for_production": {
+      "type": "boolean"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "violation",
+        "not_checked",
+        "calculation_error"
+      ]
+    },
+    "severity": {
+      "enum": [
+        "info",
+        "warning",
+        "error"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1
+    },
+    "blocks_production": {
+      "type": "boolean"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "data"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "data": {}
+        }
+      },
+      "default": []
+    },
+    "error": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "detail": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "passed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "blocks_production": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "required_for_production": {
+            "const": true
+          },
+          "status": {
+            "enum": [
+              "violation",
+              "not_checked",
+              "calculation_error"
+            ]
+          }
+        },
+        "required": [
+          "required_for_production",
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "blocks_production": {
+            "const": true
+          }
+        }
+      }
+    }
+  ]
+}
