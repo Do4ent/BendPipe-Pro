@@ -600,7 +600,10 @@ export function decodeHsfOpcodePrefix(
       cursor += 4;
 
       const ATTRIBUTE_LOCK = 0x00100000;
-      const supportedTopLevelMask = ATTRIBUTE_LOCK;
+      // TKO_Interp_Texture_Faces is a mask/value toggle with no extra payload
+      // (DWF Toolkit TK_Rendering_Options::Read/Write). Preserve it as evidence.
+      const INTERP_TEXTURE_FACES = 0x00000001;
+      const supportedTopLevelMask = ATTRIBUTE_LOCK | INTERP_TEXTURE_FACES;
       if ((mask & ~supportedTopLevelMask) !== 0) {
         return Object.freeze({
           entities: Object.freeze(entities),

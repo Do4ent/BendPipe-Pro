@@ -133,3 +133,31 @@ test("A20: non-alternating canonical topology cannot be coerced into legacy rows
   assert.equal(result.status,"blocked");
   assert.match(result.blocker,/alternating LINE\/BEND/i);
 });
+
+test("editable rows never coerce unresolved canonical dimensions",()=>{
+  for(const frame of ["tube-local","w3d-local"]){
+    for(const [index,field] of [[0,"length"],[2,"length"],[1,"clr"],[1,"angle"]]){
+      for(const value of [null,undefined,"","10",false,true,[],NaN,Infinity]){
+        const input=canonicalXYZ();
+        input.coordinate_frame.id=frame;
+        input.primitives[index][field].value=value;
+        assert.throws(()=>canonicalToLegacyRows(input),/finite/,
+          frame+" "+field+" must not coerce "+String(value));
+        assert.equal(input.primitives[index][field].value,value);
+      }
+    }
+  }
+});
+
+test("editable rows reject incomplete direction and bend-normal vectors",()=>{
+  for(const [index,field] of [[0,"direction"],[2,"direction"],[1,"bend_plane_normal"]]){
+    for(const value of [null,undefined,"",false,"0",NaN,Infinity]){
+      const input=canonicalXYZ();
+      input.primitives[index][field].value[2]=value;
+      assert.throws(()=>canonicalToLegacyRows(input),/finite/,field);
+    }
+    const input=canonicalXYZ();
+    delete input.primitives[index][field].value[2];
+    assert.throws(()=>canonicalToLegacyRows(input),/finite/,field+" sparse vector");
+  }
+});

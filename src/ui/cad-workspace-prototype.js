@@ -3,6 +3,15 @@
   const $=id=>document.getElementById(id);
   const esc=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
   const api=()=>window.TubeBenderEngineering;
+  function call(target,method,...args){
+    if(typeof target?.[method]!=="function")throw new Error("Команда недоступна: "+method);
+    return target[method](...args);
+  }
+  function clickSelector(selector){
+    const target=document.querySelector(selector);
+    if(!target)throw new Error("Команда недоступна: "+selector);
+    target.click();
+  }
   let stage="geometry",enabled=true,inspector=null,ribbon=null,lastSnapshot="",toolDrawer=null;
   const movedTools=[];
   const displayKey="bendpipe.cad.toolbarDisplay.v1";
@@ -11,9 +20,9 @@
   if(typeof displayModes!=="object"||Array.isArray(displayModes))displayModes={};
   const commands=[
     ["import","Источник","Импорт CAD / проекта","↥",()=>click("tbActionOpen")],
-    ["projectExport","Источник","JSON проекта","↧",()=>document.querySelector('[data-action="projectExport"]')?.click()],
+    ["projectExport","Источник","JSON проекта","↧",()=>clickSelector('[data-action="projectExport"]')],
     ["recognition","Источник","Доказательства","◎",()=>selectInspector("source")],
-    ["measure","Геометрия","Измерить","↔",()=>window.TubeBenderMeasurements?.open?.()],
+    ["measure","Геометрия","Измерить","↔",()=>call(window.TubeBenderMeasurements,"open")],
     ["properties","Геометрия","Свойства","☷",()=>selectInspector("properties")],
     ["move","Геометрия","Переместить","✥",()=>hotkey("move")],
     ["copy","Геометрия","Копировать","▱",()=>hotkey("copy")],
@@ -21,37 +30,37 @@
     ["array","Геометрия","Массив","⠿",()=>hotkey("array")],
     ["length","Геометрия","Длина","L",()=>hotkey("length")],
     ["angle","Геометрия","Угол","∠",()=>hotkey("angle")],
-    ["constraints","Геометрия","Зависимости","⊥",()=>api()?.open?.("constraints")],
+    ["constraints","Геометрия","Зависимости","⊥",()=>call(api(),"open","constraints")],
     ["modernConstraints","Геометрия","Связи объектов","⊡",()=>openExistingPanel("tbConstraintsPanel","tbConstraintsToggle")],
     ["layers","Геометрия","Слои","▱",()=>openExistingPanel("tbLayersPanel","tbLayersToggle")],
-    ["groups","Геометрия","Группы","▦",()=>window.TubeBenderGroups?.openPanel?.()],
-    ["assemblies","Геометрия","Сборки","◫",()=>window.TubeBenderAssemblies?.openPanel?.()],
-    ["split","Геометрия","Разделить","⋮",()=>window.TubeBenderEditing?.open?.("split")],
-    ["mirror","Геометрия","Отразить","◧",()=>window.TubeBenderEditing?.open?.("mirror")],
-    ["stack","Геометрия","Преобразования","▥",()=>window.TubeBenderEditing?.open?.("stack")],
-    ["views","Геометрия","Виды","◇",()=>window.TubeBenderNamedViews?.openPanel?.()],
-    ["selectionSets","Геометрия","Наборы выбора","⊞",()=>window.TubeBenderSelectionSets?.openPanel?.()],
+    ["groups","Геометрия","Группы","▦",()=>call(window.TubeBenderGroups,"openPanel")],
+    ["assemblies","Геометрия","Сборки","◫",()=>call(window.TubeBenderAssemblies,"openPanel")],
+    ["split","Геометрия","Разделить","⋮",()=>call(window.TubeBenderEditing,"open","split")],
+    ["mirror","Геометрия","Отразить","◧",()=>call(window.TubeBenderEditing,"open","mirror")],
+    ["stack","Геометрия","Преобразования","▥",()=>call(window.TubeBenderEditing,"open","stack")],
+    ["views","Геометрия","Виды","◇",()=>call(window.TubeBenderNamedViews,"openPanel")],
+    ["selectionSets","Геометрия","Наборы выбора","⊞",()=>call(window.TubeBenderSelectionSets,"openPanel")],
     ["snap","Геометрия","Привязки","⊕",()=>hotkey("snapSettings")],
-    ["section","Геометрия","Сечение","◩",()=>window.TubeBenderSectionView?.openPanel?.()],
-    ["material","Технология","Материалы","◈",()=>window.TubeBenderMaterials?.open?.()],
-    ["style","Технология","Стиль трубы","⌁",()=>api()?.open?.("style")],
-    ["ports","Технология","Порты P1 / P2","○",()=>api()?.open?.("ports")],
-    ["autoroute","Технология","Автотрасса","⌇",()=>api()?.open?.("autoroute")],
-    ["manufacturing","Технология","YBC / LRA","≋",()=>api()?.open?.("manufacturing")],
-    ["equipment","Станок","Оборудование","⚙",()=>window.TubeBenderEquipmentLibrary?.open?.()],
-    ["machine","Станок","Профиль станка","▧",()=>api()?.open?.("machine")],
-    ["simulation","Станок","Симуляция","▷",()=>api()?.open?.("simulation")],
-    ["tooling","Станок","Оснастка","◉",()=>window.TubeBenderEquipmentLibrary?.open?.("tooling-sets")],
-    ["setup","Станок","Наладка","⚒",()=>window.TubeBenderEquipmentLibrary?.open?.("setups")],
-    ["sequence","Станок","Порядок гибов","≡",()=>window.TubeBenderEquipmentLibrary?.open?.("sequence")],
-    ["trim","Станок","Обрезка","⌿",()=>window.TubeBenderEquipmentLibrary?.open?.("trim")],
-    ["clearance","Станок","Зазоры","↔",()=>window.TubeBenderEquipmentLibrary?.open?.("clearance")],
-    ["reports","Выпуск","Отчёты / экспорт","▤",()=>api()?.open?.("reports")],
-    ["diagnostics","Выпуск","Проверка выпуска","✓",()=>api()?.open?.("overview")],
+    ["section","Геометрия","Сечение","◩",()=>call(window.TubeBenderSectionView,"openPanel")],
+    ["material","Технология","Материалы","◈",()=>call(window.TubeBenderMaterials,"open")],
+    ["style","Технология","Стиль трубы","⌁",()=>call(api(),"open","style")],
+    ["ports","Технология","Порты P1 / P2","○",()=>call(api(),"open","ports")],
+    ["autoroute","Технология","Автотрасса","⌇",()=>call(api(),"open","autoroute")],
+    ["manufacturing","Технология","YBC / LRA","≋",()=>call(api(),"open","manufacturing")],
+    ["equipment","Станок","Оборудование","⚙",()=>call(window.TubeBenderEquipmentLibrary,"open")],
+    ["machine","Станок","Профиль станка","▧",()=>call(api(),"open","machine")],
+    ["simulation","Станок","Симуляция","▷",()=>call(api(),"open","simulation")],
+    ["tooling","Станок","Оснастка","◉",()=>call(window.TubeBenderEquipmentLibrary,"open","tooling-sets")],
+    ["setup","Станок","Наладка","⚒",()=>call(window.TubeBenderEquipmentLibrary,"open","setups")],
+    ["sequence","Станок","Порядок гибов","≡",()=>call(window.TubeBenderEquipmentLibrary,"open","sequence")],
+    ["trim","Станок","Обрезка","⌿",()=>call(window.TubeBenderEquipmentLibrary,"open","trim")],
+    ["clearance","Станок","Зазоры","↔",()=>call(window.TubeBenderEquipmentLibrary,"open","clearance")],
+    ["reports","Выпуск","Отчёты / экспорт","▤",()=>call(api(),"open","reports")],
+    ["diagnostics","Выпуск","Проверка выпуска","✓",()=>call(api(),"open","overview")],
     ["history","Выпуск","История","↶",()=>hotkey("history")],
-    ["revisions","Выпуск","Ревизии","◷",()=>api()?.open?.("revisions")],
+    ["revisions","Выпуск","Ревизии","◷",()=>call(api(),"open","revisions")],
     ["settings","Общие","Настройки","⚙",()=>click("tbActionSettings")],
-    ["search","Общие","Все команды","⌕",()=>window.TubeBenderCommandLine?.open?.()]
+    ["search","Общие","Все команды","⌕",()=>call(window.TubeBenderCommandLine,"open")]
   ];
   const stages=[
     ["source","01","Источник","Источник"],["geometry","02","Геометрия","Геометрия"],
@@ -59,7 +68,12 @@
     ["release","05","Выпуск","Выпуск"]
   ];
   function click(id){const target=$(id);if(!target)throw new Error("Команда недоступна: "+id);target.click();}
-  function openExistingPanel(panelId,toggleId){if(!$(panelId)?.classList.contains("open"))click(toggleId);}
+  function openExistingPanel(panelId,toggleId){
+    const panel=$(panelId);
+    if(!panel)throw new Error("Панель недоступна: "+panelId);
+    if(!panel.classList.contains("open"))click(toggleId);
+    return true;
+  }
   function collectTools(){
     if(!enabled)return;
     for(const node of [...document.body.children]){
@@ -70,7 +84,7 @@
     }
   }
   function toggleTools(){collectTools();toolDrawer.hidden=!toolDrawer.hidden;}
-  function hotkey(id){if(!window.TubeBenderHotkeys)throw new Error("Команды ещё загружаются");return window.TubeBenderHotkeys.execute(id);}
+  function hotkey(id){if(typeof window.TubeBenderHotkeys?.execute!=="function")throw new Error("Команды ещё загружаются");return window.TubeBenderHotkeys.execute(id);}
   function execute(id){
     const command=commands.find(item=>item[0]===id);
     if(!command)return false;

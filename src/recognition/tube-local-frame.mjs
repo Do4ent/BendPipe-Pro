@@ -2,7 +2,8 @@ function point3(value,label){
   if(!Array.isArray(value)||value.length!==3){
     throw new TypeError(label+" must be a 3D vector");
   }
-  const out=value.map(Number);
+  // Source coordinates must already be numeric, including explicit zeroes.
+  const out=Array.from(value);
   if(!out.every(Number.isFinite)){
     throw new RangeError(label+" contains non-finite values");
   }
@@ -93,7 +94,7 @@ export function deriveTubeLocalFrame(
     unwrap(firstBend.bend_plane_normal,"first BEND plane normal"),
     "first BEND plane normal"
   );
-  const angle=Number(unwrap(firstBend.angle,"first BEND angle"));
+  const angle=unwrap(firstBend.angle,"first BEND angle");
   if(!Number.isFinite(angle)||angle===0){
     throw new RangeError("first BEND angle must be finite and non-zero");
   }

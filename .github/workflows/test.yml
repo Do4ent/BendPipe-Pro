@@ -1,5 +1,9 @@
 name: test
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     branches:
@@ -8,6 +12,7 @@ on:
       - main
   push:
     branches:
+      - main
       - develop
       - feature/trusted-geometry-core
 
@@ -39,3 +44,31 @@ jobs:
             dist/README-RELEASE.txt
             dist/SHA256SUMS
           if-no-files-found: error
+
+  browser-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Build actual release HTML
+        run: npm run build:release
+      - name: Install Playwright test runner
+        run: npm install --no-save @playwright/test@1.56.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Test CAD reference interface in real Chromium
+        run: npx playwright test --config acceptance/playwright.config.mjs tests/browser/cad-reference-workspace.spec.mjs tests/browser/webgl2-full-restart.spec.mjs
+      - name: Verify primary workspace import edit save reopen export
+        run: TB_BROWSER_REPORT_NAME=workspace-round-trip TB_BROWSER_APP_PATH=/BendPipe_Pro_CAD_Workspace.html npx playwright test --config acceptance/playwright.config.mjs --grep RELEASE-GATE
+      - name: Preserve browser results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cad-reference-chromium-evidence
+          path: reports/browser
+          if-no-files-found: warn

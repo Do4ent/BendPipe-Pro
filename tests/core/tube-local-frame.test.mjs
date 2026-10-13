@@ -136,3 +136,34 @@ test("A20: straight-only tube keeps bend plane unresolved instead of guessing XY
   assert.equal(frame.canonical_ready,false);
   assert.match(frame.reason,/does not define a unique bend plane/i);
 });
+
+test("tube-local frame never substitutes zero for missing origin or axis coordinates",()=>{
+  for(const [index,field] of [[0,"start"],[0,"direction"],[1,"bend_plane_normal"]]){
+    for(const value of [null,undefined,"",false,"0",NaN,Infinity]){
+      const input=canonical();
+      input.primitives[index][field].value[0]=value;
+      assert.throws(()=>deriveTubeLocalFrame(input),/finite/,field);
+    }
+    const input=canonical();
+    delete input.primitives[index][field].value[0];
+    assert.throws(()=>deriveTubeLocalFrame(input),/finite/,field+" sparse vector");
+  }
+});
+
+test("tube-local frame rejects coerced bend angles",()=>{
+  for(const value of [null,undefined,"",false,true,"90",NaN,Infinity]){
+    const input=canonical();
+    input.primitives[1].angle.value=value;
+    assert.throws(()=>deriveTubeLocalFrame(input),/finite/);
+  }
+});
+
+test("rigid rebase preserves unresolved whole points and rejects partial coordinates",()=>{
+  const input=canonical();
+  input.primitives[1].center.value=null;
+  const result=rebaseCanonicalToTubeLocal(input);
+  assert.equal(result.canonical_geometry.primitives[1].center.value,null);
+  assert.equal(input.primitives[1].center.value,null);
+  input.primitives[1].center.value=[20,null,30];
+  assert.throws(()=>rebaseCanonicalToTubeLocal(input),/finite/);
+});

@@ -2,7 +2,8 @@ function point3(value,label){
   if(!Array.isArray(value)||value.length!==3){
     throw new TypeError(label+" must be a 3D point");
   }
-  const out=value.map(Number);
+  // Array.from also exposes sparse coordinates as undefined; never invent zero.
+  const out=Array.from(value);
   if(!out.every(Number.isFinite)){
     throw new RangeError(label+" contains non-finite coordinates");
   }
@@ -10,7 +11,7 @@ function point3(value,label){
 }
 
 function finiteNumber(value,label){
-  const n=Number(value);
+  const n=value;
   if(!Number.isFinite(n)){
     throw new RangeError(label+" must be finite");
   }

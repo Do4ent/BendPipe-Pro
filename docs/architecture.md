@@ -2,7 +2,9 @@
 
 ## Current repository state
 
-At the time this baseline was introduced, the repository contained only a minimal `README.md`; no application code, framework, or production module boundaries existed. Therefore this document defines domain boundaries without choosing a programming language or CAD kernel prematurely.
+The application is a browser CAD editor distributed as standalone HTML. Native ES modules live in `src/domain`, `src/import/dwfx`, `src/recognition` and `src/application`; runtime UI bridges live in `src/ui`. Builders in `scripts/` combine these with the preserved legacy interface and vendored renderer. `develop` is the integration branch; changes reach `main` through reviewed PRs.
+
+The implemented source pipeline is DWFx. STEP, DWG and DXF below describe intended adapter responsibilities, not verified format support. Browser acceptance runs against generated classic and CAD Workspace HTML; source fixtures and reference tests live in `tests/reference_parts`.
 
 ## Proposed logical architecture
 

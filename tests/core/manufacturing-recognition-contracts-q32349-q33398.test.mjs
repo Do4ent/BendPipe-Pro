@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {buildCanonicalTubeGeometry} from "../../src/recognition/canonical-tube-builder.mjs";
+import {recognitionNumericReference} from "../helpers/canonical-numeric-reference.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -644,12 +646,18 @@ test("question 32982: preserves source contract",()=>has(5,"?\"_PolygonHandednes
 test("question 32983: preserves source contract",()=>has(6,"function point3(value,label){"));
 test("question 32984: preserves source contract",()=>has(6,"if(!Array.isArray(value)||value.length!==3){"));
 test("question 32985: preserves source contract",()=>has(6,"throw new TypeError(label+\" must be a 3D point\");"));
-test("question 32986: preserves source contract",()=>has(6,"const out=value.map(Number);"));
+test("question 32986: unknown source coordinates cannot become canonical zeros",()=>{
+  const input=recognitionNumericReference();input.geometry.segmentation.primitives[0].primitive.start=[null,0,0];
+  assert.throws(()=>buildCanonicalTubeGeometry(input),/non-finite coordinates/);
+});
 test("question 32987: preserves source contract",()=>has(6,"if(!out.every(Number.isFinite)){"));
 test("question 32988: preserves source contract",()=>has(6,"throw new RangeError(label+\" contains non-finite coordinates\");"));
 test("question 32989: preserves source contract",()=>has(6,"return Object.freeze(out);"));
 test("question 32990: preserves source contract",()=>has(6,"function finiteNumber(value,label){"));
-test("question 32991: preserves source contract",()=>has(6,"const n=Number(value);"));
+test("question 32991: unknown nominal length cannot become canonical zero",()=>{
+  const input=recognitionNumericReference();input.geometry.segmentation.primitives[0].primitive.length_mm=null;
+  assert.throws(()=>buildCanonicalTubeGeometry(input),/length_mm must be finite/);
+});
 test("question 32992: preserves source contract",()=>has(6,"if(!Number.isFinite(n)){"));
 test("question 32993: preserves source contract",()=>has(6,"throw new RangeError(label+\" must be finite\");"));
 test("question 32994: preserves source contract",()=>has(6,"function confidenceValue(value,{reason,method,source,truth_category=\"derived\",confidence=1}){"));
