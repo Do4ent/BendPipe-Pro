@@ -1,4 +1,7 @@
 name: perf-001-003-implementation
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 on:
   push:
     branches:
