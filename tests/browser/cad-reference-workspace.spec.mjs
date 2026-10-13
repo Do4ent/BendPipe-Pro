@@ -70,16 +70,54 @@ test("[CAD-REFERENCE] unknown and unavailable commands fail visibly",async({page
 test("[CAD-REFERENCE] status never invents length for absent or incomplete geometry",async({page})=>{
   await page.goto("/BendPipe_Pro_CAD_Workspace.html",{waitUntil:"load"});
   await page.waitForFunction(()=>Boolean(window.TubeBenderReferenceWorkspace));
-  const summary=await page.evaluate(()=>window.TubeBenderReferenceWorkspace.activeSummary());
-  if(!summary.tube||summary.rows.length===0){
-    expect(summary.length).toBeNull();
-    await expect(page.locator("#cadReferenceStatus")).toContainText("не определена");
+  const results=await page.evaluate(()=>{
+    const original=window.TubeBenderEngineering;
+    const cases=[null,{rows:[]},...[null,undefined,""," ",false,[],{},-1,Infinity].map(L=>({rows:[{type:"LINE",L}]})),
+      {rows:[{type:"BEND",clr:null,angle:90}]},{rows:[{type:"BEND",clr:50,angle:false}]},
+      {rows:[null]},{rows:[{type:"UNKNOWN"}]}];
+    try{
+      return cases.map(tube=>{
+        window.TubeBenderEngineering={...original,activeTube:()=>tube};
+        const summary=window.TubeBenderReferenceWorkspace.activeSummary();
+        window.TubeBenderReferenceWorkspace.refresh();
+        return {length:summary.length,evidence:summary.lengthEvidence,
+          status:document.querySelector("#cadReferenceStatus").textContent};
+      });
+    }finally{window.TubeBenderEngineering=original;window.TubeBenderReferenceWorkspace.refresh();}
+  });
+  for(const result of results){
+    expect(result.length).toBeNull();
+    expect(result.evidence.value).toBeNull();
+    expect(result.evidence.confidence).toBe(0);
+    expect(result.evidence.reason).toBeTruthy();
+    expect(result.evidence.source.layer).toBe("editable_tube_rows");
+    expect(result.status).toContain("не определена");
   }
-  if(summary.rows.some(row=>row.type==="LINE"&&(row.L==null||row.L===""))||
-     summary.rows.some(row=>row.type==="BEND"&&(row.clr==null||row.angle==null))){
-    expect(summary.length).toBeNull();
-  }
-  expect(summary.length===null||Number.isFinite(summary.length)).toBe(true);
+  const valid=await page.evaluate(()=>{
+    const original=window.TubeBenderEngineering;
+    try{
+      window.TubeBenderEngineering={...original,activeTube:()=>({id:"explicit-edit",rows:[
+        {type:"LINE",L:100},{type:"BEND",clr:50,angle:90},{type:"LINE",L:"25"}]})};
+      return window.TubeBenderReferenceWorkspace.activeSummary();
+    }finally{window.TubeBenderEngineering=original;}
+  });
+  expect(valid.length).toBeCloseTo(125+25*Math.PI,8);
+  expect(valid.lengthEvidence.source).toEqual({tube_id:"explicit-edit",layer:"editable_tube_rows"});
+  expect(valid.lengthEvidence.method).toBe("editable_centerline_sum");
+});
+
+test("[CAD-REFERENCE] missing methods and delegated rejection cannot report success",async({page})=>{
+  await page.goto("/BendPipe_Pro_CAD_Workspace.html",{waitUntil:"load"});
+  await page.waitForFunction(()=>Boolean(window.TubeBenderReferenceWorkspace));
+  const result=await page.evaluate(()=>{
+    const views=window.TubeBenderNamedViews,workspace=window.TubeBenderCadWorkspace;
+    try{
+      window.TubeBenderNamedViews={...views,openPanel:undefined};
+      window.TubeBenderCadWorkspace={...workspace,execute:()=>false};
+      return {missingMethod:workspace.execute("views"),delegated:window.TubeBenderReferenceWorkspace.execute("display")};
+    }finally{window.TubeBenderNamedViews=views;window.TubeBenderCadWorkspace=workspace;}
+  });
+  expect(result).toEqual({missingMethod:false,delegated:false});
 });
 
 

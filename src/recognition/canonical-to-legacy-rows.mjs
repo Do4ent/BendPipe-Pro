@@ -13,7 +13,7 @@ function wrappedValue(value,label){
 }
 
 function finite(value,label){
-  const n=Number(value);
+  const n=value;
   if(!Number.isFinite(n)) throw new RangeError(label+" must be finite");
   return n;
 }
@@ -22,7 +22,8 @@ function vector(value,label){
   if(!Array.isArray(value)||value.length!==3){
     throw new TypeError(label+" must be a 3D vector");
   }
-  const out=value.map(Number);
+  // Reject unknowns and sparse components instead of coercing them into axes.
+  const out=Array.from(value);
   if(!out.every(Number.isFinite)){
     throw new RangeError(label+" contains non-finite coordinates");
   }

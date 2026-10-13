@@ -7,25 +7,30 @@ const getApi=()=>window.TubeBenderEngineering;
 const workspace=()=>window.TubeBenderCadWorkspace;
 const toast=s=>{try{getApi()?.toast?.(s);}catch{}};
 let timer=null;
-const format=n=>n!==null&&n!==undefined&&n!==""&&Number.isFinite(Number(n))?Number(n).toFixed(2):"—";
+const numeric=n=>(typeof n==="number"||(typeof n==="string"&&n.trim()!==""))&&Number.isFinite(Number(n))?Number(n):null;
+const format=n=>numeric(n)!==null?numeric(n).toFixed(2):"—";
 function current(){
  const api=getApi();const tube=api?.activeTube?.()??null;
  const project=api?.activeProject?.()??null;
  const rows=Array.isArray(tube?.rows)?tube.rows:[];
- let length=0,known=Boolean(tube&&rows.length);
+ let length=0,known=Boolean(tube&&rows.length),reason=known?null:"Труба или её сегменты отсутствуют";
  for(const row of rows){
    if(row?.type==="LINE"){
-     const l=row.L;if(l==null||l===""||!Number.isFinite(Number(l))||Number(l)<0){known=false;break;}length+=Number(l);
+     const l=numeric(row.L);if(l===null||l<0){known=false;reason="Длина прямого сегмента неизвестна или некорректна";break;}length+=l;
    }else if(row?.type==="BEND"){
-     const r=row.clr,a=row.angle;
-     if(r==null||r===""||a==null||a===""||!Number.isFinite(Number(r))||!Number.isFinite(Number(a))||Number(r)<=0){known=false;break;}
-     length+=Math.abs(Number(r)*Number(a)*Math.PI/180);
-   }else{known=false;break;}
+     const r=numeric(row.clr),a=numeric(row.angle);
+     if(r===null||a===null||r<=0){known=false;reason="Радиус или угол гиба неизвестен или некорректен";break;}
+     length+=Math.abs(r*a*Math.PI/180);
+   }else{known=false;reason="Тип сегмента неизвестен";break;}
  }
  const diameter=tube?.od??tube?.OD??tube?.diameter??tube?.outerDiameter??tube?.outsideDiameter;
  const material=tube?.material?.name??tube?.material?.displayName??(typeof tube?.material==="string"?tube.material:null);
- return {project,tube,rows,bends:rows.filter(r=>r.type==="BEND").length,
-   length:known&&Number.isFinite(length)?length:null,diameter,material,wall:tube?.wallThickness??tube?.wall??null};
+ const value=known&&Number.isFinite(length)?length:null;
+ const lengthEvidence={value,confidence:value===null?0:1,
+   reason:value===null?(reason??"Суммарная длина не является конечным числом"):null,
+   source:{tube_id:tube?.id??null,layer:"editable_tube_rows"},method:"editable_centerline_sum"};
+ return {project,tube,rows,bends:rows.filter(r=>r?.type==="BEND").length,
+   length:value,lengthEvidence,diameter,material,wall:tube?.wallThickness??tube?.wall??null};
 }
 function button(label,icon,action){
  const b=document.createElement("button");b.type="button";b.className="cad-reference-tool";
@@ -39,7 +44,8 @@ function action(name){
   // Never present an unavailable CAD command as if it succeeded.
   const requireCommand=(callback,message)=>{
    if(typeof callback!=="function")throw new Error(message);
-   callback();return true;
+   if(callback()===false)throw new Error(message);
+   return true;
   };
   if(name==="radius"||name==="dimensions"){
    // The native measurement editor owns all dimension data and tools.
@@ -104,7 +110,7 @@ function attachViewer(){
 function updateStatus(){
  const el=$("#cadReferenceStatus");if(!el)return;
  const s=current(),n=s.tube?.name??"Труба не выбрана";
- const parts=["◉ "+n,s.length===null?"Длина: не определена":"Длина осевой линии: "+format(s.length)+" мм",
+ const parts=["◉ "+n,s.length===null?"Длина: не определена":"Длина по редактируемым сегментам: "+format(s.length)+" мм",
    "Гибов: "+s.bends,"Материал: "+(s.material??"не указан")];
  const fragment=document.createDocumentFragment();
  for(let j=0;j<parts.length;j++){

@@ -144,3 +144,28 @@ test("A20: handedness must be explicit from source/promotion evidence",()=>{
     /handedness must be left or right/
   );
 });
+
+test("canonical builder rejects unresolved or coerced nominal dimensions",()=>{
+  for(const [index,field] of [[0,"length_mm"],[1,"clr_mm"],[1,"signed_sweep_deg"]]){
+    for(const value of [null,undefined,"","10",false,true,[],NaN,Infinity]){
+      const input=fixture();
+      input.geometry.segmentation.primitives[index].primitive[field]=value;
+      assert.throws(()=>buildCanonicalTubeGeometry(input),/finite/,
+        field+" must not coerce "+String(value));
+    }
+  }
+});
+
+test("canonical builder rejects missing coordinates before assigning derived confidence",()=>{
+  for(const [index,field] of [[0,"start"],[0,"end"],[0,"direction"],
+    [1,"start_point"],[1,"end_point"],[1,"center"],[1,"plane_normal"]]){
+    for(const value of [null,undefined,"",false,"0",NaN,Infinity]){
+      const input=fixture();
+      input.geometry.segmentation.primitives[index].primitive[field][0]=value;
+      assert.throws(()=>buildCanonicalTubeGeometry(input),/finite/,field);
+    }
+    const input=fixture();
+    delete input.geometry.segmentation.primitives[index].primitive[field][0];
+    assert.throws(()=>buildCanonicalTubeGeometry(input),/finite/,field+" sparse vector");
+  }
+});

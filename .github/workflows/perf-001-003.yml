@@ -2,6 +2,7 @@ name: perf-001-003-implementation
 on:
   push:
     branches:
+      - main
       - develop
       - 'feature/perf-*'
   workflow_dispatch:
@@ -110,12 +111,13 @@ jobs:
       - name: Build standalone under test
         id: standalone_build
         continue-on-error: true
-        run: npm run build:cad-prototype
+        run: npm run build:release
       - name: Validate generated Standalone JavaScript syntax
         if: steps.standalone_build.outcome == 'success'
         run: |
           node scripts/check-standalone-syntax.mjs
           node scripts/check-standalone-syntax.mjs dist/BendPipe_Pro_CAD_Workspace_Prototype.html
+          node scripts/check-standalone-syntax.mjs dist/BendPipe_Pro_CAD_Workspace.html
       - name: Verify PERF-001 and PERF-003 application behavior
         if: steps.standalone_build.outcome == 'success'
         id: chromium_app
@@ -143,6 +145,9 @@ jobs:
       - name: Verify full round trip on the opt-in CAD workspace
         if: steps.standalone_build.outcome == 'success'
         run: TB_BROWSER_REPORT_NAME=prototype-round-trip TB_BROWSER_APP_PATH=/BendPipe_Pro_CAD_Workspace_Prototype.html npx playwright test --config acceptance/playwright.config.mjs --grep RELEASE-GATE
+      - name: Verify full round trip on the primary release workspace
+        if: steps.standalone_build.outcome == 'success'
+        run: TB_BROWSER_REPORT_NAME=workspace-round-trip TB_BROWSER_APP_PATH=/BendPipe_Pro_CAD_Workspace.html npx playwright test --config acceptance/playwright.config.mjs --grep RELEASE-GATE
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
