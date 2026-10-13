@@ -31,7 +31,7 @@ fs.writeFileSync(path.join(dist,readmeName),[
   "The Classic view button switches layout without copying project data.",
   "A separate classic HTML is also included: "+classicName,
   "",
-  "Right-click the ribbon/header to select captions, icons only, or compact layout.",
+  "Right-click the ribbon/header to select captions, icons only, compact, or compact without captions.",
   "Open native Layers with the Geometry button or LAYER / LA / СЛОИ in the command palette.",
   "Project JSON is an editable project artifact, not a manufacturing release.",
   "Unverified source geometry, tooling/material/machine settings retain production blockers.",

@@ -117,15 +117,15 @@ body:not(.cad-workspace) #cadReferenceStatus { display:none!important; }
 body.cad-workspace.cad-toolbar-compact #app{grid-template-rows:69px 86px minmax(0,1fr) 48px!important}
 body.cad-workspace.cad-toolbar-compact .cad-ribbon-top{height:38px!important}
 body.cad-workspace.cad-toolbar-compact .cad-stage-tabs button{padding:9px 12px!important;font-size:12px!important}
-body.cad-workspace #cadCommands[data-cad-display="compact"]{height:44px!important;gap:3px!important}
-body.cad-workspace #cadCommands[data-cad-display="compact"] button{
+body.cad-workspace #cadCommands:is([data-cad-display="compact"],[data-cad-display="compact-icons"]){height:44px!important;gap:3px!important}
+body.cad-workspace #cadCommands:is([data-cad-display="compact"],[data-cad-display="compact-icons"]) button{
   height:32px!important;min-width:0!important;width:auto!important;padding:4px 7px!important;
   flex-direction:row!important;gap:5px!important;flex:0 0 auto!important}
-body.cad-workspace #cadCommands[data-cad-display="compact"] .cad-command-icon{font-size:17px!important;line-height:20px!important}
-body.cad-workspace #cadCommands[data-cad-display="compact"] .cad-command-label{font-size:11px!important;line-height:16px!important}
-body.cad-workspace .tb-head-actions[data-cad-display="compact"]{gap:3px!important}
-body.cad-workspace .tb-head-actions[data-cad-display="compact"] button{height:28px!important;min-width:0!important;width:auto!important;padding:3px 5px!important}
-body.cad-workspace .tb-head-actions[data-cad-display="compact"] .txt{display:inline!important;font-size:10px!important}
+body.cad-workspace #cadCommands:is([data-cad-display="compact"],[data-cad-display="compact-icons"]) .cad-command-icon{font-size:17px!important;line-height:20px!important}
+body.cad-workspace #cadCommands:is([data-cad-display="compact"],[data-cad-display="compact-icons"]) .cad-command-label{font-size:11px!important;line-height:16px!important}
+body.cad-workspace .tb-head-actions:is([data-cad-display="compact"],[data-cad-display="compact-icons"]){gap:3px!important}
+body.cad-workspace .tb-head-actions:is([data-cad-display="compact"],[data-cad-display="compact-icons"]) button{height:28px!important;min-width:0!important;width:auto!important;padding:3px 5px!important}
+body.cad-workspace .tb-head-actions:is([data-cad-display="compact"],[data-cad-display="compact-icons"]) .txt{display:inline!important;font-size:10px!important}
 body.cad-workspace.cad-header-compact .tb-logo{width:40px!important;height:40px!important}
 body.cad-workspace.cad-header-compact .tb-brand-title{font-size:14px!important}
 body.cad-workspace.cad-header-compact .cad-prototype-badge{font-size:8px!important;letter-spacing:.7px!important}
@@ -136,3 +136,9 @@ body.cad-workspace.cad-header-compact .cad-prototype-badge{font-size:8px!importa
  body.cad-workspace.cad-toolbar-compact .tb-map-left,body.cad-workspace.cad-toolbar-compact .tb-map-right{
   top:156px!important;height:calc(100dvh - 216px)!important;max-height:calc(100dvh - 216px)!important}
 }
+
+/* Compact icons keep tooltips and accessible names while hiding captions. */
+body.cad-workspace #cadCommands[data-cad-display="compact-icons"] .cad-command-label,
+body.cad-workspace .tb-head-actions[data-cad-display="compact-icons"] .txt{display:none!important}
+body.cad-workspace #cadCommands[data-cad-display="compact-icons"] button{width:32px!important;min-width:32px!important;padding:0!important;gap:0!important}
+body.cad-workspace .tb-head-actions[data-cad-display="compact-icons"] button{width:28px!important;min-width:28px!important;padding:0!important}

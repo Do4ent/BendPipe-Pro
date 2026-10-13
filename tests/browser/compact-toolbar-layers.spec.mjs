@@ -12,6 +12,8 @@ test("[CAD-COMPACT] context menu reduces toolbar height and preserves separate p
   await page.locator('[data-cad-command="measure"]').focus();
   await page.keyboard.press("Shift+F10");
   await page.keyboard.press("End");
+  await expect(page.locator('[data-display-mode="compact-icons"]')).toBeFocused();
+  await page.keyboard.press("ArrowUp");
   await expect(page.locator('[data-display-mode="compact"]')).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator("#cadCommands")).toHaveAttribute("data-cad-display","compact");
@@ -38,6 +40,56 @@ test("[CAD-COMPACT] context menu reduces toolbar height and preserves separate p
   expect(drawer.y+drawer.height).toBeLessThanOrEqual(footer.y);
   await page.locator('.tb-bottom-tab[data-tab="3d"]').click();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test("[CAD-COMPACT-ICONS] compact icons preserve accessibility, commands and per-panel preferences",async({page})=>{
+  await openWorkspace(page);
+  const ribbon=page.locator("#cadRibbon"),viewport=page.locator(".tb-map-3d");
+  const before={ribbon:await ribbon.boundingBox(),viewport:await viewport.boundingBox()};
+  const measure=page.locator('[data-cad-command="measure"]');
+  await measure.focus();
+  await page.keyboard.press("Shift+F10");
+  await page.keyboard.press("End");
+  await expect(page.locator('[data-display-mode="compact-icons"]')).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#cadCommands")).toHaveAttribute("data-cad-display","compact-icons");
+  await expect.poll(async()=> (await ribbon.boundingBox()).height).toBeLessThan(before.ribbon.height-30);
+  expect((await viewport.boundingBox()).height).toBeGreaterThan(before.viewport.height+30);
+  await expect(measure.locator(".cad-command-label")).toBeHidden();
+  await expect(measure.locator(".cad-command-icon")).toBeVisible();
+  await expect(measure).toHaveAccessibleName("Измерить");
+  await expect(measure).toHaveAttribute("title","Измерить");
+  expect((await measure.boundingBox()).width).toBe(32);
+  await measure.click({button:"right"});
+  await expect(page.locator('[data-display-mode="compact-icons"]')).toHaveAttribute("aria-checked","true");
+  await page.keyboard.press("Escape");
+  await expect(measure).toBeFocused();
+  await page.locator("#tbActionSave").click({button:"right"});
+  await page.locator('[data-display-mode="compact-icons"]').click();
+  await expect(page.locator("#tbActionSave .txt")).toBeHidden();
+  await expect(page.locator("#tbActionSave .glyph")).toBeVisible();
+  expect((await page.locator("#tbActionSave").boundingBox()).width).toBe(28);
+  await page.locator('[data-cad-command="layers"]').click();
+  await expect(page.getByRole("dialog",{name:"Диспетчер свойств слоёв"})).toBeVisible();
+  await page.locator("[data-layer-close]").click();
+  await page.locator('[data-cad-stage="source"]').click();
+  await expect(page.locator("#cadCommands .cad-command-label").first()).toBeHidden();
+  await page.reload({waitUntil:"load"});
+  await expect(page.locator("#cadCommands")).toHaveAttribute("data-cad-display","compact-icons");
+  await expect(page.locator(".tb-head-actions")).toHaveAttribute("data-cad-display","compact-icons");
+  await page.locator("#cadRestore").click();
+  await expect(ribbon).toBeHidden();
+  await page.locator("#cadRestore").click();
+  await expect(measure.locator(".cad-command-label")).toBeHidden();
+  await page.locator("#tbActionSave").click({button:"right"});
+  await page.locator('[data-display-mode="compact"]').click();
+  await expect(page.locator("#tbActionSave .txt")).toBeVisible();
+  await expect(measure.locator(".cad-command-label")).toBeHidden();
+  await measure.click({button:"right"});
+  await page.locator('[data-display-mode="labels"]').click();
+  await expect(measure.locator(".cad-command-label")).toBeVisible();
+  expect((await ribbon.boundingBox()).height).toBe(before.ribbon.height);
+  await expect(page.locator(".tb-head-actions")).toHaveAttribute("data-cad-display","compact");
 });
 
 test("[CAD-LAYERS] LAYER aliases open native manager and layer edits persist without altering geometry",async({page})=>{

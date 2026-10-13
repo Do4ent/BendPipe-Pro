@@ -15,6 +15,7 @@
   let stage="geometry",enabled=true,inspector=null,ribbon=null,lastSnapshot="",toolDrawer=null;
   const movedTools=[];
   const displayKey="bendpipe.cad.toolbarDisplay.v1";
+  const toolbarModes=["labels","icons","compact","compact-icons"];
   let inspectorTab="properties",displayModes={},panelMenu=null,menuTarget=null,menuReturnFocus=null;
   try{displayModes=JSON.parse(localStorage.getItem(displayKey)||"{}")||{};}catch{}
   if(typeof displayModes!=="object"||Array.isArray(displayModes))displayModes={};
@@ -138,14 +139,15 @@
   }
   function applyDisplay(panel,mode){
     const key=panel.dataset.cadToolbar;
-    displayModes[key]=["labels","icons","compact"].includes(mode)?mode:"labels";
+    displayModes[key]=toolbarModes.includes(mode)?mode:"labels";
     panel.dataset.cadDisplay=displayModes[key];
     try{localStorage.setItem(displayKey,JSON.stringify(displayModes));}catch{}
     updateCompactLayout();
   }
   function updateCompactLayout(){
-    document.body.classList.toggle("cad-toolbar-compact",$("cadCommands")?.dataset.cadDisplay==="compact");
-    document.body.classList.toggle("cad-header-compact",document.querySelector(".tb-head-actions")?.dataset.cadDisplay==="compact");
+    const isCompact=panel=>["compact","compact-icons"].includes(panel?.dataset.cadDisplay);
+    document.body.classList.toggle("cad-toolbar-compact",isCompact($("cadCommands")));
+    document.body.classList.toggle("cad-header-compact",isCompact(document.querySelector(".tb-head-actions")));
     requestAnimationFrame(()=>{try{window.resize?.();window.markViewerDirty?.();}catch{}});
   }
   function closePanelMenu(restoreFocus=false){
@@ -174,7 +176,8 @@
     panelMenu.innerHTML='<div class="cad-menu-title">Отображение панели</div>'+
       '<button type="button" role="menuitemradio" data-display-mode="labels">Иконки с подписями</button>'+
       '<button type="button" role="menuitemradio" data-display-mode="icons">Только иконки</button>'+
-      '<button type="button" role="menuitemradio" data-display-mode="compact">Компактный вид</button>';
+      '<button type="button" role="menuitemradio" data-display-mode="compact">Компактный вид</button>'+
+      '<button type="button" role="menuitemradio" data-display-mode="compact-icons">Компактный вид без подписей</button>';
     document.body.append(panelMenu);
     panelMenu.querySelectorAll("button").forEach(button=>button.onclick=()=>{
       applyDisplay(menuTarget,button.dataset.displayMode);closePanelMenu(true);
@@ -214,7 +217,7 @@
     }
     for(const [panel,key,defaultMode] of [[$("cadCommands"),"commands","labels"],[document.querySelector(".tb-head-actions"),"header","icons"]]){
       panel.dataset.cadToolbar=key;
-      panel.dataset.cadDisplay=["icons","labels","compact"].includes(displayModes[key])?displayModes[key]:defaultMode;
+      panel.dataset.cadDisplay=toolbarModes.includes(displayModes[key])?displayModes[key]:defaultMode;
       panel.addEventListener("contextmenu",event=>showPanelMenu(event,panel));
       panel.addEventListener("keydown",event=>{
         if(["Enter"," ","Spacebar"].includes(event.key)&&event.target.tagName==="BUTTON"){
