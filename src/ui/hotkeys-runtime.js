@@ -44,6 +44,12 @@
     return handled;
   }
   function execute(commandId){
+    if(commandId==="layers"){
+      if(typeof window.TubeBenderLayers?.openPanel!=="function"){
+        toast("Диспетчер слоёв ещё загружается. Повторите команду.");return false;
+      }
+      return window.TubeBenderLayers.openPanel();
+    }
     switch(String(commandId)){
       case "move": window.TubeBenderEditing?.open?.("move");return true;
       case "copy": window.TubeBenderEditing?.open?.("copy");return true;

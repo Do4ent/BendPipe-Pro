@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {ensureLayerState,createUserLayer,assignObjectLayer,setActiveLayer,layerPermission,resolveObjectStyle} from "../../src/domain/project/layers.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -196,8 +197,18 @@ test("question 51884: preserves triple source contract",()=>has(9,"panel=documen
 test("question 51885: preserves triple source contract",()=>has(9,"panel.innerHTML='<div class=\"tb-layer-head\"><b>Layers</b><span class=\"grow\"></span><button data-layer-close>×</button></div><div class=\"tb-layer-body\" data-layer-body></div>';\ndocument.body.appendChild(panel);\ntoggle.onclick=()=>{panel.classList.toggle(\"open\");render();};"));
 test("question 51886: preserves triple source contract",()=>has(9,"document.body.appendChild(panel);\ntoggle.onclick=()=>{panel.classList.toggle(\"open\");render();};\npanel.querySelector(\"[data-layer-close]\").onclick=()=>panel.classList.remove(\"open\");"));
 test("question 51887: preserves triple source contract",()=>has(9,"toggle.onclick=()=>{panel.classList.toggle(\"open\");render();};\npanel.querySelector(\"[data-layer-close]\").onclick=()=>panel.classList.remove(\"open\");\nreturn panel;"));
-test("question 51888: preserves triple source contract",()=>has(9,"panel.querySelector(\"[data-layer-close]\").onclick=()=>panel.classList.remove(\"open\");\nreturn panel;\nfunction render(){"));
-test("question 51889: preserves triple source contract",()=>has(9,"return panel;\nfunction render(){\nconst p=project();if(!p||!layers)return;"));
+test("question 51888: layer assignment preserves unresolved canonical source evidence",()=>{
+  const project={};ensureLayerState(project);
+  const layer=createUserLayer(project,{name:"Evidence"});
+  const object={importEvidence:{canonicalGeometry:null,machineCompensationApplied:false,source:{file:"source.dwfx"}},rows:[]};
+  const evidence=structuredClone(object.importEvidence);
+  assignObjectLayer(project,object,layer.id);
+  assert.equal(object.layer_id,layer.id);assert.deepEqual(object.importEvidence,evidence);assert.deepEqual(object.rows,[]);
+});
+test("question 51889: user layer names remain unique regardless of case",()=>{
+  const project={};ensureLayerState(project);createUserLayer(project,{name:"Assembly"});
+  assert.throws(()=>createUserLayer(project,{name:"assembly"}),/already exists/);
+});
 test("question 51890: preserves triple source contract",()=>has(9,"function render(){\nconst p=project();if(!p||!layers)return;\nensureAssignments();const root=ensurePanel(),body=root.querySelector(\"[data-layer-body]\");"));
 test("question 51891: preserves triple source contract",()=>has(9,"const p=project();if(!p||!layers)return;\nensureAssignments();const root=ensurePanel(),body=root.querySelector(\"[data-layer-body]\");\nconst list=p.layers??[];"));
 test("question 51892: preserves triple source contract",()=>has(9,"ensureAssignments();const root=ensurePanel(),body=root.querySelector(\"[data-layer-body]\");\nconst list=p.layers??[];\nconst options='<option value=\"\">Все слои</option>'+list.map(layer=>'<option value=\"'+esc(layer.id)+'\" '+(String(p.layer_tree_filter_id??\"\")===String(layer.id)?\"selected\":\"\")+'>'+esc(layer.name)+'</option>').join(\"\");"));
@@ -247,8 +258,17 @@ test("question 51935: preserves triple source contract",()=>has(9,"try{layers=aw
 test("question 51936: preserves triple source contract",()=>has(9,"ensurePanel();ensureAssignments();observe();applyAll();render();\ntry{window.dispatchEvent(new CustomEvent(\"tubebender-layer-change\",{detail:{project_id:String(project()?.id??\"\"),initial:true}}));}catch{}\nwindow.addEventListener(\"tubebender-selection-change\",()=>{if(panel?.classList.contains(\"open\"))render();});"));
 test("question 51937: preserves triple source contract",()=>has(9,"try{window.dispatchEvent(new CustomEvent(\"tubebender-layer-change\",{detail:{project_id:String(project()?.id??\"\"),initial:true}}));}catch{}\nwindow.addEventListener(\"tubebender-selection-change\",()=>{if(panel?.classList.contains(\"open\"))render();});\nwindow.addEventListener(\"tubebender-lock-change\",()=>applyAll());"));
 test("question 51938: preserves triple source contract",()=>has(9,"window.addEventListener(\"tubebender-selection-change\",()=>{if(panel?.classList.contains(\"open\"))render();});\nwindow.addEventListener(\"tubebender-lock-change\",()=>applyAll());\nwindow.TubeBenderLayers=Object.freeze({"));
-test("question 51939: preserves triple source contract",()=>has(9,"window.addEventListener(\"tubebender-lock-change\",()=>applyAll());\nwindow.TubeBenderLayers=Object.freeze({\nensure:ensureAssignments,render,applyAll,applySceneLayers,decorateTree,"));
-test("question 51940: preserves triple source contract",()=>has(9,"window.TubeBenderLayers=Object.freeze({\nensure:ensureAssignments,render,applyAll,applySceneLayers,decorateTree,\nentryLayer,entryVisibility,permissionForEntry,permissionForSelection,canSelection,"));
+test("question 51939: frozen layer cannot become current or permit editing",()=>{
+  const project={};ensureLayerState(project);const active=project.active_layer_id;
+  const layer=createUserLayer(project,{name:"Frozen",frozen:true});
+  assert.throws(()=>setActiveLayer(project,layer.id),/Frozen/);assert.equal(project.active_layer_id,active);
+  assert.equal(layerPermission(project,{layer_id:layer.id},"move").code,"LAYER_FROZEN");
+});
+test("question 51940: explicit zero lineweight survives ByLayer styling",()=>{
+  const project={};ensureLayerState(project);const layer=createUserLayer(project,{name:"Zero weight",lineweight_mm:0});
+  const style=resolveObjectStyle(project,{layer_id:layer.id});
+  assert.equal(style.lineweight_mm,0);assert.equal(style.layer_id,layer.id);
+});
 test("question 51941: preserves triple source contract",()=>has(9,"ensure:ensureAssignments,render,applyAll,applySceneLayers,decorateTree,\nentryLayer,entryVisibility,permissionForEntry,permissionForSelection,canSelection,\nis3DObjectInteractive,assignSelection,setActive,setTreeFilter,setLayerState,createLayer,deleteLayer,"));
 test("question 51942: preserves triple source contract",()=>has(9,"entryLayer,entryVisibility,permissionForEntry,permissionForSelection,canSelection,\nis3DObjectInteractive,assignSelection,setActive,setTreeFilter,setLayerState,createLayer,deleteLayer,\ncurrentStyleForEntry,"));
 test("question 51943: preserves triple source contract",()=>has(9,"is3DObjectInteractive,assignSelection,setActive,setTreeFilter,setLayerState,createLayer,deleteLayer,\ncurrentStyleForEntry,\nlayers:()=>clone(project()?.layers??[]),"));
