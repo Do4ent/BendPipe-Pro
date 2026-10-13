@@ -145,6 +145,7 @@
   }
   function updateCompactLayout(){
     document.body.classList.toggle("cad-toolbar-compact",$("cadCommands")?.dataset.cadDisplay==="compact");
+    document.body.classList.toggle("cad-header-compact",document.querySelector(".tb-head-actions")?.dataset.cadDisplay==="compact");
     requestAnimationFrame(()=>{try{window.resize?.();window.markViewerDirty?.();}catch{}});
   }
   function closePanelMenu(restoreFocus=false){
