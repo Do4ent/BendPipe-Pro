@@ -1,4 +1,5 @@
 export const COMMAND_DEFINITIONS=Object.freeze([
+  Object.freeze({id:"layers",name_en:"Layer Properties",name_ru:"Слои — диспетчер свойств",aliases:["LAYER","LA","СЛОИ"]}),
   Object.freeze({id:"move",name_en:"Move",name_ru:"Переместить",aliases:["M","MOVE"]}),
   Object.freeze({id:"copy",name_en:"Copy",name_ru:"Копировать",aliases:["C","COPY"]}),
   Object.freeze({id:"rotate",name_en:"Rotate",name_ru:"Повернуть",aliases:["R","ROTATE"]}),
@@ -26,7 +27,20 @@ function normalizeAliases(values){
 }
 export function normalizeAliasMap(input={}){
   const defaults=defaultAliasMap(),out={};
-  for(const command of COMMAND_DEFINITIONS)out[command.id]=normalizeAliases(input?.[command.id]??defaults[command.id]);
+  // Saved custom aliases take priority over defaults introduced by new commands.
+  // Explicit duplicates remain invalid; only absent defaults are filtered.
+  const reserved=new Set();
+  for(const command of COMMAND_DEFINITIONS){
+    if(Object.prototype.hasOwnProperty.call(input??{},command.id)){
+      out[command.id]=normalizeAliases(input[command.id]);
+      for(const alias of out[command.id])reserved.add(norm(alias));
+    }
+  }
+  for(const command of COMMAND_DEFINITIONS){
+    if(Object.prototype.hasOwnProperty.call(out,command.id))continue;
+    out[command.id]=normalizeAliases(defaults[command.id].filter(alias=>!reserved.has(norm(alias))));
+    for(const alias of out[command.id])reserved.add(norm(alias));
+  }
   const conflict=aliasConflict(out);
   if(conflict)throw new Error("Command alias conflict: "+conflict.alias+" — "+conflict.command_ids.join(", "));
   return Object.freeze(out);

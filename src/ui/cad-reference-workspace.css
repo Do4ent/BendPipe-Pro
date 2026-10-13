@@ -112,3 +112,24 @@ body.cad-workspace .tb-bottom-tab.active{background:#134872!important;color:#e2f
 /* Reference-only viewport controls must disappear in the original classic layout. */
 body:not(.cad-workspace) #cadReferenceQuick,
 body:not(.cad-workspace) #cadReferenceStatus { display:none!important; }
+
+/* Compact is a per-toolbar presentation preference, never a model transform. */
+body.cad-workspace.cad-toolbar-compact #app{grid-template-rows:69px 86px minmax(0,1fr) 48px!important}
+body.cad-workspace.cad-toolbar-compact .cad-ribbon-top{height:38px!important}
+body.cad-workspace.cad-toolbar-compact .cad-stage-tabs button{padding:9px 12px!important;font-size:12px!important}
+body.cad-workspace #cadCommands[data-cad-display="compact"]{height:44px!important;gap:3px!important}
+body.cad-workspace #cadCommands[data-cad-display="compact"] button{
+  height:32px!important;min-width:0!important;width:auto!important;padding:4px 7px!important;
+  flex-direction:row!important;gap:5px!important;flex:0 0 auto!important}
+body.cad-workspace #cadCommands[data-cad-display="compact"] .cad-command-icon{font-size:17px!important;line-height:20px!important}
+body.cad-workspace #cadCommands[data-cad-display="compact"] .cad-command-label{font-size:11px!important;line-height:16px!important}
+body.cad-workspace .tb-head-actions[data-cad-display="compact"]{gap:3px!important}
+body.cad-workspace .tb-head-actions[data-cad-display="compact"] button{height:28px!important;min-width:0!important;width:auto!important;padding:3px 5px!important}
+body.cad-workspace .tb-head-actions[data-cad-display="compact"] .txt{display:inline!important;font-size:10px!important}
+@media(max-width:860px){
+ body.cad-workspace.cad-toolbar-compact #app{grid-template-rows:64px 82px minmax(0,1fr) 48px!important}
+ body.cad-workspace.cad-toolbar-compact .cad-ribbon-top{height:36px!important}
+ body.cad-workspace.cad-toolbar-compact .cad-stage-tabs button{padding:8px 9px!important}
+ body.cad-workspace.cad-toolbar-compact .tb-map-left,body.cad-workspace.cad-toolbar-compact .tb-map-right{
+  top:156px!important;height:calc(100dvh - 216px)!important;max-height:calc(100dvh - 216px)!important}
+}

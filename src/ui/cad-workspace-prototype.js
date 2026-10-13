@@ -32,7 +32,7 @@
     ["angle","Геометрия","Угол","∠",()=>hotkey("angle")],
     ["constraints","Геометрия","Зависимости","⊥",()=>call(api(),"open","constraints")],
     ["modernConstraints","Геометрия","Связи объектов","⊡",()=>openExistingPanel("tbConstraintsPanel","tbConstraintsToggle")],
-    ["layers","Геометрия","Слои","▱",()=>openExistingPanel("tbLayersPanel","tbLayersToggle")],
+    ["layers","Геометрия","Слои","▱",()=>call(window.TubeBenderLayers,"openPanel")],
     ["groups","Геометрия","Группы","▦",()=>call(window.TubeBenderGroups,"openPanel")],
     ["assemblies","Геометрия","Сборки","◫",()=>call(window.TubeBenderAssemblies,"openPanel")],
     ["split","Геометрия","Разделить","⋮",()=>call(window.TubeBenderEditing,"open","split")],
@@ -138,9 +138,14 @@
   }
   function applyDisplay(panel,mode){
     const key=panel.dataset.cadToolbar;
-    displayModes[key]=mode==="icons"?"icons":"labels";
+    displayModes[key]=["labels","icons","compact"].includes(mode)?mode:"labels";
     panel.dataset.cadDisplay=displayModes[key];
     try{localStorage.setItem(displayKey,JSON.stringify(displayModes));}catch{}
+    updateCompactLayout();
+  }
+  function updateCompactLayout(){
+    document.body.classList.toggle("cad-toolbar-compact",$("cadCommands")?.dataset.cadDisplay==="compact");
+    requestAnimationFrame(()=>{try{window.resize?.();window.markViewerDirty?.();}catch{}});
   }
   function closePanelMenu(restoreFocus=false){
     if(!panelMenu)return;
@@ -167,7 +172,8 @@
     panelMenu.setAttribute("role","menu");panelMenu.setAttribute("aria-label","Отображение панели инструментов");
     panelMenu.innerHTML='<div class="cad-menu-title">Отображение панели</div>'+
       '<button type="button" role="menuitemradio" data-display-mode="labels">Иконки с подписями</button>'+
-      '<button type="button" role="menuitemradio" data-display-mode="icons">Только иконки</button>';
+      '<button type="button" role="menuitemradio" data-display-mode="icons">Только иконки</button>'+
+      '<button type="button" role="menuitemradio" data-display-mode="compact">Компактный вид</button>';
     document.body.append(panelMenu);
     panelMenu.querySelectorAll("button").forEach(button=>button.onclick=()=>{
       applyDisplay(menuTarget,button.dataset.displayMode);closePanelMenu(true);
@@ -184,7 +190,9 @@
         event.preventDefault();
         const buttons=[...panelMenu.querySelectorAll("button")];
         const index=buttons.indexOf(document.activeElement);
-        buttons[event.key==="Home"?0:event.key==="End"?1:(index+1)%2].focus();
+        const next=event.key==="Home"?0:event.key==="End"?buttons.length-1:
+          (index+(event.key==="ArrowUp"?-1:1)+buttons.length)%buttons.length;
+        buttons[next].focus();
       }
     };
     const header=document.querySelector(".tb-head-actions");
@@ -205,7 +213,7 @@
     }
     for(const [panel,key,defaultMode] of [[$("cadCommands"),"commands","labels"],[document.querySelector(".tb-head-actions"),"header","icons"]]){
       panel.dataset.cadToolbar=key;
-      panel.dataset.cadDisplay=displayModes[key]==="icons"||displayModes[key]==="labels"?displayModes[key]:defaultMode;
+      panel.dataset.cadDisplay=["icons","labels","compact"].includes(displayModes[key])?displayModes[key]:defaultMode;
       panel.addEventListener("contextmenu",event=>showPanelMenu(event,panel));
       panel.addEventListener("keydown",event=>{
         if(["Enter"," ","Spacebar"].includes(event.key)&&event.target.tagName==="BUTTON"){
@@ -216,6 +224,7 @@
         if(event.key==="ContextMenu"||(event.shiftKey&&event.key==="F10"))showPanelMenu(event,panel);
       });
     }
+    updateCompactLayout();
     ribbon.addEventListener("contextmenu",event=>{if(!event.defaultPrevented)showPanelMenu(event,$("cadCommands"));});
     document.addEventListener("pointerdown",event=>{if(!panelMenu.contains(event.target))closePanelMenu();});
     window.addEventListener("resize",()=>closePanelMenu());
