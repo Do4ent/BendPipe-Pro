@@ -331,6 +331,16 @@
     return panel;
   }
 
+  function openPanel(){
+    if(!layers||!project()){toast("Проект для управления слоями недоступен");return false;}
+    const root=ensurePanel();
+    if(!root.isConnected){toast("Панель слоёв недоступна");return false;}
+    render();root.classList.add("open");
+    root.setAttribute("role","dialog");root.setAttribute("aria-label","Диспетчер свойств слоёв");
+    root.querySelector("[data-layer-close]")?.focus();
+    return true;
+  }
+  function closePanel(){panel?.classList.remove("open");return true;}
   function render(){
     const p=project();if(!p||!layers)return;
     ensureAssignments();const root=ensurePanel(),body=root.querySelector("[data-layer-body]");
@@ -387,6 +397,7 @@
     window.addEventListener("tubebender-selection-change",()=>{if(panel?.classList.contains("open"))render();});
     window.addEventListener("tubebender-lock-change",()=>applyAll());
     window.TubeBenderLayers=Object.freeze({
+      openPanel,closePanel,
       ensure:ensureAssignments,render,applyAll,applySceneLayers,decorateTree,
       entryLayer,entryVisibility,permissionForEntry,permissionForSelection,canSelection,
       is3DObjectInteractive,assignSelection,setActive,setTreeFilter,setLayerState,createLayer,deleteLayer,

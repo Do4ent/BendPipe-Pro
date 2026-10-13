@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {buildCanonicalTubeGeometry} from "../../src/recognition/canonical-tube-builder.mjs";
 import {recognitionNumericReference} from "../helpers/canonical-numeric-reference.mjs";
+import {normalizeAliasMap,resolveCommand} from "../../src/domain/ui/command-palette.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -322,7 +323,11 @@ test("question 32658: preserves source contract",()=>has(3,"function normalizeAl
 test("question 32659: preserves source contract",()=>has(3,"return Object.freeze([...new Set((Array.isArray(values)?values:[]).map(value=>String(value??\"\").trim()).filter(Boolean).map(value=>value.toUpperCase()))]);"));
 test("question 32660: preserves source contract",()=>has(3,"export function normalizeAliasMap(input={}){"));
 test("question 32661: preserves source contract",()=>has(3,"const defaults=defaultAliasMap(),out={};"));
-test("question 32662: preserves source contract",()=>has(3,"for(const command of COMMAND_DEFINITIONS)out[command.id]=normalizeAliases(input?.[command.id]??defaults[command.id]);"));
+test("question 32662: saved aliases take priority over defaults for newly added commands",()=>{
+  const alias_map=normalizeAliasMap({move:["LA"]});
+  assert.equal(resolveCommand("LA",{alias_map}).id,"move");
+  assert.equal(resolveCommand("LAYER",{alias_map}).id,"layers");
+});
 test("question 32663: preserves source contract",()=>has(3,"const conflict=aliasConflict(out);"));
 test("question 32664: preserves source contract",()=>has(3,"if(conflict)throw new Error(\"Command alias conflict: \"+conflict.alias+\" — \"+conflict.command_ids.join(\", \"));"));
 test("question 32665: preserves source contract",()=>has(3,"return Object.freeze(out);"));

@@ -49,3 +49,20 @@ test("question 105: query history is newest-first deduplicated and persistent",(
   assert.equal(parsed.recent_ids[0],"move");
   assert.equal(COMMAND_DEFINITIONS.length>=16,true);
 });
+
+test("layer commands resolve AutoCAD aliases without overriding the existing length shortcut",()=>{
+  for(const text of ["LAYER","la","СЛОИ"])assert.equal(resolveCommand(text).id,"layers");
+  assert.equal(resolveCommand("L").id,"length");
+});
+
+test("adding Layers preserves old custom aliases and command history",()=>{
+  const old={aliases:{...defaultAliasMap(),move:["LA"]},history:["LA","MOVE"],recent_ids:["move"]};
+  delete old.aliases.layers;
+  const restored=parsePaletteState(JSON.stringify(old));
+  assert.deepEqual(restored.aliases.move,["LA"]);
+  assert.deepEqual(restored.history,["LA","MOVE"]);
+  assert.deepEqual(restored.recent_ids,["move"]);
+  assert.equal(resolveCommand("LA",{alias_map:restored.aliases}).id,"move");
+  assert.equal(resolveCommand("LAYER",{alias_map:restored.aliases}).id,"layers");
+  assert.throws(()=>setAliases(restored.aliases,"layers",["LA"]),/alias conflict/i);
+});
