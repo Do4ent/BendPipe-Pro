@@ -361,6 +361,30 @@ test('A20: unsupported rendering-options bits block at opcode start',()=>{
   assert.match(out.unsupported_variant,/unsupported options/i);
 });
 
+test('rendering texture interpolation toggles preserve mask/value and exact following offsets',()=>{
+  for(const value of [0,1]){
+    const bytes=Uint8Array.from([0x52,...le32(1),...le32(value),0x71,0x7a]);
+    const out=decodeHsfOpcodePrefix(bytes,{hsfVersion:'14.50'});
+    assert.equal(out.complete_prefix,true);
+    assert.equal(out.next_offset,bytes.length);
+    assert.deepEqual(out.entities[0],{kind:'rendering_options',source_offset:0,mask:1,value});
+    assert.equal(out.entities[1].kind,'tag');
+    assert.equal(out.entities[1].source_offset,9);
+    assert.equal(out.entities[1].tag_index,0);
+  }
+  const combined=decodeHsfOpcodePrefix(Uint8Array.from([
+    0x52,...le32(0x00100001),...le32(0x00100001),...le32(0),...le32(0),0x71,0x7a
+  ]),{hsfVersion:'14.50'});
+  assert.equal(combined.complete_prefix,true);
+  assert.equal(combined.entities[0].mask,0x00100001);
+  assert.equal(combined.entities[0].lock_mask,0);
+  assert.equal(combined.entities[1].source_offset,17);
+  const unknown=decodeHsfOpcodePrefix(Uint8Array.from([0x52,...le32(0x1001),...le32(1),0x7a]),{hsfVersion:'14.50'});
+  assert.equal(unknown.complete_prefix,false);
+  assert.equal(unknown.unsupported_opcode,0x52);
+  assert.equal(unknown.next_offset,0);
+});
+
 
 test('A20: non-EdgeBreaker shell decodes exact vertices and trivial face list',()=>{
   const bytes=Uint8Array.from([

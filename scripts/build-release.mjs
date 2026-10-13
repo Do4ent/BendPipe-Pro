@@ -35,7 +35,7 @@ fs.writeFileSync(path.join(dist,readmeName),[
   "Project JSON is an editable project artifact, not a manufacturing release.",
   "Unverified source geometry, tooling/material/machine settings retain production blockers.",
   "The full real-source round trip is verified for DWFx 80004806.",
-  "The archived 80005311/80005313 sources currently have integrity/container coverage only.",
+  "80005311/80005313 have real-import regression coverage; unresolved parts block whole-project import.",
   "Optional OCR functionality may require external resources.",
   "",
   "Save project JSON before moving between browser origins or HTML files.",
