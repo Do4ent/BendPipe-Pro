@@ -10,6 +10,8 @@ Right-click the ribbon or header to choose icons with captions, icons only, comp
 
 Native Properties remains in the inspector; on mobile, opening it reveals the inspector and leaves bottom navigation reachable. The All Panels drawer retains native tools not represented in the current task ribbon, including normalization, tolerances, markers, command history/settings and the transform gizmo. Removing these native controls would remove working features.
 
+Native launchers outside the drawer are hidden from first paint. A direct-body observer places late-created controls in All Panels immediately, preserving the original DOM nodes and their actions. There is no delayed two-second collection step.
+
 Classic switching and its DOM restoration/CSS are removed. Obsolete Checks/Technology cards and the old Layers launcher are removed from the shared application template. `legacy/VC207R7` still contains the shared application runtime and editor templates required by the builder; it is not a separately shipped or selectable interface.
 
 Build and verify:
