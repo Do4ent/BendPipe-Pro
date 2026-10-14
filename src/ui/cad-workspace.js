@@ -74,11 +74,12 @@
     if(!panel.classList.contains("open"))click(toggleId);
     return true;
   }
+  function isNativeTool(node){
+    return node.nodeType===1&&((node.tagName==="BUTTON"&&node.id.startsWith("tb"))||node.id==="tbTransformGizmoPanel");
+  }
   function collectTools(){
     for(const node of [...document.body.children]){
-      if(node.tagName==="BUTTON"&&node.id.startsWith("tb")||node.id==="tbTransformGizmoPanel"){
-        toolDrawer.append(node);
-      }
+      if(isNativeTool(node))toolDrawer.append(node);
     }
   }
   function toggleTools(){collectTools();toolDrawer.hidden=!toolDrawer.hidden;}
@@ -293,7 +294,13 @@
     });
     $("cadTools").onclick=toggleTools;
     collectTools();
-    setTimeout(collectTools,2000);
+    const toolObserver=new MutationObserver(records=>{
+      for(const record of records)for(const node of record.addedNodes){
+        if(node.parentElement===document.body&&isNativeTool(node))toolDrawer.append(node);
+      }
+    });
+    toolObserver.observe(document.body,{childList:true});
+    window.addEventListener("pagehide",()=>toolObserver.disconnect(),{once:true});
     document.addEventListener("keydown",event=>{if(event.key==="Escape")toolDrawer.hidden=true;});
     inspector=document.createElement("section");inspector.id="cadInspector";
     inspector.innerHTML='<div class="cad-inspector-tabs" role="tablist" aria-label="Инспектор">'+
