@@ -265,7 +265,8 @@
       '<details><summary>Происхождение и неопределённости</summary><pre>'+esc(JSON.stringify({source:data.source,canonicalPromotion:data.promotion,issues:data.issues},null,2))+"</pre></details>";
   }
   function install(){
-    if(!document.body.classList.contains("tb-project-map")||!api())return;
+    if(window.TubeBenderCadWorkspace)return true;
+    if(!document.body.classList.contains("tb-project-map")||!api())return false;
     document.body.classList.add("cad-workspace");
     ribbon=document.createElement("section");ribbon.id="cadRibbon";ribbon.setAttribute("aria-label","CAD рабочие пространства");
     ribbon.innerHTML='<div class="cad-ribbon-top"><div class="cad-stage-tabs" role="tablist">'+stages.map(item=>
@@ -334,7 +335,21 @@
     const timer=setInterval(renderInspector,1500);
     window.addEventListener("pagehide",()=>clearInterval(timer),{once:true});
     window.TubeBenderCadWorkspace=Object.freeze({selectStage,selectInspector,execute,snapshot,commands:()=>commands.map(item=>({id:item[0],category:item[1],label:item[2]}))});
+    return true;
   }
-  if(document.readyState==="complete")install();
-  else window.addEventListener("load",install,{once:true});
+  function boot(){
+    try{
+      if(!install())throw new Error("CAD application shell is unavailable");
+      document.documentElement.dataset.cadBoot="ready";
+      $("cadStartupStatus")?.remove();
+      document.dispatchEvent(new CustomEvent("bendpipe:cad-workspace-ready"));
+    }catch(error){
+      document.documentElement.dataset.cadBoot="error";
+      const status=$("cadStartupStatus");
+      if(status)status.textContent="Не удалось открыть CAD Workspace. Обновите страницу.";
+      console.error("CAD Workspace startup failed",error);
+    }
+  }
+  if(document.readyState==="loading")window.addEventListener("DOMContentLoaded",boot,{once:true});
+  else boot();
 })();
