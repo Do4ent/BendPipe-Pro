@@ -1,4 +1,7 @@
 /* Single CAD presentation: shared model, commands, dialogs and viewport. */
+html[data-cad-boot="pending"] #app,html[data-cad-boot="error"] #app{visibility:hidden!important}
+#cadStartupStatus{position:fixed;inset:0;z-index:200000;display:grid;place-content:center;background:#071525;color:#c7e0f6;font:16px Segoe UI,system-ui,sans-serif}
+html[data-cad-boot="ready"] #cadStartupStatus{display:none}
 body.cad-workspace {--cad-bg:#10161e;--cad-panel:#18222d;--cad-line:#2a3949;--cad-accent:#6fb2ff;background:var(--cad-bg)!important;font-family:Segoe UI,system-ui,sans-serif}
 body.cad-workspace #app {grid-template-rows:64px 116px minmax(0,1fr) 42px!important}
 body.cad-workspace .tb-map-header {grid-row:1;height:64px!important;min-height:64px!important;background:#111a24!important;border-bottom:1px solid var(--cad-line)!important;padding:0 14px!important;gap:14px!important}

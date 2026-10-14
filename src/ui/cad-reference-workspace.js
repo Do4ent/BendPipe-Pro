@@ -182,5 +182,5 @@ function start(){
    activeSummary:()=>current(),refresh,execute:action
  });
 }
-if(document.readyState==="complete")start();else window.addEventListener("load",start,{once:true});
+if(workspace())start();else document.addEventListener("bendpipe:cad-workspace-ready",start,{once:true});
 })();

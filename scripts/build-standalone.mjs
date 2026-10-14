@@ -3229,8 +3229,20 @@ const cadRuntime=fs.readFileSync(path.join(root,"src/ui/cad-workspace.js"),"utf8
 const cadCss=fs.readFileSync(path.join(root,"src/ui/cad-workspace.css"),"utf8");
 const referenceRuntime=fs.readFileSync(path.join(root,"src/ui/cad-reference-workspace.js"),"utf8").replace(/<\/script/gi,"<\\/script");
 const referenceCss=fs.readFileSync(path.join(root,"src/ui/cad-reference-workspace.css"),"utf8");
-output=output.replace("</head>",'<style id="cad-workspace-style">'+cadCss+"</style>"+'<style id="cad-reference-workspace-style">'+referenceCss+"</style></head>")
-  .replace(/<\/body>\s*<\/html>\s*$/i,'<script data-bendpipe-workspace="cad">'+cadRuntime+"</script>"+'<script data-bendpipe-reference="cad-workspace">'+referenceRuntime+"</script></body></html>");
+const cadStartupGate=`(()=>{
+  const root=document.documentElement;
+  root.dataset.cadBoot="pending";
+  const block=event=>{
+    if(root.dataset.cadBoot==="ready")return;
+    event.stopImmediatePropagation();
+    const reload=event.key==="F5"||((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="r");
+    if(!reload)event.preventDefault();
+  };
+  window.addEventListener("keydown",block,true);
+  window.addEventListener("keyup",block,true);
+})();`;
+output=output.replace("</head>",'<style id="cad-workspace-style">'+cadCss+"</style>"+'<style id="cad-reference-workspace-style">'+referenceCss+'</style><script data-bendpipe-startup="cad">'+cadStartupGate+'</script></head>')
+  .replace(/<\/body>\s*<\/html>\s*$/i,'<div id="cadStartupStatus" role="status">Загрузка CAD Workspace…</div><script data-bendpipe-workspace="cad">'+cadRuntime+"</script>"+'<script data-bendpipe-reference="cad-workspace">'+referenceRuntime+"</script></body></html>");
 
 fs.mkdirSync(distDir, { recursive: true });
 const tempOutputPath =
