@@ -72,7 +72,7 @@ jobs:
           node --input-type=module <<'JS'
           import fs from 'node:fs';
           import assert from 'node:assert/strict';
-          const html=fs.readFileSync('dist/TubeBender_CAD_VC207R7_M1_Standalone.html','utf8');
+          const html=fs.readFileSync('dist/BendPipe_Pro_CAD_Workspace.html','utf8');
           assert.match(html,/window\.TubeBenderRenderPerformance/);
           assert.match(html,/window\.TubeBenderStartupStatus/);
           assert.match(html,/tbViewerFrameCoalescer\.schedule/);
@@ -81,7 +81,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: tubebender-perf-standalone
-          path: dist/TubeBender_CAD_VC207R7_M1_Standalone.html
+          path: dist/BendPipe_Pro_CAD_Workspace.html
           if-no-files-found: error
       - name: Enforce regression pass after gathering PERF evidence
         if: always() && steps.regression.outcome == 'failure'
@@ -119,8 +119,6 @@ jobs:
         if: steps.standalone_build.outcome == 'success'
         run: |
           node scripts/check-standalone-syntax.mjs
-          node scripts/check-standalone-syntax.mjs dist/BendPipe_Pro_CAD_Workspace_Prototype.html
-          node scripts/check-standalone-syntax.mjs dist/BendPipe_Pro_CAD_Workspace.html
       - name: Verify PERF-001 and PERF-003 application behavior
         if: steps.standalone_build.outcome == 'success'
         id: chromium_app
@@ -145,9 +143,6 @@ jobs:
       - name: Verify full browser acceptance including DWFx project round trip
         if: success() || failure()
         run: TB_BROWSER_REPORT_NAME=release-gate npx playwright test --config acceptance/playwright.config.mjs
-      - name: Verify full round trip on the opt-in CAD workspace
-        if: steps.standalone_build.outcome == 'success'
-        run: TB_BROWSER_REPORT_NAME=prototype-round-trip TB_BROWSER_APP_PATH=/BendPipe_Pro_CAD_Workspace_Prototype.html npx playwright test --config acceptance/playwright.config.mjs --grep RELEASE-GATE
       - name: Verify full round trip on the primary release workspace
         if: steps.standalone_build.outcome == 'success'
         run: TB_BROWSER_REPORT_NAME=workspace-round-trip TB_BROWSER_APP_PATH=/BendPipe_Pro_CAD_Workspace.html npx playwright test --config acceptance/playwright.config.mjs --grep RELEASE-GATE
@@ -158,10 +153,10 @@ jobs:
           name: perf-001-003-browser-evidence
           path: reports/browser
           if-no-files-found: warn
-      - name: Upload opt-in CAD workspace prototype
+      - name: Upload CAD workspace
         if: steps.standalone_build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: BendPipe-Pro-CAD-Workspace-Prototype
-          path: dist/BendPipe_Pro_CAD_Workspace_Prototype.html
+          name: BendPipe-Pro-CAD-Workspace
+          path: dist/BendPipe_Pro_CAD_Workspace.html
           if-no-files-found: error

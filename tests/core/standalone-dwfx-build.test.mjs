@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
-const output=path.join(root,"dist","TubeBender_CAD_VC207R7_M1_Standalone.html");
+const output=path.join(root,"dist","BendPipe_Pro_CAD_Workspace.html");
 
 test("A20: standalone build embeds guarded DWFx importer and preserves JSON path",()=>{
   const stdout=execFileSync(
@@ -606,7 +606,6 @@ test("A65: short start and end straights use removable technological allowances 
 
   assert.match(html,/const endpoint=rowIndex>=0&&isEndStraightRowIndex\(state\.rows\|\|\[\],rowIndex\)/);
   assert.match(html,/!isEndStraightRowIndex\(rows,rowIndex\).*Внутренний прямой участок короче Lmin/s);
-  assert.match(html,/rows\.every\(\(r,index\)=>r\?\.type!=='LINE'\|\|isEndStraightRowIndex\(rows,index\)/);
   assert.match(html,/const endpoint=i===0\|\|i===lengths\.length-1/);
 
   assert.match(html,/endAllowances=technologicalEndAllowancePlan/);

@@ -23,7 +23,7 @@ export default defineConfig({
   webServer:baselineOnly?undefined:{
     cwd:root,
     command:"node scripts/acceptance-static-server.mjs",
-    url:"http://127.0.0.1:4178/TubeBender_CAD_VC207R7_M1_Standalone.html",
+    url:"http://127.0.0.1:4178/BendPipe_Pro_CAD_Workspace.html",
     timeout:90000,
     reuseExistingServer:!process.env.CI
   }

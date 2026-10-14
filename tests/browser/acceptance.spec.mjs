@@ -1,6 +1,6 @@
 import {test,expect} from "@playwright/test";
 import {REQUIREMENT_IDS,BROWSER_COVERAGE} from "../../acceptance/requirements-120.mjs";
-const html="/TubeBender_CAD_VC207R7_M1_Standalone.html";
+const html="/BendPipe_Pro_CAD_Workspace.html";
 async function loadApp(page){
   test.setTimeout(150000);
   const response=await page.goto(html,{waitUntil:"commit",timeout:12000});

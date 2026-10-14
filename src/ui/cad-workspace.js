@@ -12,9 +12,9 @@
     if(!target)throw new Error("Команда недоступна: "+selector);
     target.click();
   }
-  let stage="geometry",enabled=true,inspector=null,ribbon=null,lastSnapshot="",toolDrawer=null;
-  const movedTools=[];
+  let stage="geometry",inspector=null,ribbon=null,lastSnapshot="",toolDrawer=null;
   const displayKey="bendpipe.cad.toolbarDisplay.v1";
+  const toolbarModes=["labels","icons","compact","compact-icons"];
   let inspectorTab="properties",displayModes={},panelMenu=null,menuTarget=null,menuReturnFocus=null;
   try{displayModes=JSON.parse(localStorage.getItem(displayKey)||"{}")||{};}catch{}
   if(typeof displayModes!=="object"||Array.isArray(displayModes))displayModes={};
@@ -75,10 +75,8 @@
     return true;
   }
   function collectTools(){
-    if(!enabled)return;
     for(const node of [...document.body.children]){
       if(node.tagName==="BUTTON"&&node.id.startsWith("tb")||node.id==="tbTransformGizmoPanel"){
-        if(!movedTools.includes(node))movedTools.push(node);
         toolDrawer.append(node);
       }
     }
@@ -124,7 +122,7 @@
   function selectInspector(tab,{reveal=true}={}){
     if(!["properties","source","checks"].includes(tab))return;
     inspectorTab=tab;lastSnapshot="";
-    if(reveal&&enabled&&innerWidth<=860)document.body.classList.add("tb-show-checks");
+    if(reveal&&innerWidth<=860)document.body.classList.add("tb-show-checks");
     inspector.querySelectorAll("[data-inspector-tab]").forEach(button=>{
       const selected=button.dataset.inspectorTab===tab;
       button.setAttribute("aria-selected",String(selected));button.tabIndex=selected?0:-1;
@@ -138,14 +136,15 @@
   }
   function applyDisplay(panel,mode){
     const key=panel.dataset.cadToolbar;
-    displayModes[key]=["labels","icons","compact"].includes(mode)?mode:"labels";
+    displayModes[key]=toolbarModes.includes(mode)?mode:"labels";
     panel.dataset.cadDisplay=displayModes[key];
     try{localStorage.setItem(displayKey,JSON.stringify(displayModes));}catch{}
     updateCompactLayout();
   }
   function updateCompactLayout(){
-    document.body.classList.toggle("cad-toolbar-compact",$("cadCommands")?.dataset.cadDisplay==="compact");
-    document.body.classList.toggle("cad-header-compact",document.querySelector(".tb-head-actions")?.dataset.cadDisplay==="compact");
+    const isCompact=panel=>["compact","compact-icons"].includes(panel?.dataset.cadDisplay);
+    document.body.classList.toggle("cad-toolbar-compact",isCompact($("cadCommands")));
+    document.body.classList.toggle("cad-header-compact",isCompact(document.querySelector(".tb-head-actions")));
     requestAnimationFrame(()=>{try{window.resize?.();window.markViewerDirty?.();}catch{}});
   }
   function closePanelMenu(restoreFocus=false){
@@ -154,7 +153,6 @@
     if(restoreFocus&&menuReturnFocus?.isConnected)menuReturnFocus.focus();
   }
   function showPanelMenu(event,panel){
-    if(!enabled)return;
     event.preventDefault();menuTarget=panel;
     menuReturnFocus=document.activeElement;
     panelMenu.hidden=false;
@@ -174,7 +172,8 @@
     panelMenu.innerHTML='<div class="cad-menu-title">Отображение панели</div>'+
       '<button type="button" role="menuitemradio" data-display-mode="labels">Иконки с подписями</button>'+
       '<button type="button" role="menuitemradio" data-display-mode="icons">Только иконки</button>'+
-      '<button type="button" role="menuitemradio" data-display-mode="compact">Компактный вид</button>';
+      '<button type="button" role="menuitemradio" data-display-mode="compact">Компактный вид</button>'+
+      '<button type="button" role="menuitemradio" data-display-mode="compact-icons">Компактный вид без подписей</button>';
     document.body.append(panelMenu);
     panelMenu.querySelectorAll("button").forEach(button=>button.onclick=()=>{
       applyDisplay(menuTarget,button.dataset.displayMode);closePanelMenu(true);
@@ -207,14 +206,13 @@
         glyph.textContent=/measure/i.test(button.id)?"↔":"✥";button.replaceChildren(glyph,text);
       }else if(!button.querySelector(".txt")){
         const text=document.createElement("span");text.className="txt";
-        text.classList.add("cad-extra-label");
         text.textContent=({"tbActionUndo":"Отменить","tbActionRedo":"Повторить","tbActionHelp":"Справка"})[button.id]||label;
         button.append(text);
       }
     }
     for(const [panel,key,defaultMode] of [[$("cadCommands"),"commands","labels"],[document.querySelector(".tb-head-actions"),"header","icons"]]){
       panel.dataset.cadToolbar=key;
-      panel.dataset.cadDisplay=["icons","labels","compact"].includes(displayModes[key])?displayModes[key]:defaultMode;
+      panel.dataset.cadDisplay=toolbarModes.includes(displayModes[key])?displayModes[key]:defaultMode;
       panel.addEventListener("contextmenu",event=>showPanelMenu(event,panel));
       panel.addEventListener("keydown",event=>{
         if(["Enter"," ","Spacebar"].includes(event.key)&&event.target.tagName==="BUTTON"){
@@ -245,7 +243,7 @@
       machineCompensation:evidence.machineCompensationApplied??null,decision,stage,inspectorTab};
   }
   function renderInspector(){
-    if(!enabled||document.hidden)return;
+    if(document.hidden)return;
     const data=snapshot(),key=JSON.stringify(data);
     if(key===lastSnapshot)return;lastSnapshot=key;
     const value=(label,text)=>'<div class="cad-value"><span>'+label+'</span><strong>'+esc(text??"Неизвестно")+"</strong></div>";
@@ -265,20 +263,6 @@
         :data.blocked?"Импорт требует подтверждения перед производством":"Производственная готовность не проверена")+"</div>"+
       (inspectorTab==="checks"?'<ul class="cad-blockers">'+data.decision.blockers.map(issue=>"<li>"+esc(issue)+"</li>").join("")+"</ul>":"")+
       '<details><summary>Происхождение и неопределённости</summary><pre>'+esc(JSON.stringify({source:data.source,canonicalPromotion:data.promotion,issues:data.issues},null,2))+"</pre></details>";
-  }
-  function toggle(){
-    enabled=!enabled;
-    document.body.classList.toggle("cad-workspace",enabled);
-    ribbon.hidden=!enabled;inspector.hidden=!enabled;
-    toolDrawer.hidden=true;
-    closePanelMenu();
-    const propertyPanel=$("tbPropertiesPanel");
-    if(!enabled&&propertyPanel){window.TubeBenderProperties?.close?.();document.body.append(propertyPanel);}
-    else if(propertyPanel){$("cadPropertySlot").append(propertyPanel);selectInspector(inspectorTab);}
-    if(!enabled)for(const node of movedTools)document.body.append(node);
-    else for(const node of movedTools)toolDrawer.append(node);
-    $("cadRestore").textContent=enabled?"Классический вид":"CAD Workspace";
-    try{window.resize?.();window.markViewerDirty?.();}catch{}
   }
   function install(){
     if(!document.body.classList.contains("tb-project-map")||!api())return;
@@ -320,7 +304,7 @@
     if(propertyPanel){
       $("cadPropertySlot").append(propertyPanel);
       const observer=new MutationObserver(()=>{
-        if(enabled&&propertyPanel.classList.contains("open")){
+        if(propertyPanel.classList.contains("open")){
           if(inspectorTab!=="properties")selectInspector("properties");
           else if(innerWidth<=860)document.body.classList.add("tb-show-checks");
         }
@@ -341,17 +325,15 @@
     });
     installPanelMenu();
     document.querySelector('.tb-bottom-tab[data-tab="checks"]')?.addEventListener("click",()=>{
-      if(enabled)selectInspector("checks");
+      selectInspector("checks");
     });
     selectInspector("properties",{reveal:false});
-    const restore=document.createElement("button");restore.id="cadRestore";restore.type="button";restore.textContent="Классический вид";restore.onclick=toggle;
-    document.querySelector(".tb-map-header").append(restore);
-    const badge=document.createElement("span");badge.className="cad-prototype-badge";badge.textContent="WORKSPACE LAB";
+    const badge=document.createElement("span");badge.className="cad-workspace-badge";badge.textContent="CAD WORKSPACE";
     document.querySelector(".tb-brand-title").append(badge);
     selectStage("geometry");renderInspector();
     const timer=setInterval(renderInspector,1500);
     window.addEventListener("pagehide",()=>clearInterval(timer),{once:true});
-    window.TubeBenderCadWorkspace=Object.freeze({selectStage,selectInspector,execute,snapshot,toggle,commands:()=>commands.map(item=>({id:item[0],category:item[1],label:item[2]}))});
+    window.TubeBenderCadWorkspace=Object.freeze({selectStage,selectInspector,execute,snapshot,commands:()=>commands.map(item=>({id:item[0],category:item[1],label:item[2]}))});
   }
   if(document.readyState==="complete")install();
   else window.addEventListener("load",install,{once:true});

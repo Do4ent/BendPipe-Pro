@@ -4,7 +4,6 @@ import path from "node:path";
 import { test, expect, chromium } from "@playwright/test";
 
 const baseURL = "http://127.0.0.1:4178";
-const classicURL = baseURL + "/TubeBender_CAD_VC207R7_M1_Standalone.html";
 const workspaceURL = baseURL + "/BendPipe_Pro_CAD_Workspace.html";
 const softwareGL = ["--enable-webgl", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--disable-dev-shm-usage"];
 
@@ -92,7 +91,7 @@ test("[PERSISTENCE-RESTART] native localStorage and IndexedDB persist after full
   try {
     context = await launch();
     let page = context.pages()[0] ?? await context.newPage();
-    expect((await page.goto(classicURL, { waitUntil: "commit", timeout: 20000 }))?.status()).toBe(200);
+    expect((await page.goto(workspaceURL, { waitUntil: "commit", timeout: 20000 }))?.status()).toBe(200);
     await page.evaluate(async ({ key, value }) => {
       localStorage.setItem(key, value);
       await new Promise((resolve, reject) => {
@@ -112,7 +111,7 @@ test("[PERSISTENCE-RESTART] native localStorage and IndexedDB persist after full
     context = null;
     context = await launch();
     page = context.pages()[0] ?? await context.newPage();
-    expect((await page.goto(classicURL, { waitUntil: "commit", timeout: 20000 }))?.status()).toBe(200);
+    expect((await page.goto(workspaceURL, { waitUntil: "commit", timeout: 20000 }))?.status()).toBe(200);
     const restored = await page.evaluate(async key => {
       const local = localStorage.getItem(key);
       const indexed = await new Promise((resolve, reject) => {
