@@ -51,6 +51,7 @@ test("[CAD-STARTUP] failed mount cannot repeat hidden commands and preserves bro
     window.TubeBenderRepeatCommands.register({id:"startup-error-probe",label:"Startup repeat probe",run:()=>{window.__startupRepeatProbe++;return true;}});
     window.TubeBenderRepeatCommands.record("startup-error-probe","Startup repeat probe");
   });
+  expect(await page.evaluate(()=>window.TubeBenderRepeatCommands.hasLast())).toBe(true);
   await page.keyboard.press("Enter");
   await page.keyboard.press("Space");
   expect(await page.evaluate(()=>window.__startupRepeatProbe)).toBe(0);
