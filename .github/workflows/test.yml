@@ -33,13 +33,11 @@ jobs:
       - name: Validate release HTML syntax
         run: |
           node scripts/check-standalone-syntax.mjs
-          node scripts/check-standalone-syntax.mjs dist/BendPipe_Pro_CAD_Workspace.html
       - name: Upload standalone artifact
         uses: actions/upload-artifact@v4
         with:
-          name: TubeBender-CAD-VC207R7-M1-Standalone
+          name: BendPipe-Pro-CAD-Workspace
           path: |
-            dist/TubeBender_CAD_VC207R7_M1_Standalone.html
             dist/BendPipe_Pro_CAD_Workspace.html
             dist/README-RELEASE.txt
             dist/SHA256SUMS

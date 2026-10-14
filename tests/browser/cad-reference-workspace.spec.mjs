@@ -23,12 +23,7 @@ test("[CAD-REFERENCE] approved interface is wired into real CAD workspace",async
   await expect(page.locator('[data-cad-ref-action="dimensions"]')).toHaveCount(1);
   await expect(page.locator("#cadPropertySlot #tbPropertiesPanel")).toHaveCount(1);
   await page.screenshot({path:"reports/browser/cad-reference-desktop.png",fullPage:true});
-  await page.locator("#cadRestore").click();
-  await expect(page.locator("#cadRibbon")).toBeHidden();
-  await expect(page.locator("#cadReferenceStatus")).toBeHidden();
-  await expect(page.locator("#cadReferenceQuick")).toBeHidden();
-  await page.locator("#cadRestore").click();
-  await expect(page.locator("#cadRibbon")).toBeVisible();
+  await expect(page.locator("#cadRestore,#tbChecksPanel,#tbTechnologyInfo,#tbLayersButton")).toHaveCount(0);
   expect(await page.evaluate(()=>window.TubeBenderEngineering.activeTube()?.name??"Труба не выбрана")).toBe(active);
   expect(errors).toEqual([]);
 });

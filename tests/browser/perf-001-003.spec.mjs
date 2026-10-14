@@ -1,5 +1,5 @@
 import {test,expect} from "@playwright/test";
-const html="/TubeBender_CAD_VC207R7_M1_Standalone.html";
+const html="/BendPipe_Pro_CAD_Workspace.html";
 
 // Keep CI failure messages actionable even when the initial bundle never boots.
 function captureStartupDiagnostics(page){

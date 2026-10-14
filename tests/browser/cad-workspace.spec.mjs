@@ -2,13 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import {test,expect} from "@playwright/test";
 
-const prototype=path.resolve("dist/BendPipe_Pro_CAD_Workspace_Prototype.html");
+const workspace=path.resolve("dist/BendPipe_Pro_CAD_Workspace.html");
 test("[CAD-WORKSPACE] real import, context evidence, command routing and layout",async({page})=>{
-  test.skip(!fs.existsSync(prototype),"Build the opt-in CAD workspace prototype first");
+  test.skip(!fs.existsSync(workspace),"Build CAD workspace first");
   test.setTimeout(180000);
   const errors=[];
   page.on("pageerror",error=>errors.push(String(error)));
-  const response=await page.goto("/BendPipe_Pro_CAD_Workspace_Prototype.html",{waitUntil:"load"});
+  const response=await page.goto("/BendPipe_Pro_CAD_Workspace.html",{waitUntil:"load"});
   expect(response.status()).toBe(200);
   await page.waitForFunction(()=>Boolean(window.TubeBenderCadWorkspace),null,{timeout:120000});
   await expect(page.locator("#cadPropertySlot #tbPropertiesPanel")).toHaveCount(1);
@@ -39,12 +39,8 @@ test("[CAD-WORKSPACE] real import, context evidence, command routing and layout"
   ))).toBe(true);
   await page.locator('[data-cad-stage="geometry"]').click();
   await page.screenshot({path:"reports/browser/cad-workspace-desktop.png",fullPage:true});
-  await page.locator("#cadRestore").click();
-  await expect(page.locator("#cadRibbon")).toBeHidden();
-  expect(await page.locator("#tbPropertiesPanel").evaluate(node=>node.parentElement===document.body)).toBe(true);
-  expect(await page.locator("#tbPropertiesToggle").evaluate(node=>node.parentElement===document.body)).toBe(true);
-  await page.locator("#cadRestore").click();
-  await expect(page.locator("#cadRibbon")).toBeVisible();
+  await expect(page.locator("#cadRestore")).toHaveCount(0);
+  await expect(page.locator("#tbChecksPanel,#tbTechnologyInfo,#tbLayersButton")).toHaveCount(0);
   await page.setViewportSize({width:390,height:844});
   await page.locator('[data-cad-command="properties"]').click();
   await expect(page.locator('[data-inspector-tab="properties"]')).toHaveAttribute("aria-selected","true");
@@ -59,9 +55,9 @@ test("[CAD-WORKSPACE] real import, context evidence, command routing and layout"
 });
 
 test("[CAD-WORKSPACE] toolbar context menu persists per-panel icon preferences",async({page})=>{
-  test.skip(!fs.existsSync(prototype),"Build the opt-in CAD workspace prototype first");
+  test.skip(!fs.existsSync(workspace),"Build CAD workspace first");
   test.setTimeout(90000);
-  await page.goto("/BendPipe_Pro_CAD_Workspace_Prototype.html",{waitUntil:"load"});
+  await page.goto("/BendPipe_Pro_CAD_Workspace.html",{waitUntil:"load"});
   await page.waitForFunction(()=>Boolean(window.TubeBenderCadWorkspace),null,{timeout:60000});
   const command=page.locator('[data-cad-command="measure"]');
   await command.click({button:"right"});
@@ -110,10 +106,10 @@ test("[CAD-WORKSPACE] toolbar context menu persists per-panel icon preferences",
 });
 
 test("[CAD-WORKSPACE] native properties reveal the mobile inspector",async({page})=>{
-  test.skip(!fs.existsSync(prototype),"Build the opt-in CAD workspace prototype first");
+  test.skip(!fs.existsSync(workspace),"Build CAD workspace first");
   test.setTimeout(60000);
   await page.setViewportSize({width:390,height:844});
-  await page.goto("/BendPipe_Pro_CAD_Workspace_Prototype.html",{waitUntil:"load"});
+  await page.goto("/BendPipe_Pro_CAD_Workspace.html",{waitUntil:"load"});
   await page.waitForFunction(()=>Boolean(window.TubeBenderCadWorkspace&&window.TubeBenderProperties));
   await page.locator('[data-cad-stage="source"]').click();
   await page.locator('.tb-bottom-tab[data-tab="3d"]').click();

@@ -28,7 +28,7 @@ jobs:
       - name: Validate standalone JavaScript
         run: |
           node scripts/check-standalone-syntax.mjs
-          node scripts/check-standalone-syntax.mjs dist/BendPipe_Pro_CAD_Workspace.html
+
       - name: Install browser runner
         run: npm install --no-save @playwright/test@1.56.1
       - name: Install Chromium
@@ -43,7 +43,7 @@ jobs:
       - name: Package downloadable archive
         run: |
           VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json')).version")
-          zip -j "dist/BendPipe-Pro-v$VERSION.zip" dist/BendPipe_Pro_CAD_Workspace.html dist/TubeBender_CAD_VC207R7_M1_Standalone.html dist/README-RELEASE.txt dist/SHA256SUMS
+          zip -j "dist/BendPipe-Pro-v$VERSION.zip" dist/BendPipe_Pro_CAD_Workspace.html dist/README-RELEASE.txt dist/SHA256SUMS
       - name: Retain browser evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -55,7 +55,6 @@ jobs:
         with:
           name: BendPipe-Pro-release-candidate
           path: |
-            dist/TubeBender_CAD_VC207R7_M1_Standalone.html
             dist/BendPipe_Pro_CAD_Workspace.html
             dist/README-RELEASE.txt
             dist/SHA256SUMS
@@ -67,4 +66,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json')).version")
-          gh release create "$GITHUB_REF_NAME" "dist/BendPipe-Pro-v$VERSION.zip" dist/BendPipe_Pro_CAD_Workspace.html dist/TubeBender_CAD_VC207R7_M1_Standalone.html dist/README-RELEASE.txt dist/SHA256SUMS --verify-tag --prerelease --title "BendPipe-Pro $GITHUB_REF_NAME" --notes-file "docs/releases/$VERSION.md"
+          gh release create "$GITHUB_REF_NAME" "dist/BendPipe-Pro-v$VERSION.zip" dist/BendPipe_Pro_CAD_Workspace.html dist/README-RELEASE.txt dist/SHA256SUMS --verify-tag --prerelease --title "BendPipe-Pro $GITHUB_REF_NAME" --notes-file "docs/releases/$VERSION.md"
