@@ -6,7 +6,6 @@
   "scripts": {
     "test": "node --test",
     "build:standalone": "node scripts/build-standalone.mjs",
-    "build:cad-prototype": "node scripts/build-cad-workspace-prototype.mjs",
     "build:release": "node scripts/build-release.mjs"
   },
   "engines": {

@@ -90,7 +90,7 @@ const reproducibilityDomainPath = path.join(root, "src", "domain", "validation",
 const reproducibilityRuntimePath = path.join(root, "src", "ui", "reproducibility-runtime.js");
 const equipmentLibraryUiPath = path.join(root, "src", "ui", "equipment-library-ui.js");
 const distDir = path.join(root, "dist");
-const outputPath = path.join(distDir, "TubeBender_CAD_VC207R7_M1_Standalone.html");
+const outputPath = path.join(distDir, "BendPipe_Pro_CAD_Workspace.html");
 
 const source = fs.readFileSync(sourcePath, "utf8").replace(/\r\n?/g, "\n");
 const three = fs.readFileSync(threePath, "utf8");
@@ -2172,16 +2172,6 @@ if(output.includes(tubeValidationLminAnchor)){
   throw new Error("red row / StraightRun Lmin validation anchor was not found");
 }
 
-const checksLengthAnchor =
-  "  const rows=state.rows||[],lengths=rows.filter(r=>r.type==='LINE').every(r=>num(r.L)>=minStraight()-1e-6),angles=rows.filter(r=>r.type==='BEND').every(r=>num(r.angle)!==0&&Math.abs(num(r.angle))<=180);";
-if(!output.includes(checksLengthAnchor)){
-  throw new Error("checks segment-length anchor was not found");
-}
-output=output.replace(
-  checksLengthAnchor,
-  "  const rows=state.rows||[],lengths=rows.every((r,index)=>r?.type!=='LINE'||isEndStraightRowIndex(rows,index)||num(r.L)>=minStraight()-1e-6),angles=rows.filter(r=>r.type==='BEND').every(r=>num(r.angle)!==0&&Math.abs(num(r.angle))<=180);"
-);
-
 const sketchLminAnchor =
   "    const lengths=SR.segments.map(s=>num(s.length)),lmin=Number(pipeDb[toolIndex].Lmin)||0;for(let i=0;i<lengths.length;i++){if(!Number.isFinite(lengths[i])||lengths[i]<=0){setStatus(`Введите линейный размер L${i+1}.`,'error');return;}if(lengths[i]+1e-6<lmin){setStatus(`L${i+1}=${lengths[i]} мм меньше технологического Lmin=${lmin} мм.`,'error');return;}}";
 if(!output.includes(sketchLminAnchor)){
@@ -3227,6 +3217,20 @@ if(!output.includes("</head>"))throw new Error("MOB-001 head anchor missing");
 if(output.includes("tbMobileViewportMOB001"))throw new Error("MOB-001 style already injected");
 output=output.replace("</head>", renderMobileViewportStyle()+"\n</head>");
 if(!output.includes('id="tbMobileViewportMOB001"'))throw new Error("MOB-001 mobile viewport style missing");
+
+// The shared application runtime has one supported CAD presentation.
+const {version:releaseVersion}=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
+const buildInfoAnchor="window.TubeBenderBuildInfo=Object.freeze({";
+if(!output.includes(buildInfoAnchor))throw new Error("BuildInfo anchor is missing");
+output=output.replace(buildInfoAnchor,buildInfoAnchor+"\n  releaseVersion:"+JSON.stringify(releaseVersion)+",");
+const cadRuntime=fs.readFileSync(path.join(root,"src/ui/cad-workspace.js"),"utf8")
+  .replace('badge.textContent="CAD WORKSPACE"','badge.textContent='+JSON.stringify("CAD WORKSPACE · "+releaseVersion))
+  .replace(/<\/script/gi,"<\\/script");
+const cadCss=fs.readFileSync(path.join(root,"src/ui/cad-workspace.css"),"utf8");
+const referenceRuntime=fs.readFileSync(path.join(root,"src/ui/cad-reference-workspace.js"),"utf8").replace(/<\/script/gi,"<\\/script");
+const referenceCss=fs.readFileSync(path.join(root,"src/ui/cad-reference-workspace.css"),"utf8");
+output=output.replace("</head>",'<style id="cad-workspace-style">'+cadCss+"</style>"+'<style id="cad-reference-workspace-style">'+referenceCss+"</style></head>")
+  .replace(/<\/body>\s*<\/html>\s*$/i,'<script data-bendpipe-workspace="cad">'+cadRuntime+"</script>"+'<script data-bendpipe-reference="cad-workspace">'+referenceRuntime+"</script></body></html>");
 
 fs.mkdirSync(distDir, { recursive: true });
 const tempOutputPath =

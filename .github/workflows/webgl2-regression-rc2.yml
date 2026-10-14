@@ -31,7 +31,6 @@ jobs:
         run: |
           npm run build:release
           node scripts/check-standalone-syntax.mjs
-          node scripts/check-standalone-syntax.mjs dist/BendPipe_Pro_CAD_Workspace.html
           (cd dist && sha256sum -c SHA256SUMS)
       - name: Install independent browser runner
         run: |

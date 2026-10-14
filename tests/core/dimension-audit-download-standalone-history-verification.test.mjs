@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
-const output=path.join(root,"dist","TubeBender_CAD_VC207R7_M1_Standalone.html");
+const output=path.join(root,"dist","BendPipe_Pro_CAD_Workspace.html");
 
 test("question 648: standalone audit module embeds canonical history verifier and signature",()=>{
   execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root,encoding:"utf8"});

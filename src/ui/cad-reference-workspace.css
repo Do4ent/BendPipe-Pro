@@ -15,12 +15,12 @@ body.cad-workspace .tb-logo{width:49px!important;height:45px!important;
   border-radius:9px!important;background:linear-gradient(155deg,#258bed,#134472)!important;
   font-size:21px!important;box-shadow:0 2px 8px #071525}
 body.cad-workspace .tb-brand-title{font-size:17px!important;font-weight:750!important;letter-spacing:.5px!important}
-body.cad-workspace .cad-prototype-badge{font-size:9px!important;color:#9dccf7!important;letter-spacing:1.3px!important}
+body.cad-workspace .cad-workspace-badge{font-size:9px!important;color:#9dccf7!important;letter-spacing:1.3px!important}
 body.cad-workspace #projectEditor .pt-combo{height:37px!important;background:#081b2d!important;
   border:1px solid #2a587e!important;color:#eff6ff!important;font-size:13px!important;border-radius:5px!important}
-body.cad-workspace .tb-head-action,#cadRestore{border:1px solid #235075!important;
+body.cad-workspace .tb-head-action{border:1px solid #235075!important;
   background:linear-gradient(#10273e,#08192b)!important;color:#e4f4ff!important;border-radius:5px!important}
-body.cad-workspace .tb-head-action:hover,#cadRestore:hover{background:#174269!important}
+body.cad-workspace .tb-head-action:hover{background:#174269!important}
 body.cad-workspace #cadRibbon{padding:0 12px!important;
   background:linear-gradient(180deg,#0b2239,#092035)!important;
   border-bottom:1px solid #245070!important}
@@ -109,9 +109,6 @@ body.cad-workspace .tb-bottom-tab.active{background:#134872!important;color:#e2f
  height:calc(100dvh - 250px)!important;max-height:calc(100dvh - 250px)!important}
  .cad-reference-status{bottom:32px;font-size:10px;left:6px;right:6px;padding:4px}
 }
-/* Reference-only viewport controls must disappear in the original classic layout. */
-body:not(.cad-workspace) #cadReferenceQuick,
-body:not(.cad-workspace) #cadReferenceStatus { display:none!important; }
 
 /* Compact is a per-toolbar presentation preference, never a model transform. */
 body.cad-workspace.cad-toolbar-compact #app{grid-template-rows:69px 86px minmax(0,1fr) 48px!important}
@@ -128,7 +125,7 @@ body.cad-workspace .tb-head-actions:is([data-cad-display="compact"],[data-cad-di
 body.cad-workspace .tb-head-actions:is([data-cad-display="compact"],[data-cad-display="compact-icons"]) .txt{display:inline!important;font-size:10px!important}
 body.cad-workspace.cad-header-compact .tb-logo{width:40px!important;height:40px!important}
 body.cad-workspace.cad-header-compact .tb-brand-title{font-size:14px!important}
-body.cad-workspace.cad-header-compact .cad-prototype-badge{font-size:8px!important;letter-spacing:.7px!important}
+body.cad-workspace.cad-header-compact .cad-workspace-badge{font-size:8px!important;letter-spacing:.7px!important}
 @media(max-width:860px){
  body.cad-workspace.cad-toolbar-compact #app{grid-template-rows:64px 82px minmax(0,1fr) 48px!important}
  body.cad-workspace.cad-toolbar-compact .cad-ribbon-top{height:36px!important}

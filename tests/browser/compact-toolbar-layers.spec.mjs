@@ -29,9 +29,7 @@ test("[CAD-COMPACT] context menu reduces toolbar height and preserves separate p
   await page.reload({waitUntil:"load"});
   await expect(page.locator("#cadCommands")).toHaveAttribute("data-cad-display","compact");
   await expect(page.locator(".tb-head-actions")).toHaveAttribute("data-cad-display","compact");
-  await page.locator("#cadRestore").click();
-  await expect(ribbon).toBeHidden();
-  await page.locator("#cadRestore").click();
+  await expect(page.locator("#cadRestore")).toHaveCount(0);
   expect((await ribbon.boundingBox()).height).toBe(compactHeight);
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>window.TubeBenderProperties.open());
@@ -77,9 +75,7 @@ test("[CAD-COMPACT-ICONS] compact icons preserve accessibility, commands and per
   await page.reload({waitUntil:"load"});
   await expect(page.locator("#cadCommands")).toHaveAttribute("data-cad-display","compact-icons");
   await expect(page.locator(".tb-head-actions")).toHaveAttribute("data-cad-display","compact-icons");
-  await page.locator("#cadRestore").click();
-  await expect(ribbon).toBeHidden();
-  await page.locator("#cadRestore").click();
+  await expect(page.locator("#cadRestore")).toHaveCount(0);
   await expect(measure.locator(".cad-command-label")).toBeHidden();
   await page.locator("#tbActionSave").click({button:"right"});
   await page.locator('[data-display-mode="compact"]').click();

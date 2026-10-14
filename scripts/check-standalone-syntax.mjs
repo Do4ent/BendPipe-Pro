@@ -2,7 +2,7 @@ import fs from "node:fs";
 import vm from "node:vm";
 import path from "node:path";
 
-const file = path.resolve(process.argv[2] ?? "dist/TubeBender_CAD_VC207R7_M1_Standalone.html");
+const file = path.resolve(process.argv[2] ?? "dist/BendPipe_Pro_CAD_Workspace.html");
 const html = fs.readFileSync(file, "utf8");
 const tags = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
 let total = 0;

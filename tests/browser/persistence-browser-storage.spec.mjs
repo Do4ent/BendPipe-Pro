@@ -1,6 +1,6 @@
 import {test,expect} from "@playwright/test";
 
-const appPath="/TubeBender_CAD_VC207R7_M1_Standalone.html";
+const appPath="/BendPipe_Pro_CAD_Workspace.html";
 
 test("[PERSISTENCE] native IndexedDB and localStorage survive page reload",async({page})=>{
   test.setTimeout(60000);

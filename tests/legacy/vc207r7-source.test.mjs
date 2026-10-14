@@ -74,14 +74,26 @@ test("A01: legacy centerline length no longer adds OD/2 to CLR", () => {
   assert.doesNotMatch(active, /Rb[^;\n]*\+[^;\n]*(?:mm|outerDiameter)/);
 });
 
-test("A02: checks panel distinguishes calculation errors from passed", () => {
-  const checks = functionSlice("checkRow", "refreshTechnology");
+function productionGate(overrides={}) {
+  const tube={toolingId:"tool",diameterIndex:0,rows:[],engineering:{styleId:"s",machineId:"m"}};
+  const project={engineering:{
+    styles:[{id:"s",confirmed:true,material:"Copper",wallThickness:1,densityKgM3:8900,springbackDeg:0,elongationPerDegree:0,cutAllowanceStart:0,cutAllowanceEnd:0}],
+    machines:[{id:"m",confirmed:true,maxDiameter:30,maxStockLength:6000,maxBendAngle:180,clampMin:50}]
+  }};
+  const context={toolingIndexById:()=>0,pipeDb:[{Rb:50}],tubeRows:t=>t.rows,
+    projectForTube:()=>project,activeProject:()=>project,diagnoseTube:()=>({issues:[]}),
+    analyzePipeBounds:()=>({valid:true}),getProjectCollisionAnalysis:()=>({collisions:[]}),...overrides};
+  const gate=vm.runInNewContext(functionSlice("productionReleaseDecision","exportManufacturing")+"\nproductionReleaseDecision",context);
+  return gate(tube);
+}
 
-  assert.match(checks, /calculation_error/);
-  assert.match(checks, /not_checked/);
-  assert.match(checks, /Ошибка расчёта/);
-  assert.doesNotMatch(checks, /\[mt\('technology'\),true\]/);
-  assert.match(checks, /TubeBenderEngineering\?\.diagnoseTube/);
+test("A02: actual production gate blocks calculation errors", () => {
+  assert.equal(productionGate().allowed,true);
+  const failure=productionGate({diagnoseTube:()=>{throw new Error("diagnostic failed");},
+    analyzePipeBounds:()=>{throw new Error("bounds failed");}});
+  assert.equal(failure.allowed,false);
+  assert.ok(failure.blockers.some(reason=>reason.includes("Ошибка инженерной диагностики")));
+  assert.ok(failure.blockers.some(reason=>reason.includes("Ошибка проверки габаритов")));
 });
 
 test("A03: legacy tooling records have stable IDs and sort resynchronizes references", () => {
@@ -194,7 +206,7 @@ test("A06: angle edit updates numeric value and angleFormula atomically", () => 
 
 test("A07: bend-plane edit goes through candidate validation before commit", () => {
   const validation = functionSlice("collisionKeyForTube", "lengthHint");
-  const editor = functionSlice("refreshEditPanel", "checkRow");
+  const editor = functionSlice("refreshEditPanel", "refreshHeader");
 
   assert.match(validation, /function validateCandidateRowsForCommit/);
   assert.match(validation, /developedLengthWithRows/);
@@ -217,7 +229,7 @@ test("A07: bend-plane edit goes through candidate validation before commit", () 
 test("A08: modern editing entry points enforce readonly", () => {
   const edit = functionSlice("editCell", "minStraight");
   const plane = functionSlice("commitBendPlaneChange", "lengthHint");
-  const editor = functionSlice("refreshEditPanel", "checkRow");
+  const editor = functionSlice("refreshEditPanel", "refreshHeader");
   const readOnlyUi = functionSlice("poApplyReadOnlyUi", "poCreateEditableCopy");
   const commandStart = html.indexOf("function tbModelCommand(");
   const commandEnd = html.indexOf("\nwindow.TubeBenderHistory=", commandStart);
@@ -232,18 +244,13 @@ test("A08: modern editing entry points enforce readonly", () => {
 });
 
 
-test("A09: whole-project collisions are visible in checks and block production release", () => {
-  const checks = functionSlice("checkRow", "refreshTechnology");
-  const start = html.indexOf("function productionReleaseDecision(");
-  const end = html.indexOf("\nfunction axisOrderPermutations()", start);
-  assert.notEqual(start, -1);
-  assert.notEqual(end, -1);
-  const gate = html.slice(start, end);
-
-  assert.match(checks, /Пересечения проекта/);
-  assert.match(checks, /inactiveOnly/);
-  assert.match(gate, /getProjectCollisionAnalysis\(p\)/);
-  assert.match(gate, /Проект содержит пересечения труб/);
+test("A09: collisions between inactive tubes still block production release", () => {
+  const failure=productionGate({getProjectCollisionAnalysis:()=>({collisions:[{tubeAId:"inactive-a",tubeBId:"inactive-b"}]})});
+  assert.equal(failure.allowed,false);
+  assert.ok(failure.blockers.some(reason=>reason.includes("Проект содержит пересечения труб: 1")));
+  const calculationError=productionGate({getProjectCollisionAnalysis:()=>{throw new Error("collision analysis failed");}});
+  assert.equal(calculationError.allowed,false);
+  assert.ok(calculationError.blockers.some(reason=>reason.includes("Ошибка проверки пересечений проекта")));
 });
 
 test("A10: project-open normalization never invents LINE 100 or drops unsupported source evidence", () => {
@@ -458,7 +465,7 @@ test("A15: simulation uses per-bend CLR instead of one global style radius", () 
 });
 
 test("A15: bend editor shows persisted CLR and origin does not pretend to have one", () => {
-  const editor = functionSlice("refreshEditPanel", "checkRow");
+  const editor = functionSlice("refreshEditPanel", "refreshHeader");
 
   assert.match(
     editor,
@@ -808,7 +815,7 @@ test("A16: composite offset collapse state is persisted in the tree", () => {
 });
 
 test("A16: null bottom selection cannot become row zero", () => {
-  const editor = functionSlice("refreshEditPanel", "checkRow");
+  const editor = functionSlice("refreshEditPanel", "refreshHeader");
   const tree = functionSlice("refreshProjectTree", "refreshEditPanel");
 
   assert.match(
@@ -823,7 +830,7 @@ test("A16: null bottom selection cannot become row zero", () => {
 });
 
 test("A16: selected offset shows a composite editor summary instead of row zero", () => {
-  const editor = functionSlice("refreshEditPanel", "checkRow");
+  const editor = functionSlice("refreshEditPanel", "refreshHeader");
 
   assert.match(editor, /if\(selectedAssemblyId\)/);
   assert.match(editor, /offsetAssemblyRows\(selectedAssemblyId\)/);
