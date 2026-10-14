@@ -12,7 +12,7 @@ BendPipe-Pro is intended to recognize bent tubes from CAD sources and convert ve
 6. Apply machine-specific compensation only in a separate downstream layer.
 7. Export technological data for tube-bending workflows.
 
-The application is a browser-based CAD editor with one standalone CAD Workspace HTML. The integration branch is `develop`. This branch prepares `v0.1.0-rc.7`, fixing initial-load/reload startup so the base interface is not shown while resources load. Published packages are listed on the GitHub Releases page.
+The application is a browser-based CAD editor with one standalone CAD Workspace HTML. The integration branch is `develop`. This branch prepares `v0.1.0-rc.8`, preventing delayed native tool buttons from flashing during initial load and refresh. Published packages are listed on the GitHub Releases page.
 
 ## Build and verification
 
@@ -34,7 +34,7 @@ npx playwright test --config acceptance/playwright.config.mjs
 
 The release scenario imports the committed 80004806 DWFx, recognizes nine editable tube candidates, edits a length, saves and reloads the workspace, then exports and reopens project JSON. It checks preservation of canonical geometry, provenance and production blockers. Project JSON is an editable project artifact; manufacturing export requires confirmed geometry, tooling, material and machine settings.
 
-Build the release package with `npm run build:release` and open `dist/BendPipe_Pro_CAD_Workspace.html`. See `docs/releases/0.1.0-rc.7.md` for release scope and known limitations.
+Build the release package with `npm run build:release` and open `dist/BendPipe_Pro_CAD_Workspace.html`. See `docs/releases/0.1.0-rc.8.md` for release scope and known limitations.
 
 ## AI development team
 
