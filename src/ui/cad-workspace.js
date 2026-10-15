@@ -78,15 +78,21 @@
     return node.nodeType===1&&((node.tagName==="BUTTON"&&node.id.startsWith("tb"))||node.id==="tbTransformGizmoPanel");
   }
   function collectTools(){
-    for(const node of [...document.body.children]){
+    for(const node of [...document.body.children,...document.querySelectorAll('.tb-head-actions>button:not(.tb-head-action)')]){
       if(isNativeTool(node))toolDrawer.append(node);
     }
   }
   function toggleTools(){collectTools();toolDrawer.hidden=!toolDrawer.hidden;}
   function hotkey(id){if(typeof window.TubeBenderHotkeys?.execute!=="function")throw new Error("Команды ещё загружаются");return window.TubeBenderHotkeys.execute(id);}
+  function revealModel(){
+    if(document.querySelector('.tb-bottom-tab[data-tab="unfold"].active')){
+      document.querySelector('.tb-bottom-tab[data-tab="3d"]')?.click();
+    }
+  }
   function execute(id){
     const command=commands.find(item=>item[0]===id);
     if(!command)return false;
+    revealModel();
     const required={
       recognition:"TubeBenderProperties",properties:"TubeBenderProperties",measure:"TubeBenderMeasurements",
       move:"TubeBenderEditing",copy:"TubeBenderEditing",rotate:"TubeBenderEditing",array:"TubeBenderEditing",
@@ -106,6 +112,7 @@
   }
   function selectStage(id){
     if(!stages.some(item=>item[0]===id))return;
+    revealModel();
     stage=id;
     ribbon.querySelectorAll("[data-cad-stage]").forEach(button=>{
       const active=button.dataset.cadStage===stage;
@@ -294,12 +301,15 @@
     });
     $("cadTools").onclick=toggleTools;
     collectTools();
+    const headerActions=document.querySelector('.tb-head-actions');
     const toolObserver=new MutationObserver(records=>{
       for(const record of records)for(const node of record.addedNodes){
-        if(node.parentElement===document.body&&isNativeTool(node))toolDrawer.append(node);
+        if((node.parentElement===document.body||node.parentElement===headerActions)&&
+          isNativeTool(node)&&!node.classList.contains('tb-head-action'))toolDrawer.append(node);
       }
     });
     toolObserver.observe(document.body,{childList:true});
+    if(headerActions)toolObserver.observe(headerActions,{childList:true});
     window.addEventListener("pagehide",()=>toolObserver.disconnect(),{once:true});
     document.addEventListener("keydown",event=>{if(event.key==="Escape")toolDrawer.hidden=true;});
     inspector=document.createElement("section");inspector.id="cadInspector";

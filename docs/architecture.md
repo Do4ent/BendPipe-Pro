@@ -2,9 +2,9 @@
 
 ## Current repository state
 
-The application is a browser CAD editor distributed as standalone HTML. Native ES modules live in `src/domain`, `src/import/dwfx`, `src/recognition` and `src/application`; runtime UI bridges live in `src/ui`. Builders in `scripts/` combine these with the preserved legacy interface and vendored renderer. `develop` is the integration branch; changes reach `main` through reviewed PRs.
+The application is a browser CAD editor distributed as one standalone HTML. Native ES modules live in `src/domain`, `src/import/dwfx`, `src/recognition` and `src/application`; runtime UI bridges live in `src/ui`. `src/application/browser-source.mjs` composes the shared editor/runtime template with current shell and editor-control styles. Builders in `scripts/` combine this with domain modules and the vendored renderer. `develop` is the integration branch; changes reach `main` through reviewed PRs.
 
-The implemented source pipeline is DWFx. STEP, DWG and DXF below describe intended adapter responsibilities, not verified format support. Browser acceptance runs against generated classic and CAD Workspace HTML; source fixtures and reference tests live in `tests/reference_parts`.
+The implemented source pipeline is DWFx. STEP, DWG and DXF below describe intended adapter responsibilities, not verified format support. Browser acceptance runs against `BendPipe_Pro_CAD_Workspace.html`; source fixtures and reference tests live in `tests/reference_parts`. The retired Classic shell, hidden workbench, duplicate construction tree and historical mockup layout code are removed. Shared editor and geometry behavior remains covered by `tests/application/editor-source.test.mjs` and browser round-trip tests.
 
 ## Proposed logical architecture
 
