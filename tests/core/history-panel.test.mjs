@@ -1,3 +1,4 @@
+import {readBrowserSource} from "../../src/application/browser-source.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -6,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const build=fs.readFileSync(path.join(root,"scripts","build-standalone.mjs"),"utf8");
-const legacy=fs.readFileSync(path.join(root,"legacy","VC207R7","TubeBender_CAD_VC207R7_Pixel_Matched_Approved_Interface_Release.html"),"utf8");
+const legacy=readBrowserSource();
 
 test("question 62: standalone adds a separate History timeline panel",()=>{
   assert.match(build,/tbHistoryEnsurePanel/);

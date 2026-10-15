@@ -12,12 +12,7 @@
     const style=document.createElement("style");
     style.id="tbProjectTubeLayoutFixStyles";
     style.textContent=`
-/*
- * Safe VC207R7 header corrections.
- * IMPORTANT: preserve the native .tb-map-header flex layout. Do not replace it
- * with grid: the approved UI builds its header dynamically as
- * Brand -> Project/Tube -> spacer -> actions -> window controls.
- */
+/* Keep current project controls and their popups within the header. */
 body.tb-project-map .tb-map-header{
   min-width:0!important;
   overflow:visible!important;
@@ -25,24 +20,7 @@ body.tb-project-map .tb-map-header{
 }
 body.tb-project-map .tb-brand{order:10!important;}
 body.tb-project-map #projectEditor{order:20!important;}
-body.tb-project-map .tb-map-head-spacer{order:30!important;}
 body.tb-project-map .tb-head-actions{order:40!important;}
-body.tb-project-map .tb-window-controls{
-  order:50!important;
-  position:static!important;
-  flex:0 0 auto!important;
-  margin-left:4px!important;
-  padding-left:7px!important;
-  align-self:center!important;
-  white-space:nowrap!important;
-}
-body.tb-project-map .tb-window-control{
-  flex:0 0 38px!important;
-  width:38px!important;
-  min-width:38px!important;
-  height:38px!important;
-  min-height:38px!important;
-}
 body.tb-project-map .tb-brand{
   min-width:0;
 }
@@ -69,11 +47,7 @@ body.tb-project-map #projectEditor .tube-field-format{
   white-space:nowrap!important;
 }
 
-/*
- * VC207R7 narrows #projectEditor from 450 to 410 px at 1121..1550 px,
- * while legacy child groups stayed at 215 + 215 with a 20 px gap.
- * Let only those two groups shrink inside the existing flex container.
- */
+/* Let the project and tube groups shrink within the header. */
 @media (min-width:1121px) and (max-width:1550px){
   body.tb-project-map #projectEditor .project-group,
   body.tb-project-map #projectEditor .tube-group{
@@ -235,7 +209,6 @@ body.tb-project-map #projectDropdown .pt-tube-row{
     const brand=rectData(document.querySelector(".tb-brand"));
     const editor=rectData(document.getElementById("projectEditor"));
     const actions=rectData(document.querySelector(".tb-head-actions"));
-    const controls=rectData(document.querySelector(".tb-window-controls"));
     const header=rectData(document.querySelector(".tb-map-header"));
     const checksHead=rectData(document.querySelector(".tb-map-right .tb-card-head"));
 
@@ -245,13 +218,10 @@ body.tb-project-map #projectDropdown .pt-tube-row{
       brand,
       projectEditor:editor,
       actions,
-      windowControls:controls,
       checksHead,
       overlaps:{
         brandProject:overlaps(brand,editor),
-        projectActions:overlaps(editor,actions),
-        actionsWindow:overlaps(actions,controls),
-        windowChecks:overlaps(controls,checksHead)
+        projectActions:overlaps(editor,actions)
       },
       tubeDropdown:null
     };

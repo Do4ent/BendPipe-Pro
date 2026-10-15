@@ -1,0 +1,139 @@
+:root{--tb-bg: #07111b; --tb-bg2: #0a1724; --tb-card: #0d1b29; --tb-card2: #102235; --tb-edge: #22384d; --tb-edge2: #2e4c67; --tb-text: #e7eef7; --tb-muted: #91a4b8; --tb-blue: #3c9cff; --tb-green: #62da62; --tb-yellow: #ffbd3c; --tb-red: #ff5b65; --tb-copper: #d77a2d; --tb-radius: 10px; --tb-header: 64px; --tb-bottom: 54px;}
+html, body{width: 100%; height: 100%; margin: 0px; overflow: hidden !important; background: var(--tb-bg) !important; color: var(--tb-text) !important;}
+body.tb-project-map{font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif !important; background: radial-gradient(circle at 45% 20%, rgb(16, 35, 55) 0px, rgb(8, 21, 33) 35%, rgb(5, 13, 21) 100%) !important;}
+body.tb-project-map #app{height: 100dvh !important; min-height: 0px !important; display: grid !important; grid-template-rows: var(--tb-header) minmax(0,1fr) var(--tb-bottom) !important; overflow: hidden !important; background: transparent !important;}
+body.tb-project-map #projectEditor{position: relative !important; inset: auto !important; flex: 0 1 610px !important; height: 38px !important; min-height: 38px !important; padding: 0px !important; margin: 0px !important; background: transparent !important; border: 0px !important; box-shadow: none !important; z-index: 40 !important; display: flex !important; align-items: center !important; gap: 8px !important; overflow: visible !important;}
+body.tb-project-map #projectEditor .pt-divider{display: none !important;}
+body.tb-project-map #projectEditor .pt-group{height: 38px !important; min-width: 0px !important;}
+body.tb-project-map #projectEditor .pt-combo{height: 38px !important; background: rgb(11, 24, 37) !important; border: 1px solid rgb(41, 67, 91) !important; color: rgb(230, 238, 248) !important; border-radius: 7px !important; box-shadow: none !important;}
+body.tb-project-map #projectEditor .project-group{flex: 1 1 250px !important;}
+.tb-project-map #projectEditor .tube-group{flex: 1 1 310px !important;}
+body.tb-project-map #projectEditor .pt-icon{height: 38px !important; min-width: 36px !important; background: rgb(11, 24, 37) !important; border: 1px solid rgb(41, 67, 91) !important; color: rgb(196, 213, 230) !important; border-radius: 7px !important;}
+body.tb-project-map #projectEditor .pt-dropdown, body.tb-project-map #projectEditor .pt-action-menu{top: 44px !important; background: rgb(13, 27, 41) !important; border-color: rgb(45, 74, 100) !important; color: rgb(230, 238, 248) !important; box-shadow: rgba(0, 0, 0, 0.48) 0px 18px 50px !important;}
+.tb-map-header{grid-row: 1; display: flex; align-items: center; gap: 16px; padding: 0px 16px; border-bottom: 1px solid rgb(29, 52, 72); background: linear-gradient(rgb(8, 21, 35), rgb(6, 16, 26)); box-shadow: rgba(0, 0, 0, 0.24) 0px 4px 20px; z-index: 100; min-width: 0px;}
+.tb-brand{display: flex; align-items: center; gap: 11px; min-width: 270px;}
+.tb-logo{width: 42px; height: 42px; display: grid; place-items: center; font-weight: 950; font-style: italic; font-size: 22px; letter-spacing: -2px; color: rgb(220, 236, 255); border: 1px solid rgb(49, 84, 115); border-radius: 8px; background: linear-gradient(135deg, rgb(35, 111, 181), rgb(13, 44, 71) 55%, rgb(7, 17, 26)); box-shadow: rgba(255, 255, 255, 0.06) 0px 0px 0px 1px inset, rgba(30, 128, 220, 0.14) 0px 0px 20px;}
+.tb-brand-title{font-size: 18px; font-weight: 800; letter-spacing: 0.2px; white-space: nowrap;}
+.tb-brand-sub{font-size: 11px; color: rgb(128, 151, 173); margin-top: 2px; white-space: nowrap;}
+.tb-head-actions{display: flex; gap: 7px; align-items: center;}
+.tb-map-workspace{grid-row: 2; display: grid; grid-template-columns: minmax(250px, 310px) minmax(430px, 1fr) minmax(250px, 300px); gap: 8px; padding: 8px; min-width: 0px; min-height: 0px; overflow: hidden;}
+.tb-map-left, .tb-map-right, .tb-map-center{min-width: 0px; min-height: 0px;}
+.tb-map-left{display: grid; grid-template-columns: 44px minmax(0px, 1fr); gap: 7px;}
+.tb-map-center{display: grid; grid-template-rows: minmax(310px, 1.58fr) minmax(190px, 0.88fr); gap: 8px;}
+.tb-map-right{display: grid; grid-template-rows: minmax(245px, 1fr) minmax(255px, 1fr); gap: 8px;}
+.tb-card{border: 1px solid var(--tb-edge); border-radius: var(--tb-radius); background: linear-gradient(rgba(14, 31, 46, 0.97), rgba(8, 21, 33, 0.98)); box-shadow: rgba(255, 255, 255, 0.024) 0px 1px 0px inset, rgba(0, 0, 0, 0.17) 0px 7px 20px; overflow: hidden; min-width: 0px; min-height: 0px; position: relative;}
+.tb-card-head{height: 46px; display: flex; align-items: center; gap: 10px; padding: 0px 12px; border-bottom: 1px solid rgb(28, 52, 73); background: rgba(10, 25, 38, 0.88); font-size: 15px; font-weight: 750; box-sizing: border-box;}
+.tb-tree-card{height: 100%;}
+.tb-tree-search{display: flex; gap: 6px; padding: 9px 9px 6px;}
+.tb-tree-search input{width: 100%; height: 34px; box-sizing: border-box; background: rgb(8, 21, 34); border: 1px solid rgb(35, 61, 85); color: rgb(223, 233, 244); border-radius: 6px; padding: 0px 10px; outline: none;}
+.tb-tree-scroll{height: calc(100% - 89px); overflow: auto; padding: 3px 7px 52px; box-sizing: border-box; scrollbar-width: thin;}
+.tb-tree-node{min-height: 31px; display: flex; align-items: center; gap: 7px; padding: 3px 7px; border-radius: 6px; color: rgb(197, 211, 224); font-size: 12px; cursor: default; box-sizing: border-box;}
+.tb-tree-node.clickable{cursor: pointer;}
+.tb-tree-node.clickable:hover{background: rgb(16, 40, 62);}
+.tb-tree-node.active{background: linear-gradient(90deg, rgb(15, 58, 99), rgb(18, 48, 75)); box-shadow: rgb(36, 91, 135) 0px 0px 0px 1px inset; color: rgb(255, 255, 255);}
+.tb-tree-node.level1{padding-left: 20px;}
+.tb-tree-node.level2{padding-left: 38px;}
+.tb-tree-node.level3{padding-left: 56px;}
+.tb-tree-icon{width: 17px; text-align: center; color: rgb(101, 174, 237);}
+.tb-tree-icon.bend{color: rgb(255, 159, 36);}
+.tb-tree-label{overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+.tb-tree-value{margin-left: auto; color: rgb(130, 153, 173); font-size: 11px; white-space: nowrap;}
+.tb-star{margin-left: auto; color: rgb(255, 189, 60); background: transparent; border: 0px; font-size: 17px; cursor: pointer; padding: 0px 2px;}
+.tb-frame-info{margin: 4px 8px 8px 31px; padding: 7px 9px; border: 1px solid rgb(29, 58, 81); border-radius: 7px; background: rgb(9, 24, 36); display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 11px;}
+.tb-frame-info span:nth-child(2n+1){color: rgb(139, 160, 180);}
+.tb-frame-info span:nth-child(2n){color: rgb(215, 227, 238); font-weight: 650;}
+.tb-tree-actions{position: absolute; bottom: 7px; height: 37px; border: 1px solid rgb(38, 63, 87); border-radius: 7px; background: rgb(10, 24, 37); display: flex; align-items: center; padding: 3px; gap: 3px;}
+.tb-tree-actions button{height: 29px; min-width: 31px; border: 0px; border-radius: 5px; background: transparent; color: rgb(169, 190, 208); cursor: pointer;}
+.tb-tree-actions button:hover{background: rgb(21, 49, 74); color: rgb(255, 255, 255);}
+.tb-tree-actions .spacer{flex: 1 1 0%;}
+.tb-map-3d{display: flex; flex-direction: column;}
+.tb-map-3d .tb-card-head{height: auto; min-height: 47px; flex-wrap: wrap; padding-top: 4px; padding-bottom: 4px;}
+.tb-3d-toolbar{flex: 1 1 400px; min-width: 0px; display: flex; align-items: center; justify-content: center;}
+.tb-3d-host{position: relative; flex: 1 1 0%; min-height: 0px; overflow: hidden;}
+.tb-project-map #viewer{position: absolute !important; inset: 0px !important; width: 100% !important; height: 100% !important; min-height: 0px !important; flex: 0 0 auto !important; background: radial-gradient(circle at 50% 40%, rgb(18, 34, 51), rgb(7, 17, 26) 72%) !important; border: 0px !important; border-radius: 0px !important;}
+.tb-project-map #threeCanvas{width: 100% !important; height: 100% !important;}
+.tb-project-map #cadViewportControls{position: relative !important; height: 34px !important; min-height: 34px !important; width: auto !important; max-width: 100% !important; overflow: auto visible !important; padding: 2px 3px !important; background: rgb(8, 21, 34) !important; border: 1px solid rgb(32, 58, 82) !important; border-radius: 6px !important; display: flex !important; align-items: center !important; gap: 3px !important; scrollbar-width: none !important; z-index: 50 !important;}
+.tb-project-map #cadViewportControls::-webkit-scrollbar{display: none;}
+.tb-project-map #cadViewportControls .hud{height: 28px !important; padding: 0px 4px !important; border: 0px !important; background: transparent !important; box-shadow: none !important; gap: 2px !important; display: flex !important; align-items: center !important;}
+.tb-project-map #cadViewportControls .icon, .tb-project-map #cadViewportControls .view-current, .tb-project-map #cadViewportControls .file-icon{height: 27px !important; min-width: 27px !important; width: 27px !important; border: 1px solid rgb(40, 67, 92) !important; background: rgb(14, 32, 48) !important; color: rgb(186, 209, 228) !important; border-radius: 4px !important; box-shadow: none !important; font-size: 13px !important;}
+.tb-project-map #cadViewportControls .view-current{width: 39px !important;}
+.tb-project-map #cadViewportControls .pipe-select{height: 27px !important; min-width: 92px !important; max-width: 110px !important; background: rgb(14, 32, 48) !important; color: rgb(219, 232, 244) !important; border: 1px solid rgb(40, 67, 92) !important;}
+.tb-project-map #cadViewportControls .view-menu, .tb-project-map #cadViewportControls .bend-menu, .tb-project-map #cadViewportControls .dimension-menu{z-index: 400 !important;}
+.tb-edit-actions{display: flex; gap: 6px; margin-top: 10px;}
+.tb-small-btn{height: 31px; padding: 0px 10px; border: 1px solid rgb(45, 82, 111); border-radius: 5px; background: rgb(16, 40, 60); color: rgb(217, 231, 243); cursor: pointer;}
+.tb-small-btn:hover{background: rgb(24, 56, 82);}
+.tb-map-bottom{grid-row: 3; display: flex; align-items: stretch; border-top: 1px solid rgb(28, 52, 72); background: linear-gradient(rgb(9, 23, 37), rgb(6, 17, 28)); padding: 0px 8px; z-index: 100; min-width: 0px;}
+.tb-bottom-tab{min-width: 170px; padding: 0px 16px; border-width: 0px 1px 0px 0px; border-top-style: initial; border-bottom-style: initial; border-left-style: initial; border-top-color: initial; border-bottom-color: initial; border-left-color: initial; border-image: initial; border-right-style: solid; border-right-color: rgb(24, 48, 71); background: transparent; color: rgb(164, 183, 200); display: flex; align-items: center; justify-content: center; gap: 9px; font-size: 13px; cursor: pointer;}
+.tb-bottom-tab:hover{background: rgb(14, 37, 57); color: rgb(229, 240, 250);}
+.tb-bottom-tab.active{background: linear-gradient(rgb(12, 47, 76), rgb(11, 33, 52)); color: rgb(71, 170, 255); box-shadow: rgb(54, 153, 237) 0px 2px 0px inset;}
+.tb-bottom-tab .ico{font-size: 20px;}
+.tb-bottom-status{margin-left: auto; display: flex; align-items: center; gap: 16px; color: rgb(130, 152, 171); font-size: 11px; padding: 0px 15px; white-space: nowrap;}
+.tb-body-dialog{width: min(700px, -24px + 100vw); border: 1px solid rgb(52, 83, 109); border-radius: 10px; padding: 0px; background: rgb(11, 25, 38); color: rgb(231, 238, 247); box-shadow: rgba(0, 0, 0, 0.58) 0px 28px 80px;}
+.tb-body-dialog::backdrop{background: rgba(2, 8, 13, 0.72); backdrop-filter: blur(3px);}
+.tb-body-dialog-head{height: 52px; display: flex; align-items: center; padding: 0px 15px; border-bottom: 1px solid rgb(36, 62, 85); font-size: 16px; font-weight: 800;}
+.tb-body-dialog-head button{margin-left: auto; width: 33px; height: 33px; border: 0px; background: transparent; color: rgb(174, 191, 208); font-size: 20px; cursor: pointer;}
+.tb-body-dialog-body{padding: 14px;}
+.tb-form-row{display: grid; grid-template-columns: 170px minmax(0px, 1fr); gap: 10px; align-items: center; margin-bottom: 10px; font-size: 12px;}
+.tb-form-row > label{color: rgb(158, 176, 193);}
+.tb-form-row input, .tb-form-row select{height: 35px; background: rgb(8, 21, 34); color: rgb(227, 237, 246); border: 1px solid rgb(42, 73, 98); border-radius: 6px; padding: 0px 9px; box-sizing: border-box; width: 100%;}
+.tb-body-mode{display: flex; gap: 7px; margin: 10px 0px;}
+.tb-body-mode button{flex: 1 1 0%; height: 38px; border: 1px solid rgb(43, 73, 97); background: rgb(10, 27, 41); color: rgb(174, 191, 208); border-radius: 6px; cursor: pointer;}
+.tb-body-mode button.active{background: rgb(18, 58, 92); border-color: rgb(53, 132, 193); color: rgb(255, 255, 255);}
+.tb-profile-row{display: grid; grid-template-columns: minmax(0px, 1fr) 42px; gap: 6px;}
+.tb-profile-star{cursor: pointer; border: 1px solid rgb(59, 83, 105) !important; background: rgb(16, 29, 41) !important; color: rgb(255, 189, 60) !important; font-size: 19px !important;}
+.tb-manual-grid{display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;}
+.tb-dim-field label{display: block; color: rgb(145, 166, 184); font-size: 11px; margin-bottom: 4px;}
+.tb-dim-field input{height: 36px; width: 100%; box-sizing: border-box; background: rgb(8, 21, 34); color: rgb(255, 255, 255); border: 1px solid rgb(43, 74, 99); border-radius: 6px; padding: 0px 8px;}
+.tb-save-profile{margin-top: 10px; padding: 9px; border: 1px solid rgb(30, 59, 83); border-radius: 7px; background: rgb(8, 23, 36);}
+.tb-save-profile.hidden{display: none;}
+.tb-dialog-foot{display: flex; justify-content: flex-end; gap: 8px; padding: 11px 14px; border-top: 1px solid rgb(36, 62, 85);}
+.tb-dialog-foot button{height: 36px; padding: 0px 15px; border-radius: 6px; border: 1px solid rgb(49, 81, 107); background: rgb(16, 36, 54); color: rgb(217, 231, 243); cursor: pointer;}
+.tb-dialog-foot .primary{background: rgb(23, 98, 155); border-color: rgb(39, 130, 190); color: rgb(255, 255, 255);}
+.tb-dialog-error{min-height: 18px; color: rgb(255, 119, 128); font-size: 11px; margin-top: 7px;}
+@media (max-width: 1120px) {.tb-brand{min-width: 210px;}
+.tb-brand-sub{display: none;}
+.tb-map-workspace{grid-template-columns: minmax(230px, 270px) minmax(400px, 1fr) minmax(230px, 260px);}
+.tb-bottom-tab{min-width: 135px; padding: 0px 9px;}
+.tb-project-map #projectEditor{flex-basis: 500px;}}
+@media (max-width: 860px) {:root{--tb-header: 58px; --tb-bottom: 52px;}
+.tb-map-header{padding: 0px 8px; gap: 8px;}
+.tb-brand{min-width: auto;}
+.tb-logo{width: 38px; height: 38px;}
+.tb-brand-title{font-size: 15px;}
+.tb-brand-text{display: none;}
+.tb-project-map #projectEditor{flex: 1 1 auto !important;}
+.tb-project-map #projectEditor .project-group{flex: 1 1 42% !important;}
+.tb-project-map #projectEditor .tube-group{flex: 1 1 58% !important;}
+.tb-project-map #projectEditor .pt-menu-btn, .tb-project-map #projectOpenQuick{display: none !important;}
+.tb-map-workspace{display: block; padding: 5px;}
+.tb-map-center{height: 100%; display: grid; grid-template-rows: minmax(0px, 1fr); gap: 0px;}
+.tb-map-left, .tb-map-right{position: fixed; top: calc(var(--tb-header) + 5px); bottom: calc(var(--tb-bottom) + 5px); z-index: 300; width: min(88vw, 355px); transition: transform 0.2s; filter: drop-shadow(rgba(0, 0, 0, 0.55) 0px 12px 35px);}
+.tb-map-left{left: 5px; transform: translateX(calc(-100% - 12px)); display: grid;}
+.tb-map-right{right: 5px; transform: translateX(calc(100% + 12px)); display: grid;}
+.tb-project-map.tb-show-tree .tb-map-left{transform: translateX(0px);}
+.tb-project-map.tb-show-checks .tb-map-right{transform: translateX(0px);}
+.tb-bottom-tab{min-width: 0px; flex: 1 1 0%; padding: 0px 3px; font-size: 10px; gap: 4px;}
+.tb-bottom-tab .ico{font-size: 17px;}
+.tb-bottom-status{display: none;}
+.tb-map-3d .tb-card-head{padding-left: 8px; padding-right: 8px;}
+.tb-3d-toolbar{order: 3; flex-basis: 100%;}
+.tb-project-map #cadViewportControls{box-sizing: border-box; width: 100% !important;}
+.tb-map-header .tb-head-actions{display: none;}}
+@media (max-width: 520px) {.tb-project-map #projectEditor .pt-label{font-size: 10px !important;}
+.tb-project-map #projectEditor .pt-combo{padding: 0px 6px !important;}
+.tb-map-3d .tb-card-head > span:nth-of-type(2){font-size: 13px;}
+.tb-manual-grid{grid-template-columns: 1fr;}
+.tb-form-row{grid-template-columns: 1fr; gap: 4px;}
+.tb-body-dialog-body{max-height: 65vh; overflow: auto;}}
+.tb-head-action{display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0px 9px; cursor: pointer; color: rgb(218, 234, 250);}
+.tb-tree-actions{left: 7px; right: 7px;}
+.tb-tree-eye{margin-left: auto; border: 0px; background: transparent; color: rgb(184, 206, 225); cursor: pointer;}
+.tb-new-project-btn{margin-left: auto; background: rgb(21, 59, 96); color: rgb(229, 243, 255); border: 1px solid rgb(56, 101, 134); border-radius: 4px; padding: 5px 7px; cursor: pointer;}
+#cadViewportControls{display: flex; align-items: center; flex-wrap: wrap; gap: 4px; max-width: 100%; min-width: 0px;}
+#cadViewportControls .hud{position: static; inset: auto; transform: none; background: transparent; box-shadow: none; backdrop-filter: none; display: flex;}
+#cadViewportControls .view-current{width: 42px !important; min-width: 42px !important;}
+#cadUnfoldPanel[hidden]{display: none !important;}
+#cadUnfoldPanel{position: absolute; inset: 0px; z-index: 20; background: rgb(9, 27, 44); overflow: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px;}
+#cadUnfoldPanel #resultSvg{width: 100%; flex: 1 1 0%; min-height: 160px; background: rgb(9, 27, 44); border: 1px solid rgb(36, 71, 99); border-radius: 5px;}
+#cadUnfoldPanel #bendList{display: flex; flex-wrap: wrap; gap: 6px; color: rgb(171, 197, 223); font-size: 12px;}
+#viewer.cad-viewport-hidden{visibility: hidden;}

@@ -60,7 +60,7 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Test CAD reference interface in real Chromium
-        run: npx playwright test --config acceptance/playwright.config.mjs tests/browser/cad-reference-workspace.spec.mjs tests/browser/webgl2-full-restart.spec.mjs tests/browser/compact-toolbar-layers.spec.mjs tests/browser/cad-startup.spec.mjs tests/browser/native-tool-placement.spec.mjs
+        run: npx playwright test --config acceptance/playwright.config.mjs tests/browser/cad-reference-workspace.spec.mjs tests/browser/webgl2-full-restart.spec.mjs tests/browser/compact-toolbar-layers.spec.mjs tests/browser/cad-startup.spec.mjs tests/browser/native-tool-placement.spec.mjs tests/browser/interface-retirement.spec.mjs
       - name: Verify primary workspace import edit save reopen export
         run: TB_BROWSER_REPORT_NAME=workspace-round-trip TB_BROWSER_APP_PATH=/BendPipe_Pro_CAD_Workspace.html npx playwright test --config acceptance/playwright.config.mjs --grep RELEASE-GATE
       - name: Preserve browser results

@@ -1,16 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { readBrowserSource } from "../src/application/browser-source.mjs";
 import { renderMobileViewportStyle } from "../src/ui/mobile-viewport.mjs";
 import { createFrameCoalescer, runIsolatedStartup, scheduleInitialSceneAfterPaint } from "../src/domain/performance/render-startup.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const sourcePath = path.join(
-  root,
-  "legacy",
-  "VC207R7",
-  "TubeBender_CAD_VC207R7_Pixel_Matched_Approved_Interface_Release.html"
-);
 const threePath = path.join(root, "vendor", "three", "r160", "three.min.js");
 const dwfxEntryPath = path.join(root, "src", "import", "dwfx", "browser-file-import.mjs");
 const dwfxCurrentProjectUiPath = path.join(root, "src", "import", "dwfx", "current-project-ui.js");
@@ -92,7 +87,7 @@ const equipmentLibraryUiPath = path.join(root, "src", "ui", "equipment-library-u
 const distDir = path.join(root, "dist");
 const outputPath = path.join(distDir, "BendPipe_Pro_CAD_Workspace.html");
 
-const source = fs.readFileSync(sourcePath, "utf8").replace(/\r\n?/g, "\n");
+const source = readBrowserSource();
 const three = fs.readFileSync(threePath, "utf8");
 
 const localTag =
@@ -170,21 +165,14 @@ let output = source.replace(
 );
 
 
-const invalidTubeCssAnchor =
-  ".route-chip .num{color:var(--muted)}";
-if(!output.includes(invalidTubeCssAnchor)){
-  throw new Error("invalid tube element CSS anchor was not found");
-}
-output=output.replace(
-  invalidTubeCssAnchor,
-  invalidTubeCssAnchor+
-  ".tb-invalid-tube-element,.tb-invalid-tube-element .tb-tree-label,.tb-invalid-tube-element .tb-tree-icon,.tb-invalid-tube-element .tb-tree-eye,.label3d.tb-invalid-tube-element,.label3d.tb-invalid-tube-element .direct-display-value,.route-chip.tb-invalid-tube-element{color:#ff4c4c!important}"+
+output=output.replace("</head>","<style>"+
+".tb-invalid-tube-element,.tb-invalid-tube-element .tb-tree-label,.tb-invalid-tube-element .tb-tree-icon,.tb-invalid-tube-element .tb-tree-eye,.label3d.tb-invalid-tube-element,.label3d.tb-invalid-tube-element .direct-display-value{color:#ff4c4c!important}"+
   ".tb-invalid-tube-element .direct-degree-symbol{color:#ff4c4c!important}"+
   ".tb-tree-node.tb-invalid-tube-element{background:rgba(255,76,76,.08)!important}"+
   ".label3d.tb-invalid-tube-element{box-shadow:0 0 0 1px rgba(255,76,76,.70)!important}"+
   ".tb-tube-status-dot{width:9px;height:9px;min-width:9px;border-radius:50%;display:inline-block;margin:0 6px 0 1px;box-sizing:border-box;box-shadow:0 0 0 1px rgba(255,255,255,.18),0 0 5px currentColor;vertical-align:middle;flex:0 0 9px}"+
   ".tb-tube-status-dot.ok{background:#43d36b;color:#43d36b}"+
-  ".tb-tube-status-dot.problem{background:#ff4c4c;color:#ff4c4c}"
+  ".tb-tube-status-dot.problem{background:#ff4c4c;color:#ff4c4c}"+"</style></head>"
 );
 
 const importedTubeBodyColor=0xc77738;
@@ -1096,38 +1084,6 @@ output = output.replace(
 );
 
 
-const windowControlsRepairAnchor =
-  "  function ensureWindowControls(){\n"+
-  "    const h=document.querySelector('.tb-map-header');\n"+
-  "    if(!h||document.getElementById('tbWindowControls'))return;\n"+
-  "    const c=document.createElement('div');c.id='tbWindowControls';c.className='tb-window-controls';";
-if (!output.includes(windowControlsRepairAnchor)) {
-  throw new Error("VC207R7 ensureWindowControls anchor was not found");
-}
-output = output.replace(
-  windowControlsRepairAnchor,
-  "  function ensureWindowControls(){\n"+
-  "    const h=document.querySelector('.tb-map-header');\n"+
-  "    if(!h)return;\n"+
-  "    let c=document.getElementById('tbWindowControls');\n"+
-  "    if(!c){c=document.createElement('div');c.id='tbWindowControls';c.className='tb-window-controls';"
-);
-
-const windowControlsCreationTail =
-  "    c.innerHTML='<button class=\"tb-window-control\" id=\"tbWinMin\" title=\"Свернуть\">−</button><button class=\"tb-window-control\" id=\"tbWinMax\" title=\"Во весь экран\">□</button><button class=\"tb-window-control close\" id=\"tbWinClose\" title=\"Закрыть\">×</button>';\n"+
-  "    h.appendChild(c);\n"+
-  "    document.getElementById('tbWinMin').onclick=()=>toast('В браузерной версии сворачивание выполняется средствами окна браузера');";
-if (!output.includes(windowControlsCreationTail)) {
-  throw new Error("VC207R7 window-controls creation tail was not found");
-}
-output = output.replace(
-  windowControlsCreationTail,
-  "    c.innerHTML='<button class=\"tb-window-control\" id=\"tbWinMin\" title=\"Свернуть\">−</button><button class=\"tb-window-control\" id=\"tbWinMax\" title=\"Во весь экран\">□</button><button class=\"tb-window-control close\" id=\"tbWinClose\" title=\"Закрыть\">×</button>';\n"+
-  "    }\n"+
-  "    if(c.parentElement!==h||h.lastElementChild!==c)h.appendChild(c);\n"+
-  "    document.getElementById('tbWinMin').onclick=()=>toast('В браузерной версии сворачивание выполняется средствами окна браузера');"
-);
-
 const exactStartVectorStateAnchor =
   "  startDir: { az: 0, el: 0 },\n  startAxis: 'X',";
 if (!output.includes(exactStartVectorStateAnchor)) {
@@ -1724,16 +1680,6 @@ output = output.replace(
   "  safeUiCall('renderViewerOnly', ()=>renderViewerOnly(!preserveViewerFrameForCanvasInteraction));"
 );
 
-const originEditorHandler =
-  "state.origin[a]=v;if(!validatePipeBounds(inp,rowsForStartPointValidation(),state.diameterIndex,before)){state.origin[a]=old;renderAll();return;}syncActiveTubeFromState();save();renderAll();";
-if (!output.includes(originEditorHandler)) {
-  throw new Error("Project Map origin editor handler missing");
-}
-output = output.replace(
-  originEditorHandler,
-  "state.origin[a]=v;if(!validatePipeBounds(inp,rowsForStartPointValidation(),state.diameterIndex,before)){state.origin[a]=old;renderAll();return;}markImportedOriginOverride(activeTube());syncActiveTubeFromState();save();renderAll();"
-);
-
 const bodyProfileCompatAnchor =
   "const oldNormalize=window.normalizeProjectCoordinateState;";
 if (!output.includes(bodyProfileCompatAnchor)) {
@@ -1773,15 +1719,8 @@ output = output.replace(
   bodyProfileCompat + "\n" + bodyProfileCompatAnchor
 );
 
-const inspectionCssAnchor =
-  ".po-report-details{font-size:10px;color:#8fa1b7;margin-left:24px;margin-top:2px}";
-if (!output.includes(inspectionCssAnchor)) {
-  throw new Error("Project-open inspection CSS anchor was not found");
-}
-output = output.replace(
-  inspectionCssAnchor,
-  inspectionCssAnchor +
-  ".po-inspection-head{display:flex;align-items:center;gap:7px;margin:4px 2px 7px}.po-inspection-head .po-inspection-title{margin:0;flex:1}.po-inspection-toggle{width:24px;height:22px;border:1px solid #3a4a62;border-radius:5px;background:#1b293d;color:#cbd7e8;cursor:pointer;font-size:12px;font-weight:900;line-height:18px}.po-inspection-toggle:hover{background:#263a56;border-color:#5f7ea6}.po-inspection-summary{font-size:9px;color:#8fa1b7;white-space:nowrap}.po-inspection-body.collapsed{display:none}"
+output=output.replace("</head>","<style>"+
+".po-inspection-head{display:flex;align-items:center;gap:7px;margin:4px 2px 7px}.po-inspection-head .po-inspection-title{margin:0;flex:1}.po-inspection-toggle{width:24px;height:22px;border:1px solid #3a4a62;border-radius:5px;background:#1b293d;color:#cbd7e8;cursor:pointer;font-size:12px;font-weight:900;line-height:18px}.po-inspection-toggle:hover{background:#263a56;border-color:#5f7ea6}.po-inspection-summary{font-size:9px;color:#8fa1b7;white-space:nowrap}.po-inspection-body.collapsed{display:none}"+"</style></head>"
 );
 
 const inspectionFunctionAnchor = "function poRenderInspection(){";
@@ -1847,15 +1786,8 @@ const newInspectionEmpty =
   "function poRenderInspectionEmpty(){if(PO.current)return;qs('poSummaryGrid').innerHTML='';qs('poInspection').innerHTML=poInspectionHeader(null)+'<div class=\"po-inspection-body'+(poInspectionCollapsed?' collapsed':'')+'\"><div class=\"po-check\"><span>○</span><span>Файл ещё не выбран.</span></div></div>';poBindInspectionToggle();qs('poOpenBtn').disabled=true;qs('poPreviewPlaceholder')?.classList.remove('hidden');}";
 output = output.replace(oldInspectionEmpty,newInspectionEmpty);
 
-const boundsOverlayCssAnchor =
-  ".bounds-warning-actions button:hover{background:#3a4963!important;border-color:#9bb8dc!important}";
-if (!output.includes(boundsOverlayCssAnchor)) {
-  throw new Error("3D bounds-warning CSS anchor was not found");
-}
-output = output.replace(
-  boundsOverlayCssAnchor,
-  boundsOverlayCssAnchor +
-  ".bounds-warning-collapse{width:26px!important;height:26px!important;min-width:26px!important;padding:0!important;border:1px solid rgba(255,255,255,.28)!important;border-radius:6px!important;background:#2a3448!important;color:#fff!important;cursor:pointer!important;font:950 15px/1 Segoe UI,Arial,sans-serif!important;flex:0 0 auto}.bounds-warning-collapse:hover{background:#3a4963!important;border-color:#9bb8dc!important}.bounds-warning-summary{display:none;font:900 11px/1.2 Segoe UI,Arial,sans-serif;white-space:nowrap}.bounds-warning.collapsed{width:auto!important;max-width:calc(100% - 24px)!important;min-width:0!important;padding:5px 7px!important;gap:7px!important}.bounds-warning.collapsed .bounds-warning-text,.bounds-warning.collapsed .bounds-warning-actions{display:none!important}.bounds-warning.collapsed .bounds-warning-summary{display:inline!important}.bounds-warning.collapsed .bounds-warning-main{gap:5px!important}.bounds-warning.collapsed .bounds-warning-icon{font-size:15px!important}"
+output=output.replace("</head>","<style>"+
+".bounds-warning-collapse{width:26px!important;height:26px!important;min-width:26px!important;padding:0!important;border:1px solid rgba(255,255,255,.28)!important;border-radius:6px!important;background:#2a3448!important;color:#fff!important;cursor:pointer!important;font:950 15px/1 Segoe UI,Arial,sans-serif!important;flex:0 0 auto}.bounds-warning-collapse:hover{background:#3a4963!important;border-color:#9bb8dc!important}.bounds-warning-summary{display:none;font:900 11px/1.2 Segoe UI,Arial,sans-serif;white-space:nowrap}.bounds-warning.collapsed{width:auto!important;max-width:calc(100% - 24px)!important;min-width:0!important;padding:5px 7px!important;gap:7px!important}.bounds-warning.collapsed .bounds-warning-text,.bounds-warning.collapsed .bounds-warning-actions{display:none!important}.bounds-warning.collapsed .bounds-warning-summary{display:inline!important}.bounds-warning.collapsed .bounds-warning-main{gap:5px!important}.bounds-warning.collapsed .bounds-warning-icon{font-size:15px!important}"+"</style></head>"
 );
 
 const oldBoundsOverlayHtml = `<div aria-live="polite" class="bounds-warning hidden" id="boundsWarning" role="alert">
@@ -3211,8 +3143,7 @@ if(!output.includes("window.TubeBenderStartupStatus") ||
   throw new Error("PERF-001/003 runtime integration failed");
 }
 
-// Apply responsive containment after legacy/pixel-matched CSS is assembled.
-// Styles are scoped to <=1120px and do not change the approved desktop reference.
+// Apply responsive containment to the shared editor controls and current shell.
 if(!output.includes("</head>"))throw new Error("MOB-001 head anchor missing");
 if(output.includes("tbMobileViewportMOB001"))throw new Error("MOB-001 style already injected");
 output=output.replace("</head>", renderMobileViewportStyle()+"\n</head>");
