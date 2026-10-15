@@ -37,13 +37,11 @@ export const MOBILE_VIEWPORT_CSS = String.raw`
   }
   body.tb-project-map .tb-map-left,
   body.tb-project-map .tb-map-right {
-    max-height: calc(100dvh - var(--r7-head) - var(--r7-foot) - 10px) !important;
+    max-height: calc(100dvh - var(--tb-header, 69px) - var(--tb-bottom, 48px) - 10px) !important;
   }
   /* Preserve local scrolling in the drawers; never globally disable it. */
-  body.tb-project-map .construction-tree-body,
-  body.tb-project-map .tb-check-list,
-  body.tb-project-map .tb-production-body,
-  body.tb-project-map .tb-edit-body,
+  body.tb-project-map .tb-tree-scroll,
+  body.tb-project-map .tb-map-right,
   body.tb-project-map .settings-pane {
     overscroll-behavior: contain;
   }

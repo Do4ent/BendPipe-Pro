@@ -10,9 +10,11 @@ Right-click the ribbon or header to choose icons with captions, icons only, comp
 
 Native Properties remains in the inspector; on mobile, opening it reveals the inspector and leaves bottom navigation reachable. The All Panels drawer retains native tools not represented in the current task ribbon, including normalization, tolerances, markers, command history/settings and the transform gizmo. Removing these native controls would remove working features.
 
-Native launchers outside the drawer are hidden from first paint. A direct-body observer places late-created controls in All Panels immediately, preserving the original DOM nodes and their actions. There is no delayed two-second collection step.
+Native launchers outside the drawer are hidden from first paint. Observers on the body and header place late-created controls in All Panels immediately, preserving their actions. Measurements and Editing launchers also live in this drawer, leaving the header for project actions. There is no delayed collection step.
 
-Classic switching and its DOM restoration/CSS are removed. Obsolete Checks/Technology cards and the old Layers launcher are removed from the shared application template. `legacy/VC207R7` still contains the shared application runtime and editor templates required by the builder; it is not a separately shipped or selectable interface.
+The source under `legacy/VC207R7` is retired. Shared editor, viewer, dialogs and calculation/runtime code live in `src/application/editor.html`, composed by `src/application/browser-source.mjs`. Editor controls and the current shell have separate CSS in `src/ui`. The old title bar, hidden workbench, duplicate construction tree/project buttons, unused editing dashboard, mockup styles/layout observer and decorative window/navigation/snap controls are deleted. Historical code remains available through Git history.
+
+The live unfold drawing is available through **Развёртка** in bottom navigation. Selecting a task stage or executing a ribbon command returns to the 3D view. Editing a dimension still uses the shared validated editor; no copied or inferred dimensions are introduced by this presentation change.
 
 Build and verify:
 

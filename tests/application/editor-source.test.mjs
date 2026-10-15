@@ -3,12 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 
-const SOURCE_PATH = new URL(
-  "../../legacy/VC207R7/TubeBender_CAD_VC207R7_Pixel_Matched_Approved_Interface_Release.html",
-  import.meta.url
-);
-
-const html = fs.readFileSync(SOURCE_PATH, "utf8");
+import {readBrowserSource} from "../../src/application/browser-source.mjs";
+const html = readBrowserSource();
 
 function functionSlice(name, nextName) {
   const startCandidates = [
@@ -34,7 +30,7 @@ function functionSlice(name, nextName) {
   return html.slice(start, end);
 }
 
-test("legacy VC207R7 inline JavaScript remains syntax-valid", () => {
+test("shared editor inline JavaScript remains syntax-valid", () => {
   const scriptPattern = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
   let count = 0;
   for (const match of html.matchAll(scriptPattern)) {
@@ -42,10 +38,10 @@ test("legacy VC207R7 inline JavaScript remains syntax-valid", () => {
     const code = match[2] ?? "";
     if (/\bsrc\s*=/.test(attrs)) continue;
     if (/type\s*=\s*["'](?:application\/json|application\/ld\+json)["']/i.test(attrs)) continue;
-    new vm.Script(code, { filename: `vc207r7-inline-${count + 1}.js` });
+    new vm.Script(code, { filename: `editor-inline-${count + 1}.js` });
     count += 1;
   }
-  assert.ok(count >= 8, `expected at least 8 inline scripts, compiled ${count}`);
+  assert.ok(count > 0, "shared editor must contain executable runtime scripts");
 });
 
 test("legacy engineering and simulation helper surface is preserved", () => {
@@ -206,7 +202,6 @@ test("A06: angle edit updates numeric value and angleFormula atomically", () => 
 
 test("A07: bend-plane edit goes through candidate validation before commit", () => {
   const validation = functionSlice("collisionKeyForTube", "lengthHint");
-  const editor = functionSlice("refreshEditPanel", "refreshHeader");
 
   assert.match(validation, /function validateCandidateRowsForCommit/);
   assert.match(validation, /developedLengthWithRows/);
@@ -216,20 +211,11 @@ test("A07: bend-plane edit goes through candidate validation before commit", () 
   assert.match(validation, /function commitBendPlaneChange/);
   assert.match(validation, /state\.rows=candidate/);
 
-  assert.match(
-    editor,
-    /commitBendPlaneChange\(i,e\.target\.value,e\.target\)/
-  );
-  assert.doesNotMatch(
-    editor,
-    /tbEditPlane[^\n]*r\.plane=e\.target\.value/
-  );
 });
 
 test("A08: modern editing entry points enforce readonly", () => {
   const edit = functionSlice("editCell", "minStraight");
   const plane = functionSlice("commitBendPlaneChange", "lengthHint");
-  const editor = functionSlice("refreshEditPanel", "refreshHeader");
   const readOnlyUi = functionSlice("poApplyReadOnlyUi", "poCreateEditableCopy");
   const commandStart = html.indexOf("function tbModelCommand(");
   const commandEnd = html.indexOf("\nwindow.TubeBenderHistory=", commandStart);
@@ -238,9 +224,6 @@ test("A08: modern editing entry points enforce readonly", () => {
   assert.match(edit, /tbModelCommand\(/);
   assert.match(plane, /tbModelCommand\(/);
   assert.match(command, /poReadOnly\(\)/);
-  assert.match(editor, /data-origin-axis[^]*poReadOnly\(\)/);
-  assert.match(readOnlyUi, /#tbEditSummary input/);
-  assert.match(readOnlyUi, /#tbEditSummary select/);
 });
 
 
@@ -464,17 +447,10 @@ test("A15: simulation uses per-bend CLR instead of one global style radius", () 
   assert.match(collision, /machinePose\.bendRadius/);
 });
 
-test("A15: bend editor shows persisted CLR and origin does not pretend to have one", () => {
-  const editor = functionSlice("refreshEditPanel", "refreshHeader");
-
-  assert.match(
-    editor,
-    /bendCenterlineRadiusMm\(r,state\.diameterIndex\)\+' мм'/
-  );
-  assert.match(
-    editor,
-    /\[mt\('angle'\),'—','',true\],\[mt\('radius'\),'—','',true\]/
-  );
+test("A15: current properties show persisted CLR without substituting an origin radius", () => {
+  const properties=fs.readFileSync(new URL("../../src/ui/properties-panel-runtime.js",import.meta.url),"utf8");
+  assert.match(properties,/\["CLR",row\?\.clr\?\?row\?\.radius\]/);
+  assert.match(properties,/entry\.kind==="origin"\?"Origin":"End"/);
 });
 
 
@@ -781,7 +757,7 @@ test("A14: NC export is not shown for manual or non-CNC profiles", () => {
 
 
 test("A16: project tree groups offset rows by assemblyId", () => {
-  const tree = functionSlice("refreshProjectTree", "refreshEditPanel");
+  const tree = functionSlice("refreshProjectTree", "refreshHeader");
 
   assert.match(tree, /ensureConstructionMetadata\(\)/);
   assert.match(tree, /renderedAssemblies=new Set\(\)/);
@@ -793,7 +769,7 @@ test("A16: project tree groups offset rows by assemblyId", () => {
 });
 
 test("A16: offset children select the assembly rather than an independent row", () => {
-  const tree = functionSlice("refreshProjectTree", "refreshEditPanel");
+  const tree = functionSlice("refreshProjectTree", "refreshHeader");
 
   assert.match(
     tree,
@@ -806,7 +782,7 @@ test("A16: offset children select the assembly rather than an independent row", 
 });
 
 test("A16: composite offset collapse state is persisted in the tree", () => {
-  const tree = functionSlice("refreshProjectTree", "refreshEditPanel");
+  const tree = functionSlice("refreshProjectTree", "refreshHeader");
 
   assert.match(tree, /state\.collapsedAssemblies\?\.\[assemblyId\]===true/);
   assert.match(tree, /data-tree-assembly-toggle/);
@@ -814,74 +790,35 @@ test("A16: composite offset collapse state is persisted in the tree", () => {
   assert.match(tree, /save\(\);refreshProjectTree\(\)/);
 });
 
-test("A16: null bottom selection cannot become row zero", () => {
-  const editor = functionSlice("refreshEditPanel", "refreshHeader");
-  const tree = functionSlice("refreshProjectTree", "refreshEditPanel");
-
-  assert.match(
-    editor,
-    /Number\.isInteger\(bottomParamEditorIndex\)&&bottomParamEditorIndex>=0/
-  );
-  assert.doesNotMatch(editor, /const i=Number\(bottomParamEditorIndex\)/);
-  assert.match(
-    tree,
-    /Number\.isInteger\(bottomParamEditorIndex\)&&bottomParamEditorIndex===i/
-  );
-});
-
-test("A16: selected offset shows a composite editor summary instead of row zero", () => {
-  const editor = functionSlice("refreshEditPanel", "refreshHeader");
-
-  assert.match(editor, /if\(selectedAssemblyId\)/);
-  assert.match(editor, /offsetAssemblyRows\(selectedAssemblyId\)/);
-  assert.match(editor, /offsetAssemblyDefinition\(selectedAssemblyId\)/);
-  assert.match(editor, /Внутренние LINE\/BEND редактируются через параметры офсета/);
-  assert.match(editor, /Составной офсет/);
+test("A16: null tree selection cannot become row zero", () => {
+  const tree = functionSlice("refreshProjectTree", "refreshHeader");
+  assert.match(tree,/Number\.isInteger\(bottomParamEditorIndex\)&&bottomParamEditorIndex===i/);
 });
 
 
-test("A17: pixel-match layout patch no longer owns localized text", () => {
-  const start = html.indexOf("function setApprovedText(");
-  const end = html.indexOf("\n  let mockupRefreshQueued", start);
-  assert.notEqual(start, -1);
-  assert.notEqual(end, -1);
-  const block = html.slice(start, end);
-
-  assert.doesNotMatch(block, /textContent\s*=/);
-  assert.doesNotMatch(block, /Профессиональное проектирование трубопроводов/);
-  assert.doesNotMatch(block, /＋ Новый/);
-  assert.match(block, /must not own interface language/);
+test("A16: offset children keep the composite selection route", () => {
+  const selection=functionSlice("selectConstructionRow","deleteOffsetAssembly");
+  assert.match(selection,/isOffsetRow\(row\)\) return selectOffsetAssembly\(row\.assemblyId,false\)/);
 });
 
-test("A17: approved mockup refresh is queued and guarded against reentry", () => {
-  const start = html.indexOf("let mockupRefreshQueued=false;");
-  const end = html.indexOf("window.TubeBenderApprovedMockup=", start);
-  assert.notEqual(start, -1);
-  assert.notEqual(end, -1);
-  const block = html.slice(start, end);
 
-  assert.match(block, /let mockupRefreshing=false/);
-  assert.match(block, /if\(mockupRefreshing\)return/);
-  assert.match(block, /function scheduleExactRefresh\(/);
-  assert.match(block, /if\(mockupRefreshQueued\)return/);
-  assert.match(block, /requestAnimationFrame/);
-  assert.doesNotMatch(block, /setTimeout\(exactRefresh,0\)/);
+test("A17: retired mockup and hidden workbench code are absent from the source", () => {
+  assert.doesNotMatch(html,/TubeBenderApprovedMockup|tbLegacyWorkbenchHost|refreshEditPanel|inventorChrome|tbEditSummary|tbVC207R7PixelMatchedRuntime|hidden-toolbar-legacy/);
 });
 
-test("A17: resize schedules layout only and does not force a language rewrite", () => {
-  const start = html.indexOf("function exactRefresh(");
-  const end = html.indexOf("function scheduleExactRefresh(", start);
-  assert.notEqual(start, -1);
-  assert.notEqual(end, -1);
-  const refresh = html.slice(start, end);
 
-  const layoutStart = html.indexOf("let mockupRefreshQueued=false;");
-  const layoutEnd = html.indexOf("window.TubeBenderApprovedMockup=", layoutStart);
-  const layout = html.slice(layoutStart, layoutEnd);
+test("A17: current shell mounts view tools once without a layout mutation observer", () => {
+  const shell=functionSlice("buildShell","bindShell");
+  assert.match(shell,/if\(TBUI\.mounted\)return/);
+  assert.match(shell,/viewer\.querySelectorAll\('\.hud'\)/);
+  assert.doesNotMatch(shell,/MutationObserver|workbench/);
+});
 
-  assert.match(layout, /window\.addEventListener\('resize',scheduleExactRefresh\)/);
-  assert.doesNotMatch(refresh, /setApprovedText\(\)/);
-  assert.doesNotMatch(refresh, /TubeBenderI18n\?\.apply/);
+
+test("A17: one current viewport owns the unfold panel", () => {
+  assert.match(html,/id="cadUnfoldPanel" hidden/);
+  assert.match(html,/data-tab="unfold"/);
+  assert.doesNotMatch(html,/isUnfoldFullscreen|autoFitUnfoldWindow/);
 });
 
 

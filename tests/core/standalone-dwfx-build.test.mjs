@@ -366,21 +366,20 @@ test("A48: standalone exposes synchronized 3D and tree object context menus",()=
 });
 
 
-test("A49: standalone preserves VC207R7 flex header and clamps Project/Tube dropdowns",()=>{
+test("A49: current header clamps Project/Tube dropdowns",()=>{
   if(!fs.existsSync(output)){
     execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
   }
   const html=fs.readFileSync(output,"utf8");
 
   assert.match(html,/data-tubebender-bundled="project-tube-bar-layout-fix"/);
-  assert.match(html,/preserve the native \.tb-map-header flex layout/);
+
   assert.match(html,/body\.tb-project-map \.tb-map-header\{[\s\S]*min-width:0!important/);
   assert.match(html,/body\.tb-project-map #projectEditor\{[\s\S]*order:0!important/);
   assert.match(html,/@media \(min-width:1121px\) and \(max-width:1240px\)\{[\s\S]*\.tb-brand\{[\s\S]*flex:0 0 53px!important[\s\S]*\.tb-brand-text\{[\s\S]*display:none!important/);
   assert.match(html,/@media \(min-width:1121px\) and \(max-width:1550px\)\{[\s\S]*project-group,[\s\S]*tube-group\{[\s\S]*flex:1 1 0!important/);
   assert.doesNotMatch(html,/body\.tb-project-map \.tb-brand\{grid-column:/);
   assert.doesNotMatch(html,/body\.tb-project-map #projectEditor\{grid-column:/);
-  assert.doesNotMatch(html,/body\.tb-project-map \.tb-window-controls\{[\s\S]*grid-column:/);
 
   assert.match(html,/body\.tb-project-map #tubeDropdown[\s\S]*position:fixed!important/);
   assert.match(html,/max-width:calc\(100vw - 16px\)!important/);
@@ -394,8 +393,6 @@ test("A49: standalone preserves VC207R7 flex header and clamps Project/Tube drop
   assert.match(html,/rowCount:tube\.querySelectorAll/);
   assert.match(html,/brandProject:overlaps\(brand,editor\)/);
   assert.match(html,/projectActions:overlaps\(editor,actions\)/);
-  assert.match(html,/actionsWindow:overlaps\(actions,controls\)/);
-  assert.match(html,/windowChecks:overlaps\(controls,checksHead\)/);
 });
 
 
@@ -415,33 +412,10 @@ test("A50: 3D component selection preserves the current viewer framing",()=>{
 });
 
 
-test("A51: window controls are repaired into the final top header and stay last",()=>{
-  if(!fs.existsSync(output)){
-    execFileSync(process.execPath,["scripts/build-standalone.mjs"],{cwd:root});
-  }
+test("A51: retired window chrome is not included in the build",()=>{
   const html=fs.readFileSync(output,"utf8");
-
-  assert.match(html,/\.tb-map-header\{height:var\(--r7-head\)!important/);
-  assert.match(html,/\.tb-window-controls\{display:flex;gap:4px;align-items:center/);
-  assert.match(html,/\.tb-window-control\{width:38px;height:38px/);
-  assert.match(html,/@media \(max-width:1120px\)\{[\s\S]*\.tb-head-actions,\.tb-window-controls\{display:none!important\}/);
-
-  assert.match(html,/let c=document\.getElementById\('tbWindowControls'\)/);
-  assert.match(html,/if\(!c\)\{c=document\.createElement\('div'\)/);
-  assert.match(html,/if\(c\.parentElement!==h\|\|h\.lastElementChild!==c\)h\.appendChild\(c\)/);
-
-  assert.match(html,/body\.tb-project-map \.tb-brand\{order:10!important/);
-  assert.match(html,/body\.tb-project-map #projectEditor\{order:20!important/);
-  assert.match(html,/body\.tb-project-map \.tb-map-head-spacer\{order:30!important/);
-  assert.match(html,/body\.tb-project-map \.tb-head-actions\{order:40!important/);
-  assert.match(html,/body\.tb-project-map \.tb-window-controls\{[\s\S]*order:50!important[\s\S]*position:static!important/);
-
-  const min=html.indexOf('id="tbWinMin"');
-  const max=html.indexOf('id="tbWinMax"');
-  const close=html.indexOf('id="tbWinClose"');
-  assert.ok(min>=0&&max>min&&close>max);
+  assert.doesNotMatch(html,/tbWindowControls|tbWinMin|tbWinMax|tbWinClose|tb-window-controls|--r7-head/);
 });
-
 
 
 test("A53: left drag orbits, middle drag pans, and right click remains for context menu",()=>{
@@ -491,12 +465,9 @@ test("A57: Project Map no longer renders the Editing area",()=>{
   assert.doesNotMatch(html,/<section class="tb-card tb-map-edit">/);
   assert.doesNotMatch(html,/id="tbEditSummary"/);
   assert.doesNotMatch(html,/data-tab="edit"/);
-  assert.match(html,/legacyWorkbenchHost\.id='tbLegacyWorkbenchHost'/);
-  assert.match(html,/#tbLegacyWorkbenchHost\{display:none!important\}/);
-  assert.match(
-    html,
-    /body\.tb-project-map \.tb-map-center\{grid-template-rows:minmax\(0,1fr\)!important;gap:0!important\}/
-  );
+  assert.doesNotMatch(html,/tbLegacyWorkbenchHost|refreshEditPanel|tbVC207R7PixelMatched|inventorChrome|hidden-toolbar-legacy/);
+  assert.match(html,/id="cadUnfoldPanel" hidden/);
+  assert.match(html,/data-tab="unfold"/);
 });
 
 
