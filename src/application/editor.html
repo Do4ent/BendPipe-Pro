@@ -7797,8 +7797,15 @@ function editSelectedConstructionItem(){
   if(Number.isInteger(i)&&state.rows[i]) openRowParamEditor(i);
   else ptToast('Элемент не выбран');
 }
+let workspaceTreeRefreshPending=false;
 function renderSegments(){
-  window.TubeBenderProjectMapUI?.refresh?.();
+  if(workspaceTreeRefreshPending)return;
+  workspaceTreeRefreshPending=true;
+  // Preserve the clicked tree node through document-level selection handlers.
+  requestAnimationFrame(()=>{
+    workspaceTreeRefreshPending=false;
+    window.TubeBenderProjectMapUI?.refresh?.();
+  });
 }
 function editCell(i,field,value){
   return tbModelCommand(field==='angle'?'Изменить угол гиба':'Изменить длину',()=>{

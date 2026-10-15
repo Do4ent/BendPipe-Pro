@@ -104,6 +104,9 @@ test("[CAD-LAYERS] LAYER aliases open native manager and layer edits persist wit
     return {id:tube.id,geometry:JSON.stringify({rows:tube.rows,evidence:tube.importEvidence,validation:tube.importValidation})};
   });
   await page.locator(`#tbProjectTree [data-tree-tube="${snapshot.id}"]`).first().click();
+  await expect.poll(()=>page.evaluate(id=>window.TubeBenderObjectContext.selectionEntries().some(
+    entry=>entry.kind==="tube"&&entry.tubeId===id
+  ),snapshot.id)).toBe(true);
   await page.locator("[data-layer-new-name]").fill("Монтаж");
   await page.locator("[data-layer-new]").click();
   const layerId=await page.evaluate(()=>window.TubeBenderLayers.layers().find(layer=>layer.name==="Монтаж").id);
