@@ -39,7 +39,7 @@ test("80004806: ни одна деталь не готова к производ
   assert.equal(golden.invariants.machine_compensation_applied, false);
 });
 
-test("80004806: размеры четырёх деталей эталона совпадают с импортом", () => {
+test("80004806: размеры всех деталей эталона совпадают с импортом", () => {
   for (const gt of golden.tubes) {
     const r = byPart.get(gt.part_number);
     assert.ok(r, `деталь ${gt.part_number} есть в импорте`);

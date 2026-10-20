@@ -10,20 +10,27 @@
     "status": "dwfx_project_candidate",
     "editable_ready": true,
     "production_ready": false,
+    "part_count": 9,
+    "editable_count": 9,
+    "blocked_count": 0,
     "active_parts": [
       "10100407",
       "10102202",
       "10102201",
-      "10102217"
+      "10102217",
+      "10102473",
+      "10139798",
+      "10134724",
+      "10141451",
+      "10141455"
     ],
-    "uninstantiated_metadata_parts": [
-      "10102473"
-    ]
+    "uninstantiated_metadata_parts": []
   },
   "hsf_linkage": [
     {
       "part_number": "10100407",
       "graphics_node": 119734,
+      "geometric_variation": null,
       "anchor_kind": "graphics_node_successor_no_variation",
       "anchor_segment": "119735",
       "include_library": "?Include Library/12928"
@@ -31,6 +38,7 @@
     {
       "part_number": "10102202",
       "graphics_node": 119735,
+      "geometric_variation": null,
       "anchor_kind": "graphics_node_successor_no_variation",
       "anchor_segment": "119736",
       "include_library": "?Include Library/12937"
@@ -38,6 +46,7 @@
     {
       "part_number": "10102201",
       "graphics_node": 119736,
+      "geometric_variation": null,
       "anchor_kind": "graphics_node_successor_no_variation",
       "anchor_segment": "119737",
       "include_library": "?Include Library/12950"
@@ -45,138 +54,436 @@
     {
       "part_number": "10102217",
       "graphics_node": 119775,
+      "geometric_variation": null,
       "anchor_kind": "graphics_node_successor_no_variation",
       "anchor_segment": "119776",
       "include_library": "?Include Library/19228"
+    },
+    {
+      "part_number": "10102473",
+      "graphics_node": 119942,
+      "geometric_variation": 119943,
+      "anchor_kind": "geometric_variation",
+      "anchor_segment": "119943",
+      "include_library": "?Include Library/116554"
+    },
+    {
+      "part_number": "10139798",
+      "graphics_node": 119957,
+      "geometric_variation": 119958,
+      "anchor_kind": "geometric_variation",
+      "anchor_segment": "119958",
+      "include_library": "?Include Library/117744"
+    },
+    {
+      "part_number": "10134724",
+      "graphics_node": 119959,
+      "geometric_variation": 119960,
+      "anchor_kind": "geometric_variation",
+      "anchor_segment": "119960",
+      "include_library": "?Include Library/117753"
+    },
+    {
+      "part_number": "10141451",
+      "graphics_node": 120036,
+      "geometric_variation": 120037,
+      "anchor_kind": "geometric_variation",
+      "anchor_segment": "120037",
+      "include_library": "?Include Library/119159"
+    },
+    {
+      "part_number": "10141455",
+      "graphics_node": 120041,
+      "geometric_variation": 120042,
+      "anchor_kind": "geometric_variation",
+      "anchor_segment": "120042",
+      "include_library": "?Include Library/119192"
     }
   ],
   "tubes": [
     {
       "part_number": "10100407",
+      "dimension_source": "geometry_derived",
       "metadata": {
         "outer_diameter_mm": 19.05,
         "wall_thickness_mm": 1.7,
         "developed_length_mm": 37
       },
       "geometry": {
-        "derived_outer_diameter_mm": 19.050000155660367,
-        "derived_wall_thickness_mm": 1.0600000063429977,
+        "derived_outer_diameter_mm": 19.05,
+        "derived_wall_thickness_mm": 1.06,
         "reconstructed_developed_length_mm": 37.00000047683716
       },
       "metadata_conflict": {
         "dimensions": true,
-        "developed_length": false,
-        "blocks_production": true
+        "blocks_production": true,
+        "developed_length": false
       },
       "editable_rows": [
         {
           "type": "LINE",
-          "length_mm": 37.00000047683716
+          "length_mm": 37.0
         }
       ]
     },
     {
       "part_number": "10102202",
+      "dimension_source": "geometry_derived",
       "metadata": {
         "outer_diameter_mm": 15.875,
         "wall_thickness_mm": 0.9,
         "developed_length_mm": 490
       },
       "geometry": {
-        "derived_outer_diameter_mm": 14.83499926108594,
-        "derived_wall_thickness_mm": 0.8174996289007552,
+        "derived_outer_diameter_mm": 14.834999,
+        "derived_wall_thickness_mm": 0.8175,
         "reconstructed_developed_length_mm": 494.9998153703744
       },
       "metadata_conflict": {
         "dimensions": true,
-        "developed_length": true,
-        "blocks_production": true
+        "blocks_production": true,
+        "developed_length": true
       },
       "editable_rows": [
         {
           "type": "LINE",
-          "length_mm": 286.45999908447266
+          "length_mm": 286.46
         },
         {
           "type": "BEND",
-          "angle_deg": 90,
-          "clr_mm": 50.00000355720564,
-          "plane": "XY",
-          "rotation_deg": 0
+          "angle_deg": 90.0
         },
         {
           "type": "LINE",
-          "length_mm": 130
+          "length_mm": 130.0
         }
       ]
     },
     {
       "part_number": "10102201",
+      "dimension_source": "geometry_derived",
       "metadata": {
         "outer_diameter_mm": 19.05,
         "wall_thickness_mm": 1.7,
         "developed_length_mm": 145
       },
       "geometry": {
-        "derived_outer_diameter_mm": 19.049999993583505,
-        "derived_wall_thickness_mm": 1.0600000076874156,
+        "derived_outer_diameter_mm": 19.05,
+        "derived_wall_thickness_mm": 1.06,
         "reconstructed_developed_length_mm": 145
       },
       "metadata_conflict": {
         "dimensions": true,
-        "developed_length": false,
-        "blocks_production": true
+        "blocks_production": true,
+        "developed_length": false
       },
       "editable_rows": [
         {
           "type": "LINE",
-          "length_mm": 145
+          "length_mm": 145.0
         }
       ]
     },
     {
       "part_number": "10102217",
+      "dimension_source": "geometry_derived",
       "metadata": {
         "outer_diameter_mm": 9.525,
         "wall_thickness_mm": 0.76,
         "developed_length_mm": 730
       },
       "geometry": {
-        "derived_outer_diameter_mm": 9.700000225028342,
-        "derived_wall_thickness_mm": 0.7600001110192149,
+        "derived_outer_diameter_mm": 9.7,
+        "derived_wall_thickness_mm": 0.76,
         "reconstructed_developed_length_mm": 774.9025934790602
       },
       "metadata_conflict": {
         "dimensions": true,
-        "developed_length": true,
+        "blocks_production": true,
+        "developed_length": true
+      },
+      "editable_rows": [
+        {
+          "type": "LINE",
+          "length_mm": 10.0
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 113.4174
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 15.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 583.4174
+        }
+      ]
+    },
+    {
+      "part_number": "10102473",
+      "dimension_source": "metadata_confirmed",
+      "metadata": {
+        "outer_diameter_mm": 9.525,
+        "wall_thickness_mm": 0.76
+      },
+      "geometry": {
+        "derived_outer_diameter_mm": 9.524997,
+        "derived_wall_thickness_mm": 0.762499
+      },
+      "metadata_conflict": {
+        "dimensions": false,
+        "blocks_production": false
+      },
+      "editable_rows": [
+        {
+          "type": "LINE",
+          "length_mm": 42.7608
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0017
+        },
+        {
+          "type": "LINE",
+          "length_mm": 283.0201
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0009
+        },
+        {
+          "type": "LINE",
+          "length_mm": 78.7678
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 45.0013
+        },
+        {
+          "type": "LINE",
+          "length_mm": 748.0855
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 16.2737
+        }
+      ]
+    },
+    {
+      "part_number": "10139798",
+      "dimension_source": "geometry_derived",
+      "metadata": {
+        "outer_diameter_mm": 19.05,
+        "wall_thickness_mm": 1.7
+      },
+      "geometry": {
+        "derived_outer_diameter_mm": 19.049998,
+        "derived_wall_thickness_mm": 1.059999
+      },
+      "metadata_conflict": {
+        "dimensions": true,
         "blocks_production": true
       },
       "editable_rows": [
         {
           "type": "LINE",
-          "length_mm": 10
+          "length_mm": 120.0
+        }
+      ]
+    },
+    {
+      "part_number": "10134724",
+      "dimension_source": "metadata_confirmed",
+      "metadata": {
+        "outer_diameter_mm": 9.525,
+        "wall_thickness_mm": 0.76
+      },
+      "geometry": {
+        "derived_outer_diameter_mm": 9.524998,
+        "derived_wall_thickness_mm": 0.762499
+      },
+      "metadata_conflict": {
+        "dimensions": false,
+        "blocks_production": false
+      },
+      "editable_rows": [
+        {
+          "type": "LINE",
+          "length_mm": 9.9998
         },
         {
           "type": "BEND",
-          "angle_deg": 90,
-          "clr_mm": 34.999999750254474,
-          "plane": "XY",
-          "rotation_deg": 0
+          "angle_deg": 90.0
         },
         {
           "type": "LINE",
-          "length_mm": 113.41737747192383
+          "length_mm": 267.6871
         },
         {
           "type": "BEND",
-          "angle_deg": 15,
-          "clr_mm": 50.00004630782671,
-          "plane": "XZ",
-          "rotation_deg": 0
+          "angle_deg": 90.0
         },
         {
           "type": "LINE",
-          "length_mm": 583.4173748876601
+          "length_mm": 25.0622
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 19.9998
+        }
+      ]
+    },
+    {
+      "part_number": "10141451",
+      "dimension_source": "geometry_derived",
+      "metadata": {
+        "outer_diameter_mm": 19.05,
+        "wall_thickness_mm": 1.7
+      },
+      "geometry": {
+        "derived_outer_diameter_mm": 19.049999,
+        "derived_wall_thickness_mm": 1.060001
+      },
+      "metadata_conflict": {
+        "dimensions": true,
+        "blocks_production": true
+      },
+      "editable_rows": [
+        {
+          "type": "LINE",
+          "length_mm": 40.0
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 5.0002
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 90.0002
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 27.9162
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 306.2665
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 38.9131
+        }
+      ]
+    },
+    {
+      "part_number": "10141455",
+      "dimension_source": "metadata_confirmed",
+      "metadata": {
+        "outer_diameter_mm": 12.7,
+        "wall_thickness_mm": 0.89
+      },
+      "geometry": {
+        "derived_outer_diameter_mm": 12.700001,
+        "derived_wall_thickness_mm": 0.89
+      },
+      "metadata_conflict": {
+        "dimensions": false,
+        "blocks_production": false
+      },
+      "editable_rows": [
+        {
+          "type": "LINE",
+          "length_mm": 28.4946
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 45.0002
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 373.072
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 54.5214
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 525.3542
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 571.3569
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 90.0
+        },
+        {
+          "type": "LINE",
+          "length_mm": 35.1152
+        },
+        {
+          "type": "BEND",
+          "angle_deg": 3.0364
+        },
+        {
+          "type": "LINE",
+          "length_mm": 89.9178
         }
       ]
     }
